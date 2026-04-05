@@ -34,7 +34,7 @@ serde_with = { version = "3.18", features = [] }
 thiserror = { version = "2" }
 derive_more = { version = "2", features = ["display", "from", "into", "deref", "constructor"] }
 derive_builder = { version = "0.20" }
-strum = { version = "0.27", features = ["derive"] }
+strum = { version = "0.28", features = ["derive"] }
 
 # Primitive datatypes
 uuid = { version = "1", features = ["v4", "serde"] }
