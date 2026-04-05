@@ -22,20 +22,20 @@ pub fn tick_factions(world: &mut World) {
         if def_id == war_id {
             // Warring factions increase danger in sectors they control
             for sector in world.sectors.values_mut() {
-                if let Some(ref ctrl) = sector.controlling_faction {
-                    if factions.contains(ctrl) {
-                        sector.danger_modifier += 0.1;
-                    }
+                if let Some(ref ctrl) = sector.controlling_faction
+                    && factions.contains(ctrl)
+                {
+                    sector.danger_modifier += 0.1;
                 }
             }
         } else if def_id == coup_id {
             // Partial standing reset with the player
-            if let Some(faction) = factions.first() {
-                if let Some(standing) = world.player.standing_mut(faction) {
-                    let current = standing.value();
-                    let delta = -(current as f32 * 0.3) as i8;
-                    standing.apply(delta);
-                }
+            if let Some(faction) = factions.first()
+                && let Some(standing) = world.player.standing_mut(faction)
+            {
+                let current = standing.value();
+                let delta = -(current as f32 * 0.3) as i8;
+                standing.apply(delta);
             }
         }
     }

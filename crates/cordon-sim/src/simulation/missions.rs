@@ -85,10 +85,11 @@ pub fn resolve_missions(world: &mut World) -> Vec<MissionResult> {
         if matches!(outcome, MissionOutcome::Failure) && has_coward {
             perks_revealed.push(cow_id.clone());
         }
-        if matches!(outcome, MissionOutcome::Success) && has_pathfinder {
-            if world.rng.missions.gen_bool(0.3) {
-                perks_revealed.push(pf_id.clone());
-            }
+        if matches!(outcome, MissionOutcome::Success)
+            && has_pathfinder
+            && world.rng.missions.gen_bool(0.3)
+        {
+            perks_revealed.push(pf_id.clone());
         }
 
         if let Some(runner) = world.npcs.get_mut(&mission.plan.runner_id) {
