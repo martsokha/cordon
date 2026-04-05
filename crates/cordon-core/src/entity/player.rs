@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::faction::{FactionId, Standing};
-use crate::npc::{NpcId, Role};
+use crate::entity::faction::{FactionId, Standing};
+use crate::entity::npc::{NpcId, Role};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum PlayerRank {

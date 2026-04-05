@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::item::ItemStack;
+use crate::economy::item::ItemStack;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BunkerState {

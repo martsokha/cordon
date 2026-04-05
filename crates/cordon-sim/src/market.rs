@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use cordon_core::item::ItemId;
-use cordon_core::price::{self, PriceModifiers};
+use cordon_core::economy::item::ItemId;
+use cordon_core::economy::price::{self, PriceModifiers};
 
 pub struct MarketState {
     pub supply: HashMap<ItemId, f32>,

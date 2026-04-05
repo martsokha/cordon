@@ -1,7 +1,7 @@
-use cordon_core::event::{Event, EventKind};
-use cordon_core::faction::FactionId;
-use cordon_core::item::ItemKind;
-use cordon_core::time::Day;
+use cordon_core::world::event::{Event, EventKind};
+use cordon_core::entity::faction::FactionId;
+use cordon_core::economy::item::ItemKind;
+use cordon_core::world::time::Day;
 use rand::Rng;
 
 use crate::world::World;

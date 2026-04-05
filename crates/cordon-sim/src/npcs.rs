@@ -1,5 +1,5 @@
-use cordon_core::faction::FactionId;
-use cordon_core::npc::{Npc, NpcCondition, NpcType, Need, Personality, Rank};
+use cordon_core::entity::faction::FactionId;
+use cordon_core::entity::npc::{Npc, NpcCondition, NpcType, Need, Personality, Rank};
 use rand::Rng;
 
 use crate::world::World;
@@ -122,8 +122,8 @@ fn pick_personality(rng: &mut impl Rng) -> Personality {
     options[rng.gen_range(0..options.len())]
 }
 
-fn generate_perks(rng: &mut impl Rng) -> Vec<cordon_core::npc::Perk> {
-    use cordon_core::npc::Perk;
+fn generate_perks(rng: &mut impl Rng) -> Vec<cordon_core::entity::npc::Perk> {
+    use cordon_core::entity::npc::Perk;
 
     let all_perks = [
         Perk::ScavengersEye,

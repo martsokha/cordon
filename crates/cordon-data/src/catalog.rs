@@ -1,6 +1,6 @@
-use cordon_core::faction::FactionRelation;
-use cordon_core::item::ItemDef;
-use cordon_core::sector::SectorDef;
+use cordon_core::entity::faction::FactionRelation;
+use cordon_core::economy::item::ItemDef;
+use cordon_core::world::sector::SectorDef;
 
 use crate::loot::LootTables;
 
@@ -13,7 +13,7 @@ pub struct GameData {
 }
 
 impl GameData {
-    pub fn item_by_id(&self, id: cordon_core::item::ItemId) -> Option<&ItemDef> {
+    pub fn item_by_id(&self, id: cordon_core::economy::item::ItemId) -> Option<&ItemDef> {
         self.items.iter().find(|i| i.id == id)
     }
 

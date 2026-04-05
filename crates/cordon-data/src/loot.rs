@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use cordon_core::item::ItemId;
-use cordon_core::sector::SectorId;
+use cordon_core::economy::item::ItemId;
+use cordon_core::world::sector::SectorId;
 
 /// A weighted entry in a loot table.
 #[derive(Debug, Clone)]

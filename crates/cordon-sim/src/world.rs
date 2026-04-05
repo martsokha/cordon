@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use cordon_core::bunker::BunkerState;
-use cordon_core::event::Event;
-use cordon_core::mission::ActiveMission;
-use cordon_core::npc::{Npc, NpcId};
-use cordon_core::player::PlayerState;
-use cordon_core::sector::SectorId;
-use cordon_core::time::GameTime;
+use cordon_core::world::event::Event;
+use cordon_core::economy::mission::ActiveMission;
+use cordon_core::entity::npc::{Npc, NpcId};
+use cordon_core::entity::player::PlayerState;
+use cordon_core::world::sector::SectorId;
+use cordon_core::world::time::GameTime;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 
@@ -55,13 +55,13 @@ impl World {
         id
     }
 
-    pub fn alloc_mission_id(&mut self) -> cordon_core::mission::MissionId {
-        let id = cordon_core::mission::MissionId(self.next_mission_id);
+    pub fn alloc_mission_id(&mut self) -> cordon_core::economy::mission::MissionId {
+        let id = cordon_core::economy::mission::MissionId(self.next_mission_id);
         self.next_mission_id += 1;
         id
     }
 
-    pub fn current_day(&self) -> cordon_core::time::Day {
+    pub fn current_day(&self) -> cordon_core::world::time::Day {
         self.time.day
     }
 }

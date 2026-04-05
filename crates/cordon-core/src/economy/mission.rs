@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::item::{ItemKind, ItemStack};
-use crate::npc::{NpcId, Perk};
-use crate::sector::SectorId;
-use crate::time::Day;
+use crate::economy::item::{ItemKind, ItemStack};
+use crate::entity::npc::{NpcId, Perk};
+use crate::world::sector::SectorId;
+use crate::world::time::Day;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct MissionId(pub u32);

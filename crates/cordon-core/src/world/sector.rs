@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::faction::FactionId;
+use crate::entity::faction::FactionId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum SectorId {

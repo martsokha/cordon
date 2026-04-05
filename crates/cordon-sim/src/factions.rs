@@ -1,5 +1,5 @@
-use cordon_core::event::EventKind;
-use cordon_core::faction::FactionId;
+use cordon_core::world::event::EventKind;
+use cordon_core::entity::faction::FactionId;
 
 use crate::world::World;
 

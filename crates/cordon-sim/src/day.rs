@@ -1,6 +1,6 @@
-use cordon_core::mission::MissionResult;
-use cordon_core::npc::Npc;
-use cordon_core::time::Phase;
+use cordon_core::economy::mission::MissionResult;
+use cordon_core::entity::npc::Npc;
+use cordon_core::world::time::Phase;
 
 use crate::events;
 use crate::factions;

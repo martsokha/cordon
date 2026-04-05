@@ -1,5 +1,5 @@
-use cordon_core::faction::FactionId;
-use cordon_core::sector::SectorId;
+use cordon_core::entity::faction::FactionId;
+use cordon_core::world::sector::SectorId;
 
 /// Live state of a sector in the world.
 pub struct SectorState {

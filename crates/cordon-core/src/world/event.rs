@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::faction::FactionId;
-use crate::item::ItemKind;
-use crate::npc::NpcId;
-use crate::time::Day;
+use crate::entity::faction::FactionId;
+use crate::economy::item::ItemKind;
+use crate::entity::npc::NpcId;
+use crate::world::time::Day;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EventKind {
