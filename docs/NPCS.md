@@ -8,49 +8,61 @@ Every scavenger who walks up to your counter is a character, not just a transact
 
 ```
 NAME:        Viper                    [visible]
-FACTION:     The Collective           [visible — patches, gear, mannerisms]
-RANK:        Soldier                  [visible — gear quality, demeanor, how others address them]
-GEAR:        Worn leather jacket,     [visible — what they're carrying]
+FACTION:     The Collective           [visible: patches, gear, mannerisms]
+RANK:        Soldier                  [visible: gear quality, demeanor, how others address them]
+GEAR:        Worn leather jacket,     [visible: what they're carrying]
              damaged rifle
-TRUST:       Low                      [hidden — built over repeat interactions]
-WEALTH:      Poor                     [hidden — inferred from gear/offers]
-NEED:        Desperate (wounded)      [hidden — may or may not be obvious]
-PERSONALITY: Cautious, honest         [hidden — revealed through behavior over time]
-PERKS:       ???                      [hidden — revealed through actions/missions]
+TRUST:       Low                      [hidden: built over repeat interactions]
+WEALTH:      Poor                     [hidden: inferred from gear/offers]
+NEED:        Desperate (wounded)      [hidden: may or may not be obvious]
+PERSONALITY: Cautious, honest         [hidden: revealed through behavior over time]
+PERKS:       ???                      [hidden: revealed through actions/missions]
 ```
 
 **Visible attributes** (what the player sees in the interface):
-- **Name** — their name or alias
-- **Faction** — who they belong to. Every NPC has a faction, including Drifters. Read from patches, gear, mannerisms.
-- **Rank** — their standing within their faction. Affects what they can offer, what they'll accept, and how their faction reacts if you wrong them. A grunt and a lieutenant are very different customers.
-- **Gear** — what they're carrying and wearing. Gives clues about wealth, competence, and faction.
+- **Name**: their name or alias
+- **Faction**: who they belong to. Every NPC has a faction, including Drifters. Read from patches, gear, mannerisms.
+- **Rank**: their standing within their faction. Affects what they can offer, what they'll accept, and how their faction reacts if you wrong them. A grunt and a lieutenant are very different customers.
+- **Gear**: what they're carrying and wearing. Gives clues about wealth, competence, and faction.
 
 **Hidden attributes** (player never sees these directly — only infers through behavior):
-- **Trust** — how much they trust you personally. Built over repeat interactions.
-- **Wealth** — how much they can actually afford. Not always obvious — a ragged Drifter might have a fortune stashed.
-- **Need** — what they actually need vs. what they say they want. A desperate person may hide their desperation.
-- **Personality** — affects haggling style, honesty, patience. Emerges over multiple encounters.
-- **Perks** — special traits, revealed through actions (see below).
+- **Trust**: how much they trust you personally. Built over repeat interactions.
+- **Wealth**: how much they can actually afford. Not always obvious — a ragged Drifter might have a fortune stashed.
+- **Need**: what they actually need vs. what they say they want. A desperate person may hide their desperation.
+- **Personality**: affects haggling style, honesty, patience. Emerges over multiple encounters.
+- **Perks**: special traits, revealed through actions (see below).
 
 ### Rank
 
-Rank matters. It tells you who you're dealing with.
+Rank matters. It tells you who you're dealing with. All factions use the same 5-tier system, but the titles differ by culture.
 
-| Rank | Description | Gameplay effect |
-|------|-------------|-----------------|
-| **Grunt** | Bottom rung. Runs errands, does grunt work. | Small trades, low funds, faction doesn't care much if you screw them |
-| **Regular** | Reliable member. Trusted with real tasks. | Standard trades, moderate funds, faction notices mistreatment |
-| **Veteran** | Experienced, respected. Has pull within the faction. | Better goods, larger deals, faction reacts strongly to disrespect |
-| **Officer** | Leadership. Speaks with faction authority. | Can offer faction deals/contracts, carries faction resources, wronging them = faction incident |
-| **Elite** | Inner circle. Named characters. | Unique items, faction-level negotiations, killing/robbing one is an act of war |
+| Tier | Military (Order, Garrison) | Loose (Drifters, Syndicate, Mercenaries) | Religious (The Devoted) | Gameplay effect |
+|------|---------------------------|------------------------------------------|------------------------|-----------------|
+| 1 | **Grunt** | **Rookie** | **Pilgrim** | Small trades, low funds, faction doesn't care much if you screw them |
+| 2 | **Soldier** | **Seasoned** | **Acolyte** | Standard trades, moderate funds, faction notices mistreatment |
+| 3 | **Veteran** | **Hardened** | **Keeper** | Better goods, larger deals, faction reacts strongly to disrespect |
+| 4 | **Officer** | **Boss** | **Prophet** | Can offer faction deals/contracts, carries faction resources, wronging them = faction incident |
+| 5 | **Commander** | **Legend** | **Ascended** | Unique items, faction-level negotiations, killing/robbing one is an act of war |
 
-Drifters and Mercenaries use looser rank equivalents (Rookie → Seasoned → Hardened → Veteran → Legend).
+The Collective and Institute use academic-flavored titles but map to the military column (Recruit → Researcher → Senior → Director → Council).
 
-The Devoted use religious ranks (Pilgrim → Acolyte → Keeper → Prophet → Ascended).
+### Player Rank
+
+You have a rank too. It represents your standing as a trader in the Zone — how established, connected, and respected you are. Rank determines how many **squads** you can employ.
+
+| Player Rank | Title | Max Squads | How to reach |
+|-------------|-------|------------|--------------|
+| 1 | Nobody | 2 | Starting rank |
+| 2 | Known | 3 | Build reputation, complete early faction tasks |
+| 3 | Established | 4 | Sustained trade volume, multiple faction relationships |
+| 4 | Connected | 5 | High faction standings, major deals completed |
+| 5 | Legend | 6 | Endgame — Zone-wide reputation, major event involvement |
+
+Ranking up is not purchased — it's earned through gameplay. Trade volume, faction standing, completed missions, and surviving crises all contribute.
 
 ### Hidden Perks
 
-NPCs (and especially potential hires) have **perks** — traits that are invisible until revealed through actions. You don't get a stat sheet when someone walks in. You learn who they are by working with them.
+NPCs (and especially potential hires) have **perks**: traits that are invisible until revealed through actions. You don't get a stat sheet when someone walks in. You learn who they are by working with them.
 
 **How perks are revealed:**
 - A runner completes a mission → you discover they have "Scavenger's Eye" (finds better loot)
@@ -90,9 +102,9 @@ NPCs (and especially potential hires) have **perks** — traits that are invisib
 | **Informants** | Sell intel, rumors, tips | Rare |
 | **Special** | Story NPCs, quest givers, unique encounters | Scripted |
 
-## Recruitment & Hired Hands
+## Recruitment & Squads
 
-You can employ up to **2 people** at any time — split however you want between runners and guards. They're paid daily. Hiring is not an upgrade; it's an ongoing expense.
+You manage **squads**: each squad is one person assigned to a role (runner or guard). Your player rank determines how many squads you can maintain (starting at 2, up to 6). Each squad member is paid daily.
 
 **Who you can recruit:** Only Drifters, Syndicate members, and Mercenaries. Faction-aligned NPCs from the Order, Collective, Garrison, Institute, or Devoted won't abandon their cause to work for a trader. You're hiring the unaffiliated, the opportunistic, and the for-hire.
 
@@ -102,17 +114,17 @@ You can employ up to **2 people** at any time — split however you want between
 
 ### How recruitment works
 
-1. **NPC arrives looking for work** — they show up at your counter asking if you need anyone. You see their appearance, demeanor, and gear condition — but no stats, no perks.
-2. **You decide** — hire them, turn them away, or negotiate terms (pay rate, upfront equipment).
-3. **You can also offer jobs** — if a regular Drifter, Syndicate, or Mercenary customer seems capable, you can propose they work for you. Trust level affects whether they accept.
-4. **Assign a role** — runner (goes into the Zone) or guard (stays at the bunker).
-5. **Trial by fire** — their first mission or first raid reveals what they're actually made of. Perks emerge over time.
+1. **NPC arrives looking for work**: they show up at your counter asking if you need anyone. You see their appearance, demeanor, and gear condition — but no stats, no perks.
+2. **You decide**: hire them, turn them away, or negotiate terms (pay rate, upfront equipment).
+3. **You can also offer jobs**: if a regular Drifter, Syndicate, or Mercenary customer seems capable, you can propose they work for you. Trust level affects whether they accept.
+4. **Assign a role**: runner (goes into the Zone) or guard (stays at the bunker).
+5. **Trial by fire**: their first mission or first raid reveals what they're actually made of. Perks emerge over time.
 
 ### What you know at hire time
 
 - Their name and appearance
-- Their faction — visible from patches, gear, mannerisms
-- Their rank — gives a rough sense of competence
+- Their faction: visible from patches, gear, mannerisms
+- Their rank: gives a rough sense of competence
 - What gear they're carrying (gives hints — a well-armed NPC probably knows how to fight)
 - What they *say* about themselves (which may or may not be true)
 
@@ -125,9 +137,9 @@ You can employ up to **2 people** at any time — split however you want between
 
 ### Roles
 
-**Runners** — your hands in the Zone. They go out, scavenge, deliver, and gather intel. Your primary way to acquire goods beyond what walks through your door.
+**Runners**: your hands in the Zone. They go out, scavenge, deliver, and gather intel. Your primary way to acquire goods beyond what walks through your door.
 
-**Guards** — your muscle at the bunker. They deter theft, enable intimidation during negotiations, and defend against raids. A guard with the right perks can make your bunker nearly untouchable — but you won't know until a raid tests them.
+**Guards**: your muscle at the bunker. They deter theft, enable intimidation during negotiations, and defend against raids. A guard with the right perks can make your bunker nearly untouchable — but you won't know until a raid tests them.
 
 You can reassign roles between days. Firing someone is instant but burns trust — they may come back as a hostile customer, or badmouth you to their faction.
 
@@ -138,13 +150,13 @@ You can reassign roles between days. Firing someone is instant but burns trust �
 Each morning you can dispatch available runners:
 
 1. **Choose a runner** from your roster
-2. **Choose a destination** — sectors vary in risk and reward. Reachable sectors depend on your Radio/Antenna upgrade level.
+2. **Choose a destination**: sectors vary in risk and reward. Reachable sectors depend on your Radio/Antenna upgrade level.
 3. **Choose a mission type:**
-   - **Scavenge** — bring back whatever they find
-   - **Targeted search** — look for a specific item category (costs more, less total loot)
-   - **Delivery** — bring goods to a buyer in another sector (guaranteed sale, transit risk)
-   - **Recon** — gather intel on a sector (no loot, but information)
-4. **Equip them** — better gear = better survival odds. You pay for what they carry.
+   - **Scavenge**: bring back whatever they find
+   - **Targeted search**: look for a specific item category (costs more, less total loot)
+   - **Delivery**: bring goods to a buyer in another sector (guaranteed sale, transit risk)
+   - **Recon**: gather intel on a sector (no loot, but information)
+4. **Equip them**: better gear = better survival odds. You pay for what they carry.
 
 ### Mission Outcomes
 
@@ -175,18 +187,18 @@ Chances are modified by the runner's hidden perks, their equipment, the sector's
 
 ### Runner Management
 
-- **Pay** — runners expect payment. Underpay and they leave or steal.
-- **Equipment** — you can give runners weapons, armor, meds, and detectors from your inventory.
-- **Loyalty** — invisible stat. Builds over time with fair pay and good equipment. Drops with underpayment or sending them on suicide missions.
-- **Permadeath** — dead runners are gone. Their gear is gone. Your investment is lost.
+- **Pay**: runners expect payment. Underpay and they leave or steal.
+- **Equipment**: you can give runners weapons, armor, meds, and detectors from your inventory.
+- **Loyalty**: invisible stat. Builds over time with fair pay and good equipment. Drops with underpayment or sending them on suicide missions.
+- **Permadeath**: dead runners are gone. Their gear is gone. Your investment is lost.
 
 ## Guards
 
 Guards stay at the bunker and provide:
 
-- **Raid defense** — guards fight off attackers. More/better guards = better outcomes. Without a guard, thugs can rob you freely.
-- **Intimidation** — during negotiations, having a guard enables the Intimidate action. The guard's hidden perks affect how effective it is.
-- **Deterrence** — NPCs with hostile intent are less likely to try something if they see armed guards.
+- **Raid defense**: guards fight off attackers. More/better guards = better outcomes. Without a guard, thugs can rob you freely.
+- **Intimidation**: during negotiations, having a guard enables the Intimidate action. The guard's hidden perks affect how effective it is.
+- **Deterrence**: NPCs with hostile intent are less likely to try something if they see armed guards.
 
 Guards use the same attribute and perk system as runners. A guard with "Ironwall" is worth two without it — but you won't know until a raid happens. A guard with "Coward" might flee when you need them most.
 
@@ -194,12 +206,13 @@ Guards need daily pay and equipment, same as runners. They can be wounded or kil
 
 ## Strategic Depth
 
-Your 2 hire slots create constant tension:
-- 2 runners, 0 guards = maximum scavenging, zero protection
-- 1 runner, 1 guard = balanced, but half the scavenging output
-- 0 runners, 2 guards = fortress mode, but no field income
-- Your best runner gets wounded — do you fire the guard to hire a replacement, leaving you unprotected?
-- A Mercenary veteran shows up looking for work, but both slots are full. Do you fire someone?
+Your squad slots create constant tension:
+- At rank 1 (2 squads): every slot matters. 2 runners = no guards. 1 and 1 = balanced but thin.
+- At rank 3 (4 squads): you can diversify — 2 runners to different sectors, 2 guards for serious protection.
+- At rank 5 (6 squads): you're running a small operation. Multiple runners to different sectors, a proper guard force. But payroll is brutal.
+- Your best runner gets wounded — do you fire a guard to open a slot, leaving you exposed?
+- A Mercenary legend shows up looking for work, but all slots are full. Do you fire someone?
+- Ranking up unlocks more squads, but also attracts more attention from factions — bigger operation, bigger target.
 
 ## Negotiation System
 
@@ -207,24 +220,24 @@ When a scavenger approaches, you enter a negotiation:
 
 ### Player Actions
 
-1. **View offer** — see what they want to buy/sell and at what price
-2. **Counter-offer** — adjust price, swap items, add conditions
-3. **Inspect** — check item quality (if you have the tools)
-4. **Read NPC** — observe body language, gear, faction tells
-5. **Accept** — take the deal
-6. **Refuse** — send them away (has consequences)
-7. **Intimidate** — force a better deal (risky, depends on your guards and their rank)
-8. **Gift** — give something for free (builds trust, costs money)
-9. **Offer job** — propose they work for you as a runner or guard (if trust is sufficient, faction allows it)
+1. **View offer**: see what they want to buy/sell and at what price
+2. **Counter-offer**: adjust price, swap items, add conditions
+3. **Inspect**: check item quality (if you have the tools)
+4. **Read NPC**: observe body language, gear, faction tells
+5. **Accept**: take the deal
+6. **Refuse**: send them away (has consequences)
+7. **Intimidate**: force a better deal (risky, depends on your guards and their rank)
+8. **Gift**: give something for free (builds trust, costs money)
+9. **Offer job**: propose they work for you as a runner or guard (if trust is sufficient, faction allows it)
 
 ### NPC Reactions
 
 NPCs respond dynamically:
-- **Grateful** — you gave a fair or generous deal → trust up, may return with better goods
-- **Satisfied** — standard deal → neutral outcome
-- **Resentful** — you gouged them → trust down, may badmouth you
-- **Hostile** — you refused or insulted them → could escalate (threats, theft, faction complaint — severity depends on their rank)
-- **Desperate acceptance** — they took a bad deal because they had no choice → moral weight
+- **Grateful**: you gave a fair or generous deal → trust up, may return with better goods
+- **Satisfied**: standard deal → neutral outcome
+- **Resentful**: you gouged them → trust down, may badmouth you
+- **Hostile**: you refused or insulted them → could escalate (threats, theft, faction complaint — severity depends on their rank)
+- **Desperate acceptance**: they took a bad deal because they had no choice → moral weight
 
 ### Haggling Flow
 

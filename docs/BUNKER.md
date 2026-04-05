@@ -10,7 +10,7 @@ The bunker starts as a cramped, dingy room with a counter, a stash box, and a fl
 
 Upgrades fall into two categories: **chains** (multi-level progressions) and **one-offs** (single purchases that unlock a capability). Most upgrades are one-offs or short chains — you're buying specific tools, not grinding through tech trees.
 
-### Laptop (Chain — 5 levels)
+### Laptop (Chain: 5 levels)
 
 Your laptop is your window to the Zone.
 
@@ -22,7 +22,7 @@ Your laptop is your window to the Zone.
 | 4 | Network Hub | Intercept communications. Track runner locations. Access black market listings. |
 | 5 | Command Center | Zone-wide intel. Surge predictions. Faction movement forecasts. Remote trading. |
 
-### Radio / Antenna (Chain — 5 levels)
+### Radio / Antenna (Chain: 5 levels)
 
 Your radio determines how far you can reach — both for dispatching runners and receiving information. Without range, you're blind and local.
 
@@ -34,7 +34,7 @@ Your radio determines how far you can reach — both for dispatching runners and
 | 4 | Signal Tower | Reach deep sectors (The Deep Woods). Reliable contact with all runners. Eavesdrop on encrypted channels. |
 | 5 | Relay Network | Reach The Core. Contact any NPC or faction with a radio. Full signal intelligence. |
 
-### Storage (Chain — 3 levels)
+### Storage (Chain: 3 levels)
 
 | Level | Name | Effect |
 |-------|------|--------|
@@ -42,7 +42,7 @@ Your radio determines how far you can reach — both for dispatching runners and
 | 2 | Reinforced Locker | 40 slots. Basic raid protection (small raids fail). |
 | 3 | Warehouse | 80 slots. Weapon racks (condition preserved). Hidden compartment (10 slots that survive raids). |
 
-### Counter (Chain — 3 levels)
+### Counter (Chain: 3 levels)
 
 | Level | Name | Effect |
 |-------|------|--------|
@@ -63,12 +63,10 @@ These are individual purchases — you either have them or you don't.
 | **Advanced toolkit** | 200 credits | Counter 2 | Detect all fakes. Full item analysis. |
 | **Geiger counter** | 80 credits | — | Check radiation levels on items and people. Hints at where they've been. |
 
-### Repair & Crafting
+### Stabilization
 
 | Upgrade | Cost | Requires | Effect |
 |---------|------|----------|--------|
-| **Repair bench** | 150 credits | Counter 2 | Repair weapons and armor up one condition level. Costs materials. |
-| **Weapon workbench** | 400 credits | Repair bench | Repair weapons to Excellent. Modify weapons (adds value). |
 | **Relic stabilizer** | 350 credits | Relic scanner | Stabilize unstable relics. Prevents degradation in storage. |
 
 ### Storage Add-Ons
@@ -96,6 +94,8 @@ These are individual purchases — you either have them or you don't.
 | **Zone map** | 50 credits | — | Basic sector map. Shows known routes and danger levels. Static — outdated after hazard shifts. |
 | **Updated map subscription** | 30 credits/day | Radio 2 | Map updates daily via radio contact with other traders. Reflects hazard shifts and faction movements. |
 | **Map board** | 80 credits | Zone map | Pin notes and intel to sectors on your wall. Track runner locations visually. |
+| **Threat tracker** | 300 credits | Radio 3, Map board | Shows reported creature activity and hostile faction patrols on the map. Updated via radio chatter. Helps plan runner routes. |
+| **Deep scanner** | 500 credits | Threat tracker, Laptop 4 | Tracks mutant migration patterns and predicts creature surges. Shows danger heatmap across all sectors. |
 | **Intel network** | 200 credits | Radio 3, Laptop 3 | Buy intel reports from informants automatically. Daily briefing on faction movements, planned events, market shifts. |
 | **Decryption software** | 250 credits | Laptop 3 | Decrypt encoded PDAs and intercepted messages. Unlocks hidden document content. |
 | **Faction dossiers** | 150 credits | Laptop 2 | Track faction standing in detail. See relationship shifts before they become obvious. |
@@ -114,7 +114,7 @@ These are individual purchases — you either have them or you don't.
 ## Upgrade Costs
 
 Upgrades cost a combination of:
-- **Credits** — the primary currency
-- **Items** — specific materials needed (tools, electronics, building materials)
-- **Favors** — faction standing requirements (the Garrison won't sell you military parts if they hate you)
-- **Time** — chain upgrades take 1-3 in-game days to complete. One-offs are instant or next-day.
+- **Credits**: the primary currency
+- **Items**: specific materials needed (tools, electronics, building materials)
+- **Favors**: faction standing requirements (the Garrison won't sell you military parts if they hate you)
+- **Time**: chain upgrades take 1-3 in-game days to complete. One-offs are instant or next-day.

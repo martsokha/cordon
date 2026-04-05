@@ -13,14 +13,14 @@ Send runners     Handle events       Faction visits       End-of-day report
 Read intel       Negotiate           Resolve threats
 ```
 
-### 1. Morning — Preparation
+### 1. Morning: Preparation
 
 - Review your inventory and stash
 - Check the market ticker on your laptop (price fluctuations, shortages, rumors)
 - Dispatch runners to specific sectors to scavenge or deliver goods
 - Set prices for the day (or leave them dynamic)
 
-### 2. Midday — Trading
+### 2. Midday: Trading
 
 The core of the game. Scavengers arrive one at a time (like Papers, Please).
 
@@ -37,14 +37,14 @@ For each customer:
 - Read NPC mood/trust indicators
 - Optional: inspect items for quality/authenticity (fake relics, broken weapons)
 
-### 3. Evening — Consequences
+### 3. Evening: Consequences
 
 - Runners return (or don't) with scavenged goods
 - Faction representatives may visit — demands, threats, offers
 - Random events resolve: raids, surges, supply drops
 - NPCs you helped or screwed may return with consequences
 
-### 4. Night — Management
+### 4. Night: Management
 
 - Upgrade your bunker (see BUNKER.md)
 - Review the day's profit/loss

@@ -159,10 +159,10 @@ Factions react to your choices:
 ### Faction Events
 
 Factions generate events that affect gameplay:
-- **Faction war** — two factions fight, supply lines disrupted, refugee customers
-- **Faction patrol** — a faction "checks" your inventory for contraband
-- **Faction quest** — a faction asks you to acquire something specific
-- **Faction blockade** — a faction cuts off a trade route, certain goods become scarce
-- **Faction coup** — leadership change, standing partially resets, new priorities
-- **Mercenary contract** — mercs are hired to hit a target near you; collateral risk, or an opportunity
-- **Devoted pilgrimage** — zealots move through sectors en masse; dangerous but they carry rare relics
+- **Faction war**: two factions fight, supply lines disrupted, refugee customers
+- **Faction patrol**: a faction "checks" your inventory for contraband
+- **Faction quest**: a faction asks you to acquire something specific
+- **Faction blockade**: a faction cuts off a trade route, certain goods become scarce
+- **Faction coup**: leadership change, standing partially resets, new priorities
+- **Mercenary contract**: mercs are hired to hit a target near you; collateral risk, or an opportunity
+- **Devoted pilgrimage**: zealots move through sectors en masse; dangerous but they carry rare relics
