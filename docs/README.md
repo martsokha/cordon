@@ -11,7 +11,7 @@
 
 | Document | Description |
 |----------|-------------|
-| [Core Loop](CORE-LOOP.md) | Day cycle, trading flow, economic and reputation loops |
+| [Core Loop](LOOP.md) | Day cycle, trading flow, economic and reputation loops |
 | [Items & Economy](ITEMS.md) | Item catalog, suppliers, price system, authenticity |
 | [NPCs & Interaction](NPCS.md) | NPC attributes, types, negotiation, recruitment, runners, guards, perks |
 | [Factions](FACTIONS.md) | Faction profiles, dynamics, standing system, events |
