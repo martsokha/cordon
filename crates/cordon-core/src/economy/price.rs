@@ -1,16 +1,46 @@
-/// Price modifiers from the world state.
+//! Price calculation with exponential condition scaling.
+//!
+//! The final price of an item is its base price multiplied by condition²
+//! and several world-state modifiers. This makes low-condition gear
+//! nearly worthless and creates a repair arbitrage opportunity.
+
+/// Modifiers applied to an item's base price from the world state.
+///
+/// Each modifier is a multiplier around 1.0. Values below 1.0 reduce
+/// the price, values above 1.0 increase it.
 #[derive(Debug, Clone, Copy)]
 pub struct PriceModifiers {
-    /// 0.5 – 1.5
+    /// Supply level for this item type (0.5–1.5). High supply = lower price.
     pub supply: f32,
-    /// 0.5 – 2.0
+    /// Demand level for this item type (0.5–2.0). High demand = higher price.
     pub demand: f32,
-    /// 0.8 – 1.2
+    /// Faction control modifier (0.8–1.2). Dominant faction's gear is cheaper.
     pub faction: f32,
-    /// 0.5 – 3.0
+    /// Active event modifier (0.5–3.0). Surges, shortages, etc. swing prices.
     pub event: f32,
-    /// 0.9 – 1.1
+    /// Player reputation modifier (0.9–1.1). Trusted traders get better margins.
     pub reputation: f32,
+}
+
+impl PriceModifiers {
+    /// Compute the final price for an item.
+    ///
+    /// Condition is squared: a 0.5 item is worth ~25% of base, 0.75 ≈ 56%.
+    /// The result is always at least 1 credit.
+    pub fn final_price(&self, base_price: u32, condition: f32) -> u32 {
+        let condition = condition.clamp(0.0, 1.0);
+        let condition_factor = condition * condition;
+
+        let price = base_price as f64
+            * condition_factor as f64
+            * self.supply as f64
+            * self.demand as f64
+            * self.faction as f64
+            * self.event as f64
+            * self.reputation as f64;
+
+        (price.round() as u32).max(1)
+    }
 }
 
 impl Default for PriceModifiers {
@@ -25,25 +55,6 @@ impl Default for PriceModifiers {
     }
 }
 
-/// Compute final price.
-///
-/// Condition is squared: a 0.5 item is worth ~25% of base, 0.75 is ~56%.
-/// This makes low-condition gear nearly worthless and creates a repair arbitrage game.
-pub fn final_price(base_price: u32, condition: f32, mods: &PriceModifiers) -> u32 {
-    let condition = condition.clamp(0.0, 1.0);
-    let condition_factor = condition * condition;
-
-    let price = base_price as f64
-        * condition_factor as f64
-        * mods.supply as f64
-        * mods.demand as f64
-        * mods.faction as f64
-        * mods.event as f64
-        * mods.reputation as f64;
-
-    (price.round() as u32).max(1)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -53,20 +64,15 @@ mod tests {
         let mods = PriceModifiers::default();
         let base = 10000;
 
-        let full = final_price(base, 1.0, &mods);
-        let three_quarter = final_price(base, 0.75, &mods);
-        let half = final_price(base, 0.5, &mods);
-        let quarter = final_price(base, 0.25, &mods);
-
-        assert_eq!(full, 10000);
-        assert_eq!(three_quarter, 5625);
-        assert_eq!(half, 2500);
-        assert_eq!(quarter, 625);
+        assert_eq!(mods.final_price(base, 1.0), 10000);
+        assert_eq!(mods.final_price(base, 0.75), 5625);
+        assert_eq!(mods.final_price(base, 0.5), 2500);
+        assert_eq!(mods.final_price(base, 0.25), 625);
     }
 
     #[test]
     fn price_never_zero() {
         let mods = PriceModifiers::default();
-        assert_eq!(final_price(100, 0.01, &mods), 1);
+        assert_eq!(mods.final_price(100, 0.01), 1);
     }
 }

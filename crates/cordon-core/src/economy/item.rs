@@ -1,119 +1,135 @@
+//! Item definitions, calibers, and item instances.
+//!
+//! [`ItemDef`] and [`CaliberDef`] are loaded from config files.
+//! [`ItemStack`] represents concrete item instances in the game world.
+
 use serde::{Deserialize, Serialize};
 
-use crate::entity::faction::FactionId;
+use crate::object::id::Id;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct ItemId(pub u32);
-
+/// Broad category of an item. Determines how it's displayed, stored, and traded.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ItemKind {
+    /// Consumable food and drink. May spoil.
     Food,
+    /// Medical supplies: bandages, medkits, pills.
     Med,
+    /// Ammunition, sold in boxes.
     Ammo,
+    /// Firearms: pistols, rifles, shotguns, etc.
     Weapon,
+    /// Head protection: helmets, balaclavas.
     Helmet,
+    /// Body protection: jackets, vests, suits.
     Suit,
+    /// Zone relics with anomalous properties.
     Relic,
+    /// Intel: PDAs, reports, patrol routes.
     Document,
+    /// Experimental equipment from the Institute.
     Tech,
+    /// Hand grenades and launcher ammo.
     Grenade,
+    /// Weapon attachments: underbarrel launchers, etc.
     Attachment,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Caliber {
-    /// 9x18mm PM
-    Pm9x18,
-    /// 9x19mm Parabellum
-    Para9x19,
-    /// .45 ACP
-    Acp45,
-    /// .50 AE (Hand Cannon only)
-    Ae50,
-    /// 5.45x39mm Soviet
-    Soviet545,
-    /// 5.56x45mm NATO
-    Nato556,
-    /// 7.62x39mm Soviet
-    Soviet762x39,
-    /// 7.62x51mm NATO
-    Nato762x51,
-    /// 7.62x54mmR Soviet
-    SovietR762x54,
-    /// 9x39mm subsonic
-    Subsonic9x39,
-    /// .308 Winchester
-    Win308,
-    /// 12 gauge
-    Gauge12,
-    /// VOG-25 caseless grenade
-    Vog25,
-    /// 40mm NATO grenade
-    Grenade40mm,
-    /// PG-7 rocket
-    RocketPg7,
-}
-
+/// Which armor slot an item occupies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ArmorSlot {
+    /// Body armor slot.
     Suit,
+    /// Helmet slot.
     Helmet,
 }
 
+/// Stability state of a relic.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RelicStability {
+    /// Contained properly, safe to store and sell.
     Stable,
+    /// Not contained, degrades over time, may harm handler.
     Unstable,
+    /// Depleted or damaged, minimal value.
     Inert,
-    Counterfeit,
 }
 
+/// Whether an item is genuine or has been tampered with.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Authenticity {
+    /// Real, unmodified item.
     Genuine,
+    /// Fake: looks real but has no properties (or harmful ones).
     Counterfeit,
+    /// Past its effective date (meds, food).
     Expired,
+    /// Planted by a faction to mislead (documents).
     Doctored,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Rarity {
-    Common,
-    Uncommon,
-    Rare,
-    VeryRare,
-    Legendary,
-}
-
-/// Static item definition from the catalog. Immutable game data.
+/// Static item definition loaded from config.
+///
+/// This is the immutable template for an item type. Concrete instances
+/// in the game world are represented by [`ItemStack`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ItemDef {
-    pub id: ItemId,
+    /// Unique identifier for this item type.
+    pub id: Id,
+    /// Display name.
     pub name: String,
+    /// Broad category.
     pub kind: ItemKind,
+    /// Base price at condition 1.0 with no modifiers.
     pub base_price: u32,
-    pub caliber: Option<Caliber>,
-    pub fits_caliber: Option<Caliber>,
-    pub suppliers: Vec<FactionId>,
+    /// Caliber ID. For ammo: what caliber this is. For weapons: what caliber it fires.
+    pub caliber: Option<Id>,
+    /// Faction IDs of factions that supply this item.
+    pub suppliers: Vec<Id>,
+    /// Days until spoilage. `None` means the item never spoils.
     pub spoil_days: Option<u32>,
-    pub rarity: Option<Rarity>,
+    /// Rarity label (e.g., "common", "rare", "legendary").
+    pub rarity: Option<String>,
+    /// Which armor slot this item occupies, if it's armor.
     pub armor_slot: Option<ArmorSlot>,
 }
 
-/// A concrete item instance in the world.
+/// Caliber definition loaded from config.
+///
+/// Links ammo items to the weapons that fire them.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CaliberDef {
+    /// Unique identifier (e.g., `"9x18mm"`, `"5.45x39mm"`).
+    pub id: Id,
+    /// Display name (e.g., `"9x18mm PM"`).
+    pub name: String,
+    /// Short description of this caliber's characteristics.
+    pub description: String,
+}
+
+/// A concrete item instance in the game world.
+///
+/// Represents a stack of items with a specific condition, authenticity,
+/// and freshness state. References an [`ItemDef`] by ID.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ItemStack {
-    pub def_id: ItemId,
+    /// ID of the [`ItemDef`] this stack is an instance of.
+    pub def_id: Id,
+    /// Number of items in this stack.
     pub quantity: u32,
+    /// Condition from 0.0 (destroyed) to 1.0 (factory new).
+    /// Price scales with condition² (see [`PriceModifiers::final_price`]).
     pub condition: f32,
+    /// Whether this item is genuine, counterfeit, expired, or doctored.
     pub authenticity: Authenticity,
+    /// Relic stability state, if this item is a relic.
     pub relic_stability: Option<RelicStability>,
-    /// Days until spoilage. None = doesn't spoil.
+    /// Days remaining until spoilage. `None` means it doesn't spoil.
     pub freshness: Option<u32>,
 }
 
 impl ItemStack {
-    pub fn new(def_id: ItemId, quantity: u32, condition: f32) -> Self {
+    /// Create a new genuine item stack with the given condition.
+    pub fn new(def_id: Id, quantity: u32, condition: f32) -> Self {
         Self {
             def_id,
             quantity,

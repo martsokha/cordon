@@ -1,51 +1,85 @@
+//! Runner mission types, plans, and results.
+//!
+//! Missions are dispatched during the Morning phase and resolve
+//! in the Evening phase. Outcomes depend on sector danger, runner
+//! perks, and equipment.
+
 use serde::{Deserialize, Serialize};
 
 use crate::economy::item::{ItemKind, ItemStack};
-use crate::entity::npc::{NpcId, Perk};
-use crate::world::sector::SectorId;
+use crate::object::id::{Id, Uid};
 use crate::world::time::Day;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct MissionId(pub u32);
-
+/// What kind of mission a runner is being sent on.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MissionType {
+    /// Bring back whatever they find.
     Scavenge,
+    /// Look for a specific item category (costs more, less total loot).
     TargetedSearch(ItemKind),
-    Delivery { items: Vec<ItemStack>, to: SectorId },
+    /// Bring goods to a buyer in another sector (guaranteed sale, transit risk).
+    Delivery {
+        /// Items being delivered.
+        items: Vec<ItemStack>,
+        /// Destination sector ID.
+        to: Id,
+    },
+    /// Gather intel on a sector (no loot, but information).
     Recon,
 }
 
+/// The outcome of a completed mission.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MissionOutcome {
+    /// Full loot, runner returns healthy.
     Success,
+    /// Some loot, runner may be wounded.
     PartialSuccess,
+    /// No loot, runner wounded or lost gear.
     Failure,
+    /// Runner doesn't return. Presumed dead. Gear lost.
     RunnerLost,
+    /// Exceptional find: rare relic, stash, or intel.
     Jackpot,
 }
 
+/// A mission plan before dispatch.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MissionPlan {
-    pub id: MissionId,
-    pub runner_id: NpcId,
-    pub destination: SectorId,
+    /// Unique mission ID.
+    pub id: Uid,
+    /// Runtime UID of the runner being sent.
+    pub runner_id: Uid,
+    /// Destination sector ID.
+    pub destination: Id,
+    /// What kind of mission this is.
     pub mission_type: MissionType,
 }
 
+/// A mission that has been dispatched and is currently in progress.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActiveMission {
+    /// The original mission plan.
     pub plan: MissionPlan,
+    /// Day the mission was dispatched.
     pub day_dispatched: Day,
+    /// Day the runner is expected to return.
     pub return_day: Day,
 }
 
+/// The result of a completed mission, returned to the game layer.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MissionResult {
-    pub mission_id: MissionId,
+    /// ID of the mission that completed.
+    pub mission_id: Uid,
+    /// What happened.
     pub outcome: MissionOutcome,
+    /// Items the runner brought back (empty on failure/lost).
     pub loot: Vec<ItemStack>,
+    /// Change to the runner's condition (negative = damage).
     pub runner_condition_delta: f32,
+    /// Change to the runner's gear condition (negative = wear).
     pub gear_condition_delta: f32,
-    pub perks_revealed: Vec<Perk>,
+    /// Perk IDs that were revealed by this mission's events.
+    pub perks_revealed: Vec<Id>,
 }

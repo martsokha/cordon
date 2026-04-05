@@ -2,11 +2,8 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 
-pub mod day;
-pub mod events;
-pub mod factions;
-pub mod market;
-pub mod missions;
-pub mod npcs;
-pub mod sectors;
-pub mod world;
+/// Day cycle, event scheduling, mission resolution, NPC spawning, faction dynamics.
+pub mod simulation;
+
+/// Mutable world state: market, sectors, and the top-level world struct.
+pub mod state;
