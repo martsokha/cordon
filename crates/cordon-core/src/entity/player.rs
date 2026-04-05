@@ -4,7 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::entity::faction::Standing;
 use crate::entity::npc::Role;
-use crate::primitive::id::{Id, Uid};
+use crate::primitive::id::{Id, Faction};
+use crate::primitive::uid::Uid;
 
 /// Player rank tier. Determines squad capacity and unlocks.
 ///
@@ -63,7 +64,7 @@ pub struct PlayerState {
     /// Available credits (the Zone's currency).
     pub credits: u32,
     /// Standings with each faction, keyed by faction ID.
-    pub standings: Vec<(Id, Standing)>,
+    pub standings: Vec<(Id<Faction>, Standing)>,
     /// Currently employed NPCs and their roles.
     pub squad: Vec<SquadMember>,
     /// Whether the Garrison bribe has been paid this period.
@@ -72,7 +73,7 @@ pub struct PlayerState {
 
 impl PlayerState {
     /// Create a new player state with neutral standings for all given factions.
-    pub fn new(faction_ids: &[Id]) -> Self {
+    pub fn new(faction_ids: &[Id<Faction>]) -> Self {
         let standings = faction_ids
             .iter()
             .map(|f| (f.clone(), Standing::neutral()))
@@ -88,7 +89,7 @@ impl PlayerState {
     }
 
     /// Get the player's standing with a faction.
-    pub fn standing(&self, faction: &Id) -> Standing {
+    pub fn standing(&self, faction: &Id<Faction>) -> Standing {
         self.standings
             .iter()
             .find(|(f, _)| f == faction)
@@ -97,7 +98,7 @@ impl PlayerState {
     }
 
     /// Get a mutable reference to the player's standing with a faction.
-    pub fn standing_mut(&mut self, faction: &Id) -> Option<&mut Standing> {
+    pub fn standing_mut(&mut self, faction: &Id<Faction>) -> Option<&mut Standing> {
         self.standings
             .iter_mut()
             .find(|(f, _)| f == faction)

@@ -9,7 +9,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::id::Id;
+use crate::primitive::id::{Id, Area, Event, Faction, Quest};
 use crate::world::time::Day;
 
 /// Broad category for event grouping and scheduling.
@@ -48,7 +48,7 @@ pub enum EventCategory {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventDef {
     /// Unique identifier and localization key (e.g., `"surge"`, `"faction_war"`).
-    pub id: Id,
+    pub id: Id<Event>,
     /// Which category this event belongs to.
     pub category: EventCategory,
     /// Base probability of this event occurring per day (0.0–1.0).
@@ -61,19 +61,19 @@ pub struct EventDef {
     /// Whether this event can stack (multiple instances active at once).
     pub stackable: bool,
     /// Sector IDs this event can target. Empty means zone-wide.
-    pub target_sectors: Vec<Id>,
+    pub target_sectors: Vec<Id<Area>>,
     /// Faction IDs involved in this event. Empty means no faction tie.
     /// For events like wars or patrols, the sim picks from this list
     /// or from all factions if empty.
-    pub involved_factions: Vec<Id>,
+    pub involved_factions: Vec<Id<Faction>>,
     /// Minimum day before this event can first occur. Prevents
     /// endgame events from firing on day 1.
     pub earliest_day: u32,
     /// IDs of events that chain from this one (e.g., surge → relic rush).
-    pub chain_events: Vec<Id>,
+    pub chain_events: Vec<Id<Event>>,
     /// Quest ID triggered when this event fires. `None` means no quest.
     /// The sim starts the referenced quest when the event is created.
-    pub triggers_quest: Option<Id>,
+    pub triggers_quest: Option<Id<Quest>>,
 }
 
 /// An active event instance in the game world.
@@ -85,16 +85,16 @@ pub struct EventDef {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActiveEvent {
     /// ID of the [`EventDef`] this is an instance of.
-    pub def_id: Id,
+    pub def_id: Id<Event>,
     /// Which day this event started.
     pub day_started: Day,
     /// How many days this event lasts (rolled from def's min/max range).
     pub duration_days: u8,
     /// Faction IDs involved in this specific instance (e.g., the two
     /// factions in a war, or the faction conducting an inspection).
-    pub involved_factions: Vec<Id>,
-    /// Sector ID this event is targeting, if sector-specific.
-    pub target_sector: Option<Id>,
+    pub involved_factions: Vec<Id<Faction>>,
+    /// Area ID this event is targeting, if area-specific.
+    pub target_sector: Option<Id<Area>>,
 }
 
 impl ActiveEvent {

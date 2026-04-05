@@ -1,14 +1,14 @@
-use cordon_core::primitive::id::Id;
+use cordon_core::primitive::id::{Id, Area, Faction};
 
-/// Live state of a sector in the world.
+/// Live state of an area in the world.
 ///
 /// Tracks dynamic properties that change during gameplay:
 /// faction control, danger modifiers from events, creature activity.
-/// Base danger/reward values come from the sector's config definition.
-pub struct SectorState {
-    pub id: Id,
-    /// Which faction currently controls this sector, if any.
-    pub controlling_faction: Option<Id>,
+/// Base danger/reward values come from the area's config definition.
+pub struct AreaState {
+    pub id: Id<Area>,
+    /// Which faction currently controls this area, if any.
+    pub controlling_faction: Option<Id<Faction>>,
     /// Additive danger modifier from events/world state.
     pub danger_modifier: f32,
     /// Creature activity level (0.0–1.0). Affects danger.
@@ -17,8 +17,8 @@ pub struct SectorState {
     pub hazard_active: bool,
 }
 
-impl SectorState {
-    pub fn new(id: Id) -> Self {
+impl AreaState {
+    pub fn new(id: Id<Area>) -> Self {
         Self {
             id,
             controlling_faction: None,

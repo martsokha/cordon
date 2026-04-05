@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use cordon_core::bunker::BunkerState;
+use cordon_core::bunker::BaseState;
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::player::PlayerState;
-use cordon_core::primitive::id::{Id, Uid};
+use cordon_core::primitive::id::{Id, Area, Faction};
+use cordon_core::primitive::uid::Uid;
 use cordon_core::world::event::ActiveEvent;
 use cordon_core::world::mission::ActiveMission;
 use cordon_core::world::quest::{ActiveQuest, CompletedQuest};
@@ -12,7 +13,7 @@ use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
 use crate::state::market::MarketState;
-use crate::state::sectors::SectorState;
+use crate::state::sectors::AreaState;
 
 /// Per-subsystem RNGs derived from the master seed.
 ///
@@ -75,9 +76,9 @@ impl SimRng {
 pub struct World {
     pub time: GameTime,
     pub player: PlayerState,
-    pub bunker: BunkerState,
-    /// Live sector states keyed by sector ID.
-    pub sectors: HashMap<Id, SectorState>,
+    pub bunker: BaseState,
+    /// Live area states keyed by area ID.
+    pub sectors: HashMap<Id<Area>, AreaState>,
     /// All NPCs in the world keyed by runtime UID.
     pub npcs: HashMap<Uid, Npc>,
     pub active_events: Vec<ActiveEvent>,
@@ -90,7 +91,7 @@ pub struct World {
     /// Per-subsystem deterministic RNGs.
     pub rng: SimRng,
     /// All faction IDs from config (for random selection).
-    pub faction_ids: Vec<Id>,
+    pub faction_ids: Vec<Id<Faction>>,
     next_uid: u32,
 }
 
@@ -99,10 +100,10 @@ impl World {
     ///
     /// The seed determines the entire game session. All randomness
     /// is derived from it through per-subsystem RNGs.
-    pub fn new(seed: u64, faction_ids: Vec<Id>, sector_ids: &[Id]) -> Self {
+    pub fn new(seed: u64, faction_ids: Vec<Id<Faction>>, sector_ids: &[Id<Area>]) -> Self {
         let mut sectors = HashMap::new();
         for id in sector_ids {
-            sectors.insert(id.clone(), SectorState::new(id.clone()));
+            sectors.insert(id.clone(), AreaState::new(id.clone()));
         }
 
         let player = PlayerState::new(&faction_ids);
@@ -110,7 +111,7 @@ impl World {
         Self {
             time: GameTime::new(),
             player,
-            bunker: BunkerState::new(),
+            bunker: BaseState::new(),
             sectors,
             npcs: HashMap::new(),
             active_events: Vec::new(),
@@ -137,7 +138,7 @@ impl World {
     }
 
     /// Pick a random faction ID using the NPC subsystem RNG.
-    pub fn random_faction(&mut self) -> Id {
+    pub fn random_faction(&mut self) -> Id<Faction> {
         let idx = self.rng.npcs.gen_range(0..self.faction_ids.len());
         self.faction_ids[idx].clone()
     }

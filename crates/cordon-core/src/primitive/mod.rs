@@ -4,8 +4,11 @@ pub mod condition;
 /// Duration in seconds.
 pub mod duration;
 
-/// String-based and numeric identifiers for game objects.
+/// Typed string-based identifiers for data-driven game objects.
 pub mod id;
+
+/// Auto-incrementing numeric ID for runtime entities.
+pub mod uid;
 
 /// 2D location on the Zone map.
 pub mod location;

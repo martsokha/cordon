@@ -1,120 +1,123 @@
-# Bunker & Upgrades
+# Base: Bunker & Camp
 
-## Your Bunker
+## Overview
 
-The bunker is your base of operations — your shop, your home, your fortress. Everything happens here. You never leave.
+Your base has two parts:
 
-The bunker starts as a cramped, dingy room with a counter, a stash box, and a flickering laptop. Over time, you expand and upgrade it into a proper trading post.
+- **Bunker**: the interior. This is where you trade, store goods, analyze items, and manage operations. You never leave.
+- **Camp**: the area around the bunker. Defenses, antenna, watchtower, outdoor structures. Visible to anyone passing through — upgrades here affect how others perceive you.
 
-## Upgrade Trees
+Both start bare and are built up through upgrades.
 
-Upgrades fall into two categories: **chains** (multi-level progressions) and **one-offs** (single purchases that unlock a capability). Most upgrades are one-offs or short chains — you're buying specific tools, not grinding through tech trees.
+## Upgrades
 
-### Laptop (Chain: 5 levels)
+Upgrades are defined in config files. Each has prerequisites, a cost, and a source (purchasable, faction-gated, or quest reward). There are no hardcoded chains — sequential upgrades like `"radio_1"` → `"radio_2"` → `"radio_3"` are modeled by each upgrade requiring the previous one.
 
-Your laptop is your window to the Zone.
+### Bunker: Laptop
 
-| Level | Name | Effect |
-|-------|------|--------|
-| 1 | Cracked Screen | Basic price ticker. Yesterday's prices. |
-| 2 | Patched Laptop | Real-time prices. Basic zone news feed. |
-| 3 | Modified Terminal | Price predictions (1-day forecast). Faction activity tracker. |
-| 4 | Network Hub | Intercept communications. Track runner locations. Access black market listings. |
-| 5 | Command Center | Zone-wide intel. Surge predictions. Faction movement forecasts. Remote trading. |
+| ID | Name | Source | Requires | Effect |
+|----|------|--------|----------|--------|
+| **laptop_1** | Cracked Screen | Purchasable | — | Basic price ticker. Yesterday's prices. |
+| **laptop_2** | Patched Laptop | Purchasable | laptop_1 | Real-time prices. Basic zone news feed. |
+| **laptop_3** | Modified Terminal | Purchasable | laptop_2 | Price predictions (1-day forecast). Faction activity tracker. |
+| **laptop_4** | Network Hub | Faction (Institute) | laptop_3 | Intercept communications. Track runner locations. Access black market listings. |
+| **laptop_5** | Command Center | Quest | laptop_4 | Zone-wide intel. Surge predictions. Faction movement forecasts. Remote trading. |
 
-### Radio / Antenna (Chain: 5 levels)
+### Bunker: Counter & Trade
 
-Your radio determines how far you can reach — both for dispatching runners and receiving information. Without range, you're blind and local.
+| ID | Name | Source | Requires | Effect |
+|----|------|--------|----------|--------|
+| **counter_1** | Wooden Plank | Purchasable | — | Basic buy/sell. No inspection. |
+| **counter_2** | Proper Counter | Purchasable | counter_1 | Organized display. +5% NPC trust on first visit. |
+| **counter_3** | Trader's Setup | Purchasable | counter_2 | Display cases for premium items. Reputation bonus. |
+| **magnifying_lens** | Magnifying Lens | Purchasable | counter_2 | Detect obvious fakes (broken weapons, expired meds). |
+| **relic_scanner** | Relic Scanner | Faction (Institute) | counter_2 | Detect fake relics. Identify relic stability. |
+| **advanced_toolkit** | Advanced Toolkit | Purchasable | magnifying_lens | Detect all fakes. Full item analysis. |
+| **geiger_counter** | Geiger Counter | Purchasable | — | Check radiation levels on items and people. |
+| **scale** | Merchant's Scale | Purchasable | counter_2 | Weigh items for accurate pricing. Detect underweight ammo boxes. |
+| **ledger** | Ledger | Purchasable | — | Track profit/loss per day. Trade history with NPCs. |
 
-| Level | Name | Effect |
-|-------|------|--------|
-| 1 | Handheld Radio | Contact runners in adjacent sectors only (The Threshold, The Scrapyard). Receive local news. |
-| 2 | Mounted Radio | Reach mid-range sectors (The Hollows, The Crossroads). Pick up faction broadcasts. |
-| 3 | Boosted Antenna | Reach far sectors (The Tangles, The Depot). Intercept some faction comms. Contact other traders. |
-| 4 | Signal Tower | Reach deep sectors (The Deep Woods). Reliable contact with all runners. Eavesdrop on encrypted channels. |
-| 5 | Relay Network | Reach The Core. Contact any NPC or faction with a radio. Full signal intelligence. |
+### Bunker: Storage
 
-### Storage (Chain: 3 levels)
+| ID | Name | Source | Requires | Effect |
+|----|------|--------|----------|--------|
+| **storage_1** | Stash Box | Purchasable | — | 20 item slots. No protection. |
+| **storage_2** | Reinforced Locker | Purchasable | storage_1 | 40 slots. Basic raid protection. |
+| **storage_3** | Warehouse Shelves | Purchasable | storage_2 | 80 slots. Weapon racks (condition preserved). |
+| **fridge** | Fridge | Purchasable | — | Food spoils 2x slower. |
+| **freezer** | Freezer | Purchasable | fridge | Food almost never spoils. Extends med expiry. |
+| **relic_containment** | Containment Unit | Faction (Institute) | relic_scanner | Safe storage for relics. Prevents instability. |
+| **secret_compartment** | Hidden Compartment | Purchasable | storage_2 | 10 hidden slots invisible during inspections. |
+| **climate_control** | Climate Control | Purchasable | storage_3 | All items preserved at optimal conditions. |
+| **relic_stabilizer** | Relic Stabilizer | Faction (Institute) | relic_containment | Stabilize unstable relics. |
 
-| Level | Name | Effect |
-|-------|------|--------|
-| 1 | Stash Box | 20 item slots. No protection. |
-| 2 | Reinforced Locker | 40 slots. Basic raid protection (small raids fail). |
-| 3 | Warehouse | 80 slots. Weapon racks (condition preserved). Hidden compartment (10 slots that survive raids). |
+### Bunker: Quality of Life
 
-### Counter (Chain: 3 levels)
+| ID | Name | Source | Requires | Effect |
+|----|------|--------|----------|--------|
+| **generator** | Diesel Generator | Purchasable | — | Reliable power. Prevents outages. Required for electronics. |
+| **backup_generator** | Backup Generator | Purchasable | generator | Power survives raids and sabotage. |
+| **cot** | Army Cot | Purchasable | — | Wounded runners/NPCs can rest here. Builds trust. |
+| **lockbox** | Lockbox | Purchasable | — | Protects credits during raids. |
+| **stove** | Gas Stove | Purchasable | — | Cook food, brew coffee. Slight morale bonus for visitors. |
+| **medical_station** | Medical Station | Faction (Institute) | cot | Heal wounded squad members faster. |
+| **workbench** | Workbench | Purchasable | — | Lets visiting mechanics work. Required for repair services. |
 
-| Level | Name | Effect |
-|-------|------|--------|
-| 1 | Wooden Plank | Basic buy/sell. No inspection. NPCs distrust you. |
-| 2 | Proper Counter | Organized display. +5% NPC trust on first visit. |
-| 3 | Trader's Setup | Display cases for premium items. Reputation bonus. Attracts better customers. |
+### Camp: Radio & Communications
 
-## One-Off Upgrades
+| ID | Name | Source | Requires | Effect |
+|----|------|--------|----------|--------|
+| **radio_1** | Handheld Radio | Purchasable | — | Contact runners in nearby areas. Receive local news. |
+| **radio_2** | Mounted Radio | Purchasable | radio_1 | Reach mid-range areas. Pick up faction broadcasts. |
+| **radio_3** | Boosted Antenna | Purchasable | radio_2 | Reach far areas. Intercept some faction comms. Contact other traders. |
+| **radio_4** | Signal Tower | Faction (Garrison) | radio_3 | Reach deep areas. Eavesdrop on encrypted channels. |
+| **radio_5** | Relay Network | Quest | radio_4 | Full signal coverage. Contact anyone with a radio. |
+| **signal_booster** | Signal Booster | Faction (Mercenaries) | radio_3 | Clearer signal. Fewer missed transmissions. Better runner tracking. |
+| **scrambler** | Frequency Scrambler | Faction (Syndicate) | radio_2 | Encrypt your outgoing communications. Harder to eavesdrop on. |
 
-These are individual purchases — you either have them or you don't.
+### Camp: Defenses
 
-### Inspection & Analysis
+| ID | Name | Source | Requires | Effect |
+|----|------|--------|----------|--------|
+| **reinforced_door** | Reinforced Door | Purchasable | — | Small raids fail. Buys time during larger raids. |
+| **alarm_system** | Alarm System | Purchasable | — | Early warning. Time to hide contraband. |
+| **barricades** | Barricades | Purchasable | reinforced_door | Only major assaults get through. |
+| **sandbag_wall** | Sandbag Wall | Purchasable | — | Basic perimeter defense. Guards are more effective. |
+| **watchtower** | Watchtower | Purchasable | sandbag_wall | See approaching threats earlier. Bonus to guard effectiveness. |
+| **spotlight** | Spotlight | Purchasable | generator, watchtower | Illuminates camp at night. Deters break-ins. |
+| **razor_wire** | Razor Wire | Purchasable | barricades | Slows raiders. Reduces raid damage. |
+| **escape_tunnel** | Escape Tunnel | Purchasable | storage_2 | Emergency exit. If a raid overwhelms defenses, you survive and keep hidden storage. |
 
-| Upgrade | Cost | Requires | Effect |
-|---------|------|----------|--------|
-| **Magnifying lens** | 50 credits | Counter 2 | Detect obvious fakes (broken weapons, expired meds) |
-| **Relic scanner** | 300 credits | Counter 2 | Detect fake relics. Identify relic stability. |
-| **Advanced toolkit** | 200 credits | Counter 2 | Detect all fakes. Full item analysis. |
-| **Geiger counter** | 80 credits | — | Check radiation levels on items and people. Hints at where they've been. |
+### Camp: Intel & Surveillance
 
-### Stabilization
+| ID | Name | Source | Requires | Effect |
+|----|------|--------|----------|--------|
+| **zone_map** | Zone Map | Purchasable | — | Basic area map. Static — outdated after hazard shifts. |
+| **map_board** | Map Board | Purchasable | zone_map | Pin notes and intel. Track runner locations visually. |
+| **map_subscription** | Map Subscription | Purchasable | radio_2 | Daily map updates from other traders. Reflects hazard shifts. |
+| **threat_tracker** | Threat Tracker | Faction (Garrison) | radio_3, map_board | Creature activity and hostile patrols on the map. |
+| **deep_scanner** | Deep Scanner | Faction (Institute) | threat_tracker, laptop_4 | Creature migration patterns. Danger heatmap. |
+| **intel_network** | Intel Network | Faction (Mercenaries) | radio_3, laptop_3 | Auto-bought intel reports. Daily briefing on everything. |
+| **decryption_software** | Decryption Software | Faction (Institute) | laptop_3 | Decrypt encoded PDAs and intercepted messages. |
+| **faction_dossiers** | Faction Dossiers | Purchasable | laptop_2 | Track faction standing in detail. |
+| **listening_post** | Listening Post | Faction (Collective) | radio_4 | Overhear NPC conversations. Tips about incoming visitors. |
+| **camp_camera** | Camp Camera | Purchasable | generator, laptop_2 | Live camera feed of your camp on the laptop. See who's approaching, what your guards are doing, and spot threats before they reach the door. |
 
-| Upgrade | Cost | Requires | Effect |
-|---------|------|----------|--------|
-| **Relic stabilizer** | 350 credits | Relic scanner | Stabilize unstable relics. Prevents degradation in storage. |
+### Camp: Infrastructure
 
-### Storage Add-Ons
-
-| Upgrade | Cost | Requires | Effect |
-|---------|------|----------|--------|
-| **Fridge** | 100 credits | Storage 1 | Food spoils 2x slower. |
-| **Freezer** | 300 credits | Fridge | Food almost never spoils. Can store medical supplies at optimal conditions (extends expiry). |
-| **Relic containment unit** | 250 credits | Storage 2 | Safe storage for relics. Prevents instability. Required for high-value relics. |
-| **Secret compartment** | 200 credits | Storage 2 | 10 hidden slots invisible during inspections. For contraband and documents. |
-| **Climate control** | 350 credits | Storage 3 | All items preserved at optimal conditions. No degradation in storage. |
-
-### Security Add-Ons
-
-| Upgrade | Cost | Requires | Effect |
-|---------|------|----------|--------|
-| **Reinforced door** | 100 credits | — | Small raids fail automatically. Buys time during larger raids. |
-| **Alarm system** | 150 credits | — | Early warning on raids. Gives you time to hide contraband. |
-| **Barricades** | 200 credits | Reinforced door | Only major faction assaults get through. |
-
-### Information & Intel
-
-| Upgrade | Cost | Requires | Effect |
-|---------|------|----------|--------|
-| **Zone map** | 50 credits | — | Basic sector map. Shows known routes and danger levels. Static — outdated after hazard shifts. |
-| **Updated map subscription** | 30 credits/day | Radio 2 | Map updates daily via radio contact with other traders. Reflects hazard shifts and faction movements. |
-| **Map board** | 80 credits | Zone map | Pin notes and intel to sectors on your wall. Track runner locations visually. |
-| **Threat tracker** | 300 credits | Radio 3, Map board | Shows reported creature activity and hostile faction patrols on the map. Updated via radio chatter. Helps plan runner routes. |
-| **Deep scanner** | 500 credits | Threat tracker, Laptop 4 | Tracks mutant migration patterns and predicts creature surges. Shows danger heatmap across all sectors. |
-| **Intel network** | 200 credits | Radio 3, Laptop 3 | Buy intel reports from informants automatically. Daily briefing on faction movements, planned events, market shifts. |
-| **Decryption software** | 250 credits | Laptop 3 | Decrypt encoded PDAs and intercepted messages. Unlocks hidden document content. |
-| **Faction dossiers** | 150 credits | Laptop 2 | Track faction standing in detail. See relationship shifts before they become obvious. |
-
-### Quality of Life
-
-| Upgrade | Cost | Requires | Effect |
-|---------|------|----------|--------|
-| **Generator** | 200 credits | — | Reliable power. Prevents power outage events. Required for most electronic upgrades. |
-| **Backup generator** | 150 credits | Generator | Power survives raids and sabotage. |
-| **Cot** | 30 credits | — | Basic sleeping arrangement. You're already here, but a cot means wounded runners/NPCs can rest at your place (builds trust). |
-| **Lockbox** | 50 credits | — | Secure cash storage. Protects credits during raids (otherwise raiders take a cut). |
-| **Ledger** | 20 credits | — | Track profit/loss per day. See trade history with specific NPCs. |
-| **Scale** | 40 credits | Counter 2 | Weigh items for more accurate pricing. Detect some scams (underweight ammo boxes, etc). |
+| ID | Name | Source | Requires | Effect |
+|----|------|--------|----------|--------|
+| **fire_pit** | Fire Pit | Purchasable | — | Basic camp amenity. Runners rest here between missions. |
+| **rain_shelter** | Rain Shelter | Purchasable | — | Protects outdoor equipment from weather. |
+| **landing_pad** | Landing Pad | Faction (Garrison) | radio_3 | Enables supply deliveries. Access to Garrison trade goods. |
+| **trade_sign** | Trade Sign | Purchasable | — | More NPCs notice your shop. Slightly increases visitor count. |
+| **faction_flag** | Faction Flag | Faction (any) | standing 50+ | Fly a faction's flag. Increases visitors from that faction. Deters enemies. |
+| **solar_panel** | Solar Panel | Faction (Institute) | generator | Reduces power outage events. Backup for backup generator. |
+| **water_collector** | Water Collector | Purchasable | — | Free clean water supply. Reduces food/drink costs. |
+| **dog** | Camp Dog | Quest | — | Warns of creatures, deters petty theft. Morale boost. |
 
 ## Upgrade Costs
 
-Upgrades cost a combination of:
-- **Credits**: the primary currency
-- **Items**: specific materials needed (tools, electronics, building materials)
-- **Favors**: faction standing requirements (the Garrison won't sell you military parts if they hate you)
-- **Time**: chain upgrades take 1-3 in-game days to complete. One-offs are instant or next-day.
+Upgrades cost credits and prerequisites. No crafting. Some require faction standing or quest completion to even appear as an option.
+
+Purchasable upgrades are always available in the upgrade menu if prerequisites are met. Faction and quest upgrades only appear after the source condition is satisfied.

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::category::ItemCategory;
 use super::effect::Effect;
 use crate::primitive::duration::Duration;
-use crate::primitive::id::Id;
+use crate::primitive::id::{Id, Caliber, Item};
 
 /// Which armor slot this piece of armor occupies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -69,11 +69,11 @@ pub enum ItemData {
     },
 
     /// Ammunition. Comes in boxes — [`quantity`](ItemData::Ammo::quantity)
-    /// is rounds per box as purchased. References a caliber by [`Id`];
+    /// is rounds per box as purchased. References a caliber by ID;
     /// weapons that fire the same caliber ID can use this ammo.
     Ammo {
         /// Caliber ID this ammo belongs to (e.g., `"9x18mm"`).
-        caliber: Id,
+        caliber: Id<Caliber>,
         /// Base damage per round.
         damage: f32,
         /// Armor penetration value (0.0–1.0). Higher = better against armor.
@@ -85,7 +85,7 @@ pub enum ItemData {
     /// Firearms.
     Weapon {
         /// Caliber ID this weapon fires. Must match an ammo item's caliber.
-        caliber: Id,
+        caliber: Id<Caliber>,
         /// Available fire modes (e.g., `[Semi, Auto]` for an AK-74).
         fire_modes: Vec<FireMode>,
         /// Rounds per minute at full auto/burst.
@@ -144,9 +144,9 @@ pub enum ItemData {
     /// Weapon attachments (underbarrel launchers, scopes, etc.).
     Attachment {
         /// Caliber ID of launched grenades, if this is a launcher.
-        launcher_caliber: Option<Id>,
+        launcher_caliber: Option<Id<Caliber>>,
         /// Weapon IDs this attachment fits on.
-        compatible_weapons: Vec<Id>,
+        compatible_weapons: Vec<Id<Item>>,
         /// Accuracy modifier when attached (additive, e.g., +0.05).
         accuracy_modifier: f32,
         /// Recoil modifier when attached (additive, e.g., -0.1).

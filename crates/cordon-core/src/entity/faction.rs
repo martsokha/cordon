@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::item::ItemCategory;
-use crate::primitive::id::Id;
+use crate::primitive::id::{Id, Faction};
 
 /// Which rank naming convention a faction uses.
 ///
@@ -38,7 +38,7 @@ pub enum RankScheme {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FactionDef {
     /// Unique identifier and localization key (e.g., `"order"`, `"drifters"`).
-    pub id: Id,
+    pub id: Id<Faction>,
     /// Whether NPCs from this faction can be recruited as runners/guards.
     pub recruitable: bool,
     /// Which rank naming convention this faction uses.
@@ -48,7 +48,7 @@ pub struct FactionDef {
     /// Item categories this faction typically sells.
     pub sells: Vec<ItemCategory>,
     /// Base relations with other factions: `(faction_id, initial_standing)`.
-    pub relations: Vec<(Id, i8)>,
+    pub relations: Vec<(Id<Faction>, i8)>,
 }
 
 /// A faction standing value, clamped to -100..=100.

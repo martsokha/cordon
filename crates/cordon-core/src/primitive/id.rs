@@ -1,29 +1,36 @@
-//! Identifiers used throughout the game.
+//! Typed identifiers used throughout the game.
 //!
-//! [`Id`] is used for data-driven objects defined in config files (factions,
-//! items, sectors, etc.). [`Uid`] is used for runtime-spawned entities
-//! (NPCs, missions) that need a unique handle within a game session.
+//! [`Id<T>`] is a string-based identifier parameterized by a marker type,
+//! so the compiler prevents mixing up faction IDs with item IDs, etc.
+//!
+//! Use `Id<Faction>`, `Id<Item>`, `Id<Area>`, etc. directly — no type
+//! aliases.
 
 use std::fmt;
+use std::hash::Hash;
+use std::marker::PhantomData;
 
-use derive_more::{Display, From};
 use serde::{Deserialize, Serialize};
+
+/// Marker trait for ID types. Implemented by empty structs that
+/// serve as phantom type parameters for [`Id<T>`].
+pub trait IdMarker: 'static {}
 
 /// A string-based identifier for data-driven game objects.
 ///
-/// Factions, calibers, sectors, perks, upgrades, items, etc. are all
-/// defined in JSON config files and referenced by their string ID.
+/// Parameterized by a marker type `T` so the compiler prevents
+/// accidentally passing a faction ID where an item ID is expected.
 ///
 /// IDs are case-sensitive, lowercase, snake_case by convention
 /// (e.g., `"order"`, `"9x18mm"`, `"threshold"`, `"scavengers_eye"`).
-#[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Display, From)]
-#[display("{_0}")]
-pub struct Id(String);
+#[derive(Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct Id<T: IdMarker>(String, #[serde(skip)] PhantomData<T>);
 
-impl Id {
+impl<T: IdMarker> Id<T> {
     /// Create a new ID from any string-like value.
     pub fn new(s: impl Into<String>) -> Self {
-        Self(s.into())
+        Self(s.into(), PhantomData)
     }
 
     /// Borrow the underlying string.
@@ -32,34 +39,82 @@ impl Id {
     }
 }
 
-impl fmt::Debug for Id {
+impl<T: IdMarker> Clone for Id<T> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone(), PhantomData)
+    }
+}
+
+impl<T: IdMarker> PartialEq for Id<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<T: IdMarker> Eq for Id<T> {}
+
+impl<T: IdMarker> Hash for Id<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
+
+impl<T: IdMarker> fmt::Debug for Id<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Id(\"{}\")", self.0)
     }
 }
 
-impl From<&str> for Id {
-    fn from(s: &str) -> Self {
-        Self(s.to_string())
+impl<T: IdMarker> fmt::Display for Id<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
     }
 }
 
-/// Auto-incrementing numeric ID for runtime-spawned entities.
-///
-/// Used for NPCs and missions that are created during gameplay,
-/// not loaded from config. Each [`Uid`] is unique within a single
-/// game session.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Serialize,
-    Deserialize,
-    Display,
-    From
-)]
-#[display("{_0}")]
-pub struct Uid(pub u32);
+impl<T: IdMarker> From<&str> for Id<T> {
+    fn from(s: &str) -> Self {
+        Self(s.to_string(), PhantomData)
+    }
+}
+
+impl<T: IdMarker> From<String> for Id<T> {
+    fn from(s: String) -> Self {
+        Self(s, PhantomData)
+    }
+}
+
+/// Marker for faction IDs.
+pub struct Faction;
+impl IdMarker for Faction {}
+
+/// Marker for item definition IDs.
+pub struct Item;
+impl IdMarker for Item {}
+
+/// Marker for area (point of interest) IDs.
+pub struct Area;
+impl IdMarker for Area {}
+
+/// Marker for perk IDs.
+pub struct Perk;
+impl IdMarker for Perk {}
+
+/// Marker for upgrade IDs.
+pub struct Upgrade;
+impl IdMarker for Upgrade {}
+
+/// Marker for event definition IDs.
+pub struct Event;
+impl IdMarker for Event {}
+
+/// Marker for quest definition IDs.
+pub struct Quest;
+impl IdMarker for Quest {}
+
+/// Marker for caliber IDs (ammo ↔ weapon link).
+pub struct Caliber;
+impl IdMarker for Caliber {}
+
+/// Marker for NPC template IDs (used in quest consequences).
+pub struct NpcTemplate;
+impl IdMarker for NpcTemplate {}

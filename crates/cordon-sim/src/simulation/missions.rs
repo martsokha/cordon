@@ -1,4 +1,4 @@
-use cordon_core::primitive::id::Id;
+use cordon_core::primitive::id::{Id, Perk};
 use cordon_core::world::mission::{ActiveMission, MissionOutcome, MissionPlan, MissionResult};
 use cordon_core::world::time::Day;
 use rand::Rng;
@@ -49,10 +49,10 @@ pub fn resolve_missions(world: &mut World) -> Vec<MissionResult> {
 
     world.active_missions = still_out;
 
-    let htk_id = Id::new(PERK_HARD_TO_KILL);
-    let pf_id = Id::new(PERK_PATHFINDER);
-    let se_id = Id::new(PERK_SCAVENGERS_EYE);
-    let cow_id = Id::new(PERK_COWARD);
+    let htk_id = Id::<Perk>::new(PERK_HARD_TO_KILL);
+    let pf_id = Id::<Perk>::new(PERK_PATHFINDER);
+    let se_id = Id::<Perk>::new(PERK_SCAVENGERS_EYE);
+    let cow_id = Id::<Perk>::new(PERK_COWARD);
 
     for mission in returning {
         let runner = world.npcs.get(&mission.plan.runner_id);

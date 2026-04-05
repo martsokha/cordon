@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::category::ItemCategory;
 use super::data::ItemData;
-use crate::primitive::id::Id;
+use crate::primitive::id::{Id, Faction, Item};
 use crate::primitive::rarity::Rarity;
 
 /// Static item definition loaded from config.
@@ -21,13 +21,13 @@ use crate::primitive::rarity::Rarity;
 pub struct ItemDef {
     /// Unique identifier, localization key, and asset ID
     /// (e.g., `"ak74"`, `"medkit"`, `"9x18mm"`).
-    pub id: Id,
+    pub id: Id<Item>,
     /// Type-specific data: consumable effects, weapon caliber, etc.
     pub data: ItemData,
     /// Base price at condition 1.0 with no market modifiers.
     pub base_price: u32,
     /// Faction IDs of factions that supply this item.
-    pub suppliers: Vec<Id>,
+    pub suppliers: Vec<Id<Faction>>,
     /// How rare this item is. Affects loot tables and NPC behavior.
     pub rarity: Rarity,
     /// How many inventory slots this item occupies when carried.

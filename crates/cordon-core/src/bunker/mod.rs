@@ -1,24 +1,38 @@
-//! Bunker state, upgrade definitions, and storage.
+//! Base state: bunker, camp, upgrades, and storage.
 //!
-//! The bunker is the player's base of operations. Upgrades are either
-//! purchasable (available if you have credits and prerequisites) or
-//! faction-gated (require standing or quest completion).
+//! The player operates from two connected locations:
+//! - **Bunker**: the interior where trading happens. Storage, counter,
+//!   laptop, and indoor upgrades live here.
+//! - **Camp**: the area surrounding the bunker. Defenses, antenna,
+//!   outdoor structures, and camp-wide upgrades live here.
+//!
+//! Upgrades are either purchasable, faction-gated, or quest rewards.
+//! All upgrades are data-driven and reference a location.
 
 use serde::{Deserialize, Serialize};
 
 use crate::item::Item;
-use crate::primitive::id::Id;
+use crate::primitive::id::{Id, Faction, Upgrade};
+
+/// Where an upgrade is physically installed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum UpgradeLocation {
+    /// Inside the bunker: storage, counter, laptop, fridge, etc.
+    Bunker,
+    /// Outside in the camp: antenna, defenses, watchtower, etc.
+    Camp,
+}
 
 /// How an upgrade becomes available to the player.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UpgradeSource {
     /// Always available for purchase if prerequisites are met.
-    /// Basic bunker improvements: fridge, generator, cot, etc.
+    /// Basic improvements: fridge, generator, cot, etc.
     Purchasable,
     /// Offered by a specific faction once standing is high enough.
     Faction {
         /// Faction ID that offers this upgrade.
-        faction: Id,
+        faction: Id<Faction>,
         /// Minimum standing required.
         min_standing: i8,
     },
@@ -37,34 +51,36 @@ pub enum UpgradeSource {
 /// The [`id`](UpgradeDef::id) doubles as the localization key.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpgradeDef {
-    /// Unique identifier and localization key (e.g., `"fridge"`, `"radio_3"`).
-    pub id: Id,
+    /// Unique identifier and localization key (e.g., `"fridge"`, `"watchtower"`).
+    pub id: Id<Upgrade>,
+    /// Where this upgrade is installed.
+    pub location: UpgradeLocation,
     /// Credit cost to purchase. Zero for quest rewards.
     pub cost: u32,
     /// IDs of other upgrades that must be installed first.
-    pub requires: Vec<Id>,
+    pub requires: Vec<Id<Upgrade>>,
     /// How this upgrade becomes available.
     pub source: UpgradeSource,
 }
 
-/// The bunker's current state.
+/// The player's base state: bunker interior + camp exterior.
 ///
 /// Tracks which upgrades are installed and the contents of storage.
 /// All upgrade effects are derived from the set of installed upgrade
 /// IDs — the sim checks `has_upgrade("radio_3")` rather than reading
-/// a chain level number.
+/// a level number.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BunkerState {
-    /// All installed upgrade IDs.
-    pub upgrades: Vec<Id>,
-    /// Main storage contents.
+pub struct BaseState {
+    /// All installed upgrade IDs (both bunker and camp).
+    pub upgrades: Vec<Id<Upgrade>>,
+    /// Main storage contents (bunker interior).
     pub storage: Vec<Item>,
     /// Hidden storage contents (survives raids, invisible during inspections).
     pub hidden_storage: Vec<Item>,
 }
 
-impl BunkerState {
-    /// Create a new empty bunker with no upgrades.
+impl BaseState {
+    /// Create a new empty base with no upgrades.
     pub fn new() -> Self {
         Self {
             upgrades: Vec::new(),
@@ -73,18 +89,18 @@ impl BunkerState {
         }
     }
 
-    /// Check if an upgrade is installed.
-    pub fn has_upgrade(&self, upgrade_id: &Id) -> bool {
+    /// Check if an upgrade is installed (bunker or camp).
+    pub fn has_upgrade(&self, upgrade_id: &Id<Upgrade>) -> bool {
         self.upgrades.iter().any(|u| u == upgrade_id)
     }
 
-    /// Whether the bunker has a generator (prevents power outages).
+    /// Whether the base has a generator (prevents power outages).
     pub fn has_power(&self) -> bool {
-        self.has_upgrade(&Id::new("generator"))
+        self.has_upgrade(&Id::<Upgrade>::new("generator"))
     }
 }
 
-impl Default for BunkerState {
+impl Default for BaseState {
     fn default() -> Self {
         Self::new()
     }

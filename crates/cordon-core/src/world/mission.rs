@@ -8,7 +8,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::item::{Item, ItemCategory};
-use crate::primitive::id::{Id, Uid};
+use crate::primitive::id::{Id, Area, Perk};
+use crate::primitive::uid::Uid;
 use crate::world::time::Day;
 
 /// What kind of mission a runner is being sent on.
@@ -22,8 +23,8 @@ pub enum MissionType {
     Delivery {
         /// Items being delivered.
         items: Vec<Item>,
-        /// Destination sector ID.
-        to: Id,
+        /// Destination area ID.
+        to: Id<Area>,
     },
     /// Gather intel on a sector (no loot, but information).
     Recon,
@@ -51,8 +52,8 @@ pub struct MissionPlan {
     pub id: Uid,
     /// Runtime UID of the runner being sent.
     pub runner_id: Uid,
-    /// Destination sector ID.
-    pub destination: Id,
+    /// Destination area ID.
+    pub destination: Id<Area>,
     /// What kind of mission this is.
     pub mission_type: MissionType,
 }
@@ -87,5 +88,5 @@ pub struct MissionResult {
     /// Change to the runner's gear condition (negative = wear).
     pub gear_condition_delta: f32,
     /// Perk IDs that were revealed by this mission's events.
-    pub perks_revealed: Vec<Id>,
+    pub perks_revealed: Vec<Id<Perk>>,
 }

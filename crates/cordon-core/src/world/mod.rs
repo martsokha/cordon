@@ -10,7 +10,7 @@ pub mod price;
 /// Quest definitions, stages, and runtime state.
 pub mod quest;
 
-/// Sector definitions loaded from config.
+/// Area definitions loaded from config.
 pub mod sector;
 
 /// Day/phase time system.

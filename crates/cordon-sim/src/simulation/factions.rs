@@ -1,4 +1,4 @@
-use cordon_core::primitive::id::Id;
+use cordon_core::primitive::id::{Id, Event};
 
 use crate::state::world::World;
 
@@ -8,8 +8,8 @@ const EVENT_COUP: &str = "coup";
 
 /// Update faction dynamics based on active events.
 pub fn tick_factions(world: &mut World) {
-    let war_id = Id::new(EVENT_FACTION_WAR);
-    let coup_id = Id::new(EVENT_COUP);
+    let war_id = Id::<Event>::new(EVENT_FACTION_WAR);
+    let coup_id = Id::<Event>::new(EVENT_COUP);
 
     // Collect event data to avoid borrow issues.
     let event_data: Vec<_> = world

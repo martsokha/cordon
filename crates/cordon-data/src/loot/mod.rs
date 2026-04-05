@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use cordon_core::primitive::id::Id;
+use cordon_core::primitive::id::{Id, Area, Item};
 
 /// A weighted entry in a loot table.
 ///
@@ -9,7 +9,7 @@ use cordon_core::primitive::id::Id;
 #[derive(Debug, Clone)]
 pub struct LootEntry {
     /// Item definition ID.
-    pub item_id: Id,
+    pub item_id: Id<Item>,
     /// Selection weight (higher = more likely).
     pub weight: u32,
     /// Minimum condition of dropped item (0.0–1.0).
@@ -35,15 +35,15 @@ impl LootTable {
     }
 }
 
-/// All loot tables, keyed by sector ID.
+/// All loot tables, keyed by area ID.
 #[derive(Debug, Clone, Default)]
 pub struct LootTables {
-    pub tables: HashMap<Id, LootTable>,
+    pub tables: HashMap<Id<Area>, LootTable>,
 }
 
 impl LootTables {
-    /// Get the loot table for a sector.
-    pub fn get(&self, sector: &Id) -> Option<&LootTable> {
-        self.tables.get(sector)
+    /// Get the loot table for an area.
+    pub fn get(&self, area: &Id<Area>) -> Option<&LootTable> {
+        self.tables.get(area)
     }
 }

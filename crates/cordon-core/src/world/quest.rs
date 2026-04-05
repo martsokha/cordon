@@ -2,30 +2,30 @@
 //!
 //! Quests are linear narrative threads with occasional choice points.
 //! They play out through NPC dialogs, player choices, timed objectives,
-//! and consequences. All text is localized via the stage/choice [`Id`]s.
+//! and consequences. All text is localized via the stage/choice IDs.
 //!
 //! Quests can be triggered by events, faction standing, or other quests.
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::id::Id;
+use crate::primitive::id::{Id, Event, Faction, Item, NpcTemplate, Quest, Upgrade};
 use crate::world::time::Day;
 
 /// A condition that must be met for an objective stage to complete.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ObjectiveCondition {
     /// Player must have a specific item in storage.
-    HaveItem(Id),
+    HaveItem(Id<Item>),
     /// Player must have at least this many credits.
     HaveCredits(u32),
     /// Player must reach a minimum standing with a faction.
-    FactionStanding { faction: Id, min_standing: i8 },
+    FactionStanding { faction: Id<Faction>, min_standing: i8 },
     /// Player must have a specific upgrade installed.
-    HaveUpgrade(Id),
+    HaveUpgrade(Id<Upgrade>),
     /// A specific event must be active in the world.
-    EventActive(Id),
+    EventActive(Id<Event>),
     /// Player must deliver a specific item to the quest NPC.
-    DeliverItem(Id),
+    DeliverItem(Id<Item>),
     /// Simply wait (used with timeout_days on the stage).
     Wait,
 }
@@ -34,23 +34,23 @@ pub enum ObjectiveCondition {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Consequence {
     /// Change standing with a faction.
-    StandingChange { faction: Id, delta: i8 },
+    StandingChange { faction: Id<Faction>, delta: i8 },
     /// Give credits to the player.
     GiveCredits(u32),
     /// Take credits from the player.
     TakeCredits(u32),
     /// Give an item to the player (placed in storage).
-    GiveItem(Id),
+    GiveItem(Id<Item>),
     /// Remove an item from the player's storage.
-    TakeItem(Id),
+    TakeItem(Id<Item>),
     /// Trigger an event by its def ID.
-    TriggerEvent(Id),
+    TriggerEvent(Id<Event>),
     /// Start another quest.
-    StartQuest(Id),
+    StartQuest(Id<Quest>),
     /// Unlock an upgrade (make it available for purchase/installation).
-    UnlockUpgrade(Id),
+    UnlockUpgrade(Id<Upgrade>),
     /// Spawn a named NPC visitor (references an NPC template ID from config).
-    SpawnNpc(Id),
+    SpawnNpc(Id<NpcTemplate>),
     /// Immediately fail the current quest.
     FailQuest,
 }
@@ -59,11 +59,11 @@ pub enum Consequence {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChoiceOption {
     /// Localization key for the choice text.
-    pub id: Id,
+    pub id: Id<Quest>,
     /// What happens when this choice is picked.
     pub consequences: Vec<Consequence>,
     /// Which stage to advance to after this choice.
-    pub next_stage: Id,
+    pub next_stage: Id<Quest>,
 }
 
 /// What happens at a quest stage.
@@ -74,23 +74,23 @@ pub enum QuestStageKind {
     /// for the dialog text.
     Dialog {
         /// Which NPC is speaking. `None` means narrator.
-        npc: Option<Id>,
+        npc: Option<Id<NpcTemplate>>,
         /// Stage to advance to after the dialog.
-        next_stage: Id,
+        next_stage: Id<Quest>,
     },
 
     /// Player picks from options. Each option has consequences
     /// and leads to a different next stage.
     Choice {
         /// Which NPC is presenting the choice. `None` means narrator.
-        npc: Option<Id>,
+        npc: Option<Id<NpcTemplate>>,
         /// Available options.
         options: Vec<ChoiceOption>,
         /// Days before the choice times out. `None` means wait forever.
         timeout_days: Option<u8>,
         /// Stage to advance to if the choice times out.
         /// Required if `timeout_days` is set.
-        on_timeout: Option<Id>,
+        on_timeout: Option<Id<Quest>>,
     },
 
     /// Wait for a condition to be met. Can have a timeout.
@@ -100,9 +100,9 @@ pub enum QuestStageKind {
         /// Days before the objective expires. `None` means no timeout.
         timeout_days: Option<u8>,
         /// Stage to advance to on success.
-        on_success: Id,
+        on_success: Id<Quest>,
         /// Stage to advance to on failure/timeout. `None` means quest fails.
-        on_failure: Option<Id>,
+        on_failure: Option<Id<Quest>>,
     },
 
     /// Quest ends. Apply final consequences and record completion.
@@ -119,7 +119,7 @@ pub enum QuestStageKind {
 pub struct QuestStageDef {
     /// Unique stage identifier within this quest. Also the
     /// localization key for any text associated with this stage.
-    pub id: Id,
+    pub id: Id<Quest>,
     /// What happens at this stage.
     pub kind: QuestStageKind,
 }
@@ -133,7 +133,7 @@ pub struct QuestStageDef {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuestDef {
     /// Unique identifier and localization key.
-    pub id: Id,
+    pub id: Id<Quest>,
     /// All stages in this quest. First stage is the entry point.
     /// Stages reference each other by ID, not by index.
     pub stages: Vec<QuestStageDef>,
@@ -141,33 +141,33 @@ pub struct QuestDef {
     pub repeatable: bool,
     /// Quest IDs that must be completed (successfully) before this
     /// quest can be triggered.
-    pub requires_quests: Vec<Id>,
+    pub requires_quests: Vec<Id<Quest>>,
     /// Minimum faction standing required to trigger this quest.
     /// `None` means no standing requirement.
-    pub requires_standing: Option<(Id, i8)>,
+    pub requires_standing: Option<(Id<Faction>, i8)>,
 }
 
 /// A quest instance currently in progress.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActiveQuest {
     /// ID of the [`QuestDef`] this is an instance of.
-    pub def_id: Id,
+    pub def_id: Id<Quest>,
     /// ID of the current stage within the quest.
-    pub current_stage: Id,
+    pub current_stage: Id<Quest>,
     /// Day this quest was started.
     pub day_started: Day,
     /// Day the current stage started (for timeout tracking).
     pub stage_started: Day,
     /// IDs of choices made so far (in order). Each entry is the
     /// [`ChoiceOption::id`] that was selected.
-    pub choices_made: Vec<Id>,
+    pub choices_made: Vec<Id<Quest>>,
 }
 
 /// A record of a completed quest.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompletedQuest {
     /// ID of the [`QuestDef`] that was completed.
-    pub def_id: Id,
+    pub def_id: Id<Quest>,
     /// Day the quest was started.
     pub day_started: Day,
     /// Day the quest was completed.
@@ -175,7 +175,7 @@ pub struct CompletedQuest {
     /// Whether the quest ended successfully.
     pub success: bool,
     /// ID of the outcome stage that was reached.
-    pub outcome_stage: Id,
+    pub outcome_stage: Id<Quest>,
     /// All choices made during this quest (in order).
-    pub choices_made: Vec<Id>,
+    pub choices_made: Vec<Id<Quest>>,
 }

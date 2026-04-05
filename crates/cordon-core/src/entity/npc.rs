@@ -6,7 +6,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::item::Item;
-use crate::primitive::id::{Id, Uid};
+use crate::primitive::id::{Id, Faction, Perk};
+use crate::primitive::uid::Uid;
 
 /// Polarity of a perk's effect on the player.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -27,7 +28,7 @@ pub enum PerkPolarity {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerkDef {
     /// Unique identifier and localization key (e.g., `"scavengers_eye"`).
-    pub id: Id,
+    pub id: Id<Perk>,
     /// Whether this perk helps, hurts, or is unpredictable.
     pub polarity: PerkPolarity,
 }
@@ -101,7 +102,7 @@ pub struct Npc {
     /// Display name or alias (e.g., "Viper", "Matches").
     pub name: String,
     /// Faction ID this NPC belongs to.
-    pub faction: Id,
+    pub faction: Id<Faction>,
     /// Rank tier (1–5). Title comes from the faction's config.
     pub rank: u8,
 
@@ -123,9 +124,9 @@ pub struct Npc {
     /// Core personality trait affecting negotiation.
     pub personality: Personality,
     /// Perk IDs this NPC has (hidden until revealed).
-    pub perks: Vec<Id>,
+    pub perks: Vec<Id<Perk>>,
     /// Perk IDs the player has discovered through gameplay.
-    pub revealed_perks: Vec<Id>,
+    pub revealed_perks: Vec<Id<Perk>>,
 
     // Employment
     /// Current role if employed, or `None` if not hired.
@@ -143,14 +144,14 @@ impl Npc {
     }
 
     /// Whether this NPC has a specific perk (by ID), even if unrevealed.
-    pub fn has_perk(&self, perk_id: &Id) -> bool {
+    pub fn has_perk(&self, perk_id: &Id<Perk>) -> bool {
         self.perks.iter().any(|p| p == perk_id)
     }
 
     /// Mark a perk as revealed to the player.
     ///
     /// Does nothing if the NPC doesn't have the perk or it's already revealed.
-    pub fn reveal_perk(&mut self, perk_id: &Id) {
+    pub fn reveal_perk(&mut self, perk_id: &Id<Perk>) {
         if self.has_perk(perk_id) && !self.revealed_perks.iter().any(|p| p == perk_id) {
             self.revealed_perks.push(perk_id.clone());
         }

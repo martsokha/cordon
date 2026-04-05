@@ -6,7 +6,7 @@ use super::ItemData;
 use super::data::RelicStability;
 use super::def::ItemDef;
 use crate::primitive::condition::Condition;
-use crate::primitive::id::Id;
+use crate::primitive::id::{Id, Item as ItemMarker};
 
 /// Whether an item is genuine or has been tampered with.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -25,11 +25,11 @@ pub enum Authenticity {
 ///
 /// Items do not stack — each instance is tracked individually with
 /// its own condition, authenticity, and freshness. References an
-/// [`ItemDef`] by [`Id`].
+/// [`ItemDef`] by [`Id<Item>`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Item {
     /// ID of the [`ItemDef`] this is an instance of.
-    pub def_id: Id,
+    pub def_id: Id<ItemMarker>,
     /// Physical condition of this item.
     pub condition: Condition,
     /// Whether this item is genuine, counterfeit, expired, or doctored.
@@ -42,7 +42,7 @@ pub struct Item {
 
 impl Item {
     /// Create a new genuine item with the given condition.
-    pub fn new(def_id: Id, condition: Condition) -> Self {
+    pub fn new(def_id: Id<ItemMarker>, condition: Condition) -> Self {
         Self {
             def_id,
             condition,

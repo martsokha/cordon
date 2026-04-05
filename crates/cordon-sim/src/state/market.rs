@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 
 use cordon_core::primitive::condition::Condition;
-use cordon_core::primitive::id::Id;
+use cordon_core::primitive::id::{Id, Item};
 use cordon_core::world::price::PriceModifiers;
 
 /// Live market state for the current game session.
@@ -12,9 +12,9 @@ use cordon_core::world::price::PriceModifiers;
 /// Used to compute final prices for buying and selling.
 pub struct MarketState {
     /// Supply levels per item ID (1.0 = normal).
-    pub supply: HashMap<Id, f32>,
+    pub supply: HashMap<Id<Item>, f32>,
     /// Demand levels per item ID (1.0 = normal).
-    pub demand: HashMap<Id, f32>,
+    pub demand: HashMap<Id<Item>, f32>,
     /// Global event modifier (affects all prices).
     pub event_modifier: f32,
 }
@@ -32,7 +32,7 @@ impl MarketState {
     /// Build [`PriceModifiers`] for a specific item from current market conditions.
     pub fn get_modifiers(
         &self,
-        item_id: &Id,
+        item_id: &Id<Item>,
         faction_modifier: f32,
         reputation: f32,
     ) -> PriceModifiers {
@@ -50,7 +50,7 @@ impl MarketState {
         &self,
         base_price: u32,
         condition: Condition,
-        item_id: &Id,
+        item_id: &Id<Item>,
         faction_modifier: f32,
         reputation: f32,
     ) -> u32 {

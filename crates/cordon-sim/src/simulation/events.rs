@@ -4,7 +4,7 @@
 //! happen, their probabilities, and durations. The sim rolls daily
 //! for each eligible event and creates [`ActiveEvent`] instances.
 
-use cordon_core::primitive::id::Id;
+use cordon_core::primitive::id::{Id, Faction};
 use cordon_core::world::event::{ActiveEvent, EventCategory, EventDef};
 use rand::Rng;
 
@@ -95,10 +95,10 @@ pub fn expire_events(world: &mut World) {
 /// If the def lists specific factions, picks from those.
 /// Otherwise picks from all world factions.
 fn pick_involved_factions(
-    def_factions: &[Id],
-    world_factions: &[Id],
+    def_factions: &[Id<Faction>],
+    world_factions: &[Id<Faction>],
     rng: &mut impl Rng,
-) -> Vec<Id> {
+) -> Vec<Id<Faction>> {
     let pool = if def_factions.is_empty() {
         world_factions
     } else {
