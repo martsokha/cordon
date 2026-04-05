@@ -1,8 +1,8 @@
 //! Runner mission types, plans, and results.
 //!
 //! Missions are dispatched during the Morning phase and resolve
-//! in the Evening phase. Outcomes depend on sector danger, runner
-//! perks, and equipment.
+//! in the Evening phase of the same day. Runners arrive and return
+//! within one day — movement is instantaneous.
 
 use serde::{Deserialize, Serialize};
 
@@ -57,14 +57,15 @@ pub struct MissionPlan {
 }
 
 /// A mission that has been dispatched and is currently in progress.
+///
+/// Missions are dispatched in the Morning and resolve in the Evening
+/// of the same day.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActiveMission {
     /// The original mission plan.
     pub plan: MissionPlan,
     /// Day the mission was dispatched.
     pub day_dispatched: Day,
-    /// Day the runner is expected to return.
-    pub return_day: Day,
 }
 
 /// The result of a completed mission, returned to the game layer.

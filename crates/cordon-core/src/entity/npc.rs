@@ -1,4 +1,4 @@
-//! NPC types, attributes, perks, and employment.
+//! NPC attributes, perks, and employment.
 //!
 //! [`PerkDef`] is loaded from config. [`Npc`] is a runtime entity
 //! with both visible and hidden attributes.
@@ -8,41 +8,28 @@ use serde::{Deserialize, Serialize};
 use crate::item::Item;
 use crate::primitive::id::{Id, Uid};
 
+/// Polarity of a perk's effect on the player.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum PerkPolarity {
+    /// Beneficial to the player (e.g., Scavenger's Eye, Hard to Kill).
+    Positive,
+    /// Harmful to the player (e.g., Coward, Sticky Fingers).
+    Negative,
+    /// Unpredictable or mixed (e.g., Lucky).
+    Neutral,
+}
+
 /// Perk definition loaded from config.
 ///
 /// Perks are hidden NPC traits revealed through gameplay actions.
 /// Each perk has a unique ID and affects runner missions or guard duty.
+/// The [`id`](PerkDef::id) doubles as the localization key.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PerkDef {
-    /// Unique identifier (e.g., `"scavengers_eye"`, `"coward"`).
+    /// Unique identifier and localization key (e.g., `"scavengers_eye"`).
     pub id: Id,
-    /// Display name shown when revealed.
-    pub name: String,
-    /// Explanation of what this perk does.
-    pub description: String,
-    /// Whether this perk is beneficial to the player.
-    pub positive: bool,
-}
-
-/// What an NPC is doing when they visit the bunker.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum NpcType {
-    /// Independent scavenger looking to trade.
-    Drifter,
-    /// Buying or selling on behalf of their faction.
-    FactionSoldier,
-    /// Looking for work as a runner or guard.
-    JobSeeker,
-    /// Delivering faction demands, offers, or ultimatums.
-    FactionRep,
-    /// Trying to sell fakes or rob the player.
-    Scammer,
-    /// Wounded, starving, or broke — a moral test.
-    DesperateVisitor,
-    /// Selling intel, rumors, or tips.
-    Informant,
-    /// Story NPC or quest giver.
-    Special,
+    /// Whether this perk helps, hurts, or is unpredictable.
+    pub polarity: PerkPolarity,
 }
 
 /// What role an employed NPC fills.
@@ -101,6 +88,12 @@ pub enum Personality {
 /// and hidden attributes (trust, wealth, need, personality, perks).
 /// Hidden attributes are never shown directly — the player infers them
 /// through behavior over multiple interactions.
+///
+/// There is no explicit "NPC type" field — what an NPC is doing is
+/// determined by the sim layer from their faction, rank, need, and
+/// other attributes. A Drifter with high trust might be offered a job;
+/// an Order Officer with a demand is a faction rep; a wounded NPC with
+/// no credits is a desperate visitor.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Npc {
     /// Unique runtime ID for this NPC instance.
@@ -111,16 +104,16 @@ pub struct Npc {
     pub faction: Id,
     /// Rank tier (1–5). Title comes from the faction's config.
     pub rank: u8,
-    /// What the NPC is doing at the bunker right now.
-    pub npc_type: NpcType,
 
-    // -- Visible attributes --
+    // Visible
     /// Items the NPC is carrying.
     pub gear: Vec<Item>,
     /// Physical condition (visible from appearance).
     pub condition: NpcCondition,
+    /// How many inventory slots this NPC can carry.
+    pub inventory_slots: u8,
 
-    // -- Hidden attributes --
+    // Hidden
     /// How much this NPC trusts the player (-1.0 to 1.0).
     pub trust: f32,
     /// How many credits the NPC can spend.
@@ -134,7 +127,7 @@ pub struct Npc {
     /// Perk IDs the player has discovered through gameplay.
     pub revealed_perks: Vec<Id>,
 
-    // -- Employment --
+    // Employment
     /// Current role if employed, or `None` if not hired.
     pub role: Option<Role>,
     /// Loyalty level (0.0–1.0). Drops with underpayment or suicide missions.

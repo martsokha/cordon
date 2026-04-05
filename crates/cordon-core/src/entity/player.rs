@@ -10,18 +10,8 @@ use crate::primitive::id::{Id, Uid};
 ///
 /// Ranking up is earned through gameplay — trade volume, faction
 /// standing, completed missions, and surviving crises all contribute.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Serialize,
-    Deserialize
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Serialize, Deserialize)]
 pub enum PlayerRank {
     /// Starting rank. 2 squads.
     Nobody = 1,

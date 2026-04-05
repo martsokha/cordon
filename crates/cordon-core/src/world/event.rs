@@ -16,7 +16,7 @@ use crate::world::time::Day;
 /// or NPC UID.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EventKind {
-    // -- Environmental --
+    // Environmental
     /// All outdoor activity halted. Runners at risk. Relics shift.
     Surge,
     /// Severe surge. Major casualties. Prices spike.
@@ -26,7 +26,7 @@ pub enum EventKind {
     /// Hazard fields move. Routes change. Maps outdated.
     HazardShift,
 
-    // -- Economic --
+    // Economic
     /// Military convoy lost. Cheap goods flood the market.
     SupplyDrop,
     /// A category of goods becomes scarce. Prices spike.
@@ -38,7 +38,7 @@ pub enum EventKind {
     /// Another trader undercuts your prices.
     TraderRivalry,
 
-    // -- Faction (parameterized by faction ID) --
+    // Faction (parameterized by faction ID)
     /// Two factions clash. Soldiers buy urgently. Collateral damage.
     FactionWar(Id, Id),
     /// Two hostile factions temporarily cooperate.
@@ -54,7 +54,7 @@ pub enum EventKind {
     /// Devoted zealots move through sectors en masse.
     DevotedPilgrimage,
 
-    // -- Bunker --
+    // Bunker
     /// Armed attack on the bunker. Outcome depends on guards and defenses.
     Raid(Id),
     /// Official inspection. Contraband confiscated unless hidden.
@@ -70,7 +70,7 @@ pub enum EventKind {
     /// Overnight robbery attempt. Defenses determine outcome.
     BreakIn,
 
-    // -- Personal (parameterized by NPC UID) --
+    // Personal (parameterized by NPC UID)
     /// A runner goes missing in the field.
     RunnerLost(Uid),
     /// A trusted NPC steals from you or feeds false intel.
@@ -144,7 +144,7 @@ pub struct Event {
     /// What kind of event this is.
     pub kind: EventKind,
     /// How many days this event lasts.
-    pub duration_days: u32,
+    pub duration_days: u8,
     /// Which day this event started.
     pub day_started: Day,
 }
@@ -152,12 +152,12 @@ pub struct Event {
 impl Event {
     /// Whether this event has expired (current day is past its end).
     pub fn is_expired(&self, current_day: Day) -> bool {
-        current_day.0 >= self.day_started.0 + self.duration_days
+        current_day.0 >= self.day_started.0 + self.duration_days as u32
     }
 
     /// How many days remain until this event expires.
     pub fn days_remaining(&self, current_day: Day) -> u32 {
-        let end = self.day_started.0 + self.duration_days;
+        let end = self.day_started.0 + self.duration_days as u32;
         end.saturating_sub(current_day.0)
     }
 }

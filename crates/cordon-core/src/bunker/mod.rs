@@ -8,24 +8,34 @@ use serde::{Deserialize, Serialize};
 use crate::item::Item;
 use crate::primitive::id::Id;
 
+/// Which chain upgrade track an upgrade prerequisite refers to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ChainType {
+    /// Laptop: intel, market visibility, comms interception.
+    Laptop,
+    /// Radio: runner dispatch range, faction contact.
+    Radio,
+    /// Storage: base inventory capacity.
+    Storage,
+    /// Counter: NPC trust, inspection tools, display.
+    Counter,
+}
+
 /// An upgrade definition loaded from config.
 ///
 /// Upgrades can be one-offs or prerequisites for other upgrades.
 /// Some require specific faction standings or chain levels.
+/// The [`id`](UpgradeDef::id) doubles as the localization key.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpgradeDef {
-    /// Unique identifier (e.g., `"fridge"`, `"alarm_system"`).
+    /// Unique identifier and localization key (e.g., `"fridge"`, `"alarm_system"`).
     pub id: Id,
-    /// Display name.
-    pub name: String,
-    /// What this upgrade does.
-    pub description: String,
     /// Credit cost to purchase.
     pub cost: u32,
     /// IDs of other upgrades that must be purchased first.
     pub requires: Vec<Id>,
-    /// Required chain level: `(chain_name, min_level)`.
-    pub requires_chain: Option<(String, u8)>,
+    /// Required chain level: which chain and minimum level.
+    pub requires_chain: Option<(ChainType, u8)>,
     /// Required faction standing: `(faction_id, min_standing)`.
     pub requires_standing: Option<(Id, i8)>,
 }
@@ -73,13 +83,23 @@ impl BunkerState {
         self.upgrades.iter().any(|u| u == upgrade_id)
     }
 
+    /// Get the current level of a chain upgrade.
+    pub fn chain_level(&self, chain: ChainType) -> u8 {
+        match chain {
+            ChainType::Laptop => self.laptop_level,
+            ChainType::Radio => self.radio_level,
+            ChainType::Storage => self.storage_level,
+            ChainType::Counter => self.counter_level,
+        }
+    }
+
     /// Whether the bunker has a generator (prevents power outages).
     pub fn has_power(&self) -> bool {
         self.has_upgrade(&Id::new("generator"))
     }
 
-    /// Maximum number of item stacks in main storage.
-    pub fn storage_capacity(&self) -> u32 {
+    /// Maximum number of items in main storage.
+    pub fn storage_capacity(&self) -> u8 {
         match self.storage_level {
             1 => 20,
             2 => 40,
@@ -88,10 +108,10 @@ impl BunkerState {
         }
     }
 
-    /// Maximum number of item stacks in hidden storage.
+    /// Maximum number of items in hidden storage.
     ///
     /// Returns 0 if the secret compartment upgrade is not installed.
-    pub fn hidden_capacity(&self) -> u32 {
+    pub fn hidden_capacity(&self) -> u8 {
         if self.has_upgrade(&Id::new("secret_compartment")) {
             10
         } else {

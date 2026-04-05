@@ -13,34 +13,34 @@ pub fn roll_daily_events(world: &mut World) {
     // Escalation: events get more frequent as days progress
     let escalation = (day_num as f32 / 100.0).min(1.0);
 
-    if world.rng.r#gen::<f32>() < 0.20 + escalation * 0.1 {
-        if let Some(event) = roll_environmental(day, &mut world.rng) {
+    if world.rng.events.r#gen::<f32>() < 0.20 + escalation * 0.1 {
+        if let Some(event) = roll_environmental(day, &mut world.rng.events) {
             world.active_events.push(event);
         }
     }
 
-    if world.rng.r#gen::<f32>() < 0.15 + escalation * 0.05 {
-        if let Some(event) = roll_economic(day, &mut world.rng) {
+    if world.rng.events.r#gen::<f32>() < 0.15 + escalation * 0.05 {
+        if let Some(event) = roll_economic(day, &mut world.rng.events) {
             world.active_events.push(event);
         }
     }
 
-    if world.rng.r#gen::<f32>() < 0.25 + escalation * 0.1 {
+    if world.rng.events.r#gen::<f32>() < 0.25 + escalation * 0.1 {
         let faction_ids = world.faction_ids.clone();
-        if let Some(event) = roll_faction(day, &faction_ids, &mut world.rng) {
+        if let Some(event) = roll_faction(day, &faction_ids, &mut world.rng.events) {
             world.active_events.push(event);
         }
     }
 
-    if world.rng.r#gen::<f32>() < 0.15 + escalation * 0.05 {
+    if world.rng.events.r#gen::<f32>() < 0.15 + escalation * 0.05 {
         let faction_ids = world.faction_ids.clone();
-        if let Some(event) = roll_bunker(day, &faction_ids, &mut world.rng) {
+        if let Some(event) = roll_bunker(day, &faction_ids, &mut world.rng.events) {
             world.active_events.push(event);
         }
     }
 
-    if world.rng.r#gen::<f32>() < 0.10 + escalation * 0.05 {
-        if let Some(event) = roll_personal(day, &mut world.rng) {
+    if world.rng.events.r#gen::<f32>() < 0.10 + escalation * 0.05 {
+        if let Some(event) = roll_personal(day, &mut world.rng.events) {
             world.active_events.push(event);
         }
     }

@@ -1,4 +1,4 @@
-use cordon_core::entity::npc::{Need, Npc, NpcCondition, NpcType, Personality};
+use cordon_core::entity::npc::{Need, Npc, NpcCondition, Personality};
 use rand::Rng;
 
 use crate::state::world::World;
@@ -9,7 +9,7 @@ pub fn spawn_daily_visitors(world: &mut World) -> Vec<Npc> {
     let day = world.time.day.0;
 
     let base_count = 3 + (day / 10).min(5);
-    let count = world.rng.gen_range(base_count..=base_count + 3);
+    let count = world.rng.npcs.gen_range(base_count..=base_count + 3);
 
     for _ in 0..count {
         let npc = generate_visitor(world);
@@ -22,19 +22,18 @@ pub fn spawn_daily_visitors(world: &mut World) -> Vec<Npc> {
 fn generate_visitor(world: &mut World) -> Npc {
     let id = world.alloc_uid();
     let faction = world.random_faction();
-    let rank = pick_rank(&mut world.rng);
-    let npc_type = pick_npc_type(&mut world.rng);
-    let personality = pick_personality(&mut world.rng);
-    let wealth = generate_wealth(rank, &mut world.rng);
+    let rank = pick_rank(&mut world.rng.npcs);
+    let personality = pick_personality(&mut world.rng.npcs);
+    let wealth = generate_wealth(rank, &mut world.rng.npcs);
 
     Npc {
         id,
-        name: generate_name(&mut world.rng),
+        name: generate_name(&mut world.rng.npcs),
         faction,
         rank,
-        npc_type,
         gear: Vec::new(), // TODO: generate gear based on faction/rank from config
         condition: NpcCondition::Healthy,
+        inventory_slots: 8 + rank * 2, // higher rank = more carrying capacity
         trust: 0.0,
         wealth,
         need: Need::None,
@@ -59,25 +58,6 @@ fn pick_rank(rng: &mut impl Rng) -> u8 {
         4
     } else {
         5
-    }
-}
-
-fn pick_npc_type(rng: &mut impl Rng) -> NpcType {
-    let roll: f32 = rng.r#gen();
-    if roll < 0.5 {
-        NpcType::Drifter
-    } else if roll < 0.7 {
-        NpcType::FactionSoldier
-    } else if roll < 0.8 {
-        NpcType::JobSeeker
-    } else if roll < 0.88 {
-        NpcType::Scammer
-    } else if roll < 0.93 {
-        NpcType::DesperateVisitor
-    } else if roll < 0.97 {
-        NpcType::Informant
-    } else {
-        NpcType::FactionRep
     }
 }
 

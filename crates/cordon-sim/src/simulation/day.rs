@@ -42,7 +42,7 @@ pub fn advance_phase(world: &mut World) -> PhaseResult {
             PhaseResult::Midday
         }
         Phase::Evening => {
-            let mission_results = missions::resolve_returning_missions(world);
+            let mission_results = missions::resolve_missions(world);
             world.time.advance();
             PhaseResult::Evening { mission_results }
         }

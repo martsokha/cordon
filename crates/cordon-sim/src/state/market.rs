@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 
+use cordon_core::primitive::condition::Condition;
 use cordon_core::primitive::id::Id;
 use cordon_core::world::price::PriceModifiers;
 
@@ -48,7 +49,7 @@ impl MarketState {
     pub fn get_price(
         &self,
         base_price: u32,
-        condition: f32,
+        condition: Condition,
         item_id: &Id,
         faction_modifier: f32,
         reputation: f32,

@@ -4,6 +4,8 @@
 //! and several world-state modifiers. This makes low-condition gear
 //! nearly worthless and creates a repair arbitrage opportunity.
 
+use crate::primitive::condition::Condition;
+
 /// Modifiers applied to an item's base price from the world state.
 ///
 /// Each modifier is a multiplier around 1.0. Values below 1.0 reduce
@@ -25,14 +27,12 @@ pub struct PriceModifiers {
 impl PriceModifiers {
     /// Compute the final price for an item.
     ///
-    /// Condition is squared: a 0.5 item is worth ~25% of base, 0.75 ≈ 56%.
-    /// The result is always at least 1 credit.
-    pub fn final_price(&self, base_price: u32, condition: f32) -> u32 {
-        let condition = condition.clamp(0.0, 1.0);
-        let condition_factor = condition * condition;
-
+    /// Uses [`Condition::price_factor`] (condition²) so a 0.5 item is
+    /// worth ~25% of base, 0.75 ≈ 56%. The result is always at least
+    /// 1 credit.
+    pub fn final_price(&self, base_price: u32, condition: Condition) -> u32 {
         let price = base_price as f64
-            * condition_factor as f64
+            * condition.price_factor() as f64
             * self.supply as f64
             * self.demand as f64
             * self.faction as f64
@@ -64,15 +64,15 @@ mod tests {
         let mods = PriceModifiers::default();
         let base = 10000;
 
-        assert_eq!(mods.final_price(base, 1.0), 10000);
-        assert_eq!(mods.final_price(base, 0.75), 5625);
-        assert_eq!(mods.final_price(base, 0.5), 2500);
-        assert_eq!(mods.final_price(base, 0.25), 625);
+        assert_eq!(mods.final_price(base, Condition::PERFECT), 10000);
+        assert_eq!(mods.final_price(base, Condition::new(0.75)), 5625);
+        assert_eq!(mods.final_price(base, Condition::new(0.5)), 2500);
+        assert_eq!(mods.final_price(base, Condition::new(0.25)), 625);
     }
 
     #[test]
     fn price_never_zero() {
         let mods = PriceModifiers::default();
-        assert_eq!(mods.final_price(100, 0.01), 1);
+        assert_eq!(mods.final_price(100, Condition::new(0.01)), 1);
     }
 }
