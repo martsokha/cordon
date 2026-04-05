@@ -3,9 +3,14 @@
 use serde::{Deserialize, Serialize};
 
 use super::category::ItemCategory;
+use super::def::Item;
 use super::effect::Effect;
 use crate::primitive::duration::Duration;
-use crate::primitive::id::{Caliber, Id, Item};
+use crate::primitive::id::{Id, IdMarker};
+
+/// Marker for caliber IDs (ammo / weapon link).
+pub struct Caliber;
+impl IdMarker for Caliber {}
 
 /// Which armor slot this piece of armor occupies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

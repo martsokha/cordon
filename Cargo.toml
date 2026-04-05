@@ -3,6 +3,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "./crates/cordon-bevy",
     "./crates/cordon-core",
     "./crates/cordon-data",
     "./crates/cordon-sim",
@@ -21,9 +22,13 @@ homepage = "https://github.com/martsokha/cordon"
 
 [workspace.dependencies]
 # Internal crates
+cordon-bevy = { path = "./crates/cordon-bevy" }
 cordon-core = { path = "./crates/cordon-core" }
 cordon-data = { path = "./crates/cordon-data" }
 cordon-sim = { path = "./crates/cordon-sim" }
+
+# Game engine
+bevy = { version = "0.18", features = [] }
 
 # (De)serialization
 serde = { version = "1.0", features = ["derive"] }

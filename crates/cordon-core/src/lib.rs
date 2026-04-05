@@ -2,10 +2,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
 
-/// Bunker state, upgrades, and storage management.
-pub mod bunker;
-
-/// NPCs, factions, and the player.
+/// NPCs, factions, the player, bunker, and perks.
 pub mod entity;
 
 /// Item definitions, effects, calibers, and instances.

@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
+use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NamePool;
 use cordon_core::entity::npc::Npc;
-use cordon_core::primitive::id::{Faction, Id};
+use cordon_core::primitive::id::Id;
 use cordon_core::world::event::EventDef;
 use cordon_core::world::mission::MissionResult;
-use cordon_core::world::time::Phase;
+use cordon_core::primitive::time::Phase;
 
 use crate::simulation::npcs::NpcGenerator;
 use crate::simulation::{events, factions, missions, npcs};

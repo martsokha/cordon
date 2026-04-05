@@ -16,12 +16,21 @@ authors = { workspace = true }
 repository = { workspace = true }
 homepage = { workspace = true }
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
 [dependencies]
+# (De)serialization
 serde = { workspace = true }
+
+# Derive macros and error handling
 derive_more = { workspace = true }
 derive_builder = { workspace = true }
 strum = { workspace = true }
 thiserror = { workspace = true }
+
+# Primitive datatypes
 uuid = { workspace = true }
 jiff = { workspace = true }
 semver = { workspace = true }

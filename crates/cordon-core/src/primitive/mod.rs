@@ -21,3 +21,6 @@ pub mod location;
 
 /// Item rarity tiers.
 pub mod rarity;
+
+/// Day/phase time system.
+pub mod time;

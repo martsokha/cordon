@@ -4,7 +4,8 @@ use std::collections::HashMap;
 
 use cordon_core::primitive::condition::Condition;
 use cordon_core::primitive::credits::Credits;
-use cordon_core::primitive::id::{Id, Item};
+use cordon_core::item::def::Item;
+use cordon_core::primitive::id::Id;
 use cordon_core::world::price::PriceModifiers;
 
 /// Live market state for the current game session.

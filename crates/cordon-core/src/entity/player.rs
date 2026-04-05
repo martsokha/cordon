@@ -2,11 +2,11 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::entity::faction::Standing;
+use crate::entity::faction::{Faction, Standing};
 use crate::entity::npc::Role;
 use crate::primitive::credits::Credits;
 use crate::primitive::experience::Experience;
-use crate::primitive::id::{Faction, Id};
+use crate::primitive::id::Id;
 use crate::primitive::uid::Uid;
 
 /// Player rank tier. Determines squad capacity and unlocks.

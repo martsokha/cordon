@@ -1,15 +1,16 @@
 use std::collections::HashMap;
 
-use cordon_core::bunker::UpgradeDef;
-use cordon_core::entity::faction::FactionDef;
+use cordon_core::entity::bunker::{Upgrade, UpgradeDef};
+use cordon_core::entity::faction::{Faction, FactionDef};
 use cordon_core::entity::name::{NamePool, NamePoolMarker};
-use cordon_core::entity::npc::PerkDef;
+use cordon_core::entity::perk::{Perk, PerkDef};
+use cordon_core::item::def::Item;
 use cordon_core::item::ItemDef;
-use cordon_core::primitive::id::{Area, Event, Faction, Id, Item, Perk, Quest, Upgrade};
-use cordon_core::world::area::AreaDef;
-use cordon_core::world::event::EventDef;
+use cordon_core::primitive::id::Id;
+use cordon_core::world::area::{Area, AreaDef};
+use cordon_core::world::event::{Event, EventDef};
 use cordon_core::world::loot::LootTables;
-use cordon_core::world::quest::QuestDef;
+use cordon_core::world::narrative::quest::{Quest, QuestDef};
 
 /// The read-only game database.
 ///

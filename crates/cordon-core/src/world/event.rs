@@ -9,9 +9,16 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::id::{Area, Event, Faction, Id, Quest};
-use crate::world::consequence::Consequence;
-use crate::world::time::Day;
+use crate::entity::faction::Faction;
+use crate::primitive::id::{Id, IdMarker};
+use crate::world::area::Area;
+use crate::world::narrative::consequence::Consequence;
+use crate::world::narrative::quest::Quest;
+use crate::primitive::time::Day;
+
+/// Marker for event definition IDs.
+pub struct Event;
+impl IdMarker for Event {}
 
 /// Broad category for event grouping and scheduling.
 ///

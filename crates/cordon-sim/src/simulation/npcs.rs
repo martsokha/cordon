@@ -1,9 +1,10 @@
+use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::{NameFormat, NamePool};
 use cordon_core::entity::npc::{Need, Npc, NpcCondition, Personality, npc_rank_from_xp};
 use cordon_core::item::Inventory;
 use cordon_core::primitive::credits::Credits;
 use cordon_core::primitive::experience::Experience;
-use cordon_core::primitive::id::{Faction, Id};
+use cordon_core::primitive::id::Id;
 use cordon_core::primitive::uid::Uid;
 use rand::{Rng, RngExt};
 

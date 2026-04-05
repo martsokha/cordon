@@ -38,16 +38,17 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use cordon_core::bunker::UpgradeDef;
+use cordon_core::entity::bunker::UpgradeDef;
 use cordon_core::entity::faction::FactionDef;
 use cordon_core::entity::name::{NamePool, NamePoolMarker};
-use cordon_core::entity::npc::PerkDef;
+use cordon_core::entity::perk::PerkDef;
+use cordon_core::item::def::Item;
 use cordon_core::item::ItemDef;
-use cordon_core::primitive::id::{Id, IdMarker, Item, Quest};
+use cordon_core::primitive::id::{Id, IdMarker};
 use cordon_core::world::area::AreaDef;
 use cordon_core::world::event::EventDef;
 use cordon_core::world::loot::LootTables;
-use cordon_core::world::quest::QuestDef;
+use cordon_core::world::narrative::quest::{Quest, QuestDef};
 
 use crate::catalog::GameData;
 use crate::error::{Error, Result};

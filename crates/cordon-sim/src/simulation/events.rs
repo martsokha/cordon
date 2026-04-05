@@ -4,7 +4,8 @@
 //! happen, their probabilities, and durations. The sim rolls daily
 //! for each eligible event and creates [`ActiveEvent`] instances.
 
-use cordon_core::primitive::id::{Faction, Id};
+use cordon_core::entity::faction::Faction;
+use cordon_core::primitive::id::Id;
 use cordon_core::world::event::{ActiveEvent, EventCategory, EventDef};
 use rand::{Rng, RngExt};
 

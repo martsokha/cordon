@@ -11,9 +11,14 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::entity::faction::Faction;
 use crate::item::Inventory;
 use crate::primitive::credits::Credits;
-use crate::primitive::id::{Faction, Id, Upgrade};
+use crate::primitive::id::{Id, IdMarker};
+
+/// Marker for upgrade IDs.
+pub struct Upgrade;
+impl IdMarker for Upgrade {}
 
 /// Where an upgrade is physically installed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

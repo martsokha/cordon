@@ -7,8 +7,15 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::entity::bunker::Upgrade;
+use crate::entity::faction::Faction;
+use crate::entity::npc::NpcTemplate;
+use crate::item::def::Item;
 use crate::primitive::credits::Credits;
-use crate::primitive::id::{Event, Faction, Id, Item, NpcTemplate, Quest, Upgrade};
+use crate::primitive::id::Id;
+use crate::world::area::Area;
+use crate::world::event::Event;
+use crate::world::narrative::quest::Quest;
 
 /// A condition that must be met.
 ///
@@ -72,7 +79,7 @@ pub enum Consequence {
     /// Modify danger in a target area.
     DangerModifier {
         /// Area ID. If `None`, applies zone-wide.
-        area: Option<Id<crate::primitive::id::Area>>,
+        area: Option<Id<Area>>,
         /// Additive danger change.
         delta: f32,
     },

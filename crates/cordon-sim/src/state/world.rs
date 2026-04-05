@@ -1,14 +1,16 @@
 use std::collections::HashMap;
 
-use cordon_core::bunker::BaseState;
+use cordon_core::entity::bunker::BaseState;
+use cordon_core::entity::faction::Faction;
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::player::PlayerState;
-use cordon_core::primitive::id::{Area, Faction, Id};
+use cordon_core::primitive::id::Id;
 use cordon_core::primitive::uid::Uid;
+use cordon_core::world::area::Area;
 use cordon_core::world::event::ActiveEvent;
 use cordon_core::world::mission::ActiveMission;
-use cordon_core::world::quest::{ActiveQuest, CompletedQuest};
-use cordon_core::world::time::GameTime;
+use cordon_core::world::narrative::quest::{ActiveQuest, CompletedQuest};
+use cordon_core::primitive::time::GameTime;
 use rand::rngs::StdRng;
 use rand::{RngExt, SeedableRng};
 
@@ -133,7 +135,7 @@ impl World {
     }
 
     /// Current game day.
-    pub fn current_day(&self) -> cordon_core::world::time::Day {
+    pub fn current_day(&self) -> cordon_core::primitive::time::Day {
         self.time.day
     }
 

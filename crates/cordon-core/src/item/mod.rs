@@ -7,17 +7,18 @@
 
 mod category;
 mod data;
-mod def;
 mod effect;
 mod instance;
 mod inventory;
 
+pub mod def;
+
 pub use category::ItemCategory;
 pub use data::{
-    AmmoData, ArmorData, ArmorSlot, AttachmentData, ConsumableData, DocumentData, FireMode,
-    ItemData, RelicData, RelicStability, ThrowableData, WeaponData,
+    AmmoData, ArmorData, ArmorSlot, AttachmentData, Caliber, ConsumableData, DocumentData,
+    FireMode, ItemData, RelicData, RelicStability, ThrowableData, WeaponData,
 };
-pub use def::{ItemDef, Supplier};
+pub use def::{Item as ItemMarker, ItemDef, Supplier};
 pub use effect::{Effect, EffectTarget};
 pub use instance::{Authenticity, Item};
 pub use inventory::Inventory;

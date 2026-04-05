@@ -7,7 +7,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::entity::name::NamePoolMarker;
 use crate::item::ItemCategory;
-use crate::primitive::id::{Faction, Id};
+use crate::primitive::id::{Id, IdMarker};
+
+/// Marker for faction IDs.
+pub struct Faction;
+impl IdMarker for Faction {}
 
 /// Which rank naming convention a faction uses.
 ///

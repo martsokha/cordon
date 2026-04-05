@@ -1,9 +1,9 @@
 # https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [package]
-name = "cordon-data"
-description = "Data loading and catalog definitions for Cordon"
-keywords = ["cordon", "data", "catalog"]
+name = "cordon-bevy"
+description = "Bevy game client for Cordon"
+keywords = ["cordon", "bevy", "game"]
 readme = "README.md"
 
 version = { workspace = true }
@@ -23,10 +23,8 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 # Internal crates
 cordon-core = { workspace = true }
+cordon-data = { workspace = true }
+cordon-sim = { workspace = true }
 
-# (De)serialization
-serde = { workspace = true }
-serde_json = { workspace = true }
-
-# Error handling
-thiserror = { workspace = true }
+# Game engine
+bevy = { workspace = true }

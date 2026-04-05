@@ -6,8 +6,14 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::id::{Area, Faction, Id, Upgrade};
+use crate::entity::bunker::Upgrade;
+use crate::entity::faction::Faction;
+use crate::primitive::id::{Id, IdMarker};
 use crate::primitive::location::Location;
+
+/// Marker for area (point of interest) IDs.
+pub struct Area;
+impl IdMarker for Area {}
 
 /// An area of the Zone, loaded from config.
 ///
