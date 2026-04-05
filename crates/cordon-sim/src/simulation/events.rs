@@ -34,7 +34,7 @@ pub fn roll_daily_events(world: &mut World, event_defs: &[EventDef]) {
 
     for def in event_defs {
         // Check earliest day
-        if day_num < def.earliest_day {
+        if day < def.earliest_day {
             continue;
         }
 

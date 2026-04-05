@@ -39,6 +39,12 @@ impl Experience {
     }
 }
 
+impl From<u32> for Experience {
+    fn from(xp: u32) -> Self {
+        Self(xp)
+    }
+}
+
 impl std::fmt::Display for Experience {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} XP", self.0)

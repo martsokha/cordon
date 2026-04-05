@@ -11,7 +11,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::item::Item;
+use crate::item::Inventory;
+use crate::primitive::credits::Credits;
 use crate::primitive::id::{Faction, Id, Upgrade};
 
 /// Where an upgrade is physically installed.
@@ -56,7 +57,7 @@ pub struct UpgradeDef {
     /// Where this upgrade is installed.
     pub location: UpgradeLocation,
     /// Credit cost to purchase. Zero for quest rewards.
-    pub cost: u32,
+    pub cost: Credits,
     /// IDs of other upgrades that must be installed first.
     pub requires: Vec<Id<Upgrade>>,
     /// How this upgrade becomes available.
@@ -73,19 +74,19 @@ pub struct UpgradeDef {
 pub struct BaseState {
     /// All installed upgrade IDs (both bunker and camp).
     pub upgrades: Vec<Id<Upgrade>>,
-    /// Main storage contents (bunker interior).
-    pub storage: Vec<Item>,
-    /// Hidden storage contents (survives raids, invisible during inspections).
-    pub hidden_storage: Vec<Item>,
+    /// Main storage (bunker interior).
+    pub storage: Inventory,
+    /// Hidden storage (survives raids, invisible during inspections).
+    pub hidden_storage: Inventory,
 }
 
 impl BaseState {
-    /// Create a new empty base with no upgrades.
+    /// Create a new empty base with default storage capacities.
     pub fn new() -> Self {
         Self {
             upgrades: Vec::new(),
-            storage: Vec::new(),
-            hidden_storage: Vec::new(),
+            storage: Inventory::new(20),
+            hidden_storage: Inventory::new(0),
         }
     }
 

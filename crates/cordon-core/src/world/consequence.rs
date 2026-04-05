@@ -7,6 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::primitive::credits::Credits;
 use crate::primitive::id::{Event, Faction, Id, Item, NpcTemplate, Quest, Upgrade};
 
 /// A condition that must be met.
@@ -18,7 +19,7 @@ pub enum ObjectiveCondition {
     /// Player must have a specific item in storage.
     HaveItem(Id<Item>),
     /// Player must have at least this many credits.
-    HaveCredits(u32),
+    HaveCredits(Credits),
     /// Player must reach a minimum standing with a faction.
     FactionStanding {
         faction: Id<Faction>,
@@ -45,9 +46,9 @@ pub enum Consequence {
     /// Change standing with a faction.
     StandingChange { faction: Id<Faction>, delta: i8 },
     /// Give credits to the player.
-    GiveCredits(u32),
+    GiveCredits(Credits),
     /// Take credits from the player.
-    TakeCredits(u32),
+    TakeCredits(Credits),
     /// Give an item to the player (placed in storage).
     GiveItem(Id<Item>),
     /// Remove an item from the player's storage.

@@ -5,5 +5,8 @@
 /// Game data catalog: the read-only database of all definitions.
 pub mod catalog;
 
-/// Loot tables: per-sector weighted drop tables.
+/// Asset loading from the filesystem.
+pub mod loader;
+
+/// Loot tables: per-area weighted drop tables.
 pub mod loot;

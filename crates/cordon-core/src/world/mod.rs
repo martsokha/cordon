@@ -14,7 +14,10 @@ pub mod price;
 pub mod quest;
 
 /// Area definitions loaded from config.
-pub mod sector;
+pub mod area;
 
 /// Day/phase time system.
 pub mod time;
+
+/// Trade offers between the player and NPCs.
+pub mod trade;

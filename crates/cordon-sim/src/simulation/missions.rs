@@ -1,4 +1,5 @@
 use cordon_core::primitive::id::{Id, Perk};
+use cordon_core::primitive::location::Location;
 use cordon_core::world::mission::{ActiveMission, MissionOutcome, MissionPlan, MissionResult};
 use cordon_core::world::time::Day;
 use rand::Rng;
@@ -31,6 +32,7 @@ pub fn dispatch_mission(world: &mut World, plan: MissionPlan) -> Result<(), &'st
         plan,
         day_dispatched: world.time.day,
         return_day,
+        current_location: Location::ORIGIN,
     };
 
     world.active_missions.push(mission);

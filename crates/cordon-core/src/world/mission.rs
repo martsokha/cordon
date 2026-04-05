@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::item::{Item, ItemCategory};
 use crate::primitive::id::{Area, Id, Perk};
+use crate::primitive::location::Location;
 use crate::primitive::uid::Uid;
 use crate::world::time::Day;
 
@@ -72,6 +73,8 @@ pub struct ActiveMission {
     /// Day the runner is expected to return. Computed by the sim
     /// at dispatch time based on sector distance, events, and perks.
     pub return_day: Day,
+    /// Current position on the map, updated each tick by the sim.
+    pub current_location: Location,
 }
 
 /// The result of a completed mission, returned to the game layer.
@@ -84,8 +87,10 @@ pub struct MissionResult {
     /// Items the runner brought back (empty on failure/lost).
     pub loot: Vec<Item>,
     /// Change to the runner's condition (negative = damage).
+    /// Applied via [`Condition::degrade()`](crate::primitive::condition::Condition::degrade).
     pub runner_condition_delta: f32,
     /// Change to the runner's gear condition (negative = wear).
+    /// Applied via [`Condition::degrade()`](crate::primitive::condition::Condition::degrade).
     pub gear_condition_delta: f32,
     /// Perk IDs that were revealed by this mission's events.
     pub perks_revealed: Vec<Id<Perk>>,

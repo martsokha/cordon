@@ -5,7 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::item::Item;
+use crate::item::Inventory;
+use crate::primitive::credits::Credits;
 use crate::primitive::experience::Experience;
 use crate::primitive::id::{Faction, Id, Perk};
 use crate::primitive::uid::Uid;
@@ -111,17 +112,15 @@ pub struct Npc {
 
     // Visible
     /// Items the NPC is carrying.
-    pub gear: Vec<Item>,
+    pub inventory: Inventory,
     /// Physical condition (visible from appearance).
     pub condition: NpcCondition,
-    /// How many inventory slots this NPC can carry.
-    pub inventory_slots: u8,
 
     // Hidden
     /// How much this NPC trusts the player (-1.0 to 1.0).
     pub trust: f32,
     /// How many credits the NPC can spend.
-    pub wealth: u32,
+    pub wealth: Credits,
     /// What the NPC actually needs (may differ from what they say).
     pub need: Need,
     /// Core personality trait affecting negotiation.
@@ -137,7 +136,7 @@ pub struct Npc {
     /// Loyalty level (0.0–1.0). Drops with underpayment or suicide missions.
     pub loyalty: f32,
     /// How many credits this NPC expects per day.
-    pub daily_pay: u32,
+    pub daily_pay: Credits,
 }
 
 /// NPC rank tier XP thresholds.

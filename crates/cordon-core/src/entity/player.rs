@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::entity::faction::Standing;
 use crate::entity::npc::Role;
+use crate::primitive::credits::Credits;
 use crate::primitive::experience::Experience;
 use crate::primitive::id::{Faction, Id};
 use crate::primitive::uid::Uid;
@@ -90,7 +91,7 @@ pub struct PlayerState {
     /// Accumulated experience. Rank is derived from this.
     pub xp: Experience,
     /// Available credits (the Zone's currency).
-    pub credits: u32,
+    pub credits: Credits,
     /// Standings with each faction, keyed by faction ID.
     pub standings: Vec<(Id<Faction>, Standing)>,
     /// Currently employed NPCs and their roles.
@@ -109,7 +110,7 @@ impl PlayerState {
 
         Self {
             xp: Experience::ZERO,
-            credits: 5000,
+            credits: Credits::new(5000),
             standings,
             squad: Vec::new(),
             garrison_bribe_paid: false,
