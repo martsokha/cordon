@@ -1,0 +1,32 @@
+# https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace]
+resolver = "2"
+members = [
+    "./crates/cordon-core",
+    "./crates/cordon-data",
+    "./crates/cordon-sim",
+]
+
+[workspace.package]
+version = "0.1.0"
+rust-version = "1.92"
+edition = "2024"
+license = "MIT"
+publish = false
+
+authors = ["Oleh Martsokha"]
+repository = "https://github.com/martsokha/cordon"
+homepage = "https://github.com/martsokha/cordon"
+
+[workspace.dependencies]
+# Internal crates
+cordon-core = { path = "./crates/cordon-core" }
+cordon-data = { path = "./crates/cordon-data" }
+cordon-sim = { path = "./crates/cordon-sim" }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+
+# Randomness
+rand = "0.8"
