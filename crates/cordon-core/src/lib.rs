@@ -5,14 +5,14 @@
 /// Bunker state, upgrades, and storage management.
 pub mod bunker;
 
-/// Items, pricing, and mission types.
-pub mod economy;
-
 /// NPCs, factions, and the player.
 pub mod entity;
 
-/// Identifiers for data-driven and runtime objects.
-pub mod object;
+/// Item definitions, effects, calibers, and instances.
+pub mod item;
 
-/// Time, sectors, and zone events.
+/// Primitive value types: identifiers, condition, duration.
+pub mod primitive;
+
+/// Time, sectors, zone events, pricing, and missions.
 pub mod world;

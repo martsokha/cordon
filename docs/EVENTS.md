@@ -14,7 +14,6 @@ The Zone is unpredictable. Events happen on a semi-random schedule, driven by a 
 | **Blowout** | Severe surge. Major casualties. Relic positions completely reset. Prices spike across the board. | 1 day, aftermath 2-3 days |
 | **Creature Swarm** | Dangerous creatures flood a sector. Runners at extreme risk. Weapon/ammo demand spikes. Some sectors inaccessible. | 2-3 days |
 | **Hazard Shift** | Hazard fields move. New relic locations. Old safe routes become deadly. Maps become outdated (unless you have map subscription). | Permanent until next shift |
-| **Psi-Wave** | Psychic disturbance in a sector. Scavengers go erratic. Unpredictable NPC behavior. Mental protection gear demand surges. | 1-2 days |
 
 ### Economic
 

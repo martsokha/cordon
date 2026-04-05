@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use cordon_core::object::id::Id;
+use cordon_core::primitive::id::Id;
 
 /// A weighted entry in a loot table.
 ///

@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 
-use cordon_core::economy::price::PriceModifiers;
-use cordon_core::object::id::Id;
+use cordon_core::world::price::PriceModifiers;
+use cordon_core::primitive::id::Id;
 
 /// Live market state for the current game session.
 ///

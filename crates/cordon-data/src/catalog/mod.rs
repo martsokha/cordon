@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use cordon_core::bunker::UpgradeDef;
-use cordon_core::economy::item::{CaliberDef, ItemDef};
+use cordon_core::item::{CaliberDef, ItemDef};
 use cordon_core::entity::faction::FactionDef;
 use cordon_core::entity::npc::PerkDef;
 use cordon_core::entity::player::PlayerRankDef;
-use cordon_core::object::id::Id;
+use cordon_core::primitive::id::Id;
 use cordon_core::world::sector::SectorDef;
 
 use crate::loot::LootTables;

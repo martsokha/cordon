@@ -5,8 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::economy::item::ItemStack;
-use crate::object::id::Id;
+use crate::item::Item;
+use crate::primitive::id::Id;
 
 /// An upgrade definition loaded from config.
 ///
@@ -49,9 +49,9 @@ pub struct BunkerState {
     pub upgrades: Vec<Id>,
 
     /// Main storage contents.
-    pub storage: Vec<ItemStack>,
+    pub storage: Vec<Item>,
     /// Hidden storage contents (survives raids, invisible during inspections).
-    pub hidden_storage: Vec<ItemStack>,
+    pub hidden_storage: Vec<Item>,
 }
 
 impl BunkerState {

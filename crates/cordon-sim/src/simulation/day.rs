@@ -1,4 +1,4 @@
-use cordon_core::economy::mission::MissionResult;
+use cordon_core::world::mission::MissionResult;
 use cordon_core::entity::npc::Npc;
 use cordon_core::world::time::Phase;
 

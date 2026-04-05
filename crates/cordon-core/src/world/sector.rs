@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::object::id::Id;
+use crate::primitive::id::Id;
 
 /// A sector of the Zone, loaded from config.
 ///

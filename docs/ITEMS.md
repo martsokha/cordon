@@ -63,7 +63,7 @@ The Garrison controls access to the Zone. You need to pay them to look the other
 | Anti-radiation pills | 400 | Institute, Garrison | Essential for deep-Zone runs. Expires in 10 days. Demand surges before predicted surges. |
 | Painkillers | 250 | Drifters, Garrison | Common, steady demand. |
 | Blood coagulant | 450 | Institute | Stops bleeding fast. Runners and soldiers want these. Expires in 7 days. |
-| Psi-blockers | 700 | Institute | Rare. Demand spikes during psi-waves. Only the Institute manufactures them. Expires in 5 days. |
+| Mental blockers | 700 | Institute | Rare. Demand spikes during psychic disturbances. Only the Institute manufactures them. Expires in 5 days. |
 | Antidote | 350 | Institute, Drifters | For creature venom and Zone toxins. Expires in 7 days. |
 | Surgical kit | 1500 | Institute, Garrison | Heals serious wounds. Rare, high value. |
 
@@ -202,7 +202,7 @@ Ammo is sold per box (20 rounds for pistol/rifle, 10 for shotgun).
 
 ### Armor
 
-Armor has two slots: **helmet** and **suit**. A scavenger wearing a leather jacket and no helmet is very different from one in combat armor with a psi-helmet. Equipping your runners properly means filling both slots.
+Armor has two slots: **helmet** and **suit**. A scavenger wearing a leather jacket and no helmet is very different from one in combat armor with a mental helmet. Equipping your runners properly means filling both slots.
 
 **Suits:**
 
@@ -224,7 +224,7 @@ Armor has two slots: **helmet** and **suit**. A scavenger wearing a leather jack
 | Steel helmet | 800 | Garrison, Drifters | Basic ballistic protection. Heavy, uncomfortable. Standard issue. |
 | Tactical helmet | 2000 | Garrison, Mercenaries | Modern composite. Night-vision mount. Military and Mercenary standard. |
 | Closed helmet | 3500 | Garrison (rare), Mercenaries | Full face protection. Visor, respirator. Required for deep hazardous sectors. |
-| Psi-helmet | 5000 | Institute | Mental protection. Only source is the Institute. Devoted also hoard these. |
+| Mental helmet | 5000 | Institute | Mental protection. Only source is the Institute. Devoted also hoard these. |
 | Sphere helmet | 8000 | Garrison (rare) | Full enclosed helmet with integrated optics and comms. Top-tier military gear. |
 
 ### Relics
@@ -235,7 +235,7 @@ Armor has two slots: **helmet** and **suit**. A scavenger wearing a leather jack
 | Ember | 2000 | Drifters, scavenged | Common | Warm to the touch. Minor healing properties. |
 | Thorn | 1800 | Drifters, scavenged | Common | Jagged crystalline growth. Minor ballistic resistance. |
 | Dusklight | 4000 | Scavenged, Collective | Uncommon | Shifts between light and dark. Moderate radiation absorption. |
-| Whisperer | 5000 | Scavenged, the Devoted | Uncommon | Emits faint sound. Psi-resistance properties. The Devoted prize these. |
+| Whisperer | 5000 | Scavenged, the Devoted | Uncommon | Emits faint sound. Mental resistance properties. The Devoted prize these. |
 | Pulse | 5500 | Scavenged | Uncommon | Rhythmic energy discharge. Enhances stamina/endurance. |
 | Hollow | 10000 | Deep-Zone scavenging | Rare | A void in the shape of a stone. Absorbs damage. Extremely valuable. |
 | Sunspot | 15000 | Deep-Zone scavenging | Rare | Blinding when exposed to light. Massive energy output. Institute pays double. |
@@ -264,7 +264,7 @@ Armor has two slots: **helmet** and **suit**. A scavenger wearing a leather jack
 
 | Item | Base Price | Supplier | Notes |
 |------|-----------|----------|-------|
-| Neural dampener | 6000 | Institute (rare) | Prototype psi-protection. More effective than psi-blockers. Institute doesn't want these circulating. |
+| Neural dampener | 6000 | Institute (rare) | Prototype mental protection. More effective than mental blockers. Institute doesn't want these circulating. |
 | Prototype scanner | 8000 | Institute | Detects relics at range. Huge advantage for runners. Institute sells reluctantly. |
 | Signal jammer | 5000 | Mercenaries, Garrison (black market) | Blocks communications in an area. Useful for smuggling, dangerous to be caught with. |
 | Stabilizer unit | 4500 | Institute | Keeps unstable relics from degrading. Essential for transporting high-value relics. |

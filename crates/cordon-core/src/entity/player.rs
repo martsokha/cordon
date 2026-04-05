@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::entity::faction::Standing;
 use crate::entity::npc::Role;
-use crate::object::id::{Id, Uid};
+use crate::primitive::id::{Id, Uid};
 
 /// Player rank definition loaded from config.
 ///

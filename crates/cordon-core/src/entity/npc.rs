@@ -5,8 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::economy::item::ItemStack;
-use crate::object::id::{Id, Uid};
+use crate::item::Item;
+use crate::primitive::id::{Id, Uid};
 
 /// Perk definition loaded from config.
 ///
@@ -116,7 +116,7 @@ pub struct Npc {
 
     // -- Visible attributes --
     /// Items the NPC is carrying.
-    pub gear: Vec<ItemStack>,
+    pub gear: Vec<Item>,
     /// Physical condition (visible from appearance).
     pub condition: NpcCondition,
 

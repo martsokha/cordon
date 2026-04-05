@@ -6,8 +6,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::economy::item::{ItemKind, ItemStack};
-use crate::object::id::{Id, Uid};
+use crate::item::{ItemCategory, Item};
+use crate::primitive::id::{Id, Uid};
 use crate::world::time::Day;
 
 /// What kind of mission a runner is being sent on.
@@ -16,11 +16,11 @@ pub enum MissionType {
     /// Bring back whatever they find.
     Scavenge,
     /// Look for a specific item category (costs more, less total loot).
-    TargetedSearch(ItemKind),
+    TargetedSearch(ItemCategory),
     /// Bring goods to a buyer in another sector (guaranteed sale, transit risk).
     Delivery {
         /// Items being delivered.
-        items: Vec<ItemStack>,
+        items: Vec<Item>,
         /// Destination sector ID.
         to: Id,
     },
@@ -75,7 +75,7 @@ pub struct MissionResult {
     /// What happened.
     pub outcome: MissionOutcome,
     /// Items the runner brought back (empty on failure/lost).
-    pub loot: Vec<ItemStack>,
+    pub loot: Vec<Item>,
     /// Change to the runner's condition (negative = damage).
     pub runner_condition_delta: f32,
     /// Change to the runner's gear condition (negative = wear).

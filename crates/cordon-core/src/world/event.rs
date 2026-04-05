@@ -5,8 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::economy::item::ItemKind;
-use crate::object::id::{Id, Uid};
+use crate::item::ItemCategory;
+use crate::primitive::id::{Id, Uid};
 use crate::world::time::Day;
 
 /// What kind of event is occurring.
@@ -25,14 +25,12 @@ pub enum EventKind {
     CreatureSwarm,
     /// Hazard fields move. Routes change. Maps outdated.
     HazardShift,
-    /// Psychic disturbance. Erratic NPC behavior. Psi-gear demand surges.
-    PsiWave,
 
     // -- Economic --
     /// Military convoy lost. Cheap goods flood the market.
     SupplyDrop,
     /// A category of goods becomes scarce. Prices spike.
-    Shortage(ItemKind),
+    Shortage(ItemCategory),
     /// Authorities crack down on illegal goods.
     BlackMarketBust,
     /// Safe path opens to a dangerous sector.
@@ -92,8 +90,7 @@ impl EventKind {
             EventKind::Surge
             | EventKind::Blowout
             | EventKind::CreatureSwarm
-            | EventKind::HazardShift
-            | EventKind::PsiWave => EventCategory::Environmental,
+            | EventKind::HazardShift => EventCategory::Environmental,
 
             EventKind::SupplyDrop
             | EventKind::Shortage(_)

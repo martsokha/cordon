@@ -106,7 +106,7 @@ You cannot join a faction — you are a trader. But you can align, betray, play 
 
 | Aspect | Detail |
 |--------|--------|
-| **They buy** | Relics (hoard them as holy objects), psi-gear, ritual supplies |
+| **They buy** | Relics (hoard them as holy objects), protective gear, ritual supplies |
 | **They sell** | Rare and dangerous relics, Zone secrets, items from deep sectors no one else reaches |
 | **Good relations** | Access to the rarest relics, deep-Zone intel, safe passage through Devoted-controlled territory |
 | **Bad relations** | Violent hostility, sabotage, they send zealots to "reclaim" relics you've sold |

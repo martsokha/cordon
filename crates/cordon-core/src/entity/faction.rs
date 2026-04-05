@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::object::id::Id;
+use crate::primitive::id::Id;
 
 /// Faction definition loaded from config.
 ///

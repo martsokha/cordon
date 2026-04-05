@@ -1,4 +1,4 @@
-use cordon_core::object::id::Id;
+use cordon_core::primitive::id::Id;
 
 /// Live state of a sector in the world.
 ///
