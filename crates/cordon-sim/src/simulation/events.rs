@@ -52,7 +52,10 @@ pub fn expire_events(world: &mut World) {
     world.active_events.retain(|e| !e.is_expired(day));
 }
 
-fn pick_faction(faction_ids: &[cordon_core::primitive::id::Id], rng: &mut impl Rng) -> cordon_core::primitive::id::Id {
+fn pick_faction(
+    faction_ids: &[cordon_core::primitive::id::Id],
+    rng: &mut impl Rng,
+) -> cordon_core::primitive::id::Id {
     faction_ids[rng.gen_range(0..faction_ids.len())].clone()
 }
 
@@ -68,7 +71,11 @@ fn roll_environmental(day: Day, rng: &mut impl Rng) -> Option<Event> {
         (EventKind::HazardShift, 30)
     };
 
-    Some(Event { kind, duration_days: duration, day_started: day })
+    Some(Event {
+        kind,
+        duration_days: duration,
+        day_started: day,
+    })
 }
 
 fn roll_economic(day: Day, rng: &mut impl Rng) -> Option<Event> {
@@ -91,10 +98,18 @@ fn roll_economic(day: Day, rng: &mut impl Rng) -> Option<Event> {
         (EventKind::TraderRivalry, rng.gen_range(5..=10))
     };
 
-    Some(Event { kind, duration_days: duration, day_started: day })
+    Some(Event {
+        kind,
+        duration_days: duration,
+        day_started: day,
+    })
 }
 
-fn roll_faction(day: Day, faction_ids: &[cordon_core::primitive::id::Id], rng: &mut impl Rng) -> Option<Event> {
+fn roll_faction(
+    day: Day,
+    faction_ids: &[cordon_core::primitive::id::Id],
+    rng: &mut impl Rng,
+) -> Option<Event> {
     let roll: f32 = rng.r#gen();
     let (kind, duration) = if roll < 0.25 {
         let a = pick_faction(faction_ids, rng);
@@ -113,7 +128,10 @@ fn roll_faction(day: Day, faction_ids: &[cordon_core::primitive::id::Id], rng: &
     } else if roll < 0.55 {
         (EventKind::Coup(pick_faction(faction_ids, rng)), 1)
     } else if roll < 0.7 {
-        (EventKind::FactionMission(pick_faction(faction_ids, rng)), rng.gen_range(2..=5))
+        (
+            EventKind::FactionMission(pick_faction(faction_ids, rng)),
+            rng.gen_range(2..=5),
+        )
     } else if roll < 0.85 {
         (EventKind::FactionPatrol(pick_faction(faction_ids, rng)), 1)
     } else if roll < 0.93 {
@@ -122,10 +140,18 @@ fn roll_faction(day: Day, faction_ids: &[cordon_core::primitive::id::Id], rng: &
         (EventKind::DevotedPilgrimage, rng.gen_range(3..=5))
     };
 
-    Some(Event { kind, duration_days: duration, day_started: day })
+    Some(Event {
+        kind,
+        duration_days: duration,
+        day_started: day,
+    })
 }
 
-fn roll_bunker(day: Day, faction_ids: &[cordon_core::primitive::id::Id], rng: &mut impl Rng) -> Option<Event> {
+fn roll_bunker(
+    day: Day,
+    faction_ids: &[cordon_core::primitive::id::Id],
+    rng: &mut impl Rng,
+) -> Option<Event> {
     let roll: f32 = rng.r#gen();
     let (kind, duration) = if roll < 0.25 {
         (EventKind::Raid(pick_faction(faction_ids, rng)), 1)
@@ -143,7 +169,11 @@ fn roll_bunker(day: Day, faction_ids: &[cordon_core::primitive::id::Id], rng: &m
         (EventKind::BreakIn, 1)
     };
 
-    Some(Event { kind, duration_days: duration, day_started: day })
+    Some(Event {
+        kind,
+        duration_days: duration,
+        day_started: day,
+    })
 }
 
 fn roll_personal(day: Day, rng: &mut impl Rng) -> Option<Event> {
@@ -156,5 +186,9 @@ fn roll_personal(day: Day, rng: &mut impl Rng) -> Option<Event> {
         (EventKind::OldFriend, rng.gen_range(1..=3))
     };
 
-    Some(Event { kind, duration_days: duration, day_started: day })
+    Some(Event {
+        kind,
+        duration_days: duration,
+        day_started: day,
+    })
 }

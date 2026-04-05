@@ -49,6 +49,17 @@ impl From<&str> for Id {
 /// Used for NPCs and missions that are created during gameplay,
 /// not loaded from config. Each [`Uid`] is unique within a single
 /// game session.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Display, From)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+    Display,
+    From
+)]
 #[display("{_0}")]
 pub struct Uid(pub u32);

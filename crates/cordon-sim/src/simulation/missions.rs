@@ -1,6 +1,5 @@
-use cordon_core::world::mission::{MissionOutcome, MissionPlan, MissionResult};
-use cordon_core::world::mission::ActiveMission;
 use cordon_core::primitive::id::Id;
+use cordon_core::world::mission::{ActiveMission, MissionOutcome, MissionPlan, MissionResult};
 use cordon_core::world::time::Day;
 use rand::Rng;
 
@@ -14,10 +13,7 @@ const PERK_COWARD: &str = "coward";
 
 /// Dispatch a runner on a mission. Validates prerequisites.
 pub fn dispatch_mission(world: &mut World, plan: MissionPlan) -> Result<(), &'static str> {
-    let runner = world
-        .npcs
-        .get(&plan.runner_id)
-        .ok_or("runner not found")?;
+    let runner = world.npcs.get(&plan.runner_id).ok_or("runner not found")?;
 
     if !runner.is_employed() {
         return Err("NPC is not employed");
@@ -56,20 +52,25 @@ pub fn resolve_returning_missions(world: &mut World) -> Vec<MissionResult> {
     for mission in returning {
         let runner = world.npcs.get(&mission.plan.runner_id);
 
-        let (has_hard_to_kill, has_pathfinder, has_scavengers_eye, has_coward) =
-            match runner {
-                Some(r) => (
-                    r.has_perk(&htk_id),
-                    r.has_perk(&pf_id),
-                    r.has_perk(&se_id),
-                    r.has_perk(&cow_id),
-                ),
-                None => (false, false, false, false),
-            };
+        let (has_hard_to_kill, has_pathfinder, has_scavengers_eye, has_coward) = match runner {
+            Some(r) => (
+                r.has_perk(&htk_id),
+                r.has_perk(&pf_id),
+                r.has_perk(&se_id),
+                r.has_perk(&cow_id),
+            ),
+            None => (false, false, false, false),
+        };
 
         // TODO: get base danger from sector config
         let danger = 0.5_f32;
-        let outcome = roll_outcome(danger, has_hard_to_kill, has_pathfinder, has_coward, &mut world.rng);
+        let outcome = roll_outcome(
+            danger,
+            has_hard_to_kill,
+            has_pathfinder,
+            has_coward,
+            &mut world.rng,
+        );
 
         let mut perks_revealed = Vec::new();
 
@@ -151,13 +152,21 @@ fn roll_outcome(
     let mut cumulative = 0.0;
 
     cumulative += p_jackpot;
-    if roll < cumulative { return MissionOutcome::Jackpot; }
+    if roll < cumulative {
+        return MissionOutcome::Jackpot;
+    }
     cumulative += p_success;
-    if roll < cumulative { return MissionOutcome::Success; }
+    if roll < cumulative {
+        return MissionOutcome::Success;
+    }
     cumulative += p_partial;
-    if roll < cumulative { return MissionOutcome::PartialSuccess; }
+    if roll < cumulative {
+        return MissionOutcome::PartialSuccess;
+    }
     cumulative += p_failure;
-    if roll < cumulative { return MissionOutcome::Failure; }
+    if roll < cumulative {
+        return MissionOutcome::Failure;
+    }
 
     MissionOutcome::RunnerLost
 }

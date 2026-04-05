@@ -8,16 +8,16 @@ use serde::{Deserialize, Serialize};
 /// Price scales with condition² — a 0.5 condition item is worth ~25% of
 /// base price. Condition degrades with use and over time in poor storage.
 /// Repairs are done by sending items to faction workshops.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Serialize, Deserialize, Display)]
 #[display("{_0:.0}%", _0 = _0 * 100.0)]
 pub struct Condition(f32);
 
 impl Condition {
-    /// Destroyed (0.0).
-    pub const ZERO: Self = Self(0.0);
-
     /// Factory new (1.0).
     pub const PERFECT: Self = Self(1.0);
+    /// Destroyed (0.0).
+    pub const ZERO: Self = Self(0.0);
 
     /// Create a new condition value, clamped to 0.0–1.0.
     pub fn new(value: f32) -> Self {

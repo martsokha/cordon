@@ -6,18 +6,51 @@ use crate::entity::faction::Standing;
 use crate::entity::npc::Role;
 use crate::primitive::id::{Id, Uid};
 
-/// Player rank definition loaded from config.
+/// Player rank tier. Determines squad capacity and unlocks.
 ///
-/// Defines what rank tier the player can achieve and how many
-/// squads (hired NPCs) they can maintain at that rank.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PlayerRankDef {
-    /// Rank tier number (1–5).
-    pub tier: u8,
-    /// Display title (e.g., "Nobody", "Known", "Legend").
-    pub title: String,
+/// Ranking up is earned through gameplay — trade volume, faction
+/// standing, completed missions, and surviving crises all contribute.
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize
+)]
+pub enum PlayerRank {
+    /// Starting rank. 2 squads.
+    Nobody = 1,
+    /// Built some reputation. 3 squads.
+    Known = 2,
+    /// Sustained trade volume, multiple faction relationships. 4 squads.
+    Established = 3,
+    /// High faction standings, major deals completed. 5 squads.
+    Connected = 4,
+    /// Endgame — Zone-wide reputation. 6 squads.
+    Legend = 5,
+}
+
+impl PlayerRank {
     /// Maximum number of squads (runners + guards) at this rank.
-    pub max_squads: u8,
+    pub fn max_squads(self) -> u8 {
+        match self {
+            PlayerRank::Nobody => 2,
+            PlayerRank::Known => 3,
+            PlayerRank::Established => 4,
+            PlayerRank::Connected => 5,
+            PlayerRank::Legend => 6,
+        }
+    }
+
+    /// The numeric tier (1–5).
+    pub fn tier(self) -> u8 {
+        self as u8
+    }
 }
 
 /// A hired NPC assigned to a role.
@@ -35,8 +68,8 @@ pub struct SquadMember {
 /// Created at game start and mutated throughout gameplay.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayerState {
-    /// Current rank tier (1–5). Maps to a [`PlayerRankDef`] from config.
-    pub rank_tier: u8,
+    /// Current rank. Determines max squad size.
+    pub rank: PlayerRank,
     /// Available credits (the Zone's currency).
     pub credits: u32,
     /// Standings with each faction, keyed by faction ID.
@@ -56,7 +89,7 @@ impl PlayerState {
             .collect();
 
         Self {
-            rank_tier: 1,
+            rank: PlayerRank::Nobody,
             credits: 5000,
             standings,
             squad: Vec::new(),
@@ -84,5 +117,10 @@ impl PlayerState {
     /// Number of currently employed NPCs.
     pub fn squad_count(&self) -> u8 {
         self.squad.len() as u8
+    }
+
+    /// Whether the player can hire another squad member.
+    pub fn can_hire(&self) -> bool {
+        self.squad_count() < self.rank.max_squads()
     }
 }

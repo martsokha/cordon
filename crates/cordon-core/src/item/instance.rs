@@ -2,6 +2,9 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::ItemData;
+use super::data::RelicStability;
+use super::def::ItemDef;
 use crate::primitive::condition::Condition;
 use crate::primitive::id::Id;
 
@@ -22,18 +25,18 @@ pub enum Authenticity {
 ///
 /// Items do not stack — each instance is tracked individually with
 /// its own condition, authenticity, and freshness. References an
-/// [`ItemDef`](super::ItemDef) by [`Id`].
+/// [`ItemDef`] by [`Id`].
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Item {
-    /// ID of the [`ItemDef`](super::ItemDef) this is an instance of.
+    /// ID of the [`ItemDef`] this is an instance of.
     pub def_id: Id,
     /// Physical condition of this item.
     pub condition: Condition,
     /// Whether this item is genuine, counterfeit, expired, or doctored.
     pub authenticity: Authenticity,
+    /// Relic stability state. Only set for relic items.
+    pub relic_stability: Option<RelicStability>,
     /// Days remaining until spoilage. `None` means it doesn't spoil.
-    /// Initialized from [`ItemData::Consumable::spoil_days`](super::ItemData::Consumable)
-    /// when created.
     pub freshness: Option<u32>,
 }
 
@@ -44,7 +47,28 @@ impl Item {
             def_id,
             condition,
             authenticity: Authenticity::Genuine,
+            relic_stability: None,
             freshness: None,
         }
+    }
+
+    /// Create a new item from its definition, initializing freshness
+    /// and relic stability from the def's type-specific data.
+    pub fn from_def(def: &ItemDef, condition: Condition) -> Self {
+        let mut item = Self::new(def.id.clone(), condition);
+
+        match &def.data {
+            ItemData::Consumable { spoil_days, .. } => {
+                item.freshness = *spoil_days;
+            }
+            ItemData::Relic {
+                default_stability, ..
+            } => {
+                item.relic_stability = Some(*default_stability);
+            }
+            _ => {}
+        }
+
+        item
     }
 }

@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::item::{ItemCategory, Item};
+use crate::item::{Item, ItemCategory};
 use crate::primitive::id::{Id, Uid};
 use crate::world::time::Day;
 

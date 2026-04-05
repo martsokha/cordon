@@ -1,15 +1,14 @@
 use std::collections::HashMap;
 
 use cordon_core::bunker::BunkerState;
-use cordon_core::world::mission::ActiveMission;
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::player::PlayerState;
 use cordon_core::primitive::id::{Id, Uid};
 use cordon_core::world::event::Event;
+use cordon_core::world::mission::ActiveMission;
 use cordon_core::world::time::GameTime;
-use rand::Rng;
 use rand::rngs::StdRng;
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 
 use crate::state::market::MarketState;
 use crate::state::sectors::SectorState;

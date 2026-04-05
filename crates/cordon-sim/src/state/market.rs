@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 
-use cordon_core::world::price::PriceModifiers;
 use cordon_core::primitive::id::Id;
+use cordon_core::world::price::PriceModifiers;
 
 /// Live market state for the current game session.
 ///
@@ -29,7 +29,12 @@ impl MarketState {
     }
 
     /// Build [`PriceModifiers`] for a specific item from current market conditions.
-    pub fn get_modifiers(&self, item_id: &Id, faction_modifier: f32, reputation: f32) -> PriceModifiers {
+    pub fn get_modifiers(
+        &self,
+        item_id: &Id,
+        faction_modifier: f32,
+        reputation: f32,
+    ) -> PriceModifiers {
         PriceModifiers {
             supply: self.supply.get(item_id).copied().unwrap_or(1.0),
             demand: self.demand.get(item_id).copied().unwrap_or(1.0),

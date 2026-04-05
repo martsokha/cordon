@@ -45,10 +45,10 @@ pub struct FactionDef {
 pub struct Standing(i8);
 
 impl Standing {
-    /// Minimum possible standing.
-    pub const MIN: i8 = -100;
     /// Maximum possible standing.
     pub const MAX: i8 = 100;
+    /// Minimum possible standing.
+    pub const MIN: i8 = -100;
 
     /// Create a new standing, clamped to the valid range.
     pub fn new(value: i8) -> Self {

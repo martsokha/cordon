@@ -6,7 +6,8 @@
 use serde::{Deserialize, Serialize};
 
 /// An in-game day, starting from day 1.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Serialize, Deserialize)]
 pub struct Day(pub u32);
 
 /// One of four phases within a day.

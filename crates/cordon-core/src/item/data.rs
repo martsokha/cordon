@@ -2,10 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::duration::Duration;
-use crate::primitive::id::Id;
 use super::category::ItemCategory;
 use super::effect::Effect;
+use crate::primitive::duration::Duration;
+use crate::primitive::id::Id;
 
 /// Which armor slot this piece of armor occupies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -25,6 +25,17 @@ pub enum RelicStability {
     Unstable,
     /// Depleted or damaged, minimal value.
     Inert,
+}
+
+/// Weapon fire mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum FireMode {
+    /// One shot per trigger pull.
+    Semi,
+    /// Fixed-length burst per trigger pull (e.g., 2-round for AN-94).
+    Burst(u8),
+    /// Continuous fire while trigger held.
+    Auto,
 }
 
 /// Type-specific data carried by an [`ItemDef`](super::ItemDef).
@@ -57,7 +68,9 @@ pub enum ItemData {
         use_time: Duration,
     },
 
-    /// Boxes of ammunition. References a caliber by [`Id`].
+    /// Ammunition. Comes in boxes — [`quantity`](ItemData::Ammo::quantity)
+    /// is rounds per box as purchased. References a caliber by [`Id`];
+    /// weapons that fire the same caliber ID can use this ammo.
     Ammo {
         /// Caliber ID this ammo belongs to (e.g., `"9x18mm"`).
         caliber: Id,
@@ -65,23 +78,36 @@ pub enum ItemData {
         damage: f32,
         /// Armor penetration value (0.0–1.0). Higher = better against armor.
         penetration: f32,
+        /// Number of rounds per box.
+        quantity: u32,
     },
 
     /// Firearms.
     Weapon {
-        /// Caliber ID this weapon fires.
+        /// Caliber ID this weapon fires. Must match an ammo item's caliber.
         caliber: Id,
-        /// Rounds per minute.
+        /// Available fire modes (e.g., `[Semi, Auto]` for an AK-74).
+        fire_modes: Vec<FireMode>,
+        /// Rounds per minute at full auto/burst.
         fire_rate: f32,
         /// Base accuracy (0.0–1.0). Higher = tighter spread.
         accuracy: f32,
+        /// Recoil per shot (0.0–1.0). Higher = more spread over sustained fire.
+        recoil: f32,
         /// Magazine capacity in rounds.
         magazine: u32,
         /// Effective range in meters.
         effective_range: f32,
+        /// Whether this weapon is suppressed (affects runner stealth missions).
+        suppressed: bool,
     },
 
     /// Body armor or head protection.
+    ///
+    /// Armor occupies its own equipment slot (not inventory slots) and
+    /// can grant bonus inventory slots. The net inventory gain from
+    /// wearing armor is [`bonus_slots`](ItemData::Armor::bonus_slots)
+    /// (the armor itself doesn't consume inventory slots while equipped).
     Armor {
         /// Which slot this armor occupies.
         slot: ArmorSlot,
@@ -91,29 +117,40 @@ pub enum ItemData {
         radiation_protection: f32,
         /// Extra inventory slots granted while wearing this armor.
         /// Vests and rigs add carrying capacity.
-        bonus_slots: u32,
+        bonus_slots: u8,
     },
 
     /// Zone relics with anomalous properties.
     Relic {
         /// Default stability when found. Affects storage requirements.
         default_stability: RelicStability,
-        /// Passive effects while carried (e.g., minor radiation absorption).
+        /// Passive effects while carried. Applied continuously to the
+        /// carrier. If an effect has an [`aoe`](Effect::aoe), it also
+        /// affects nearby characters (e.g., a relic that heals allies
+        /// or irradiates everyone within range). Duration is ignored.
         carried_effects: Vec<Effect>,
     },
 
     /// Intel: PDAs, reports, patrol routes, classified data.
-    Document,
+    Document {
+        /// Whether this document is encrypted and requires decryption
+        /// software to read (and sell at full value).
+        encrypted: bool,
+    },
 
     /// Experimental equipment (scanners, dampeners, jammers).
     Tech,
 
-    /// Weapon attachments (underbarrel launchers, etc.).
+    /// Weapon attachments (underbarrel launchers, scopes, etc.).
     Attachment {
         /// Caliber ID of launched grenades, if this is a launcher.
         launcher_caliber: Option<Id>,
         /// Weapon IDs this attachment fits on.
         compatible_weapons: Vec<Id>,
+        /// Accuracy modifier when attached (additive, e.g., +0.05).
+        accuracy_modifier: f32,
+        /// Recoil modifier when attached (additive, e.g., -0.1).
+        recoil_modifier: f32,
     },
 }
 
@@ -127,7 +164,7 @@ impl ItemData {
             ItemData::Weapon { .. } => ItemCategory::Weapon,
             ItemData::Armor { .. } => ItemCategory::Armor,
             ItemData::Relic { .. } => ItemCategory::Relic,
-            ItemData::Document => ItemCategory::Document,
+            ItemData::Document { .. } => ItemCategory::Document,
             ItemData::Tech => ItemCategory::Tech,
             ItemData::Attachment { .. } => ItemCategory::Attachment,
         }

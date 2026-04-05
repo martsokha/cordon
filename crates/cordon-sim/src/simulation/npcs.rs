@@ -1,4 +1,4 @@
-use cordon_core::entity::npc::{Npc, NpcCondition, NpcType, Need, Personality};
+use cordon_core::entity::npc::{Need, Npc, NpcCondition, NpcType, Personality};
 use rand::Rng;
 
 use crate::state::world::World;
@@ -49,22 +49,36 @@ fn generate_visitor(world: &mut World) -> Npc {
 
 fn pick_rank(rng: &mut impl Rng) -> u8 {
     let roll: f32 = rng.r#gen();
-    if roll < 0.4 { 1 }
-    else if roll < 0.7 { 2 }
-    else if roll < 0.9 { 3 }
-    else if roll < 0.97 { 4 }
-    else { 5 }
+    if roll < 0.4 {
+        1
+    } else if roll < 0.7 {
+        2
+    } else if roll < 0.9 {
+        3
+    } else if roll < 0.97 {
+        4
+    } else {
+        5
+    }
 }
 
 fn pick_npc_type(rng: &mut impl Rng) -> NpcType {
     let roll: f32 = rng.r#gen();
-    if roll < 0.5 { NpcType::Drifter }
-    else if roll < 0.7 { NpcType::FactionSoldier }
-    else if roll < 0.8 { NpcType::JobSeeker }
-    else if roll < 0.88 { NpcType::Scammer }
-    else if roll < 0.93 { NpcType::DesperateVisitor }
-    else if roll < 0.97 { NpcType::Informant }
-    else { NpcType::FactionRep }
+    if roll < 0.5 {
+        NpcType::Drifter
+    } else if roll < 0.7 {
+        NpcType::FactionSoldier
+    } else if roll < 0.8 {
+        NpcType::JobSeeker
+    } else if roll < 0.88 {
+        NpcType::Scammer
+    } else if roll < 0.93 {
+        NpcType::DesperateVisitor
+    } else if roll < 0.97 {
+        NpcType::Informant
+    } else {
+        NpcType::FactionRep
+    }
 }
 
 fn pick_personality(rng: &mut impl Rng) -> Personality {
@@ -103,11 +117,10 @@ fn rank_pay_base(rank: u8) -> u32 {
 
 fn generate_name(rng: &mut impl Rng) -> String {
     let names = [
-        "Viper", "Matches", "Ghost", "Shaggy", "Brick", "Needle", "Crow",
-        "Ash", "Sparks", "Mole", "Sledge", "Fang", "Gravel", "Patch",
-        "Wire", "Bolt", "Stump", "Raven", "Flint", "Scar", "Haze",
-        "Copper", "Dusk", "Thorn", "Ember", "Frost", "Hex", "Pike",
-        "Rust", "Slate", "Splint", "Gauge", "Knot", "Grit", "Cinder",
+        "Viper", "Matches", "Ghost", "Shaggy", "Brick", "Needle", "Crow", "Ash", "Sparks", "Mole",
+        "Sledge", "Fang", "Gravel", "Patch", "Wire", "Bolt", "Stump", "Raven", "Flint", "Scar",
+        "Haze", "Copper", "Dusk", "Thorn", "Ember", "Frost", "Hex", "Pike", "Rust", "Slate",
+        "Splint", "Gauge", "Knot", "Grit", "Cinder",
     ];
     names[rng.gen_range(0..names.len())].to_string()
 }

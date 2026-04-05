@@ -6,3 +6,6 @@ pub mod duration;
 
 /// String-based and numeric identifiers for game objects.
 pub mod id;
+
+/// Item rarity tiers.
+pub mod rarity;

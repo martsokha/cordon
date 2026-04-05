@@ -1,11 +1,8 @@
-use cordon_core::world::mission::MissionResult;
 use cordon_core::entity::npc::Npc;
+use cordon_core::world::mission::MissionResult;
 use cordon_core::world::time::Phase;
 
-use crate::simulation::events;
-use crate::simulation::factions;
-use crate::simulation::missions;
-use crate::simulation::npcs;
+use crate::simulation::{events, factions, missions, npcs};
 use crate::state::world::World;
 
 /// Results from advancing a phase, for the game layer to consume.

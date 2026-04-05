@@ -1,28 +1,55 @@
 //! A duration value in seconds.
 
-use derive_more::{Display, From};
+use std::num::NonZeroU32;
+
 use serde::{Deserialize, Serialize};
 
-/// A duration in seconds.
+/// A game duration in seconds.
 ///
-/// Used for consumable use times, throwable prime times, effect
-/// durations, and any other game timing. Wraps a `u32` — zero
-/// means instant.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Display, From)]
-#[display("{_0}s")]
-pub struct Duration(pub u32);
+/// Wraps an `Option<NonZeroU32>` — `None` means instant (zero time),
+/// `Some(n)` means `n` seconds. The `Option` is the same size as a
+/// `u32` thanks to [`NonZeroU32`]'s niche optimization.
+///
+/// Used for effect durations, consumable use times, throwable prime
+/// times, and any other game timing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Serialize, Deserialize)]
+pub struct Duration(Option<NonZeroU32>);
 
 impl Duration {
-    /// An instant duration (0 seconds).
-    pub const INSTANT: Self = Self(0);
+    /// An instant duration (zero seconds).
+    pub const INSTANT: Self = Self(None);
 
-    /// Get the raw seconds value.
-    pub fn seconds(self) -> u32 {
-        self.0
+    /// Create a duration from a number of seconds. Returns [`INSTANT`](Self::INSTANT) for 0.
+    pub fn new(seconds: u32) -> Self {
+        Self(NonZeroU32::new(seconds))
     }
 
-    /// Whether this duration is instant (0 seconds).
+    /// Get the raw seconds value. Returns 0 for instant.
+    pub fn seconds(self) -> u32 {
+        match self.0 {
+            Some(n) => n.get(),
+            None => 0,
+        }
+    }
+
+    /// Whether this duration is instant (zero seconds).
     pub fn is_instant(self) -> bool {
-        self.0 == 0
+        self.0.is_none()
+    }
+}
+
+impl From<u32> for Duration {
+    fn from(seconds: u32) -> Self {
+        Self::new(seconds)
+    }
+}
+
+impl std::fmt::Display for Duration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            Some(n) => write!(f, "{}s", n),
+            None => write!(f, "instant"),
+        }
     }
 }
