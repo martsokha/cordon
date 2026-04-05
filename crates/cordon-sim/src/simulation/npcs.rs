@@ -5,7 +5,7 @@ use cordon_core::primitive::credits::Credits;
 use cordon_core::primitive::experience::Experience;
 use cordon_core::primitive::id::{Faction, Id};
 use cordon_core::primitive::uid::Uid;
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use crate::state::world::World;
 
@@ -18,7 +18,7 @@ pub trait NpcGenerator {
     /// How many visitors arrive today.
     fn visitor_count<R: Rng>(&self, day: u32, rng: &mut R) -> u32 {
         let base_count = 3 + (day / 10).min(5);
-        rng.gen_range(base_count..=base_count + 3)
+        rng.random_range(base_count..=base_count + 3)
     }
 
     /// Generate a display name from a name pool.
@@ -28,18 +28,18 @@ pub trait NpcGenerator {
                 if pool.names.is_empty() {
                     return "Unknown".to_string();
                 }
-                pool.names[rng.gen_range(0..pool.names.len())].clone()
+                pool.names[rng.random_range(0..pool.names.len())].clone()
             }
             NameFormat::FirstSurname => {
                 let first = if pool.names.is_empty() {
                     "Unknown"
                 } else {
-                    &pool.names[rng.gen_range(0..pool.names.len())]
+                    &pool.names[rng.random_range(0..pool.names.len())]
                 };
                 let last = if pool.surnames.is_empty() {
                     ""
                 } else {
-                    &pool.surnames[rng.gen_range(0..pool.surnames.len())]
+                    &pool.surnames[rng.random_range(0..pool.surnames.len())]
                 };
                 if last.is_empty() {
                     first.to_string()
@@ -51,12 +51,12 @@ pub trait NpcGenerator {
                 let title = if pool.titles.is_empty() {
                     "Brother"
                 } else {
-                    &pool.titles[rng.gen_range(0..pool.titles.len())]
+                    &pool.titles[rng.random_range(0..pool.titles.len())]
                 };
                 let name = if pool.names.is_empty() {
                     "Unknown"
                 } else {
-                    &pool.names[rng.gen_range(0..pool.names.len())]
+                    &pool.names[rng.random_range(0..pool.names.len())]
                 };
                 format!("{title} {name}")
             }
@@ -65,17 +65,17 @@ pub trait NpcGenerator {
 
     /// Generate experience for a visiting NPC. Weighted toward low ranks.
     fn generate_xp<R: Rng>(&self, rng: &mut R) -> Experience {
-        let roll: f32 = rng.r#gen();
+        let roll: f32 = rng.random::<f32>();
         let xp = if roll < 0.4 {
-            rng.gen_range(0..100)
+            rng.random_range(0..100)
         } else if roll < 0.7 {
-            rng.gen_range(100..500)
+            rng.random_range(100..500)
         } else if roll < 0.9 {
-            rng.gen_range(500..2000)
+            rng.random_range(500..2000)
         } else if roll < 0.97 {
-            rng.gen_range(2000..10000)
+            rng.random_range(2000..10000)
         } else {
-            rng.gen_range(10000..30000)
+            rng.random_range(10000..30000)
         };
         Experience::new(xp)
     }
@@ -90,7 +90,7 @@ pub trait NpcGenerator {
             Personality::Patient,
             Personality::Impulsive,
         ];
-        options[rng.gen_range(0..options.len())]
+        options[rng.random_range(0..options.len())]
     }
 
     /// Generate wealth based on rank tier.
@@ -102,7 +102,7 @@ pub trait NpcGenerator {
             4 => 5000,
             _ => 15000,
         };
-        let jitter = rng.gen_range(0.5_f32..1.5);
+        let jitter = rng.random_range(0.5_f32..1.5);
         Credits::new((base as f32 * jitter) as u32)
     }
 

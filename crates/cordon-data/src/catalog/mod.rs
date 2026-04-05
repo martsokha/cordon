@@ -8,9 +8,8 @@ use cordon_core::item::ItemDef;
 use cordon_core::primitive::id::{Area, Event, Faction, Id, Item, Perk, Quest, Upgrade};
 use cordon_core::world::area::AreaDef;
 use cordon_core::world::event::EventDef;
+use cordon_core::world::loot::LootTables;
 use cordon_core::world::quest::QuestDef;
-
-use crate::loot::LootTables;
 
 /// The read-only game database.
 ///

@@ -6,7 +6,7 @@
 
 use cordon_core::primitive::id::{Faction, Id};
 use cordon_core::world::event::{ActiveEvent, EventCategory, EventDef};
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use crate::state::world::World;
 
@@ -52,7 +52,7 @@ pub fn roll_daily_events(world: &mut World, event_defs: &[EventDef]) {
 
         // Roll probability
         let probability = def.base_probability * category_multiplier(def.category);
-        if world.rng.events.r#gen::<f32>() >= probability {
+        if world.rng.events.random::<f32>() >= probability {
             continue;
         }
 
@@ -63,7 +63,7 @@ pub fn roll_daily_events(world: &mut World, event_defs: &[EventDef]) {
             world
                 .rng
                 .events
-                .gen_range(def.min_duration..=def.max_duration)
+                .random_range(def.min_duration..=def.max_duration)
         };
 
         // Pick involved factions (if the def specifies candidates)
@@ -77,7 +77,7 @@ pub fn roll_daily_events(world: &mut World, event_defs: &[EventDef]) {
         let target_area = if def.target_areas.is_empty() {
             None
         } else {
-            let idx = world.rng.events.gen_range(0..def.target_areas.len());
+            let idx = world.rng.events.random_range(0..def.target_areas.len());
             Some(def.target_areas[idx].clone())
         };
 
@@ -119,13 +119,13 @@ fn pick_involved_factions(
     // Most events involve 0-2 factions. Pick up to 2 unique ones.
     let mut result = Vec::new();
     if !pool.is_empty() {
-        let a = pool[rng.gen_range(0..pool.len())].clone();
+        let a = pool[rng.random_range(0..pool.len())].clone();
         result.push(a.clone());
 
         if pool.len() > 1 {
-            let mut b = pool[rng.gen_range(0..pool.len())].clone();
+            let mut b = pool[rng.random_range(0..pool.len())].clone();
             while b == a {
-                b = pool[rng.gen_range(0..pool.len())].clone();
+                b = pool[rng.random_range(0..pool.len())].clone();
             }
             result.push(b);
         }

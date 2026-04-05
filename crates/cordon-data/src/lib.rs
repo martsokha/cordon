@@ -5,8 +5,8 @@
 /// Game data catalog: the read-only database of all definitions.
 pub mod catalog;
 
+/// Error types for data loading.
+pub mod error;
+
 /// Asset loading from the filesystem.
 pub mod loader;
-
-/// Loot tables: per-area weighted drop tables.
-pub mod loot;

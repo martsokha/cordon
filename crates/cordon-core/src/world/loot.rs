@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use cordon_core::primitive::id::{Area, Id, Item};
 use serde::{Deserialize, Serialize};
+
+use crate::primitive::id::{Area, Id, Item};
 
 /// A weighted entry in a loot table.
 ///

@@ -16,6 +16,9 @@ pub mod quest;
 /// Area definitions loaded from config.
 pub mod area;
 
+/// Loot tables: per-area weighted drop tables.
+pub mod loot;
+
 /// Day/phase time system.
 pub mod time;
 

@@ -10,7 +10,7 @@ use cordon_core::world::mission::ActiveMission;
 use cordon_core::world::quest::{ActiveQuest, CompletedQuest};
 use cordon_core::world::time::GameTime;
 use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng};
 
 use crate::state::market::MarketState;
 use crate::state::sectors::AreaState;
@@ -139,7 +139,7 @@ impl World {
 
     /// Pick a random faction ID using the NPC subsystem RNG.
     pub fn random_faction(&mut self) -> Id<Faction> {
-        let idx = self.rng.npcs.gen_range(0..self.faction_ids.len());
+        let idx = self.rng.npcs.random_range(0..self.faction_ids.len());
         self.faction_ids[idx].clone()
     }
 }

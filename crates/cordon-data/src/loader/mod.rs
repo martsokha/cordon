@@ -43,35 +43,14 @@ use cordon_core::entity::faction::FactionDef;
 use cordon_core::entity::name::{NamePool, NamePoolMarker};
 use cordon_core::entity::npc::PerkDef;
 use cordon_core::item::ItemDef;
-use cordon_core::primitive::id::{Area, Event, Faction, Id, Item, Perk, Quest, Upgrade};
+use cordon_core::primitive::id::{Id, IdMarker, Item, Quest};
 use cordon_core::world::area::AreaDef;
 use cordon_core::world::event::EventDef;
+use cordon_core::world::loot::LootTables;
 use cordon_core::world::quest::QuestDef;
 
 use crate::catalog::GameData;
-use crate::loot::LootTables;
-
-/// Errors that can occur during asset loading.
-#[derive(Debug, thiserror::Error)]
-pub enum LoadError {
-    /// Failed to read a file from disk.
-    #[error("failed to read {path}: {source}")]
-    Io {
-        path: PathBuf,
-        source: std::io::Error,
-    },
-
-    /// Failed to parse JSON.
-    #[error("failed to parse {path}: {source}")]
-    Json {
-        path: PathBuf,
-        source: serde_json::Error,
-    },
-
-    /// A required directory is missing.
-    #[error("missing directory: {0}")]
-    MissingDir(PathBuf),
-}
+use crate::error::{Error, Result};
 
 /// Loads game data from an asset directory.
 ///
@@ -91,13 +70,13 @@ impl Loader {
     }
 
     /// Load all game data from the asset directory.
-    pub fn load(&self) -> Result<GameData, LoadError> {
+    pub fn load(&self) -> Result<GameData> {
         let items = self.load_items()?;
-        let factions = self.load_vec::<FactionDef, Faction>("factions.json")?;
-        let areas = self.load_vec::<AreaDef, Area>("areas.json")?;
-        let events = self.load_vec::<EventDef, Event>("events.json")?;
-        let upgrades = self.load_vec::<UpgradeDef, Upgrade>("upgrades.json")?;
-        let perks = self.load_vec::<PerkDef, Perk>("perks.json")?;
+        let factions = self.load_keyed("factions.json", |d: &FactionDef| d.id.clone())?;
+        let areas = self.load_keyed("areas.json", |d: &AreaDef| d.id.clone())?;
+        let events = self.load_keyed("events.json", |d: &EventDef| d.id.clone())?;
+        let upgrades = self.load_keyed("upgrades.json", |d: &UpgradeDef| d.id.clone())?;
+        let perks = self.load_keyed("perks.json", |d: &PerkDef| d.id.clone())?;
         let name_pools = self.load_name_pools()?;
         let quests = self.load_quests()?;
         let loot_tables = self.load_loot_tables()?;
@@ -116,7 +95,7 @@ impl Loader {
     }
 
     /// Load items from all JSON files in the `items/` subdirectory.
-    fn load_items(&self) -> Result<HashMap<Id<Item>, ItemDef>, LoadError> {
+    fn load_items(&self) -> Result<HashMap<Id<Item>, ItemDef>> {
         let dir = self.base.join("items");
         if !dir.is_dir() {
             return Ok(HashMap::new());
@@ -133,7 +112,7 @@ impl Loader {
     }
 
     /// Load quests from all JSON files in the `quests/` subdirectory.
-    fn load_quests(&self) -> Result<HashMap<Id<Quest>, QuestDef>, LoadError> {
+    fn load_quests(&self) -> Result<HashMap<Id<Quest>, QuestDef>> {
         let dir = self.base.join("quests");
         if !dir.is_dir() {
             return Ok(HashMap::new());
@@ -150,7 +129,7 @@ impl Loader {
     }
 
     /// Load name pools from `name_pools.json`.
-    fn load_name_pools(&self) -> Result<HashMap<Id<NamePoolMarker>, NamePool>, LoadError> {
+    fn load_name_pools(&self) -> Result<HashMap<Id<NamePoolMarker>, NamePool>> {
         let path = self.base.join("name_pools.json");
         if !path.exists() {
             return Ok(HashMap::new());
@@ -160,7 +139,7 @@ impl Loader {
     }
 
     /// Load loot tables from `loot_tables.json`.
-    fn load_loot_tables(&self) -> Result<LootTables, LoadError> {
+    fn load_loot_tables(&self) -> Result<LootTables> {
         let path = self.base.join("loot_tables.json");
         if !path.exists() {
             return Ok(LootTables::default());
@@ -168,38 +147,40 @@ impl Loader {
         self.read_json(&path)
     }
 
-    /// Load a single JSON file containing a `Vec<T>` and key by ID.
-    ///
-    /// `T` must have an `id` field. The generic `M` is the ID marker type.
-    fn load_vec<T, M>(&self, filename: &str) -> Result<HashMap<Id<M>, T>, LoadError>
+    /// Load a JSON file containing `Vec<T>`, key each entry by an extracted ID.
+    fn load_keyed<T, M>(
+        &self,
+        filename: &str,
+        key: impl Fn(&T) -> Id<M>,
+    ) -> Result<HashMap<Id<M>, T>>
     where
-        T: serde::de::DeserializeOwned + HasId<M>,
-        M: cordon_core::primitive::id::IdMarker,
+        T: serde::de::DeserializeOwned,
+        M: IdMarker,
     {
         let path = self.base.join(filename);
         if !path.exists() {
             return Ok(HashMap::new());
         }
         let defs: Vec<T> = self.read_json(&path)?;
-        Ok(defs.into_iter().map(|d| (d.id().clone(), d)).collect())
+        Ok(defs.into_iter().map(|d| (key(&d), d)).collect())
     }
 
     /// Read and deserialize a JSON file.
-    fn read_json<T: serde::de::DeserializeOwned>(&self, path: &Path) -> Result<T, LoadError> {
-        let contents = fs::read_to_string(path).map_err(|e| LoadError::Io {
+    fn read_json<T: serde::de::DeserializeOwned>(&self, path: &Path) -> Result<T> {
+        let contents = fs::read_to_string(path).map_err(|e| Error::Io {
             path: path.to_path_buf(),
             source: e,
         })?;
-        serde_json::from_str(&contents).map_err(|e| LoadError::Json {
+        serde_json::from_str(&contents).map_err(|e| Error::Json {
             path: path.to_path_buf(),
             source: e,
         })
     }
 
     /// List all `.json` files in a directory, sorted for determinism.
-    fn read_dir(&self, dir: &Path) -> Result<Vec<PathBuf>, LoadError> {
+    fn read_dir(&self, dir: &Path) -> Result<Vec<PathBuf>> {
         let mut files: Vec<PathBuf> = fs::read_dir(dir)
-            .map_err(|e| LoadError::Io {
+            .map_err(|e| Error::Io {
                 path: dir.to_path_buf(),
                 source: e,
             })?
@@ -209,42 +190,5 @@ impl Loader {
             .collect();
         files.sort();
         Ok(files)
-    }
-}
-
-/// Trait for types that have an ID field. Used by [`Loader::load_vec`]
-/// to generically extract the key from a definition.
-pub trait HasId<M: cordon_core::primitive::id::IdMarker> {
-    /// Get a reference to this definition's ID.
-    fn id(&self) -> &Id<M>;
-}
-
-impl HasId<Faction> for FactionDef {
-    fn id(&self) -> &Id<Faction> {
-        &self.id
-    }
-}
-
-impl HasId<Area> for AreaDef {
-    fn id(&self) -> &Id<Area> {
-        &self.id
-    }
-}
-
-impl HasId<Event> for EventDef {
-    fn id(&self) -> &Id<Event> {
-        &self.id
-    }
-}
-
-impl HasId<Upgrade> for UpgradeDef {
-    fn id(&self) -> &Id<Upgrade> {
-        &self.id
-    }
-}
-
-impl HasId<Perk> for PerkDef {
-    fn id(&self) -> &Id<Perk> {
-        &self.id
     }
 }
