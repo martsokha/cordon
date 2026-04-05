@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use crate::entity::faction::Faction;
 use crate::entity::npc::NpcTemplate;
 use crate::primitive::id::{Id, IdMarker};
-use crate::world::narrative::consequence::{Consequence, ObjectiveCondition};
 use crate::primitive::time::Day;
+use crate::world::narrative::consequence::{Consequence, ObjectiveCondition};
 
 /// Marker for quest definition IDs.
 pub struct Quest;

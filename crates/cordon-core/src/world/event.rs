@@ -11,10 +11,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::entity::faction::Faction;
 use crate::primitive::id::{Id, IdMarker};
+use crate::primitive::time::Day;
 use crate::world::area::Area;
 use crate::world::narrative::consequence::Consequence;
 use crate::world::narrative::quest::Quest;
-use crate::primitive::time::Day;
 
 /// Marker for event definition IDs.
 pub struct Event;

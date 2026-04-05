@@ -5,12 +5,12 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::player::PlayerState;
 use cordon_core::primitive::id::Id;
+use cordon_core::primitive::time::GameTime;
 use cordon_core::primitive::uid::Uid;
 use cordon_core::world::area::Area;
 use cordon_core::world::event::ActiveEvent;
 use cordon_core::world::mission::ActiveMission;
 use cordon_core::world::narrative::quest::{ActiveQuest, CompletedQuest};
-use cordon_core::primitive::time::GameTime;
 use rand::rngs::StdRng;
 use rand::{RngExt, SeedableRng};
 

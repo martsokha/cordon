@@ -6,6 +6,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::primitive::id::Id;
+
 /// How names are constructed from the pool.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NameFormat {
@@ -28,7 +30,7 @@ pub enum NameFormat {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NamePool {
     /// Unique identifier (e.g., `"drifter_aliases"`, `"garrison_names"`).
-    pub id: crate::primitive::id::Id<NamePoolMarker>,
+    pub id: Id<NamePoolMarker>,
     /// How names are assembled from this pool's lists.
     pub format: NameFormat,
     /// First names or aliases. Always used.

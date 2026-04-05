@@ -82,4 +82,3 @@ impl<T: IdMarker> From<String> for Id<T> {
         Self(s, PhantomData)
     }
 }
-

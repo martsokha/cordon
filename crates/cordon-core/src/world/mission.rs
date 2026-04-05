@@ -11,9 +11,9 @@ use crate::entity::perk::Perk;
 use crate::item::{Item, ItemCategory};
 use crate::primitive::id::Id;
 use crate::primitive::location::Location;
+use crate::primitive::time::Day;
 use crate::primitive::uid::Uid;
 use crate::world::area::Area;
-use crate::primitive::time::Day;
 
 /// What kind of mission a runner is being sent on.
 #[derive(Debug, Clone, Serialize, Deserialize)]
