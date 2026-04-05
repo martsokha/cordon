@@ -4,7 +4,7 @@
 //! happen, their probabilities, and durations. The sim rolls daily
 //! for each eligible event and creates [`ActiveEvent`] instances.
 
-use cordon_core::primitive::id::{Id, Faction};
+use cordon_core::primitive::id::{Faction, Id};
 use cordon_core::world::event::{ActiveEvent, EventCategory, EventDef};
 use rand::Rng;
 
@@ -38,9 +38,16 @@ pub fn roll_daily_events(world: &mut World, event_defs: &[EventDef]) {
             continue;
         }
 
-        // Check stackability
-        if !def.stackable && world.active_events.iter().any(|e| e.def_id == def.id) {
-            continue;
+        // Check max instances
+        if let Some(max) = def.max_instances {
+            let active_count = world
+                .active_events
+                .iter()
+                .filter(|e| e.def_id == def.id)
+                .count();
+            if active_count >= max as usize {
+                continue;
+            }
         }
 
         // Roll probability
@@ -67,11 +74,11 @@ pub fn roll_daily_events(world: &mut World, event_defs: &[EventDef]) {
         );
 
         // Pick target sector (if the def specifies candidates)
-        let target_sector = if def.target_sectors.is_empty() {
+        let target_area = if def.target_areas.is_empty() {
             None
         } else {
-            let idx = world.rng.events.gen_range(0..def.target_sectors.len());
-            Some(def.target_sectors[idx].clone())
+            let idx = world.rng.events.gen_range(0..def.target_areas.len());
+            Some(def.target_areas[idx].clone())
         };
 
         world.active_events.push(ActiveEvent {
@@ -79,7 +86,7 @@ pub fn roll_daily_events(world: &mut World, event_defs: &[EventDef]) {
             day_started: day,
             duration_days: duration,
             involved_factions,
-            target_sector,
+            target_area,
         });
     }
 }

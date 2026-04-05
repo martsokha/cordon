@@ -1,4 +1,4 @@
-use cordon_core::primitive::id::{Id, Area, Faction};
+use cordon_core::primitive::id::{Area, Faction, Id};
 
 /// Live state of an area in the world.
 ///

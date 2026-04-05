@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::category::ItemCategory;
 use super::effect::Effect;
 use crate::primitive::duration::Duration;
-use crate::primitive::id::{Id, Caliber, Item};
+use crate::primitive::id::{Caliber, Id, Item};
 
 /// Which armor slot this piece of armor occupies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

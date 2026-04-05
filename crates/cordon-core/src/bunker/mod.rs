@@ -12,7 +12,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::item::Item;
-use crate::primitive::id::{Id, Faction, Upgrade};
+use crate::primitive::id::{Faction, Id, Upgrade};
 
 /// Where an upgrade is physically installed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

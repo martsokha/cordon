@@ -1,3 +1,6 @@
+/// Consequences and conditions shared by quests and events.
+pub mod consequence;
+
 /// Zone events: surges, faction wars, raids, and more.
 pub mod event;
 

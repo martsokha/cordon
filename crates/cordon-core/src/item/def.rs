@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::category::ItemCategory;
 use super::data::ItemData;
-use crate::primitive::id::{Id, Faction, Item};
+use crate::primitive::id::{Faction, Id, Item};
 use crate::primitive::rarity::Rarity;
 
 /// Static item definition loaded from config.

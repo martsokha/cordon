@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::id::{Id, Area, Faction, Upgrade};
+use crate::primitive::id::{Area, Faction, Id, Upgrade};
 use crate::primitive::location::Location;
 
 /// An area of the Zone, loaded from config.

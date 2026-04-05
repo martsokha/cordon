@@ -115,6 +115,14 @@ impl IdMarker for Quest {}
 pub struct Caliber;
 impl IdMarker for Caliber {}
 
+/// Marker for quest stage IDs (unique within a quest).
+pub struct QuestStage;
+impl IdMarker for QuestStage {}
+
+/// Marker for quest choice option IDs.
+pub struct QuestChoice;
+impl IdMarker for QuestChoice {}
+
 /// Marker for NPC template IDs (used in quest consequences).
 pub struct NpcTemplate;
 impl IdMarker for NpcTemplate {}

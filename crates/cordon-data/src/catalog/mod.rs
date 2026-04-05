@@ -2,9 +2,10 @@ use std::collections::HashMap;
 
 use cordon_core::bunker::UpgradeDef;
 use cordon_core::entity::faction::FactionDef;
+use cordon_core::entity::name::{NamePool, NamePoolMarker};
 use cordon_core::entity::npc::PerkDef;
 use cordon_core::item::ItemDef;
-use cordon_core::primitive::id::{Id, Area, Event, Faction, Item, Perk, Quest, Upgrade};
+use cordon_core::primitive::id::{Area, Event, Faction, Id, Item, Perk, Quest, Upgrade};
 use cordon_core::world::event::EventDef;
 use cordon_core::world::quest::QuestDef;
 use cordon_core::world::sector::AreaDef;
@@ -37,6 +38,8 @@ pub struct GameData {
     pub events: HashMap<Id<Event>, EventDef>,
     /// Quest definitions keyed by quest ID.
     pub quests: HashMap<Id<Quest>, QuestDef>,
+    /// Name pools keyed by pool ID.
+    pub name_pools: HashMap<Id<NamePoolMarker>, NamePool>,
     /// Loot tables keyed by area ID.
     pub loot_tables: LootTables,
 }

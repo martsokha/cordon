@@ -6,7 +6,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::item::Item;
-use crate::primitive::id::{Id, Faction, Perk};
+use crate::primitive::experience::Experience;
+use crate::primitive::id::{Faction, Id, Perk};
 use crate::primitive::uid::Uid;
 
 /// Polarity of a perk's effect on the player.
@@ -103,8 +104,10 @@ pub struct Npc {
     pub name: String,
     /// Faction ID this NPC belongs to.
     pub faction: Id<Faction>,
-    /// Rank tier (1–5). Title comes from the faction's config.
-    pub rank: u8,
+    /// Accumulated experience. Rank tier is derived from this.
+    /// NPC XP thresholds: tier 1 = 0, tier 2 = 100, tier 3 = 500,
+    /// tier 4 = 2000, tier 5 = 10000.
+    pub xp: Experience,
 
     // Visible
     /// Items the NPC is carrying.
@@ -137,7 +140,31 @@ pub struct Npc {
     pub daily_pay: u32,
 }
 
+/// NPC rank tier XP thresholds.
+const NPC_RANK_THRESHOLDS: [u32; 5] = [0, 100, 500, 2000, 10000];
+
+/// Derive NPC rank tier (1–5) from experience.
+pub fn npc_rank_from_xp(xp: Experience) -> u8 {
+    let v = xp.value();
+    if v >= NPC_RANK_THRESHOLDS[4] {
+        5
+    } else if v >= NPC_RANK_THRESHOLDS[3] {
+        4
+    } else if v >= NPC_RANK_THRESHOLDS[2] {
+        3
+    } else if v >= NPC_RANK_THRESHOLDS[1] {
+        2
+    } else {
+        1
+    }
+}
+
 impl Npc {
+    /// Current rank tier (1–5), derived from XP.
+    pub fn rank(&self) -> u8 {
+        npc_rank_from_xp(self.xp)
+    }
+
     /// Whether this NPC is currently employed (has a role).
     pub fn is_employed(&self) -> bool {
         self.role.is_some()

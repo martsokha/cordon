@@ -1,8 +1,13 @@
+use std::collections::HashMap;
+
+use cordon_core::entity::name::NamePool;
 use cordon_core::entity::npc::Npc;
+use cordon_core::primitive::id::{Faction, Id};
 use cordon_core::world::event::EventDef;
 use cordon_core::world::mission::MissionResult;
 use cordon_core::world::time::Phase;
 
+use crate::simulation::npcs::NpcGenerator;
 use crate::simulation::{events, factions, missions, npcs};
 use crate::state::world::World;
 
@@ -20,17 +25,20 @@ pub enum PhaseResult {
 }
 
 /// Advance the world by one phase. Returns what happened for the UI to render.
-///
-/// Takes `event_defs` from the loaded [`GameData`](cordon_data::catalog::GameData)
-/// to roll daily events.
-pub fn advance_phase(world: &mut World, event_defs: &[EventDef]) -> PhaseResult {
+pub fn advance_phase(
+    world: &mut World,
+    event_defs: &[EventDef],
+    npc_gen: &impl NpcGenerator,
+    name_pools: &HashMap<Id<Faction>, NamePool>,
+    fallback_pool: &NamePool,
+) -> PhaseResult {
     match world.time.phase {
         Phase::Morning => {
             let event_count_before = world.active_events.len();
             events::roll_daily_events(world, event_defs);
             let events_started = world.active_events.len() - event_count_before;
 
-            let visitors = npcs::spawn_daily_visitors(world);
+            let visitors = npcs::spawn_daily_visitors(world, npc_gen, name_pools, fallback_pool);
             factions::tick_factions(world);
 
             world.time.advance();

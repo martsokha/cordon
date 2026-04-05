@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use cordon_core::bunker::BaseState;
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::player::PlayerState;
-use cordon_core::primitive::id::{Id, Area, Faction};
+use cordon_core::primitive::id::{Area, Faction, Id};
 use cordon_core::primitive::uid::Uid;
 use cordon_core::world::event::ActiveEvent;
 use cordon_core::world::mission::ActiveMission;

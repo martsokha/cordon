@@ -5,8 +5,9 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::entity::name::NamePoolMarker;
 use crate::item::ItemCategory;
-use crate::primitive::id::{Id, Faction};
+use crate::primitive::id::{Faction, Id};
 
 /// Which rank naming convention a faction uses.
 ///
@@ -47,6 +48,8 @@ pub struct FactionDef {
     pub buys: Vec<ItemCategory>,
     /// Item categories this faction typically sells.
     pub sells: Vec<ItemCategory>,
+    /// Name pool ID used to generate NPC names for this faction.
+    pub name_pool: Id<NamePoolMarker>,
     /// Base relations with other factions: `(faction_id, initial_standing)`.
     pub relations: Vec<(Id<Faction>, i8)>,
 }

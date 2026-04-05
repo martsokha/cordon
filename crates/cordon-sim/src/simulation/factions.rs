@@ -1,4 +1,4 @@
-use cordon_core::primitive::id::{Id, Event};
+use cordon_core::primitive::id::{Event, Id};
 
 use crate::state::world::World;
 

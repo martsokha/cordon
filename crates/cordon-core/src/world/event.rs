@@ -9,7 +9,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::id::{Id, Area, Event, Faction, Quest};
+use crate::primitive::id::{Area, Event, Faction, Id, Quest};
+use crate::world::consequence::Consequence;
 use crate::world::time::Day;
 
 /// Broad category for event grouping and scheduling.
@@ -34,12 +35,13 @@ pub enum EventCategory {
 /// An event definition loaded from config.
 ///
 /// Defines what an event is, how likely it is to occur, how long it
-/// lasts, and what parameters it carries. The [`id`](EventDef::id)
-/// doubles as the localization key.
+/// lasts, what direct effects it has, and what parameters it carries.
+/// The [`id`](EventDef::id) doubles as the localization key.
 ///
 /// # Examples from config
 ///
-/// - `"surge"`: category Environmental, base_probability 0.08, duration 1..1
+/// - `"surge"`: category Environmental, base_probability 0.08, duration 1..1,
+///   consequences: [DangerModifier { area: None, delta: 0.3 }]
 /// - `"faction_war"`: category Faction, base_probability 0.05, duration 3..7,
 ///   involves two faction IDs (resolved at runtime by the sim)
 /// - `"garrison_commander_visit"`: category Faction, base_probability 0.1
@@ -58,10 +60,10 @@ pub struct EventDef {
     pub min_duration: u8,
     /// Maximum duration in days.
     pub max_duration: u8,
-    /// Whether this event can stack (multiple instances active at once).
-    pub stackable: bool,
-    /// Sector IDs this event can target. Empty means zone-wide.
-    pub target_sectors: Vec<Id<Area>>,
+    /// Maximum simultaneous instances of this event. `None` means unlimited.
+    pub max_instances: Option<u8>,
+    /// Area IDs this event can target. Empty means zone-wide.
+    pub target_areas: Vec<Id<Area>>,
     /// Faction IDs involved in this event. Empty means no faction tie.
     /// For events like wars or patrols, the sim picks from this list
     /// or from all factions if empty.
@@ -69,10 +71,12 @@ pub struct EventDef {
     /// Minimum day before this event can first occur. Prevents
     /// endgame events from firing on day 1.
     pub earliest_day: u32,
+    /// Direct consequences when this event fires (e.g., danger modifier,
+    /// price changes, standing shifts). Applied immediately by the sim.
+    pub consequences: Vec<Consequence>,
     /// IDs of events that chain from this one (e.g., surge → relic rush).
     pub chain_events: Vec<Id<Event>>,
     /// Quest ID triggered when this event fires. `None` means no quest.
-    /// The sim starts the referenced quest when the event is created.
     pub triggers_quest: Option<Id<Quest>>,
 }
 
@@ -80,7 +84,7 @@ pub struct EventDef {
 ///
 /// Created by the sim when an event fires. Tracks which event def
 /// it came from, when it started, how long it lasts, and any
-/// runtime parameters (which factions are involved, which sector
+/// runtime parameters (which factions are involved, which area
 /// is affected, etc.).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActiveEvent {
@@ -90,11 +94,10 @@ pub struct ActiveEvent {
     pub day_started: Day,
     /// How many days this event lasts (rolled from def's min/max range).
     pub duration_days: u8,
-    /// Faction IDs involved in this specific instance (e.g., the two
-    /// factions in a war, or the faction conducting an inspection).
+    /// Faction IDs involved in this specific instance.
     pub involved_factions: Vec<Id<Faction>>,
     /// Area ID this event is targeting, if area-specific.
-    pub target_sector: Option<Id<Area>>,
+    pub target_area: Option<Id<Area>>,
 }
 
 impl ActiveEvent {

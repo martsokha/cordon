@@ -8,7 +8,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::item::{Item, ItemCategory};
-use crate::primitive::id::{Id, Area, Perk};
+use crate::primitive::id::{Area, Id, Perk};
 use crate::primitive::uid::Uid;
 use crate::world::time::Day;
 

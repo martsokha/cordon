@@ -4,6 +4,9 @@ pub mod condition;
 /// Duration in seconds.
 pub mod duration;
 
+/// Experience points for players and NPCs.
+pub mod experience;
+
 /// Typed string-based identifiers for data-driven game objects.
 pub mod id;
 
