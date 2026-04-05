@@ -7,6 +7,9 @@ pub mod mission;
 /// Price calculation with condition-squared scaling.
 pub mod price;
 
+/// Quest definitions, stages, and runtime state.
+pub mod quest;
+
 /// Sector definitions loaded from config.
 pub mod sector;
 

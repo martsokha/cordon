@@ -5,6 +5,8 @@ use cordon_core::entity::faction::FactionDef;
 use cordon_core::entity::npc::PerkDef;
 use cordon_core::item::ItemDef;
 use cordon_core::primitive::id::Id;
+use cordon_core::world::event::EventDef;
+use cordon_core::world::quest::QuestDef;
 use cordon_core::world::sector::SectorDef;
 
 use crate::loot::LootTables;
@@ -32,6 +34,10 @@ pub struct GameData {
     pub perks: HashMap<Id, PerkDef>,
     /// Upgrade definitions keyed by upgrade ID.
     pub upgrades: HashMap<Id, UpgradeDef>,
+    /// Event definitions keyed by event ID.
+    pub events: HashMap<Id, EventDef>,
+    /// Quest definitions keyed by quest ID.
+    pub quests: HashMap<Id, QuestDef>,
     /// Loot tables keyed by sector ID.
     pub loot_tables: LootTables,
 }

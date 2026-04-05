@@ -1,5 +1,6 @@
 use cordon_core::primitive::id::Id;
 use cordon_core::world::mission::{ActiveMission, MissionOutcome, MissionPlan, MissionResult};
+use cordon_core::world::time::Day;
 use rand::Rng;
 
 use crate::state::world::World;
@@ -11,9 +12,8 @@ const PERK_SCAVENGERS_EYE: &str = "scavengers_eye";
 const PERK_COWARD: &str = "coward";
 
 /// Dispatch a runner on a mission. Validates prerequisites.
-///
-/// Missions dispatched in the Morning resolve in the Evening
-/// of the same day.
+/// Dispatch a runner on a mission. Validates prerequisites and computes
+/// the return day based on sector distance and runner perks.
 pub fn dispatch_mission(world: &mut World, plan: MissionPlan) -> Result<(), &'static str> {
     let runner = world.npcs.get(&plan.runner_id).ok_or("runner not found")?;
 
@@ -22,28 +22,39 @@ pub fn dispatch_mission(world: &mut World, plan: MissionPlan) -> Result<(), &'st
     }
 
     // TODO: check radio level against sector config
+    // TODO: compute travel time from sector distance, events, runner perks
+    let travel_days = 1_u32; // placeholder
+
+    let return_day = Day(world.time.day.0 + travel_days);
 
     let mission = ActiveMission {
         plan,
         day_dispatched: world.time.day,
+        return_day,
     };
 
     world.active_missions.push(mission);
     Ok(())
 }
 
-/// Resolve all missions dispatched today.
+/// Resolve all missions whose runners have returned (return_day <= today).
 pub fn resolve_missions(world: &mut World) -> Vec<MissionResult> {
+    let current_day = world.time.day;
     let mut results = Vec::new();
 
-    let missions: Vec<_> = world.active_missions.drain(..).collect();
+    let (returning, still_out): (Vec<_>, Vec<_>) = world
+        .active_missions
+        .drain(..)
+        .partition(|m| m.return_day <= current_day);
+
+    world.active_missions = still_out;
 
     let htk_id = Id::new(PERK_HARD_TO_KILL);
     let pf_id = Id::new(PERK_PATHFINDER);
     let se_id = Id::new(PERK_SCAVENGERS_EYE);
     let cow_id = Id::new(PERK_COWARD);
 
-    for mission in missions {
+    for mission in returning {
         let runner = world.npcs.get(&mission.plan.runner_id);
 
         let (has_hard_to_kill, has_pathfinder, has_scavengers_eye, has_coward) = match runner {

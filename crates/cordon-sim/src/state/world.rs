@@ -4,8 +4,9 @@ use cordon_core::bunker::BunkerState;
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::player::PlayerState;
 use cordon_core::primitive::id::{Id, Uid};
-use cordon_core::world::event::Event;
+use cordon_core::world::event::ActiveEvent;
 use cordon_core::world::mission::ActiveMission;
+use cordon_core::world::quest::{ActiveQuest, CompletedQuest};
 use cordon_core::world::time::GameTime;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
@@ -32,18 +33,36 @@ pub struct SimRng {
     pub factions: StdRng,
 }
 
+/// Salt values for deriving per-subsystem seeds from the master seed.
+///
+/// Each subsystem XORs the master seed with its salt to get an
+/// independent RNG sequence. Changing a salt replays that subsystem
+/// differently without affecting others.
+struct SimRngSalts {
+    events: u64,
+    npcs: u64,
+    missions: u64,
+    market: u64,
+    factions: u64,
+}
+
+const SALTS: SimRngSalts = SimRngSalts {
+    events: 0x4556454E54530001,
+    npcs: 0x4E50435300000002,
+    missions: 0x4D495353494F4E03,
+    market: 0x4D41524B45540004,
+    factions: 0x464143544E530005,
+};
+
 impl SimRng {
     /// Derive per-subsystem RNGs from a master seed.
-    ///
-    /// Each subsystem gets a unique seed by XOR-ing the master seed
-    /// with a different constant, ensuring independent sequences.
     pub fn new(seed: u64) -> Self {
         Self {
-            events: StdRng::seed_from_u64(seed ^ 0x4556454E54530001),
-            npcs: StdRng::seed_from_u64(seed ^ 0x4E50435300000002),
-            missions: StdRng::seed_from_u64(seed ^ 0x4D495353494F4E03),
-            market: StdRng::seed_from_u64(seed ^ 0x4D41524B45540004),
-            factions: StdRng::seed_from_u64(seed ^ 0x464143544E530005),
+            events: StdRng::seed_from_u64(seed ^ SALTS.events),
+            npcs: StdRng::seed_from_u64(seed ^ SALTS.npcs),
+            missions: StdRng::seed_from_u64(seed ^ SALTS.missions),
+            market: StdRng::seed_from_u64(seed ^ SALTS.market),
+            factions: StdRng::seed_from_u64(seed ^ SALTS.factions),
         }
     }
 }
@@ -61,8 +80,12 @@ pub struct World {
     pub sectors: HashMap<Id, SectorState>,
     /// All NPCs in the world keyed by runtime UID.
     pub npcs: HashMap<Uid, Npc>,
-    pub active_events: Vec<Event>,
+    pub active_events: Vec<ActiveEvent>,
     pub active_missions: Vec<ActiveMission>,
+    /// Quests currently in progress.
+    pub active_quests: Vec<ActiveQuest>,
+    /// Quests that have been completed (for prerequisite checking).
+    pub completed_quests: Vec<CompletedQuest>,
     pub market: MarketState,
     /// Per-subsystem deterministic RNGs.
     pub rng: SimRng,
@@ -92,6 +115,8 @@ impl World {
             npcs: HashMap::new(),
             active_events: Vec::new(),
             active_missions: Vec::new(),
+            active_quests: Vec::new(),
+            completed_quests: Vec::new(),
             market: MarketState::new(),
             rng: SimRng::new(seed),
             faction_ids,

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Zone is unpredictable. Events happen on a semi-random schedule, driven by a combination of timers, player actions, and narrative triggers. Events create pressure, opportunity, and variety.
+The Zone is unpredictable. Events are defined in JSON config files and rolled daily by the simulation. Each event has a category, base probability, duration range, and parameters. World state (escalation, faction tensions, security level) modifies probabilities at runtime.
 
 ## Event Types
 
@@ -13,7 +13,8 @@ The Zone is unpredictable. Events happen on a semi-random schedule, driven by a 
 | **Surge** | All outdoor activity halted. Runners in the field may die. NPCs seek shelter (potential customers). Relics shift/appear. | 1 day |
 | **Blowout** | Severe surge. Major casualties. Relic positions completely reset. Prices spike across the board. | 1 day, aftermath 2-3 days |
 | **Creature Swarm** | Dangerous creatures flood a sector. Runners at extreme risk. Weapon/ammo demand spikes. Some sectors inaccessible. | 2-3 days |
-| **Hazard Shift** | Hazard fields move. New relic locations. Old safe routes become deadly. Maps become outdated (unless you have map subscription). | Permanent until next shift |
+| **Hazard Shift** | Hazard fields move. New relic locations. Old safe routes become deadly. Maps become outdated. | Permanent until next shift |
+| **Intelligent Creature** | A creature of unusual intelligence appears in a sector. It avoids patrols, sets traps, and stalks runners. Extremely dangerous but carries or guards rare relics. Runners with the right perks may survive an encounter. Others don't come back. | 3-7 days |
 
 ### Economic
 
@@ -36,6 +37,8 @@ The Zone is unpredictable. Events happen on a semi-random schedule, driven by a 
 | **Faction Patrol** | Faction sends soldiers to "inspect" your bunker. Confiscate contraband (unless hidden in secret compartment). | 1 day |
 | **Mercenary Contract** | Mercs are hired to hit a target near you. Collateral risk, or an opportunity to profit from the aftermath. | 2-3 days |
 | **Devoted Pilgrimage** | Zealots move through sectors en masse. Dangerous but they carry rare relics. Trade carefully — they're volatile. | 3-5 days |
+| **Garrison Commander Visit** | The bribeable Garrison commander visits. Pay him off to reduce inspection frequency and get tip-offs about upcoming patrols. Refusing or underpaying worsens Garrison relations. | 1 day |
+| **Garrison Inspector Visit** | The strict Garrison commander shows up instead of the bribeable one. Cannot be bribed. Conducts a thorough inspection. Bad news. | 1 day |
 
 ### Bunker
 
@@ -45,7 +48,7 @@ The Zone is unpredictable. Events happen on a semi-random schedule, driven by a 
 | **Inspection** | The Garrison or the Order "checks" your goods. Contraband is confiscated unless you have a secret compartment and alarm system to hide it in time. | 1 day |
 | **Power Outage** | Laptop goes down, refrigeration fails (food spoils faster), electronic upgrades offline. Generator upgrade prevents this entirely. | 1-2 days |
 | **Visitor** | Someone asks for shelter during a surge. Help costs resources (food, meds, space). Refusing costs reputation. Helping may gain a loyal customer or runner candidate. | 1 day |
-| **Infestation** | Vermin or creatures get into storage. Items damaged. Worse without climate control. | 1 day |
+| **Infestation** | Vermin or creatures get into storage. Items damaged. | 1 day |
 | **Sabotage** | Someone tampers with your equipment — radio jammed, locks picked, stock poisoned. Could be a faction retaliation or Syndicate play. Alarm system gives warning. | 1 day |
 | **Break-In Attempt** | Someone tries to rob you overnight. Reinforced door stops casual attempts. Guards stop serious ones. Without either, you lose items from storage. | 1 day |
 
@@ -58,26 +61,22 @@ The Zone is unpredictable. Events happen on a semi-random schedule, driven by a 
 | **Debt Collector** | Someone you owe (or who claims you owe) comes to collect. | Until resolved |
 | **Wounded Stranger** | A scavenger collapses at your door. Help costs resources. Refusing costs reputation. | 1 day |
 | **Old Friend** | An NPC from the past returns with a unique opportunity or request. | 1-3 days |
+| **Information Seller** | A traveling information seller arrives. Sells intel on sector conditions, faction movements, upcoming events, and market shifts. Prices vary. Information may be outdated or false. | 1 day |
 
 ## Event System Design
 
+Events are data-driven: each event is defined in a JSON config file with its category, base probability, duration range, eligible sectors/factions, earliest day, and chain events. The sim rolls daily for each eligible event.
+
 ### Scheduling
 
-Events are generated using a weighted random system:
-
-```
-Each day:
-  1. Roll for environmental event (20% base chance, modified by Zone instability)
-  2. Roll for economic event (15% base chance, modified by market stability)
-  3. Roll for faction event (25% base chance, modified by faction tensions)
-  4. Roll for bunker event (15% base chance, modified by security level and faction standing)
-  5. Roll for personal event (10% base chance, modified by narrative flags)
-  6. Apply any scripted/story events for this day
-```
+Each day, the sim iterates over all event definitions:
+1. Check if the event is eligible (earliest day, stackability)
+2. Compute probability: `base_probability × category_escalation × world_state_modifiers`
+3. Roll. If it fires, create an `ActiveEvent` with a rolled duration and resolved parameters (which factions, which sector)
 
 ### Event Chains
 
-Some events trigger follow-ups:
+Events can trigger follow-ups via `chain_events` in the config:
 - Surge → Relic Rush (scavengers bring new finds) → Price Crash (if many relics flood market)
 - Faction War → Refugee Customers → Faction Patrol (winners "clean up")
 - Runner Lost → Search Mission → Discovery (good or bad)
@@ -95,10 +94,11 @@ Players can't prevent events, but can prepare:
 - Alarm system gives time to hide contraband before inspections
 - Secret compartment keeps items safe during raids and inspections
 - Intel network (upgrade) gives advance warning of some events
+- Bribe the Garrison commander to reduce inspections
 
 ### Escalation
 
-As days progress, events become more frequent and severe:
+As days progress, event probabilities increase:
 - Early game: mild weather, small trades, local drama
 - Mid game: faction conflicts, economic swings, moral dilemmas
-- Late game: Zone-wide crises, faction wars, existential threats, endgame scenarios
+- Late game: Zone-wide crises, faction wars, existential threats, intelligent creatures

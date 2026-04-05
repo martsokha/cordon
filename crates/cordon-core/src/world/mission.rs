@@ -1,8 +1,9 @@
 //! Runner mission types, plans, and results.
 //!
-//! Missions are dispatched during the Morning phase and resolve
-//! in the Evening phase of the same day. Runners arrive and return
-//! within one day — movement is instantaneous.
+//! Missions are dispatched during the Morning phase. Runners travel
+//! to their destination, complete the mission, and return. Travel
+//! time is computed dynamically by the sim — runners can be tracked
+//! in real-time on the laptop map.
 
 use serde::{Deserialize, Serialize};
 
@@ -58,14 +59,18 @@ pub struct MissionPlan {
 
 /// A mission that has been dispatched and is currently in progress.
 ///
-/// Missions are dispatched in the Morning and resolve in the Evening
-/// of the same day.
+/// The runner is traveling to the destination, completing the mission,
+/// and returning. The sim computes the return day dynamically based
+/// on distance, hazards, and runner perks.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActiveMission {
     /// The original mission plan.
     pub plan: MissionPlan,
     /// Day the mission was dispatched.
     pub day_dispatched: Day,
+    /// Day the runner is expected to return. Computed by the sim
+    /// at dispatch time based on sector distance, events, and perks.
+    pub return_day: Day,
 }
 
 /// The result of a completed mission, returned to the game layer.

@@ -1,155 +1,103 @@
 //! Zone events that affect the game world.
 //!
-//! Events are rolled daily by the simulation and tracked with a duration.
-//! Each event has a kind (what happened), a duration, and a start day.
+//! [`EventDef`] is loaded from JSON config files. [`ActiveEvent`] is a
+//! runtime instance of an event currently affecting the world.
+//!
+//! Events are data-driven: their category, base probability, duration
+//! range, and parameters are all defined in config. The sim rolls
+//! daily for each event based on its probability and world state.
 
 use serde::{Deserialize, Serialize};
 
-use crate::item::ItemCategory;
-use crate::primitive::id::{Id, Uid};
+use crate::primitive::id::Id;
 use crate::world::time::Day;
 
-/// What kind of event is occurring.
-///
-/// Events are grouped into categories: environmental, economic, faction,
-/// bunker, and personal. Some events are parameterized by faction ID
-/// or NPC UID.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum EventKind {
-    // Environmental
-    /// All outdoor activity halted. Runners at risk. Relics shift.
-    Surge,
-    /// Severe surge. Major casualties. Prices spike.
-    Blowout,
-    /// Dangerous creatures flood a sector. Weapon demand spikes.
-    CreatureSwarm,
-    /// Hazard fields move. Routes change. Maps outdated.
-    HazardShift,
-
-    // Economic
-    /// Military convoy lost. Cheap goods flood the market.
-    SupplyDrop,
-    /// A category of goods becomes scarce. Prices spike.
-    Shortage(ItemCategory),
-    /// Authorities crack down on illegal goods.
-    BlackMarketBust,
-    /// Safe path opens to a dangerous sector.
-    NewRoute,
-    /// Another trader undercuts your prices.
-    TraderRivalry,
-
-    // Faction (parameterized by faction ID)
-    /// Two factions clash. Soldiers buy urgently. Collateral damage.
-    FactionWar(Id, Id),
-    /// Two hostile factions temporarily cooperate.
-    FactionTruce(Id, Id),
-    /// Faction leadership changes. Standing partially resets.
-    Coup(Id),
-    /// A faction gives the player a timed task.
-    FactionMission(Id),
-    /// Faction soldiers "inspect" the bunker for contraband.
-    FactionPatrol(Id),
-    /// Mercenaries hired to hit a target nearby.
-    MercenaryContract,
-    /// Devoted zealots move through sectors en masse.
-    DevotedPilgrimage,
-
-    // Bunker
-    /// Armed attack on the bunker. Outcome depends on guards and defenses.
-    Raid(Id),
-    /// Official inspection. Contraband confiscated unless hidden.
-    Inspection(Id),
-    /// Electronics go down. Food spoils faster.
-    PowerOutage,
-    /// Someone asks for shelter. Help costs resources.
-    Visitor,
-    /// Vermin or creatures damage stored items.
-    Infestation,
-    /// Equipment tampered with. Radio jammed, stock poisoned.
-    Sabotage,
-    /// Overnight robbery attempt. Defenses determine outcome.
-    BreakIn,
-
-    // Personal (parameterized by NPC UID)
-    /// A runner goes missing in the field.
-    RunnerLost(Uid),
-    /// A trusted NPC steals from you or feeds false intel.
-    Betrayal(Uid),
-    /// Someone claims you owe them.
-    DebtCollector,
-    /// A scavenger collapses at your door.
-    WoundedStranger,
-    /// An NPC from the past returns with an opportunity.
-    OldFriend,
-}
-
-impl EventKind {
-    /// Which category this event belongs to.
-    pub fn category(&self) -> EventCategory {
-        match self {
-            EventKind::Surge
-            | EventKind::Blowout
-            | EventKind::CreatureSwarm
-            | EventKind::HazardShift => EventCategory::Environmental,
-
-            EventKind::SupplyDrop
-            | EventKind::Shortage(_)
-            | EventKind::BlackMarketBust
-            | EventKind::NewRoute
-            | EventKind::TraderRivalry => EventCategory::Economic,
-
-            EventKind::FactionWar(_, _)
-            | EventKind::FactionTruce(_, _)
-            | EventKind::Coup(_)
-            | EventKind::FactionMission(_)
-            | EventKind::FactionPatrol(_)
-            | EventKind::MercenaryContract
-            | EventKind::DevotedPilgrimage => EventCategory::Faction,
-
-            EventKind::Raid(_)
-            | EventKind::Inspection(_)
-            | EventKind::PowerOutage
-            | EventKind::Visitor
-            | EventKind::Infestation
-            | EventKind::Sabotage
-            | EventKind::BreakIn => EventCategory::Bunker,
-
-            EventKind::RunnerLost(_)
-            | EventKind::Betrayal(_)
-            | EventKind::DebtCollector
-            | EventKind::WoundedStranger
-            | EventKind::OldFriend => EventCategory::Personal,
-        }
-    }
-}
-
 /// Broad category for event grouping and scheduling.
+///
+/// Each category has its own base roll probability per day, modified
+/// by world state (Zone instability, market stability, faction tensions,
+/// security level, narrative flags).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EventCategory {
     /// Weather, surges, hazard shifts, creature activity.
     Environmental,
     /// Supply/demand shifts, shortages, market disruptions.
     Economic,
-    /// Wars, truces, patrols, coups.
+    /// Wars, truces, patrols, coups, faction-specific visitors.
     Faction,
     /// Raids, inspections, power outages, infestations.
     Bunker,
-    /// Runner losses, betrayals, visitors.
+    /// Runner losses, betrayals, special visitors, encounters.
     Personal,
 }
 
-/// An active event in the game world.
+/// An event definition loaded from config.
+///
+/// Defines what an event is, how likely it is to occur, how long it
+/// lasts, and what parameters it carries. The [`id`](EventDef::id)
+/// doubles as the localization key.
+///
+/// # Examples from config
+///
+/// - `"surge"`: category Environmental, base_probability 0.08, duration 1..1
+/// - `"faction_war"`: category Faction, base_probability 0.05, duration 3..7,
+///   involves two faction IDs (resolved at runtime by the sim)
+/// - `"garrison_commander_visit"`: category Faction, base_probability 0.1
+/// - `"information_seller"`: category Personal, base_probability 0.03
+/// - `"intelligent_creature"`: category Environmental, base_probability 0.01
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Event {
-    /// What kind of event this is.
-    pub kind: EventKind,
-    /// How many days this event lasts.
-    pub duration_days: u8,
-    /// Which day this event started.
-    pub day_started: Day,
+pub struct EventDef {
+    /// Unique identifier and localization key (e.g., `"surge"`, `"faction_war"`).
+    pub id: Id,
+    /// Which category this event belongs to.
+    pub category: EventCategory,
+    /// Base probability of this event occurring per day (0.0–1.0).
+    /// Modified at runtime by escalation and world state.
+    pub base_probability: f32,
+    /// Minimum duration in days.
+    pub min_duration: u8,
+    /// Maximum duration in days.
+    pub max_duration: u8,
+    /// Whether this event can stack (multiple instances active at once).
+    pub stackable: bool,
+    /// Sector IDs this event can target. Empty means zone-wide.
+    pub target_sectors: Vec<Id>,
+    /// Faction IDs involved in this event. Empty means no faction tie.
+    /// For events like wars or patrols, the sim picks from this list
+    /// or from all factions if empty.
+    pub involved_factions: Vec<Id>,
+    /// Minimum day before this event can first occur. Prevents
+    /// endgame events from firing on day 1.
+    pub earliest_day: u32,
+    /// IDs of events that chain from this one (e.g., surge → relic rush).
+    pub chain_events: Vec<Id>,
+    /// Quest ID triggered when this event fires. `None` means no quest.
+    /// The sim starts the referenced quest when the event is created.
+    pub triggers_quest: Option<Id>,
 }
 
-impl Event {
+/// An active event instance in the game world.
+///
+/// Created by the sim when an event fires. Tracks which event def
+/// it came from, when it started, how long it lasts, and any
+/// runtime parameters (which factions are involved, which sector
+/// is affected, etc.).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActiveEvent {
+    /// ID of the [`EventDef`] this is an instance of.
+    pub def_id: Id,
+    /// Which day this event started.
+    pub day_started: Day,
+    /// How many days this event lasts (rolled from def's min/max range).
+    pub duration_days: u8,
+    /// Faction IDs involved in this specific instance (e.g., the two
+    /// factions in a war, or the faction conducting an inspection).
+    pub involved_factions: Vec<Id>,
+    /// Sector ID this event is targeting, if sector-specific.
+    pub target_sector: Option<Id>,
+}
+
+impl ActiveEvent {
     /// Whether this event has expired (current day is past its end).
     pub fn is_expired(&self, current_day: Day) -> bool {
         current_day.0 >= self.day_started.0 + self.duration_days as u32

@@ -1,63 +1,62 @@
 //! Bunker state, upgrade definitions, and storage.
 //!
-//! The bunker is the player's base of operations. It has chain upgrades
-//! (laptop, radio, storage, counter) and one-off upgrades loaded from config.
+//! The bunker is the player's base of operations. Upgrades are either
+//! purchasable (available if you have credits and prerequisites) or
+//! faction-gated (require standing or quest completion).
 
 use serde::{Deserialize, Serialize};
 
 use crate::item::Item;
 use crate::primitive::id::Id;
 
-/// Which chain upgrade track an upgrade prerequisite refers to.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ChainType {
-    /// Laptop: intel, market visibility, comms interception.
-    Laptop,
-    /// Radio: runner dispatch range, faction contact.
-    Radio,
-    /// Storage: base inventory capacity.
-    Storage,
-    /// Counter: NPC trust, inspection tools, display.
-    Counter,
+/// How an upgrade becomes available to the player.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum UpgradeSource {
+    /// Always available for purchase if prerequisites are met.
+    /// Basic bunker improvements: fridge, generator, cot, etc.
+    Purchasable,
+    /// Offered by a specific faction once standing is high enough.
+    Faction {
+        /// Faction ID that offers this upgrade.
+        faction: Id,
+        /// Minimum standing required.
+        min_standing: i8,
+    },
+    /// Rewarded for completing a specific quest or mission.
+    /// Not purchasable — earned through gameplay.
+    Quest,
 }
 
 /// An upgrade definition loaded from config.
 ///
-/// Upgrades can be one-offs or prerequisites for other upgrades.
-/// Some require specific faction standings or chain levels.
+/// All upgrades live in a flat list with prerequisite references.
+/// There are no hardcoded "chains" — sequential upgrades like
+/// `"radio_1"` → `"radio_2"` → `"radio_3"` are modeled by each
+/// upgrade requiring the previous one in its [`requires`](UpgradeDef::requires) list.
+///
 /// The [`id`](UpgradeDef::id) doubles as the localization key.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpgradeDef {
-    /// Unique identifier and localization key (e.g., `"fridge"`, `"alarm_system"`).
+    /// Unique identifier and localization key (e.g., `"fridge"`, `"radio_3"`).
     pub id: Id,
-    /// Credit cost to purchase.
+    /// Credit cost to purchase. Zero for quest rewards.
     pub cost: u32,
-    /// IDs of other upgrades that must be purchased first.
+    /// IDs of other upgrades that must be installed first.
     pub requires: Vec<Id>,
-    /// Required chain level: which chain and minimum level.
-    pub requires_chain: Option<(ChainType, u8)>,
-    /// Required faction standing: `(faction_id, min_standing)`.
-    pub requires_standing: Option<(Id, i8)>,
+    /// How this upgrade becomes available.
+    pub source: UpgradeSource,
 }
 
 /// The bunker's current state.
 ///
-/// Tracks chain upgrade levels, installed one-off upgrades,
-/// and the contents of regular and hidden storage.
+/// Tracks which upgrades are installed and the contents of storage.
+/// All upgrade effects are derived from the set of installed upgrade
+/// IDs — the sim checks `has_upgrade("radio_3")` rather than reading
+/// a chain level number.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BunkerState {
-    /// Laptop chain level (1–5). Affects intel and market visibility.
-    pub laptop_level: u8,
-    /// Radio chain level (1–5). Determines how far runners can be sent.
-    pub radio_level: u8,
-    /// Storage chain level (1–3). Determines base storage capacity.
-    pub storage_level: u8,
-    /// Counter chain level (1–3). Affects NPC trust and inspection tools.
-    pub counter_level: u8,
-
-    /// Installed one-off upgrade IDs.
+    /// All installed upgrade IDs.
     pub upgrades: Vec<Id>,
-
     /// Main storage contents.
     pub storage: Vec<Item>,
     /// Hidden storage contents (survives raids, invisible during inspections).
@@ -65,58 +64,23 @@ pub struct BunkerState {
 }
 
 impl BunkerState {
-    /// Create a new bunker with all chains at level 1 and no upgrades.
+    /// Create a new empty bunker with no upgrades.
     pub fn new() -> Self {
         Self {
-            laptop_level: 1,
-            radio_level: 1,
-            storage_level: 1,
-            counter_level: 1,
             upgrades: Vec::new(),
             storage: Vec::new(),
             hidden_storage: Vec::new(),
         }
     }
 
-    /// Check if a one-off upgrade is installed.
+    /// Check if an upgrade is installed.
     pub fn has_upgrade(&self, upgrade_id: &Id) -> bool {
         self.upgrades.iter().any(|u| u == upgrade_id)
-    }
-
-    /// Get the current level of a chain upgrade.
-    pub fn chain_level(&self, chain: ChainType) -> u8 {
-        match chain {
-            ChainType::Laptop => self.laptop_level,
-            ChainType::Radio => self.radio_level,
-            ChainType::Storage => self.storage_level,
-            ChainType::Counter => self.counter_level,
-        }
     }
 
     /// Whether the bunker has a generator (prevents power outages).
     pub fn has_power(&self) -> bool {
         self.has_upgrade(&Id::new("generator"))
-    }
-
-    /// Maximum number of items in main storage.
-    pub fn storage_capacity(&self) -> u8 {
-        match self.storage_level {
-            1 => 20,
-            2 => 40,
-            3 => 80,
-            _ => 20,
-        }
-    }
-
-    /// Maximum number of items in hidden storage.
-    ///
-    /// Returns 0 if the secret compartment upgrade is not installed.
-    pub fn hidden_capacity(&self) -> u8 {
-        if self.has_upgrade(&Id::new("secret_compartment")) {
-            10
-        } else {
-            0
-        }
     }
 }
 
