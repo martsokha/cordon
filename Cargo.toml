@@ -1,0 +1,45 @@
+# https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace]
+resolver = "2"
+members = [
+    "./crates/cordon-core",
+    "./crates/cordon-data",
+    "./crates/cordon-sim",
+]
+
+[workspace.package]
+version = "0.1.0"
+rust-version = "1.92"
+edition = "2024"
+license = "MIT"
+publish = false
+
+authors = ["Oleh Martsokha"]
+repository = "https://github.com/martsokha/cordon"
+homepage = "https://github.com/martsokha/cordon"
+
+[workspace.dependencies]
+# Internal crates
+cordon-core = { path = "./crates/cordon-core" }
+cordon-data = { path = "./crates/cordon-data" }
+cordon-sim = { path = "./crates/cordon-sim" }
+
+# (De)serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = [] }
+serde_with = { version = "3.18", features = [] }
+
+# Derive macros and error handling
+thiserror = { version = "2" }
+derive_more = { version = "2", features = ["display", "from", "into", "deref", "constructor"] }
+derive_builder = { version = "0.20" }
+strum = { version = "0.27", features = ["derive"] }
+
+# Primitive datatypes
+uuid = { version = "1", features = ["v4", "serde"] }
+jiff = { version = "0.2", features = ["serde"] }
+semver = { version = "1", features = ["serde"] }
+
+# Randomness
+rand = { version = "0.8" }

@@ -1,0 +1,21 @@
+# https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package]
+name = "cordon-data"
+description = "Data loading and catalog definitions for Cordon"
+keywords = ["cordon", "data", "catalog"]
+readme = "README.md"
+
+version = { workspace = true }
+rust-version = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+
+authors = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
+
+[dependencies]
+cordon-core = { workspace = true }
+serde = { workspace = true }
