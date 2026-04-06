@@ -60,9 +60,14 @@ struct AreaTooltipInfo {
     faction_icon: String,
     name: String,
     creatures: String,
+    creatures_tier: Tier,
     radiation: String,
+    radiation_tier: Tier,
     hazard_icon: String,
+    hazard_image: Option<String>,
+    hazard_count: u8,
     loot: String,
+    loot_tier: Tier,
 }
 
 #[derive(Component)]
@@ -86,6 +91,7 @@ struct SelectedNpc(Option<Uid<Npc>>);
 
 const COLOR_AREA: Color = Color::srgba(1.0, 1.0, 1.0, 0.08);
 const COLOR_AREA_BORDER: Color = Color::srgba(1.0, 1.0, 1.0, 0.25);
+const COLOR_AREA_HOVER: Color = Color::srgba(1.0, 1.0, 1.0, 0.15);
 const COLOR_NPC: Color = Color::srgb(0.7, 0.7, 0.7);
 const COLOR_NPC_SELECTED: Color = Color::srgb(1.0, 0.9, 0.3);
 const COLOR_NPC_SQUAD: Color = Color::srgb(0.7, 0.6, 0.25);
@@ -210,24 +216,42 @@ fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
             tier_key(&area.danger.creatures),
             &format!("{:?}", area.danger.creatures),
         ),
+        creatures_tier: area.danger.creatures,
         radiation: l10n_or(
             l10n,
             tier_key(&area.danger.radiation),
             &format!("{:?}", area.danger.radiation),
         ),
+        radiation_tier: area.danger.radiation,
         hazard_icon: hazard_icon_str,
+        hazard_image: area.danger.hazard.as_ref().map(|h| match h.kind {
+            HazardType::Chemical => "icons/hazards/chemical.png".to_string(),
+            HazardType::Thermal => "icons/hazards/thermal.png".to_string(),
+            HazardType::Electric => "icons/hazards/electric.png".to_string(),
+            HazardType::Gravitational => "icons/hazards/gravitational.png".to_string(),
+        }),
+        hazard_count: area.danger.hazard.as_ref().map(|h| match h.intensity {
+            Tier::VeryLow => 1,
+            Tier::Low => 2,
+            Tier::Medium => 3,
+            Tier::High => 4,
+            Tier::VeryHigh => 5,
+        }).unwrap_or(0),
         loot: l10n_or(
             l10n,
             tier_key(&area.loot_tier),
             &format!("{:?}", area.loot_tier),
         ),
+        loot_tier: area.loot_tier,
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn spawn_map(
     game_data: Res<GameDataResource>,
     sim_world: Res<SimWorld>,
     laptop_font: Res<LaptopFont>,
+    asset_server: Res<AssetServer>,
     l10n: Option<Res<GameLocalization>>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -260,6 +284,7 @@ fn spawn_map(
             MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_AREA_BORDER))),
             Transform::from_xyz(x, y, 0.1),
         ));
+
     }
 
     commands.spawn((
@@ -343,12 +368,14 @@ fn spawn_map(
 }
 
 #[allow(clippy::type_complexity)]
+#[allow(clippy::type_complexity)]
 fn update_hover(
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
     cam_proj: Query<&Projection, With<LaptopCamera>>,
-    areas: Query<(&AreaData, &Transform), With<AreaCircle>>,
+    areas: Query<(&AreaData, &Transform, &MeshMaterial2d<ColorMaterial>), With<AreaCircle>>,
     npcs: Query<(&NpcDotInfo, &Transform, &Action, &Intent), With<NpcDot>>,
+    mut mats: ResMut<Assets<ColorMaterial>>,
     mut tooltip: ResMut<TooltipContent>,
 ) {
     let Some(cursor) = cursor_world_pos(&windows, &cameras) else {
@@ -386,21 +413,35 @@ fn update_hover(
         return;
     }
 
-    // Check areas
-    for (data, transform) in &areas {
+    // Reset all area colors, then highlight hovered
+    let mut hovered_area = false;
+    for (data, transform, mat_handle) in &areas {
         let dist = cursor.distance(transform.translation.truncate());
-        if dist < area_hit {
+        if dist < area_hit && !hovered_area {
+            if let Some(m) = mats.get_mut(&mat_handle.0) {
+                m.color = COLOR_AREA_HOVER;
+            }
             let i = &data.0;
             *tooltip = TooltipContent::Area {
                 faction_icon: i.faction_icon.clone(),
                 name: i.name.clone(),
                 creatures: i.creatures.clone(),
+                creatures_tier: i.creatures_tier,
                 radiation: i.radiation.clone(),
+                radiation_tier: i.radiation_tier,
                 hazard_icon: i.hazard_icon.clone(),
+                hazard_image: i.hazard_image.clone(),
+                hazard_count: i.hazard_count,
                 loot: i.loot.clone(),
+                loot_tier: i.loot_tier,
             };
-            return;
+            hovered_area = true;
+        } else if let Some(m) = mats.get_mut(&mat_handle.0) {
+            m.color = COLOR_AREA;
         }
+    }
+    if hovered_area {
+        return;
     }
 
     *tooltip = TooltipContent::Hidden;
