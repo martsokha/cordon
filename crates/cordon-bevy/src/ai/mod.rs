@@ -6,7 +6,7 @@ use behavior::Action;
 use bevy::prelude::*;
 use moonshine_behavior::prelude::*;
 
-use crate::PlayingState;
+use crate::AppState;
 
 pub struct AiPlugin;
 
@@ -21,7 +21,7 @@ impl Plugin for AiPlugin {
                 behavior::drive_intents,
             )
                 .chain()
-                .run_if(in_state(PlayingState::Laptop)),
+                .run_if(in_state(AppState::Playing)),
         );
     }
 }

@@ -29,7 +29,6 @@ cordon-sim = { path = "./crates/cordon-sim" }
 
 # Game engine
 bevy = { version = "0.18", features = [] }
-bevy_lunex = { version = "0.6" }
 bevy_fluent = { version = "0.14" }
 moonshine-behavior = { version = "0.4" }
 

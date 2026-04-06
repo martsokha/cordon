@@ -14,8 +14,7 @@ impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(controller::ControllerPlugin);
         app.add_systems(OnEnter(PlayingState::Bunker), grab_cursor);
-        app.add_systems(OnEnter(PlayingState::Laptop), hide_interact_prompt);
-        app.add_systems(OnExit(PlayingState::Bunker), release_cursor);
+        app.add_systems(OnEnter(PlayingState::Laptop), (hide_interact_prompt, release_cursor));
         app.add_systems(
             Update,
             (update_interact_prompt, interact).run_if(in_state(PlayingState::Bunker)),

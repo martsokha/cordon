@@ -28,7 +28,6 @@ cordon-sim = { workspace = true }
 
 # Game engine
 bevy = { workspace = true }
-bevy_lunex = { workspace = true }
 bevy_fluent = { workspace = true }
 moonshine-behavior = { workspace = true }
 rand = { workspace = true }

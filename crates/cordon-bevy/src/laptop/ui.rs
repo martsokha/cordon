@@ -1,32 +1,25 @@
-//! Laptop tooltip UI: panel, follow cursor, update content.
+//! Laptop UI: tooltip, zoom label.
+//!
+//! Uses standard Bevy UI (Node/Text) for screen-space elements.
 
 use bevy::prelude::*;
 use cordon_core::primitive::tier::Tier;
 
 use super::input::CameraTarget;
+use super::LaptopCamera;
 use crate::PlayingState;
 
-/// Font handle for all laptop UI text.
 #[derive(Resource)]
 pub struct LaptopFont(pub Handle<Font>);
 
-pub struct UiPlugin;
+#[derive(Component)]
+pub struct ZoomLabel;
 
-impl Plugin for UiPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(TooltipContent::default());
-        app.add_systems(Startup, load_font);
-        app.add_systems(
-            Update,
-            (follow_cursor, update_tooltip_ui, update_zoom_label)
-                .run_if(in_state(PlayingState::Laptop)),
-        );
-    }
-}
+#[derive(Component)]
+pub struct TooltipPanel;
 
-fn load_font(mut commands: Commands, server: Res<AssetServer>) {
-    commands.insert_resource(LaptopFont(server.load("fonts/PTMono-Regular.ttf")));
-}
+#[derive(Component)]
+pub struct TooltipText;
 
 #[derive(Resource, Default)]
 pub enum TooltipContent {
@@ -52,35 +45,6 @@ pub enum TooltipContent {
     },
 }
 
-#[derive(Component)]
-pub struct TooltipPanel;
-
-#[derive(Component)]
-pub struct TtHeader;
-
-#[derive(Component)]
-pub struct TtRow1Label;
-#[derive(Component)]
-pub struct TtRow1Value;
-
-#[derive(Component)]
-pub struct TtRow2Label;
-#[derive(Component)]
-pub struct TtRow2Value;
-
-#[derive(Component)]
-pub struct TtHazardIcon;
-
-#[derive(Component)]
-pub struct ZoomLabel;
-
-#[derive(Component)]
-pub struct TtRow3Label;
-#[derive(Component)]
-pub struct TtRow3Value;
-
-pub const COLOR_LABEL: Color = Color::srgba(0.6, 0.6, 0.6, 1.0);
-
 pub fn tier_color(t: &Tier) -> Color {
     match t {
         Tier::VeryLow => Color::srgb(0.5, 0.8, 0.5),
@@ -91,90 +55,61 @@ pub fn tier_color(t: &Tier) -> Color {
     }
 }
 
-/// Spawn the tooltip panel as a UI entity. Call from spawn_map.
-pub fn spawn_tooltip_panel(commands: &mut Commands, font: &Handle<Font>) {
-    let hdr_font = TextFont {
-        font: font.clone(),
-        font_size: 14.0,
-        ..default()
-    };
-    let lbl_font = TextFont {
-        font: font.clone(),
-        font_size: 11.0,
-        ..default()
-    };
-    let val_font = TextFont {
-        font: font.clone(),
-        font_size: 12.0,
-        ..default()
-    };
+pub struct UiPlugin;
 
-    let mut panel = commands.spawn((
-        TooltipPanel,
-        Node {
-            position_type: PositionType::Absolute,
-            flex_direction: FlexDirection::Column,
-            padding: UiRect::all(Val::Px(10.0)),
-            row_gap: Val::Px(3.0),
-            min_width: Val::Px(200.0),
-            ..default()
-        },
-        Visibility::Hidden,
-    ));
-    panel
-        .insert(BackgroundColor(Color::srgba(0.06, 0.06, 0.1, 0.93)))
-        .insert(GlobalZIndex(100));
-    panel.with_children(|p| {
-        p.spawn(Node {
-            flex_direction: FlexDirection::Row,
-            justify_content: JustifyContent::SpaceBetween,
-            ..default()
-        })
-        .with_children(|row| {
-            row.spawn((
-                TtHeader,
+impl Plugin for UiPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(TooltipContent::default());
+        app.add_systems(Startup, load_font);
+        app.add_systems(
+            Update,
+            (follow_cursor, update_tooltip, update_zoom_label)
+                .run_if(in_state(PlayingState::Laptop)),
+        );
+    }
+}
+
+fn load_font(mut commands: Commands, server: Res<AssetServer>) {
+    commands.insert_resource(LaptopFont(server.load("fonts/PTMono-Regular.ttf")));
+}
+
+/// Spawn laptop UI elements.
+pub fn spawn_ui(commands: &mut Commands, font: &Handle<Font>) {
+    // Tooltip panel
+    commands
+        .spawn((
+            TooltipPanel,
+            Node {
+                position_type: PositionType::Absolute,
+                flex_direction: FlexDirection::Column,
+                padding: UiRect::all(Val::Px(8.0)),
+                min_width: Val::Px(180.0),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.06, 0.06, 0.1, 0.9)),
+            GlobalZIndex(100),
+            Visibility::Hidden,
+        ))
+        .with_children(|p| {
+            p.spawn((
+                TooltipText,
                 Text::new(""),
-                hdr_font.clone(),
-                TextColor(Color::WHITE),
-            ));
-            row.spawn((
-                TtHazardIcon,
-                Text::new(""),
-                hdr_font.clone(),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 12.0,
+                    ..default()
+                },
                 TextColor(Color::WHITE),
             ));
         });
 
-        p.spawn(Node {
-            height: Val::Px(4.0),
-            ..default()
-        });
-
-        spawn_stat_row(
-            p,
-            "Creatures",
-            TtRow1Label,
-            TtRow1Value,
-            &lbl_font,
-            &val_font,
-        );
-        spawn_stat_row(
-            p,
-            "Radiation",
-            TtRow2Label,
-            TtRow2Value,
-            &lbl_font,
-            &val_font,
-        );
-        spawn_stat_row(p, "Loot", TtRow3Label, TtRow3Value, &lbl_font, &val_font);
-    });
-
+    // Zoom label
     commands.spawn((
         ZoomLabel,
         Node {
             position_type: PositionType::Absolute,
-            right: Val::Px(12.0),
-            bottom: Val::Px(12.0),
+            right: Val::Px(16.0),
+            bottom: Val::Px(16.0),
             ..default()
         },
         Text::new("x1.0"),
@@ -183,38 +118,19 @@ pub fn spawn_tooltip_panel(commands: &mut Commands, font: &Handle<Font>) {
             font_size: 12.0,
             ..default()
         },
-        TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5)),
+        TextColor(Color::srgba(1.0, 1.0, 1.0, 0.4)),
     ));
 }
 
-fn spawn_stat_row(
-    parent: &mut bevy::prelude::ChildSpawnerCommands,
-    label: &str,
-    lbl_marker: impl Component,
-    val_marker: impl Component,
-    lbl_font: &TextFont,
-    val_font: &TextFont,
-) {
-    parent
-        .spawn(Node {
-            flex_direction: FlexDirection::Row,
-            justify_content: JustifyContent::SpaceBetween,
-            ..default()
-        })
-        .with_children(|row| {
-            row.spawn((
-                lbl_marker,
-                Text::new(format!("{label}:")),
-                lbl_font.clone(),
-                TextColor(COLOR_LABEL),
-            ));
-            row.spawn((
-                val_marker,
-                Text::new(""),
-                val_font.clone(),
-                TextColor(Color::WHITE),
-            ));
-        });
+/// Get cursor position in 2D world space via the laptop camera.
+pub fn cursor_world_pos(
+    windows: &Query<&Window>,
+    cameras: &Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
+) -> Option<Vec2> {
+    let window = windows.single().ok()?;
+    let cursor_screen = window.cursor_position()?;
+    let (camera, cam_transform) = cameras.iter().next()?;
+    camera.viewport_to_world_2d(cam_transform, cursor_screen).ok()
 }
 
 fn follow_cursor(
@@ -239,155 +155,46 @@ fn follow_cursor(
     }
 }
 
-#[allow(clippy::type_complexity)]
-fn update_tooltip_ui(
+fn update_tooltip(
     tooltip: Res<TooltipContent>,
-    mut header_q: Query<&mut Text, (With<TtHeader>, Without<TtHazardIcon>)>,
-    mut hazard_q: Query<&mut Text, (With<TtHazardIcon>, Without<TtHeader>)>,
-    mut r1_lbl: Query<&mut Text, (With<TtRow1Label>, Without<TtHeader>, Without<TtHazardIcon>)>,
-    mut r1_val: Query<
-        (&mut Text, &mut TextColor),
-        (
-            With<TtRow1Value>,
-            Without<TtHeader>,
-            Without<TtHazardIcon>,
-            Without<TtRow1Label>,
-        ),
-    >,
-    mut r2_lbl: Query<
-        &mut Text,
-        (
-            With<TtRow2Label>,
-            Without<TtHeader>,
-            Without<TtHazardIcon>,
-            Without<TtRow1Label>,
-            Without<TtRow1Value>,
-        ),
-    >,
-    mut r2_val: Query<
-        (&mut Text, &mut TextColor),
-        (
-            With<TtRow2Value>,
-            Without<TtHeader>,
-            Without<TtHazardIcon>,
-            Without<TtRow1Label>,
-            Without<TtRow1Value>,
-            Without<TtRow2Label>,
-        ),
-    >,
-    mut r3_lbl: Query<
-        &mut Text,
-        (
-            With<TtRow3Label>,
-            Without<TtHeader>,
-            Without<TtHazardIcon>,
-            Without<TtRow1Label>,
-            Without<TtRow1Value>,
-            Without<TtRow2Label>,
-            Without<TtRow2Value>,
-        ),
-    >,
-    mut r3_val: Query<
-        (&mut Text, &mut TextColor),
-        (
-            With<TtRow3Value>,
-            Without<TtHeader>,
-            Without<TtHazardIcon>,
-            Without<TtRow1Label>,
-            Without<TtRow1Value>,
-            Without<TtRow2Label>,
-            Without<TtRow2Value>,
-            Without<TtRow3Label>,
-        ),
-    >,
+    mut text_q: Query<&mut Text, With<TooltipText>>,
 ) {
-    if !tooltip.is_changed() || matches!(*tooltip, TooltipContent::Hidden) {
+    if !tooltip.is_changed() {
         return;
     }
 
-    match &*tooltip {
-        TooltipContent::Hidden => {}
+    let content = match &*tooltip {
+        TooltipContent::Hidden => String::new(),
         TooltipContent::Area {
-            faction_icon,
-            name,
-            creatures,
-            creatures_tier,
-            radiation,
-            radiation_tier,
-            hazard_icon,
-            loot,
-            loot_tier,
+            faction_icon, name, creatures, radiation, hazard_icon, loot, ..
         } => {
-            for mut t in &mut header_q {
-                t.0 = format!("{faction_icon} {name}");
-            }
-            for mut t in &mut hazard_q {
-                t.0.clone_from(hazard_icon);
-            }
-            for mut t in &mut r1_lbl {
-                t.0 = "Creatures:".into();
-            }
-            for (mut t, mut c) in &mut r1_val {
-                t.0.clone_from(creatures);
-                c.0 = tier_color(creatures_tier);
-            }
-            for mut t in &mut r2_lbl {
-                t.0 = "Radiation:".into();
-            }
-            for (mut t, mut c) in &mut r2_val {
-                t.0.clone_from(radiation);
-                c.0 = tier_color(radiation_tier);
-            }
-            for mut t in &mut r3_lbl {
-                t.0 = "Loot:".into();
-            }
-            for (mut t, mut c) in &mut r3_val {
-                t.0.clone_from(loot);
-                c.0 = tier_color(loot_tier);
-            }
+            let haz = if hazard_icon.is_empty() {
+                String::new()
+            } else {
+                format!("  {hazard_icon}")
+            };
+            format!(
+                "{faction_icon} {name}{haz}\nCreatures: {creatures}\nRadiation: {radiation}\nLoot: {loot}"
+            )
         }
         TooltipContent::Npc {
-            faction_icon,
-            name,
-            faction,
-            rank,
-            status,
+            faction_icon, name, faction, rank, status,
         } => {
-            for mut t in &mut header_q {
-                t.0 = format!("{faction_icon} {name}");
-            }
-            for mut t in &mut hazard_q {
-                t.0.clear();
-            }
-            for mut t in &mut r1_lbl {
-                t.0 = "Faction:".into();
-            }
-            for (mut t, mut c) in &mut r1_val {
-                t.0.clone_from(faction);
-                c.0 = Color::WHITE;
-            }
-            for mut t in &mut r2_lbl {
-                t.0 = "Rank:".into();
-            }
-            for (mut t, mut c) in &mut r2_val {
-                t.0.clone_from(rank);
-                c.0 = Color::WHITE;
-            }
-            for mut t in &mut r3_lbl {
-                t.0 = "Status:".into();
-            }
-            for (mut t, mut c) in &mut r3_val {
-                t.0.clone_from(status);
-                c.0 = COLOR_LABEL;
-            }
+            format!(
+                "{faction_icon} {name}\nFaction: {faction}\nRank: {rank}\nStatus: {status}"
+            )
         }
+    };
+
+    for mut text in &mut text_q {
+        text.0 = content.clone();
     }
 }
 
-fn update_zoom_label(target: Res<CameraTarget>, mut label_q: Query<&mut Text, With<ZoomLabel>>) {
-    if !target.is_changed() {
-        return;
-    }
+fn update_zoom_label(
+    target: Res<CameraTarget>,
+    mut label_q: Query<&mut Text, (With<ZoomLabel>, Without<TooltipText>)>,
+) {
     let level = (1.0 / target.zoom * 10.0).round() / 10.0;
     for mut text in &mut label_q {
         text.0 = format!("x{level:.1}");

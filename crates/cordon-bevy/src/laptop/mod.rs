@@ -6,7 +6,6 @@ mod ui;
 
 use bevy::prelude::*;
 use bevy_fluent::prelude::*;
-use bevy_lunex::prelude::*;
 use cordon_core::entity::faction::{Faction, RankScheme};
 use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::entity::npc::Npc;
@@ -27,25 +26,31 @@ pub struct LaptopPlugin;
 impl Plugin for LaptopPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
-            UiLunexPlugins,
             input::InputPlugin,
             ui::UiPlugin,
             environment::EnvironmentPlugin,
         ));
         app.insert_resource(SelectedNpc::default());
         app.add_systems(Startup, setup_camera);
-        app.add_systems(OnEnter(PlayingState::Laptop), enable_laptop_camera);
+        app.add_systems(
+            OnEnter(PlayingState::Laptop),
+            (enable_laptop_camera, spawn_map),
+        );
         app.add_systems(OnExit(PlayingState::Laptop), disable_laptop_camera);
-        app.add_systems(OnEnter(PlayingState::Laptop), spawn_map);
         app.add_systems(
             Update,
-            (handle_npc_click, update_npc_selection, deselect_or_exit)
+            (
+                update_hover,
+                handle_npc_click,
+                update_npc_selection,
+                deselect_or_exit,
+            )
                 .run_if(in_state(PlayingState::Laptop)),
         );
     }
 }
 
-use ui::{LaptopFont, TooltipContent, spawn_tooltip_panel};
+use ui::{LaptopFont, TooltipContent, ZoomLabel, cursor_world_pos, spawn_ui};
 
 #[derive(Component)]
 struct Bunker;
@@ -94,6 +99,8 @@ const COLOR_AREA_HOVER: Color = Color::srgba(1.0, 1.0, 1.0, 0.15);
 const COLOR_NPC: Color = Color::srgb(0.7, 0.7, 0.7);
 const COLOR_NPC_SELECTED: Color = Color::srgb(1.0, 0.9, 0.3);
 const COLOR_NPC_SQUAD: Color = Color::srgb(0.7, 0.6, 0.25);
+
+/// All laptop 2D entities render on layer 1 (not the main camera).
 fn hazard_icon(h: &HazardType) -> &'static str {
     match h {
         HazardType::Chemical => "X",
@@ -118,7 +125,7 @@ fn faction_icon_str(faction: Option<&str>) -> &'static str {
 }
 
 #[derive(Component)]
-struct LaptopCamera;
+pub struct LaptopCamera;
 
 fn setup_camera(mut commands: Commands) {
     commands.spawn((
@@ -128,7 +135,6 @@ fn setup_camera(mut commands: Commands) {
             is_active: false,
             ..default()
         },
-        UiSourceCamera::<0>,
         Transform::from_xyz(0.0, -100.0, 1000.0),
         Projection::Orthographic(OrthographicProjection {
             scale: 1.0,
@@ -255,7 +261,7 @@ fn spawn_map(
     let empty_l10n = Localization::default();
     let l10n = l10n.as_ref().map(|r| &r.0).unwrap_or(&empty_l10n);
 
-    spawn_tooltip_panel(&mut commands, &laptop_font.0);
+    spawn_ui(&mut commands, &laptop_font.0);
 
     for area in data.areas.values() {
         let x = area.location.x;
@@ -263,58 +269,14 @@ fn spawn_map(
         let radius = area.radius.value();
         let info = build_area_info(l10n, area);
 
-        let area_entity = commands
-            .spawn((
-                AreaCircle,
-                AreaData(info),
-                Dimension(Vec2::new(radius * 2.0, radius * 2.0)),
-                Mesh2d(meshes.add(Circle::new(radius))),
-                MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_AREA))),
-                Transform::from_xyz(x, y, 0.01),
-            ))
-            .id();
+        let area_entity = commands.spawn((
+            AreaCircle,
+            AreaData(info),
 
-        commands.entity(area_entity).observe(
-            move |_: On<Pointer<Over>>,
-                  mut mats: ResMut<Assets<ColorMaterial>>,
-                  mat_q: Query<&MeshMaterial2d<ColorMaterial>>,
-                  data_q: Query<&AreaData>,
-                  mut tooltip: ResMut<TooltipContent>| {
-                if let Ok(h) = mat_q.get(area_entity) {
-                    if let Some(m) = mats.get_mut(&h.0) {
-                        m.color = COLOR_AREA_HOVER;
-                    }
-                }
-                if let Ok(d) = data_q.get(area_entity) {
-                    let i = &d.0;
-                    *tooltip = TooltipContent::Area {
-                        faction_icon: i.faction_icon.clone(),
-                        name: i.name.clone(),
-                        creatures: i.creatures.clone(),
-                        creatures_tier: i.creatures_tier,
-                        radiation: i.radiation.clone(),
-                        radiation_tier: i.radiation_tier,
-                        hazard_icon: i.hazard_icon.clone(),
-                        loot: i.loot.clone(),
-                        loot_tier: i.loot_tier,
-                    };
-                }
-            },
-        );
-
-        commands.entity(area_entity).observe(
-            move |_: On<Pointer<Out>>,
-                  mut mats: ResMut<Assets<ColorMaterial>>,
-                  mat_q: Query<&MeshMaterial2d<ColorMaterial>>,
-                  mut tooltip: ResMut<TooltipContent>| {
-                if let Ok(h) = mat_q.get(area_entity) {
-                    if let Some(m) = mats.get_mut(&h.0) {
-                        m.color = COLOR_AREA;
-                    }
-                }
-                *tooltip = TooltipContent::Hidden;
-            },
-        );
+            Mesh2d(meshes.add(Circle::new(radius))),
+            MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_AREA))),
+            Transform::from_xyz(x, y, 0.01),
+        ));
 
         commands.spawn((
             Mesh2d(meshes.add(Annulus::new(radius - 2.0, radius))),
@@ -374,49 +336,25 @@ fn spawn_map(
         );
         let spawn_pos = base_pos + scatter;
 
-        let npc_entity = commands
-            .spawn((
-                NpcDot { uid: *uid },
-                Action::Idle {
-                    timer: 2.0 + (i as f32 % 5.0),
-                },
-                intent,
-                IntentPhase::Approach,
-                NpcDotInfo {
-                    faction_icon: faction_icon.clone(),
-                    name: name_display,
-                    faction: faction_name,
-                    rank: rank_title,
-                },
-                NpcFaction(npc.faction.clone()),
-                Dimension(Vec2::splat(hit_size)),
-                Mesh2d(meshes.add(Circle::new(dot_size))),
-                MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_NPC))),
-                Transform::from_xyz(spawn_pos.x, spawn_pos.y, 0.5),
-            ))
-            .id();
-
-        commands.entity(npc_entity).observe(
-            move |_: On<Pointer<Over>>,
-                  data_q: Query<(&NpcDotInfo, &Action, &Intent)>,
-                  mut tooltip: ResMut<TooltipContent>| {
-                if let Ok((info, action, intent)) = data_q.get(npc_entity) {
-                    *tooltip = TooltipContent::Npc {
-                        faction_icon: info.faction_icon.clone(),
-                        name: info.name.clone(),
-                        faction: info.faction.clone(),
-                        rank: info.rank.clone(),
-                        status: format_npc_status(action, intent),
-                    };
-                }
+        let npc_entity = commands.spawn((
+            NpcDot { uid: *uid },
+            Action::Idle {
+                timer: 2.0 + (i as f32 % 5.0),
             },
-        );
-
-        commands.entity(npc_entity).observe(
-            move |_: On<Pointer<Out>>, mut tooltip: ResMut<TooltipContent>| {
-                *tooltip = TooltipContent::Hidden;
+            intent,
+            IntentPhase::Approach,
+            NpcDotInfo {
+                faction_icon: faction_icon.clone(),
+                name: name_display,
+                faction: faction_name,
+                rank: rank_title,
             },
-        );
+            NpcFaction(npc.faction.clone()),
+
+            Mesh2d(meshes.add(Circle::new(dot_size))),
+            MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_NPC))),
+            Transform::from_xyz(spawn_pos.x, spawn_pos.y, 0.5),
+        ));
     }
 
     info!(
@@ -424,6 +362,74 @@ fn spawn_map(
         data.areas.len(),
         sim_world.0.npcs.len()
     );
+}
+
+#[allow(clippy::type_complexity)]
+fn update_hover(
+    windows: Query<&Window>,
+    cameras: Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
+    cam_proj: Query<&Projection, With<LaptopCamera>>,
+    areas: Query<(&AreaData, &Transform), With<AreaCircle>>,
+    npcs: Query<(&NpcDotInfo, &Transform, &Action, &Intent), With<NpcDot>>,
+    mut tooltip: ResMut<TooltipContent>,
+) {
+    let Some(cursor) = cursor_world_pos(&windows, &cameras) else {
+        *tooltip = TooltipContent::Hidden;
+        return;
+    };
+    let scale = cam_proj
+        .iter()
+        .next()
+        .and_then(|p| match p {
+            Projection::Orthographic(o) => Some(o.scale),
+            _ => None,
+        })
+        .unwrap_or(1.0);
+    let npc_hit = 20.0 * scale;
+    let area_hit = 50.0 * scale;
+
+    // Check NPCs first (higher priority)
+    let mut closest_npc: Option<(&NpcDotInfo, &Action, &Intent, f32)> = None;
+    for (info, transform, action, intent) in &npcs {
+        let dist = cursor.distance(transform.translation.truncate());
+        if dist < npc_hit {
+            if closest_npc.is_none() || dist < closest_npc.unwrap().3 {
+                closest_npc = Some((info, action, intent, dist));
+            }
+        }
+    }
+    if let Some((info, action, intent, _)) = closest_npc {
+        *tooltip = TooltipContent::Npc {
+            faction_icon: info.faction_icon.clone(),
+            name: info.name.clone(),
+            faction: info.faction.clone(),
+            rank: info.rank.clone(),
+            status: format_npc_status(action, intent),
+        };
+        return;
+    }
+
+    // Check areas
+    for (data, transform) in &areas {
+        let dist = cursor.distance(transform.translation.truncate());
+        if dist < area_hit {
+            let i = &data.0;
+            *tooltip = TooltipContent::Area {
+                faction_icon: i.faction_icon.clone(),
+                name: i.name.clone(),
+                creatures: i.creatures.clone(),
+                creatures_tier: i.creatures_tier,
+                radiation: i.radiation.clone(),
+                radiation_tier: i.radiation_tier,
+                hazard_icon: i.hazard_icon.clone(),
+                loot: i.loot.clone(),
+                loot_tier: i.loot_tier,
+            };
+            return;
+        }
+    }
+
+    *tooltip = TooltipContent::Hidden;
 }
 
 fn handle_npc_click(
@@ -436,13 +442,7 @@ fn handle_npc_click(
     if !mouse.just_pressed(MouseButton::Left) {
         return;
     }
-    let Some(cursor_screen) = windows.single().ok().and_then(|w| w.cursor_position()) else {
-        return;
-    };
-    let Some((camera, cam_transform)) = cameras.iter().next() else {
-        return;
-    };
-    let Ok(cursor_world) = camera.viewport_to_world_2d(cam_transform, cursor_screen) else {
+    let Some(cursor_world) = cursor_world_pos(&windows, &cameras) else {
         return;
     };
 
