@@ -2,10 +2,7 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::{NameFormat, NamePool, NpcName};
 use cordon_core::entity::npc::{Npc, Personality};
 use cordon_core::item::Inventory;
-use cordon_core::primitive::credits::Credits;
-use cordon_core::primitive::experience::Experience;
-use cordon_core::primitive::id::Id;
-use cordon_core::primitive::uid::Uid;
+use cordon_core::primitive::{Credits, Experience, Id, Uid};
 use rand::{Rng, RngExt};
 
 use crate::state::world::World;
@@ -129,7 +126,7 @@ pub trait NpcGenerator {
             faction,
             xp,
             inventory: Inventory::new(self.inventory_slots(rank)),
-            health: cordon_core::primitive::health::Health::FULL,
+            health: cordon_core::primitive::Health::FULL,
             trust: 0.0,
             wealth,
             personality,

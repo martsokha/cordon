@@ -9,7 +9,7 @@ mod relic;
 mod throwable;
 mod weapon;
 
-pub use ammo::AmmoData;
+pub self::use ammo::AmmoData;
 pub use armor::{ArmorData, ArmorSlot};
 pub use attachment::AttachmentData;
 pub use consumable::ConsumableData;
@@ -20,7 +20,7 @@ pub use throwable::ThrowableData;
 pub use weapon::{FireMode, WeaponData};
 
 use super::category::ItemCategory;
-use crate::primitive::id::IdMarker;
+use crate::primitive::IdMarker;
 
 /// Marker for caliber IDs (ammo / weapon link).
 pub struct Caliber;

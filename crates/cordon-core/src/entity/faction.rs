@@ -5,10 +5,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::entity::name::NamePoolMarker;
+use super::name::NamePoolMarker;
 use crate::item::ItemCategory;
-use crate::primitive::id::{Id, IdMarker};
-use crate::primitive::relation::Relation;
+use crate::primitive::{Id, IdMarker, Relation};
 
 /// Marker for faction IDs.
 pub struct Faction;

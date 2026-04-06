@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::id::{Id, IdMarker};
+use crate::primitive::{Id, IdMarker};
 
 /// Marker for name pool IDs.
 pub struct NamePoolMarker;

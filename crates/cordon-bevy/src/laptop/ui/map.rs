@@ -1,7 +1,7 @@
 //! Map tab: tooltip, zoom label, cursor-to-world helpers.
 
 use bevy::prelude::*;
-use cordon_core::primitive::tier::Tier;
+use cordon_core::primitive::Tier;
 
 use super::{LaptopFont, LaptopTab, TabContent};
 use crate::PlayingState;

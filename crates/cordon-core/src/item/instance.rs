@@ -2,9 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::item::def::Item as ItemMarker;
-use crate::primitive::condition::Condition;
-use crate::primitive::id::Id;
+use super::def::Item as ItemMarker;
+use crate::primitive::{Condition, Id};
 
 /// Whether an item is genuine or has been tampered with.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -3,8 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::Caliber;
-use crate::primitive::distance::Distance;
-use crate::primitive::id::Id;
+use crate::primitive::{Distance, Id};
 
 /// Weapon fire mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

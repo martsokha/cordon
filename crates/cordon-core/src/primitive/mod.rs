@@ -1,44 +1,37 @@
-/// Item and equipment condition (0.0–1.0).
-pub mod condition;
+//! Primitive value types used throughout the game.
+//!
+//! Small, self-contained types that represent a single concept:
+//! a currency amount, a distance, a health value, etc. Used as
+//! building blocks by the entity, item, and world modules.
 
-/// In-game currency.
-pub mod credits;
+mod condition;
+mod credits;
+mod distance;
+mod duration;
+mod environment;
+mod experience;
+mod hazard;
+mod health;
+mod id;
+mod location;
+mod rarity;
+mod relation;
+mod tier;
+mod time;
+mod uid;
 
-/// Distance between two points in map units.
-pub mod distance;
-
-/// Duration in seconds.
-pub mod duration;
-
-/// Environment types for areas and locations.
-pub mod environment;
-
-/// Experience points for players and NPCs.
-pub mod experience;
-
-/// NPC health value (0.0–1.0).
-pub mod health;
-
-/// Environmental hazard types in the Zone.
-pub mod hazard;
-
-/// Typed string-based identifiers for data-driven game objects.
-pub mod id;
-
-/// 2D location on the Zone map.
-pub mod location;
-
-/// Item rarity tiers.
-pub mod rarity;
-
-/// Signed relationship value (-100 to +100).
-pub mod relation;
-
-/// Five-level scale used across the game.
-pub mod tier;
-
-/// Day/phase time system.
-pub mod time;
-
-/// Auto-incrementing numeric ID for runtime entities.
-pub mod uid;
+pub use condition::Condition;
+pub use credits::Credits;
+pub use distance::Distance;
+pub use duration::Duration;
+pub use environment::Environment;
+pub use experience::Experience;
+pub use hazard::HazardType;
+pub use health::Health;
+pub use id::{Id, IdMarker};
+pub use location::Location;
+pub use rarity::Rarity;
+pub use relation::Relation;
+pub use tier::Tier;
+pub use time::{Day, GameTime, Period};
+pub use uid::Uid;

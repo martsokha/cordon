@@ -3,11 +3,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::entity::npc::Npc;
-use crate::item::Item;
-use crate::item::def::Item as ItemMarker;
-use crate::primitive::credits::Credits;
-use crate::primitive::id::Id;
-use crate::primitive::uid::Uid;
+use crate::item::{Item, ItemMarker};
+use crate::primitive::{Credits, Id, Uid};
 
 /// An item offered in a trade (from either side).
 #[derive(Debug, Clone, Serialize, Deserialize)]

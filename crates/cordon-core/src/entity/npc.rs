@@ -4,15 +4,11 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::entity::faction::Faction;
-use crate::entity::name::NpcName;
-use crate::entity::perk::Perk;
+use super::faction::Faction;
+use super::name::NpcName;
+use super::perk::Perk;
 use crate::item::Inventory;
-use crate::primitive::credits::Credits;
-use crate::primitive::experience::Experience;
-use crate::primitive::health::Health;
-use crate::primitive::id::{Id, IdMarker};
-use crate::primitive::uid::Uid;
+use crate::primitive::{Credits, Experience, Health, Id, IdMarker, Uid};
 
 /// Marker for NPC template IDs (used in quest consequences).
 pub struct NpcTemplate;

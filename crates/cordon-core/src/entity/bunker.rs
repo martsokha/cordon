@@ -11,11 +11,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::entity::faction::Faction;
+use super::faction::Faction;
 use crate::item::Inventory;
-use crate::primitive::credits::Credits;
-use crate::primitive::id::{Id, IdMarker};
-use crate::primitive::relation::Relation;
+use crate::primitive::{Credits, Id, IdMarker, Relation};
 
 /// Marker for upgrade IDs.
 pub struct Upgrade;

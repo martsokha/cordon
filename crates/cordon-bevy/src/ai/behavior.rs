@@ -2,8 +2,7 @@
 
 use bevy::prelude::*;
 use cordon_core::entity::npc::Npc;
-use cordon_core::primitive::id::Id;
-use cordon_core::primitive::uid::Uid;
+use cordon_core::primitive::{Id, Uid};
 use cordon_core::world::narrative::quest::Quest;
 use moonshine_behavior::prelude::*;
 

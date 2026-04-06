@@ -4,8 +4,7 @@
 //! and several world-state modifiers. This makes low-condition gear
 //! nearly worthless and creates a repair arbitrage opportunity.
 
-use crate::primitive::condition::Condition;
-use crate::primitive::credits::Credits;
+use crate::primitive::{Condition, Credits};
 
 /// Modifiers applied to an item's base price from the world state.
 ///
@@ -62,7 +61,7 @@ mod tests {
 
     #[test]
     fn condition_squared_pricing() {
-        use crate::primitive::credits::Credits;
+        use crate::primitive::Credits;
 
         let mods = PriceModifiers::default();
         let base = Credits::new(10000);
@@ -87,7 +86,7 @@ mod tests {
 
     #[test]
     fn price_never_zero() {
-        use crate::primitive::credits::Credits;
+        use crate::primitive::Credits;
 
         let mods = PriceModifiers::default();
         assert_eq!(

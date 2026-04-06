@@ -1,7 +1,5 @@
 use cordon_core::entity::perk::Perk;
-use cordon_core::primitive::id::Id;
-use cordon_core::primitive::location::Location;
-use cordon_core::primitive::time::Day;
+use cordon_core::primitive::{Day, Id, Location};
 use cordon_core::world::mission::{ActiveMission, MissionOutcome, MissionPlan, MissionResult};
 use rand::{Rng, RngExt};
 

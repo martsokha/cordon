@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::item::effect::Effect;
-use crate::primitive::duration::Duration;
+use crate::primitive::Duration;
 
 /// Data for throwable items.
 ///

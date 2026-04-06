@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NamePool;
 use cordon_core::entity::npc::Npc;
-use cordon_core::primitive::id::Id;
-use cordon_core::primitive::time::Period;
+use cordon_core::primitive::{Id, Period};
 use cordon_core::world::event::EventDef;
 use cordon_core::world::mission::MissionResult;
 

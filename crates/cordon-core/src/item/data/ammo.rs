@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::Caliber;
-use crate::primitive::id::Id;
+use crate::primitive::Id;
 
 /// Data for ammunition items.
 ///

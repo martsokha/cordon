@@ -9,10 +9,7 @@ use bevy_fluent::prelude::*;
 use cordon_core::entity::faction::{Faction, RankScheme};
 use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::entity::npc::Npc;
-use cordon_core::primitive::hazard::HazardType;
-use cordon_core::primitive::id::Id;
-use cordon_core::primitive::tier::Tier;
-use cordon_core::primitive::uid::Uid;
+use cordon_core::primitive::{HazardType, Id, Tier, Uid};
 use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
 

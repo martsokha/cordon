@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NamePool;
-use cordon_core::primitive::id::Id;
+use cordon_core::primitive::Id;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::simulation::day::PeriodResult;
 use cordon_sim::simulation::npcs::DefaultNpcGenerator;

@@ -4,9 +4,8 @@ use cordon_core::entity::bunker::{Upgrade, UpgradeDef};
 use cordon_core::entity::faction::{Faction, FactionDef};
 use cordon_core::entity::name::{NamePool, NamePoolMarker};
 use cordon_core::entity::perk::{Perk, PerkDef};
-use cordon_core::item::ItemDef;
-use cordon_core::item::def::Item;
-use cordon_core::primitive::id::Id;
+use cordon_core::item::{ItemDef, ItemMarker};
+use cordon_core::primitive::Id;
 use cordon_core::world::area::{Area, AreaDef};
 use cordon_core::world::event::{Event, EventDef};
 use cordon_core::world::loot::LootTables;
@@ -22,10 +21,10 @@ use cordon_core::world::narrative::quest::{Quest, QuestDef};
 /// reference the same caliber ID string. No separate caliber registry.
 /// Player ranks are hardcoded in [`PlayerRank`](cordon_core::entity::player::PlayerRank).
 ///
-/// All lookups are by typed ID aliases from [`cordon_core::primitive::id`].
+/// All lookups are by typed ID aliases from [`cordon_core::primitive`].
 pub struct GameData {
     /// Item definitions keyed by item ID.
-    pub items: HashMap<Id<Item>, ItemDef>,
+    pub items: HashMap<Id<ItemMarker>, ItemDef>,
     /// Faction definitions keyed by faction ID.
     pub factions: HashMap<Id<Faction>, FactionDef>,
     /// Area definitions keyed by area ID.
@@ -46,7 +45,7 @@ pub struct GameData {
 
 impl GameData {
     /// Look up an item definition by ID.
-    pub fn item(&self, id: &Id<Item>) -> Option<&ItemDef> {
+    pub fn item(&self, id: &Id<ItemMarker>) -> Option<&ItemDef> {
         self.items.get(id)
     }
 

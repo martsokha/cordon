@@ -4,9 +4,7 @@ use cordon_core::entity::bunker::BaseState;
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::player::PlayerState;
-use cordon_core::primitive::id::Id;
-use cordon_core::primitive::time::GameTime;
-use cordon_core::primitive::uid::Uid;
+use cordon_core::primitive::{GameTime, Id, Uid};
 use cordon_core::world::area::Area;
 use cordon_core::world::event::ActiveEvent;
 use cordon_core::world::mission::ActiveMission;
@@ -135,7 +133,7 @@ impl World {
     }
 
     /// Current game day.
-    pub fn current_day(&self) -> cordon_core::primitive::time::Day {
+    pub fn current_day(&self) -> cordon_core::primitive::Day {
         self.time.day
     }
 

@@ -1,5 +1,5 @@
 use cordon_core::entity::faction::Faction;
-use cordon_core::primitive::id::Id;
+use cordon_core::primitive::Id;
 use cordon_core::world::area::Area;
 
 /// Live state of an area in the world.

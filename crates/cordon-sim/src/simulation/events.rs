@@ -5,7 +5,7 @@
 //! for each eligible event and creates [`ActiveEvent`] instances.
 
 use cordon_core::entity::faction::Faction;
-use cordon_core::primitive::id::Id;
+use cordon_core::primitive::Id;
 use cordon_core::world::event::{ActiveEvent, EventCategory, EventDef};
 use rand::{Rng, RngExt};
 

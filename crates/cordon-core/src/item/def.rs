@@ -5,9 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::category::ItemCategory;
 use super::data::ItemData;
 use crate::entity::faction::Faction;
-use crate::primitive::credits::Credits;
-use crate::primitive::id::{Id, IdMarker};
-use crate::primitive::rarity::Rarity;
+use crate::primitive::{Credits, Id, IdMarker, Rarity};
 
 /// Marker for item definition IDs.
 pub struct Item;

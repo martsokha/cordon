@@ -27,7 +27,7 @@ use cordon_core::entity::faction::FactionDef;
 use cordon_core::entity::name::NamePool;
 use cordon_core::entity::perk::PerkDef;
 use cordon_core::item::ItemDef;
-use cordon_core::primitive::id::Id;
+use cordon_core::primitive::Id;
 use cordon_core::world::area::AreaDef;
 use cordon_core::world::event::EventDef;
 use cordon_core::world::loot::LootTables;
@@ -205,7 +205,7 @@ fn parse_folder<T, M>(
 ) -> HashMap<Id<M>, T>
 where
     T: serde::de::DeserializeOwned + Clone,
-    M: cordon_core::primitive::id::IdMarker,
+    M: cordon_core::primitive::IdMarker,
 {
     let mut map = HashMap::new();
     let Some(folder) = folders.get(handle) else {
