@@ -1,0 +1,72 @@
+[
+  {
+    "id": "quarry",
+    "location": { "x": 280.0, "y": -200.0 },
+    "radius": 70.0,
+    "environment": "outdoor",
+    "danger": {
+      "creatures": "medium",
+      "radiation": "medium",
+      "hostility": "medium"
+    },
+    "hazards": ["thermal"],
+    "loot_tier": "high",
+    "default_faction": "mercenaries"
+  },
+  {
+    "id": "institute_outpost",
+    "location": { "x": -50.0, "y": -280.0 },
+    "radius": 45.0,
+    "environment": "indoor",
+    "danger": {
+      "creatures": "low",
+      "radiation": "high",
+      "hostility": "low"
+    },
+    "hazards": ["electric"],
+    "loot_tier": "high",
+    "default_faction": "institute"
+  },
+  {
+    "id": "monastery",
+    "location": { "x": -280.0, "y": -250.0 },
+    "radius": 60.0,
+    "environment": "indoor",
+    "danger": {
+      "creatures": "medium",
+      "radiation": "high",
+      "hostility": "high"
+    },
+    "hazards": ["gravitational", "electric"],
+    "loot_tier": "high",
+    "default_faction": "devoted"
+  },
+  {
+    "id": "dead_city",
+    "location": { "x": 50.0, "y": -380.0 },
+    "radius": 110.0,
+    "environment": "outdoor",
+    "danger": {
+      "creatures": "veryhigh",
+      "radiation": "high",
+      "hostility": "medium"
+    },
+    "hazards": ["chemical", "gravitational", "thermal"],
+    "loot_tier": "veryhigh",
+    "default_faction": null
+  },
+  {
+    "id": "vault",
+    "location": { "x": -180.0, "y": -420.0 },
+    "radius": 40.0,
+    "environment": "underground",
+    "danger": {
+      "creatures": "high",
+      "radiation": "veryhigh",
+      "hostility": "low"
+    },
+    "hazards": ["electric", "gravitational"],
+    "loot_tier": "veryhigh",
+    "default_faction": null
+  }
+]

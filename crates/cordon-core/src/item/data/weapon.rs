@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::Caliber;
+use crate::primitive::distance::Distance;
 use crate::primitive::id::Id;
 
 /// Weapon fire mode.
@@ -32,7 +33,7 @@ pub struct WeaponData {
     /// Magazine capacity in rounds.
     pub magazine: u32,
     /// Effective range in meters.
-    pub effective_range: crate::primitive::distance::Distance,
+    pub effective_range: Distance,
     /// Whether this weapon is suppressed (affects runner stealth missions).
     pub suppressed: bool,
 }

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "crossroads",
+    "location": { "x": 100.0, "y": -30.0 },
+    "radius": 50.0,
+    "environment": "outdoor",
+    "danger": {
+      "creatures": "low",
+      "radiation": "verylow",
+      "hostility": "low"
+    },
+    "hazards": [],
+    "loot_tier": "low",
+    "default_faction": null
+  },
+  {
+    "id": "railyard",
+    "location": { "x": -200.0, "y": -80.0 },
+    "radius": 70.0,
+    "environment": "outdoor",
+    "danger": {
+      "creatures": "low",
+      "radiation": "low",
+      "hostility": "medium"
+    },
+    "hazards": [],
+    "loot_tier": "medium",
+    "default_faction": "order"
+  },
+  {
+    "id": "farms",
+    "location": { "x": 220.0, "y": -60.0 },
+    "radius": 85.0,
+    "environment": "outdoor",
+    "danger": {
+      "creatures": "medium",
+      "radiation": "medium",
+      "hostility": "low"
+    },
+    "hazards": ["chemical", "gravitational"],
+    "loot_tier": "medium",
+    "default_faction": "collective"
+  },
+  {
+    "id": "factory",
+    "location": { "x": -120.0, "y": -180.0 },
+    "radius": 65.0,
+    "environment": "indoor",
+    "danger": {
+      "creatures": "low",
+      "radiation": "low",
+      "hostility": "high"
+    },
+    "hazards": ["chemical"],
+    "loot_tier": "medium",
+    "default_faction": "syndicate"
+  }
+]

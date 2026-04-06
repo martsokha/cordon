@@ -5,8 +5,5 @@
 /// Game data catalog: the read-only database of all definitions.
 pub mod catalog;
 
-/// Error types for data loading.
-pub mod error;
-
-/// Asset loading from the filesystem.
-pub mod loader;
+/// Bevy plugin for loading game data from JSON assets.
+pub mod gamedata;

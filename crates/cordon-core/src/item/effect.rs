@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::primitive::distance::Distance;
 use crate::primitive::duration::Duration;
 
 /// What stat or state an effect modifies.
@@ -57,5 +58,5 @@ pub struct Effect {
     /// How long this effect lasts. [`Duration::INSTANT`] means applied once.
     pub duration: Duration,
     /// Area of effect radius. `None` means single-target (self or direct hit).
-    pub aoe: Option<crate::primitive::distance::Distance>,
+    pub aoe: Option<Distance>,
 }
