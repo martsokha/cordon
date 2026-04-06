@@ -2,8 +2,10 @@
 
 use std::collections::HashMap;
 
+use cordon_core::item::def::Item;
 use cordon_core::primitive::condition::Condition;
-use cordon_core::primitive::id::{Id, Item};
+use cordon_core::primitive::credits::Credits;
+use cordon_core::primitive::id::Id;
 use cordon_core::world::price::PriceModifiers;
 
 /// Live market state for the current game session.
@@ -48,12 +50,12 @@ impl MarketState {
     /// Compute the final price for an item given its base price and condition.
     pub fn get_price(
         &self,
-        base_price: u32,
+        base_price: Credits,
         condition: Condition,
         item_id: &Id<Item>,
         faction_modifier: f32,
         reputation: f32,
-    ) -> u32 {
+    ) -> Credits {
         let mods = self.get_modifiers(item_id, faction_modifier, reputation);
         mods.final_price(base_price, condition)
     }

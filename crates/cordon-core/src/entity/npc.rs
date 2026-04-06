@@ -1,38 +1,21 @@
-//! NPC attributes, perks, and employment.
+//! NPC attributes, roles, and employment.
 //!
-//! [`PerkDef`] is loaded from config. [`Npc`] is a runtime entity
-//! with both visible and hidden attributes.
+//! [`Npc`] is a runtime entity with both visible and hidden attributes.
 
 use serde::{Deserialize, Serialize};
 
-use crate::item::Item;
+use crate::entity::faction::Faction;
+use crate::entity::name::NpcName;
+use crate::entity::perk::Perk;
+use crate::item::Inventory;
+use crate::primitive::credits::Credits;
 use crate::primitive::experience::Experience;
-use crate::primitive::id::{Faction, Id, Perk};
+use crate::primitive::id::{Id, IdMarker};
 use crate::primitive::uid::Uid;
 
-/// Polarity of a perk's effect on the player.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum PerkPolarity {
-    /// Beneficial to the player (e.g., Scavenger's Eye, Hard to Kill).
-    Positive,
-    /// Harmful to the player (e.g., Coward, Sticky Fingers).
-    Negative,
-    /// Unpredictable or mixed (e.g., Lucky).
-    Neutral,
-}
-
-/// Perk definition loaded from config.
-///
-/// Perks are hidden NPC traits revealed through gameplay actions.
-/// Each perk has a unique ID and affects runner missions or guard duty.
-/// The [`id`](PerkDef::id) doubles as the localization key.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PerkDef {
-    /// Unique identifier and localization key (e.g., `"scavengers_eye"`).
-    pub id: Id<Perk>,
-    /// Whether this perk helps, hurts, or is unpredictable.
-    pub polarity: PerkPolarity,
-}
+/// Marker for NPC template IDs (used in quest consequences).
+pub struct NpcTemplate;
+impl IdMarker for NpcTemplate {}
 
 /// What role an employed NPC fills.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -100,8 +83,8 @@ pub enum Personality {
 pub struct Npc {
     /// Unique runtime ID for this NPC instance.
     pub id: Uid,
-    /// Display name or alias (e.g., "Viper", "Matches").
-    pub name: String,
+    /// Name stored as localization keys, resolved at display time.
+    pub name: NpcName,
     /// Faction ID this NPC belongs to.
     pub faction: Id<Faction>,
     /// Accumulated experience. Rank tier is derived from this.
@@ -109,19 +92,15 @@ pub struct Npc {
     /// tier 4 = 2000, tier 5 = 10000.
     pub xp: Experience,
 
-    // Visible
     /// Items the NPC is carrying.
-    pub gear: Vec<Item>,
+    pub inventory: Inventory,
     /// Physical condition (visible from appearance).
     pub condition: NpcCondition,
-    /// How many inventory slots this NPC can carry.
-    pub inventory_slots: u8,
 
-    // Hidden
     /// How much this NPC trusts the player (-1.0 to 1.0).
     pub trust: f32,
     /// How many credits the NPC can spend.
-    pub wealth: u32,
+    pub wealth: Credits,
     /// What the NPC actually needs (may differ from what they say).
     pub need: Need,
     /// Core personality trait affecting negotiation.
@@ -131,13 +110,12 @@ pub struct Npc {
     /// Perk IDs the player has discovered through gameplay.
     pub revealed_perks: Vec<Id<Perk>>,
 
-    // Employment
     /// Current role if employed, or `None` if not hired.
     pub role: Option<Role>,
     /// Loyalty level (0.0–1.0). Drops with underpayment or suicide missions.
     pub loyalty: f32,
     /// How many credits this NPC expects per day.
-    pub daily_pay: u32,
+    pub daily_pay: Credits,
 }
 
 /// NPC rank tier XP thresholds.

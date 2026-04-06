@@ -1,12 +1,16 @@
 use std::collections::HashMap;
 
-use cordon_core::primitive::id::{Area, Id, Item};
+use serde::{Deserialize, Serialize};
+
+use crate::item::def::Item;
+use crate::primitive::id::Id;
+use crate::world::area::Area;
 
 /// A weighted entry in a loot table.
 ///
 /// Each entry represents a possible drop: an item ID, a weight for
 /// random selection, and ranges for condition and quantity.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LootEntry {
     /// Item definition ID.
     pub item_id: Id<Item>,
@@ -16,14 +20,10 @@ pub struct LootEntry {
     pub min_condition: f32,
     /// Maximum condition of dropped item (0.0–1.0).
     pub max_condition: f32,
-    /// Minimum quantity per drop.
-    pub min_quantity: u32,
-    /// Maximum quantity per drop.
-    pub max_quantity: u32,
 }
 
-/// Loot table for a specific sector.
-#[derive(Debug, Clone, Default)]
+/// Loot table for a specific area.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct LootTable {
     pub entries: Vec<LootEntry>,
 }
@@ -36,7 +36,7 @@ impl LootTable {
 }
 
 /// All loot tables, keyed by area ID.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct LootTables {
     pub tables: HashMap<Id<Area>, LootTable>,
 }

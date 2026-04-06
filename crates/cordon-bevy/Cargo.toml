@@ -1,0 +1,34 @@
+# https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package]
+name = "cordon-bevy"
+description = "Bevy game client for Cordon"
+keywords = ["cordon", "bevy", "game"]
+readme = "README.md"
+
+version = { workspace = true }
+rust-version = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+publish = { workspace = true }
+
+authors = { workspace = true }
+repository = { workspace = true }
+homepage = { workspace = true }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[dependencies]
+# Internal crates
+cordon-core = { workspace = true }
+cordon-data = { workspace = true }
+cordon-sim = { workspace = true }
+
+# Game engine
+bevy = { workspace = true }
+bevy_lunex = { workspace = true }
+bevy_fluent = { workspace = true }
+unic-langid = "0.9"
+fluent_content = "0.0.5"

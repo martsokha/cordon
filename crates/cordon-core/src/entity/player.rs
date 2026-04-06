@@ -2,10 +2,12 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::entity::faction::Standing;
+use crate::entity::faction::Faction;
 use crate::entity::npc::Role;
+use crate::primitive::credits::Credits;
 use crate::primitive::experience::Experience;
-use crate::primitive::id::{Faction, Id};
+use crate::primitive::id::Id;
+use crate::primitive::relation::Relation;
 use crate::primitive::uid::Uid;
 
 /// Player rank tier. Determines squad capacity and unlocks.
@@ -90,9 +92,9 @@ pub struct PlayerState {
     /// Accumulated experience. Rank is derived from this.
     pub xp: Experience,
     /// Available credits (the Zone's currency).
-    pub credits: u32,
-    /// Standings with each faction, keyed by faction ID.
-    pub standings: Vec<(Id<Faction>, Standing)>,
+    pub credits: Credits,
+    /// Relations with each faction, keyed by faction ID.
+    pub standings: Vec<(Id<Faction>, Relation)>,
     /// Currently employed NPCs and their roles.
     pub squad: Vec<SquadMember>,
     /// Whether the Garrison bribe has been paid this period.
@@ -104,12 +106,12 @@ impl PlayerState {
     pub fn new(faction_ids: &[Id<Faction>]) -> Self {
         let standings = faction_ids
             .iter()
-            .map(|f| (f.clone(), Standing::neutral()))
+            .map(|f| (f.clone(), Relation::NEUTRAL))
             .collect();
 
         Self {
             xp: Experience::ZERO,
-            credits: 5000,
+            credits: Credits::new(5000),
             standings,
             squad: Vec::new(),
             garrison_bribe_paid: false,
@@ -127,7 +129,7 @@ impl PlayerState {
     }
 
     /// Get the player's standing with a faction.
-    pub fn standing(&self, faction: &Id<Faction>) -> Standing {
+    pub fn standing(&self, faction: &Id<Faction>) -> Relation {
         self.standings
             .iter()
             .find(|(f, _)| f == faction)
@@ -136,7 +138,7 @@ impl PlayerState {
     }
 
     /// Get a mutable reference to the player's standing with a faction.
-    pub fn standing_mut(&mut self, faction: &Id<Faction>) -> Option<&mut Standing> {
+    pub fn standing_mut(&mut self, faction: &Id<Faction>) -> Option<&mut Relation> {
         self.standings
             .iter_mut()
             .find(|(f, _)| f == faction)

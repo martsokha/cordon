@@ -2,11 +2,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::ItemData;
-use super::data::RelicStability;
-use super::def::ItemDef;
+use crate::item::def::Item as ItemMarker;
 use crate::primitive::condition::Condition;
-use crate::primitive::id::{Id, Item as ItemMarker};
+use crate::primitive::id::Id;
 
 /// Whether an item is genuine or has been tampered with.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -24,20 +22,23 @@ pub enum Authenticity {
 /// A single item instance in the game world.
 ///
 /// Items do not stack — each instance is tracked individually with
-/// its own condition, authenticity, and freshness. References an
-/// [`ItemDef`] by [`Id<Item>`].
+/// its own condition and authenticity. References an [`ItemDef`](super::ItemDef)
+/// by [`Id`].
+///
+/// Condition represents both physical wear (weapons, armor) and
+/// freshness (food, meds). A consumable at condition 0.0 has spoiled.
+/// Relic stability is defined by the relic type in [`RelicData`](super::RelicData),
+/// not per-instance — it's an inherent property of that relic kind.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Item {
-    /// ID of the [`ItemDef`] this is an instance of.
+    /// ID of the [`ItemDef`](super::ItemDef) this is an instance of.
     pub def_id: Id<ItemMarker>,
-    /// Physical condition of this item.
+    /// Condition from 0.0 (destroyed/spoiled) to 1.0 (factory new/fresh).
+    /// For weapons/armor: physical wear. For consumables: freshness.
+    /// Price scales with condition².
     pub condition: Condition,
     /// Whether this item is genuine, counterfeit, expired, or doctored.
     pub authenticity: Authenticity,
-    /// Relic stability state. Only set for relic items.
-    pub relic_stability: Option<RelicStability>,
-    /// Days remaining until spoilage. `None` means it doesn't spoil.
-    pub freshness: Option<u32>,
 }
 
 impl Item {
@@ -47,28 +48,6 @@ impl Item {
             def_id,
             condition,
             authenticity: Authenticity::Genuine,
-            relic_stability: None,
-            freshness: None,
         }
-    }
-
-    /// Create a new item from its definition, initializing freshness
-    /// and relic stability from the def's type-specific data.
-    pub fn from_def(def: &ItemDef, condition: Condition) -> Self {
-        let mut item = Self::new(def.id.clone(), condition);
-
-        match &def.data {
-            ItemData::Consumable { spoil_days, .. } => {
-                item.freshness = *spoil_days;
-            }
-            ItemData::Relic {
-                default_stability, ..
-            } => {
-                item.relic_stability = Some(*default_stability);
-            }
-            _ => {}
-        }
-
-        item
     }
 }

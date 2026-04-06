@@ -4,13 +4,34 @@ use serde::{Deserialize, Serialize};
 
 use super::category::ItemCategory;
 use super::data::ItemData;
-use crate::primitive::id::{Faction, Id, Item};
+use crate::entity::faction::Faction;
+use crate::primitive::credits::Credits;
+use crate::primitive::id::{Id, IdMarker};
 use crate::primitive::rarity::Rarity;
+
+/// Marker for item definition IDs.
+pub struct Item;
+impl IdMarker for Item {}
+
+/// A faction that supplies this item, with a price multiplier.
+///
+/// Different factions sell the same item at different prices.
+/// A multiplier of 1.0 means base price, 0.8 means 20% cheaper,
+/// 1.5 means 50% more expensive.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Supplier {
+    /// Faction ID of the supplier.
+    pub faction: Id<Faction>,
+    /// Price multiplier for this supplier (1.0 = base price).
+    pub price_multiplier: f32,
+}
 
 /// Static item definition loaded from config.
 ///
 /// This is the immutable template for an item type. Concrete instances
 /// in the game world are represented by [`Item`](super::Item).
+///
+/// All items occupy exactly one inventory slot.
 ///
 /// The [`id`](ItemDef::id) field doubles as the localization key and
 /// asset ID — display names are resolved from localization files, and
@@ -25,13 +46,11 @@ pub struct ItemDef {
     /// Type-specific data: consumable effects, weapon caliber, etc.
     pub data: ItemData,
     /// Base price at condition 1.0 with no market modifiers.
-    pub base_price: u32,
-    /// Faction IDs of factions that supply this item.
-    pub suppliers: Vec<Id<Faction>>,
+    pub base_price: Credits,
+    /// Factions that supply this item, each with a price multiplier.
+    pub suppliers: Vec<Supplier>,
     /// How rare this item is. Affects loot tables and NPC behavior.
     pub rarity: Rarity,
-    /// How many inventory slots this item occupies when carried.
-    pub slots: u8,
     /// How fast this item's condition degrades with use (1.0 = normal rate).
     /// Lower = more durable. Applies to weapons, armor, and anything that wears.
     pub durability: f32,

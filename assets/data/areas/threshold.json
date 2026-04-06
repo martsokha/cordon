@@ -1,0 +1,28 @@
+[
+  {
+    "id": "cordon",
+    "location": { "x": 0.0, "y": 100.0 },
+    "radius": 80.0,
+    "environment": "outdoor",
+    "danger": {
+      "creatures": "verylow",
+      "radiation": "verylow",
+      "hazard": null
+    },
+    "loot_tier": "verylow",
+    "default_faction": "garrison"
+  },
+  {
+    "id": "dump",
+    "location": { "x": -150.0, "y": 60.0 },
+    "radius": 55.0,
+    "environment": "outdoor",
+    "danger": {
+      "creatures": "low",
+      "radiation": "low",
+      "hazard": { "kind": "chemical", "intensity": "low" }
+    },
+    "loot_tier": "verylow",
+    "default_faction": "syndicate"
+  }
+]

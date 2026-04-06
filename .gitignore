@@ -25,10 +25,9 @@ coverage/
 dist/
 build/
 
-# Environment, config, and runtime data
+# Environment files
 .env*
 !.env.example
-data/
 
 # Logs
 logs/

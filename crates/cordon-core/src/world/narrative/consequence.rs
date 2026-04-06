@@ -7,7 +7,16 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::id::{Event, Faction, Id, Item, NpcTemplate, Quest, Upgrade};
+use crate::entity::bunker::Upgrade;
+use crate::entity::faction::Faction;
+use crate::entity::npc::NpcTemplate;
+use crate::item::def::Item;
+use crate::primitive::credits::Credits;
+use crate::primitive::id::Id;
+use crate::primitive::relation::Relation;
+use crate::world::area::Area;
+use crate::world::event::Event;
+use crate::world::narrative::quest::Quest;
 
 /// A condition that must be met.
 ///
@@ -18,11 +27,11 @@ pub enum ObjectiveCondition {
     /// Player must have a specific item in storage.
     HaveItem(Id<Item>),
     /// Player must have at least this many credits.
-    HaveCredits(u32),
+    HaveCredits(Credits),
     /// Player must reach a minimum standing with a faction.
     FactionStanding {
         faction: Id<Faction>,
-        min_standing: i8,
+        min_standing: Relation,
     },
     /// Player must have a specific upgrade installed.
     HaveUpgrade(Id<Upgrade>),
@@ -43,11 +52,14 @@ pub enum ObjectiveCondition {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Consequence {
     /// Change standing with a faction.
-    StandingChange { faction: Id<Faction>, delta: i8 },
+    StandingChange {
+        faction: Id<Faction>,
+        delta: Relation,
+    },
     /// Give credits to the player.
-    GiveCredits(u32),
+    GiveCredits(Credits),
     /// Take credits from the player.
-    TakeCredits(u32),
+    TakeCredits(Credits),
     /// Give an item to the player (placed in storage).
     GiveItem(Id<Item>),
     /// Remove an item from the player's storage.
@@ -71,7 +83,7 @@ pub enum Consequence {
     /// Modify danger in a target area.
     DangerModifier {
         /// Area ID. If `None`, applies zone-wide.
-        area: Option<Id<crate::primitive::id::Area>>,
+        area: Option<Id<Area>>,
         /// Additive danger change.
         delta: f32,
     },

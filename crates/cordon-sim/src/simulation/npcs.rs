@@ -1,10 +1,12 @@
-use cordon_core::entity::name::{NameFormat, NamePool};
+use cordon_core::entity::faction::Faction;
+use cordon_core::entity::name::{NameFormat, NamePool, NpcName};
 use cordon_core::entity::npc::{Need, Npc, NpcCondition, Personality, npc_rank_from_xp};
+use cordon_core::item::Inventory;
+use cordon_core::primitive::credits::Credits;
 use cordon_core::primitive::experience::Experience;
-use cordon_core::primitive::id::{Faction, Id};
+use cordon_core::primitive::id::Id;
 use cordon_core::primitive::uid::Uid;
-use rand::Rng;
-use rand::rngs::StdRng;
+use rand::{Rng, RngExt};
 
 use crate::state::world::World;
 
@@ -15,72 +17,59 @@ use crate::state::world::World;
 /// factions, game phases, or testing.
 pub trait NpcGenerator {
     /// How many visitors arrive today.
-    fn visitor_count(&self, day: u32, rng: &mut StdRng) -> u32 {
+    fn visitor_count<R: Rng>(&self, day: u32, rng: &mut R) -> u32 {
         let base_count = 3 + (day / 10).min(5);
-        rng.gen_range(base_count..=base_count + 3)
+        rng.random_range(base_count..=base_count + 3)
     }
 
-    /// Generate a display name from a name pool.
-    fn generate_name(&self, pool: &NamePool, rng: &mut StdRng) -> String {
+    /// Pick name keys from a name pool.
+    fn generate_name<R: Rng>(&self, pool: &NamePool, rng: &mut R) -> NpcName {
+        let mut pick = |list: &[String]| -> String {
+            if list.is_empty() {
+                "unknown".to_string()
+            } else {
+                list[rng.random_range(0..list.len())].clone()
+            }
+        };
+
         match pool.format {
-            NameFormat::Alias => {
-                if pool.names.is_empty() {
-                    return "Unknown".to_string();
-                }
-                pool.names[rng.gen_range(0..pool.names.len())].clone()
-            }
-            NameFormat::FirstSurname => {
-                let first = if pool.names.is_empty() {
-                    "Unknown"
-                } else {
-                    &pool.names[rng.gen_range(0..pool.names.len())]
-                };
-                let last = if pool.surnames.is_empty() {
-                    ""
-                } else {
-                    &pool.surnames[rng.gen_range(0..pool.surnames.len())]
-                };
-                if last.is_empty() {
-                    first.to_string()
-                } else {
-                    format!("{first} {last}")
-                }
-            }
-            NameFormat::TitleName => {
-                let title = if pool.titles.is_empty() {
-                    "Brother"
-                } else {
-                    &pool.titles[rng.gen_range(0..pool.titles.len())]
-                };
-                let name = if pool.names.is_empty() {
-                    "Unknown"
-                } else {
-                    &pool.names[rng.gen_range(0..pool.names.len())]
-                };
-                format!("{title} {name}")
-            }
+            NameFormat::Alias => NpcName {
+                format: NameFormat::Alias,
+                first: pick(&pool.aliases),
+                second: None,
+            },
+            NameFormat::FirstSurname => NpcName {
+                format: NameFormat::FirstSurname,
+                first: pick(&pool.names),
+                second: Some(pick(&pool.surnames)),
+            },
+            NameFormat::FirstAlias => NpcName {
+                format: NameFormat::FirstAlias,
+                first: pick(&pool.names),
+                second: Some(pick(&pool.aliases)),
+            },
         }
     }
 
     /// Generate experience for a visiting NPC. Weighted toward low ranks.
-    fn generate_xp(&self, rng: &mut StdRng) -> Experience {
-        let roll: f32 = rng.r#gen();
+    fn generate_xp<R: Rng>(&self, rng: &mut R) -> Experience {
+        let roll: f32 = rng.random::<f32>();
         let xp = if roll < 0.4 {
-            rng.gen_range(0..100)
+            rng.random_range(0..100)
         } else if roll < 0.7 {
-            rng.gen_range(100..500)
+            rng.random_range(100..500)
         } else if roll < 0.9 {
-            rng.gen_range(500..2000)
+            rng.random_range(500..2000)
         } else if roll < 0.97 {
-            rng.gen_range(2000..10000)
+            rng.random_range(2000..10000)
         } else {
-            rng.gen_range(10000..30000)
+            rng.random_range(10000..30000)
         };
         Experience::new(xp)
     }
 
     /// Generate a personality trait.
-    fn generate_personality(&self, rng: &mut StdRng) -> Personality {
+    fn generate_personality<R: Rng>(&self, rng: &mut R) -> Personality {
         let options = [
             Personality::Cautious,
             Personality::Aggressive,
@@ -89,11 +78,11 @@ pub trait NpcGenerator {
             Personality::Patient,
             Personality::Impulsive,
         ];
-        options[rng.gen_range(0..options.len())]
+        options[rng.random_range(0..options.len())]
     }
 
     /// Generate wealth based on rank tier.
-    fn generate_wealth(&self, rank: u8, rng: &mut StdRng) -> u32 {
+    fn generate_wealth<R: Rng>(&self, rank: u8, rng: &mut R) -> Credits {
         let base: u32 = match rank {
             1 => 200,
             2 => 800,
@@ -101,18 +90,18 @@ pub trait NpcGenerator {
             4 => 5000,
             _ => 15000,
         };
-        let jitter = rng.gen_range(0.5_f32..1.5);
-        (base as f32 * jitter) as u32
+        let jitter = rng.random_range(0.5_f32..1.5);
+        Credits::new((base as f32 * jitter) as u32)
     }
 
     /// Base daily pay for an employed NPC of a given rank.
-    fn daily_pay(&self, rank: u8) -> u32 {
+    fn daily_pay(&self, rank: u8) -> Credits {
         match rank {
-            1 => 100,
-            2 => 150,
-            3 => 250,
-            4 => 400,
-            _ => 700,
+            1 => Credits::new(100),
+            2 => Credits::new(150),
+            3 => Credits::new(250),
+            4 => Credits::new(400),
+            _ => Credits::new(700),
         }
     }
 
@@ -122,12 +111,12 @@ pub trait NpcGenerator {
     }
 
     /// Build a complete NPC from generated parts.
-    fn generate(
+    fn generate<R: Rng>(
         &self,
         id: Uid,
         faction: Id<Faction>,
         name_pool: &NamePool,
-        rng: &mut StdRng,
+        rng: &mut R,
     ) -> Npc {
         let xp = self.generate_xp(rng);
         let rank = npc_rank_from_xp(xp);
@@ -139,9 +128,8 @@ pub trait NpcGenerator {
             name: self.generate_name(name_pool, rng),
             faction,
             xp,
-            gear: Vec::new(),
+            inventory: Inventory::new(self.inventory_slots(rank)),
             condition: NpcCondition::Healthy,
-            inventory_slots: self.inventory_slots(rank),
             trust: 0.0,
             wealth,
             need: Need::None,

@@ -1,16 +1,18 @@
 use std::collections::HashMap;
 
-use cordon_core::bunker::BaseState;
+use cordon_core::entity::bunker::BaseState;
+use cordon_core::entity::faction::Faction;
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::player::PlayerState;
-use cordon_core::primitive::id::{Area, Faction, Id};
+use cordon_core::primitive::id::Id;
+use cordon_core::primitive::time::GameTime;
 use cordon_core::primitive::uid::Uid;
+use cordon_core::world::area::Area;
 use cordon_core::world::event::ActiveEvent;
 use cordon_core::world::mission::ActiveMission;
-use cordon_core::world::quest::{ActiveQuest, CompletedQuest};
-use cordon_core::world::time::GameTime;
+use cordon_core::world::narrative::quest::{ActiveQuest, CompletedQuest};
 use rand::rngs::StdRng;
-use rand::{Rng, SeedableRng};
+use rand::{RngExt, SeedableRng};
 
 use crate::state::market::MarketState;
 use crate::state::sectors::AreaState;
@@ -78,7 +80,7 @@ pub struct World {
     pub player: PlayerState,
     pub bunker: BaseState,
     /// Live area states keyed by area ID.
-    pub sectors: HashMap<Id<Area>, AreaState>,
+    pub areas: HashMap<Id<Area>, AreaState>,
     /// All NPCs in the world keyed by runtime UID.
     pub npcs: HashMap<Uid, Npc>,
     pub active_events: Vec<ActiveEvent>,
@@ -101,9 +103,9 @@ impl World {
     /// The seed determines the entire game session. All randomness
     /// is derived from it through per-subsystem RNGs.
     pub fn new(seed: u64, faction_ids: Vec<Id<Faction>>, sector_ids: &[Id<Area>]) -> Self {
-        let mut sectors = HashMap::new();
+        let mut areas = HashMap::new();
         for id in sector_ids {
-            sectors.insert(id.clone(), AreaState::new(id.clone()));
+            areas.insert(id.clone(), AreaState::new(id.clone()));
         }
 
         let player = PlayerState::new(&faction_ids);
@@ -112,7 +114,7 @@ impl World {
             time: GameTime::new(),
             player,
             bunker: BaseState::new(),
-            sectors,
+            areas,
             npcs: HashMap::new(),
             active_events: Vec::new(),
             active_missions: Vec::new(),
@@ -133,13 +135,13 @@ impl World {
     }
 
     /// Current game day.
-    pub fn current_day(&self) -> cordon_core::world::time::Day {
+    pub fn current_day(&self) -> cordon_core::primitive::time::Day {
         self.time.day
     }
 
     /// Pick a random faction ID using the NPC subsystem RNG.
     pub fn random_faction(&mut self) -> Id<Faction> {
-        let idx = self.rng.npcs.gen_range(0..self.faction_ids.len());
+        let idx = self.rng.npcs.random_range(0..self.faction_ids.len());
         self.faction_ids[idx].clone()
     }
 }

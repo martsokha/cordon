@@ -1,7 +1,9 @@
-use cordon_core::primitive::id::{Id, Perk};
+use cordon_core::entity::perk::Perk;
+use cordon_core::primitive::id::Id;
+use cordon_core::primitive::location::Location;
+use cordon_core::primitive::time::Day;
 use cordon_core::world::mission::{ActiveMission, MissionOutcome, MissionPlan, MissionResult};
-use cordon_core::world::time::Day;
-use rand::Rng;
+use rand::{Rng, RngExt};
 
 use crate::state::world::World;
 
@@ -31,6 +33,7 @@ pub fn dispatch_mission(world: &mut World, plan: MissionPlan) -> Result<(), &'st
         plan,
         day_dispatched: world.time.day,
         return_day,
+        current_location: Location::ORIGIN,
     };
 
     world.active_missions.push(mission);
@@ -87,7 +90,7 @@ pub fn resolve_missions(world: &mut World) -> Vec<MissionResult> {
         }
         if matches!(outcome, MissionOutcome::Success)
             && has_pathfinder
-            && world.rng.missions.gen_bool(0.3)
+            && world.rng.missions.random_bool(0.3)
         {
             perks_revealed.push(pf_id.clone());
         }
@@ -154,7 +157,7 @@ fn roll_outcome(
     p_failure /= total;
     let p_jackpot = p_jackpot / total;
 
-    let roll: f32 = rng.r#gen();
+    let roll: f32 = rng.random::<f32>();
     let mut cumulative = 0.0;
 
     cumulative += p_jackpot;

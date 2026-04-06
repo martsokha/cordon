@@ -1,20 +1,20 @@
-/// Consequences and conditions shared by quests and events.
-pub mod consequence;
+/// Area definitions loaded from config.
+pub mod area;
 
 /// Zone events: surges, faction wars, raids, and more.
 pub mod event;
 
+/// Loot tables: per-area weighted drop tables.
+pub mod loot;
+
 /// Runner missions: plans, outcomes, and results.
 pub mod mission;
+
+/// Quest and consequence definitions.
+pub mod narrative;
 
 /// Price calculation with condition-squared scaling.
 pub mod price;
 
-/// Quest definitions, stages, and runtime state.
-pub mod quest;
-
-/// Area definitions loaded from config.
-pub mod sector;
-
-/// Day/phase time system.
-pub mod time;
+/// Trade offers between the player and NPCs.
+pub mod trade;

@@ -5,5 +5,5 @@
 /// Game data catalog: the read-only database of all definitions.
 pub mod catalog;
 
-/// Loot tables: per-sector weighted drop tables.
-pub mod loot;
+/// Bevy plugin for loading game data from JSON assets.
+pub mod gamedata;

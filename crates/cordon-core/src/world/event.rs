@@ -9,9 +9,16 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::id::{Area, Event, Faction, Id, Quest};
-use crate::world::consequence::Consequence;
-use crate::world::time::Day;
+use crate::entity::faction::Faction;
+use crate::primitive::id::{Id, IdMarker};
+use crate::primitive::time::Day;
+use crate::world::area::Area;
+use crate::world::narrative::consequence::Consequence;
+use crate::world::narrative::quest::Quest;
+
+/// Marker for event definition IDs.
+pub struct Event;
+impl IdMarker for Event {}
 
 /// Broad category for event grouping and scheduling.
 ///
@@ -70,7 +77,7 @@ pub struct EventDef {
     pub involved_factions: Vec<Id<Faction>>,
     /// Minimum day before this event can first occur. Prevents
     /// endgame events from firing on day 1.
-    pub earliest_day: u32,
+    pub earliest_day: Day,
     /// Direct consequences when this event fires (e.g., danger modifier,
     /// price changes, standing shifts). Applied immediately by the sim.
     pub consequences: Vec<Consequence>,
@@ -96,7 +103,8 @@ pub struct ActiveEvent {
     pub duration_days: u8,
     /// Faction IDs involved in this specific instance.
     pub involved_factions: Vec<Id<Faction>>,
-    /// Area ID this event is targeting, if area-specific.
+    /// Area ID this event is targeting.
+    /// Zone-wide events have `None`; area-specific events have `Some`.
     pub target_area: Option<Id<Area>>,
 }
 

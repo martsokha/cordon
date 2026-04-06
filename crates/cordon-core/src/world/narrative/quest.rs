@@ -8,9 +8,24 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::id::{Faction, Id, NpcTemplate, Quest, QuestChoice, QuestStage};
-use crate::world::consequence::{Consequence, ObjectiveCondition};
-use crate::world::time::Day;
+use crate::entity::faction::Faction;
+use crate::entity::npc::NpcTemplate;
+use crate::primitive::id::{Id, IdMarker};
+use crate::primitive::relation::Relation;
+use crate::primitive::time::Day;
+use crate::world::narrative::consequence::{Consequence, ObjectiveCondition};
+
+/// Marker for quest definition IDs.
+pub struct Quest;
+impl IdMarker for Quest {}
+
+/// Marker for quest stage IDs (unique within a quest).
+pub struct QuestStage;
+impl IdMarker for QuestStage {}
+
+/// Marker for quest choice option IDs.
+pub struct QuestChoice;
+impl IdMarker for QuestChoice {}
 
 /// A single option in a choice stage.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -105,7 +120,7 @@ pub struct QuestDef {
     pub requires_quests: Vec<Id<Quest>>,
     /// Minimum faction standings required to trigger this quest.
     /// All conditions must be met. Empty means no standing requirement.
-    pub requires_standings: Vec<(Id<Faction>, i8)>,
+    pub requires_standings: Vec<(Id<Faction>, Relation)>,
 }
 
 /// A quest instance currently in progress.
