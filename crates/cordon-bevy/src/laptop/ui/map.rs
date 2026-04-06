@@ -7,9 +7,13 @@ use super::{LaptopFont, LaptopTab, TabContent};
 use crate::PlayingState;
 use crate::laptop::LaptopCamera;
 use crate::laptop::input::CameraTarget;
+use crate::world::SimWorld;
 
 #[derive(Component)]
 pub struct ZoomLabel;
+
+#[derive(Component)]
+pub struct TimeLabel;
 
 #[derive(Component)]
 pub struct TooltipPanel;
@@ -66,7 +70,7 @@ impl Plugin for MapUiPlugin {
         );
         app.add_systems(
             Update,
-            (follow_cursor, update_tooltip, update_zoom_label)
+            (follow_cursor, update_tooltip, update_zoom_label, update_time_label)
                 .run_if(in_state(PlayingState::Laptop))
                 .run_if(resource_equals(LaptopTab::Map)),
         );
@@ -148,7 +152,7 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
         Node {
             position_type: PositionType::Absolute,
             right: Val::Px(16.0),
-            bottom: Val::Px(48.0),
+            bottom: Val::Px(16.0),
             ..default()
         },
         Text::new("x1.0"),
@@ -158,6 +162,25 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
             ..default()
         },
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.4)),
+    ));
+
+    // Time display — top left
+    commands.spawn((
+        MapOnlyUi,
+        TimeLabel,
+        Node {
+            position_type: PositionType::Absolute,
+            left: Val::Px(16.0),
+            top: Val::Px(48.0),
+            ..default()
+        },
+        Text::new("Day 1 — Working"),
+        TextFont {
+            font: font.clone(),
+            font_size: 12.0,
+            ..default()
+        },
+        TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5)),
     ));
 }
 
@@ -226,10 +249,21 @@ fn update_tooltip(tooltip: Res<TooltipContent>, mut text_q: Query<&mut Text, Wit
 
 fn update_zoom_label(
     target: Res<CameraTarget>,
-    mut label_q: Query<&mut Text, (With<ZoomLabel>, Without<TooltipText>)>,
+    mut label_q: Query<&mut Text, (With<ZoomLabel>, Without<TooltipText>, Without<TimeLabel>)>,
 ) {
     let level = (1.0 / target.zoom * 10.0).round() / 10.0;
     for mut text in &mut label_q {
         text.0 = format!("x{level:.1}");
+    }
+}
+
+fn update_time_label(
+    sim: Option<Res<SimWorld>>,
+    mut label_q: Query<&mut Text, (With<TimeLabel>, Without<TooltipText>, Without<ZoomLabel>)>,
+) {
+    let Some(sim) = sim else { return };
+    let t = &sim.0.time;
+    for mut text in &mut label_q {
+        text.0 = format!("Day {}  {}", t.day.value(), t.time_str());
     }
 }

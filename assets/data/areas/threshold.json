@@ -33,5 +33,24 @@
     },
     "loot_tier": "verylow",
     "default_faction": "syndicate"
+  },
+  {
+    "id": "scorched_ridge",
+    "location": {
+      "x": 350.0,
+      "y": 150.0
+    },
+    "radius": 70.0,
+    "environment": "outdoor",
+    "danger": {
+      "creatures": "medium",
+      "radiation": "low",
+      "hazard": {
+        "kind": "thermal",
+        "intensity": "medium"
+      }
+    },
+    "loot_tier": "low",
+    "default_faction": null
   }
 ]

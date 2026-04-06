@@ -33,5 +33,5 @@ pub use self::location::Location;
 pub use self::rarity::Rarity;
 pub use self::relation::Relation;
 pub use self::tier::Tier;
-pub use self::time::{Day, GameTime, Period};
+pub use self::time::{Day, GameTime};
 pub use self::uid::Uid;

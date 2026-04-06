@@ -64,13 +64,22 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     // Thinner wispy edges
     let wisp = smoothstep(0.38, 0.55, shape) - density;
 
-    // Cloud color: slightly blue-gray shadows, brighter tops
-    let shadow = vec3<f32>(0.55, 0.55, 0.60);
-    let highlight = vec3<f32>(0.85, 0.85, 0.90);
+    // Day/night cycle (synced with terrain)
+    let day_cycle = sin(t * 0.05) * 0.5 + 0.5;
+
+    // Cloud color shifts with time of day
+    let night_shadow = vec3<f32>(0.15, 0.15, 0.25);
+    let night_highlight = vec3<f32>(0.25, 0.25, 0.35);
+    let day_shadow = vec3<f32>(0.55, 0.55, 0.60);
+    let day_highlight = vec3<f32>(0.85, 0.85, 0.90);
+
+    let shadow = mix(night_shadow, day_shadow, day_cycle);
+    let highlight = mix(night_highlight, day_highlight, day_cycle);
     let cloud_color = mix(shadow, highlight, smoothstep(0.45, 0.6, shape));
 
-    // Combine density and wisps
-    let alpha = (density * 0.35 + wisp * 0.12) * terrain_fade;
+    // Clouds more visible at night (backlit by moon)
+    let alpha_mod = mix(0.5, 0.35, day_cycle);
+    let alpha = (density * alpha_mod + wisp * 0.12) * terrain_fade;
 
     if alpha < 0.005 {
         discard;

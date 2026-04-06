@@ -31,15 +31,9 @@ fn fbm(p: vec2<f32>, octaves: i32) -> f32 {
     return value;
 }
 
-const PIXEL_SIZE: f32 = 1.0;
-
-fn pixelate(p: vec2<f32>) -> vec2<f32> {
-    return floor(p / PIXEL_SIZE) * PIXEL_SIZE;
-}
-
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    let snapped = pixelate(in.world_position.xy);
+    let snapped = in.world_position.xy;
     let uv = snapped * 0.002;
 
     // Elevation: large-scale height map
@@ -96,6 +90,12 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let road_val = abs(noise(road_uv + vec2<f32>(road_warp, 0.0)) - 0.5);
     let road = 1.0 - smoothstep(0.01, 0.04, road_val);
     color = mix(color, dirt_road, road * 0.5);
+
+    // Day/night cycle (full cycle ~120 seconds for testing, slow in real game)
+    let day_cycle = sin(globals.time * 0.05) * 0.5 + 0.5; // 0=night, 1=noon
+    let night_tint = vec3<f32>(0.15, 0.18, 0.35); // blue-ish night
+    let day_brightness = mix(0.35, 1.0, day_cycle);
+    color = mix(color * night_tint * 2.0, color, day_cycle) * day_brightness;
 
     // Fade to black at edges
     let world = in.world_position.xy;

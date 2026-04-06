@@ -1,8 +1,6 @@
 //! Day-based time system for the game loop.
 //!
-//! Each in-game day has two periods: working hours (when trading,
-//! visitors, and missions happen) and off hours (end-of-day
-//! bookkeeping, events expire, new day begins).
+//! Time is tracked as day number + hour:minute.
 
 use std::num::NonZeroU32;
 
@@ -33,53 +31,56 @@ impl Day {
     }
 }
 
-/// Whether the bunker is open for business.
-#[derive(
-    Debug,
-    Default,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Serialize,
-    Deserialize
-)]
-pub enum Period {
-    /// Trading, visitors, missions dispatched.
-    #[default]
-    Working,
-    /// End-of-day: events expire, payroll, preparation for next day.
-    Off,
-}
-
-/// Tracks the current day and period within the game.
+/// Tracks the current day and time of day.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GameTime {
     /// The current day number.
     pub day: Day,
-    /// Current period of the day.
-    pub period: Period,
+    /// Hour of day (0–23).
+    pub hour: u8,
+    /// Minute of hour (0–59).
+    pub minute: u8,
 }
 
 impl GameTime {
-    /// Create a new game time starting at Day 1, working hours.
+    /// Create a new game time starting at Day 1, 08:00.
     pub fn new() -> Self {
         Self {
             day: Day::FIRST,
-            period: Period::Working,
+            hour: 8,
+            minute: 0,
         }
     }
 
-    /// Advance to the next period. Working → Off → next day Working.
-    pub fn advance(&mut self) {
-        match self.period {
-            Period::Working => self.period = Period::Off,
-            Period::Off => {
-                self.day = self.day.next();
-                self.period = Period::Working;
-            }
+    /// Advance time by the given number of minutes.
+    pub fn advance_minutes(&mut self, minutes: u32) {
+        let total = self.hour as u32 * 60 + self.minute as u32 + minutes;
+        self.hour = ((total / 60) % 24) as u8;
+        self.minute = (total % 60) as u8;
+        let days = total / (24 * 60);
+        for _ in 0..days {
+            self.day = self.day.next();
         }
+    }
+
+    /// Advance time by the given number of hours.
+    pub fn advance_hours(&mut self, hours: u32) {
+        self.advance_minutes(hours * 60);
+    }
+
+    /// Formatted time string (e.g., "08:00").
+    pub fn time_str(&self) -> String {
+        format!("{:02}:{:02}", self.hour, self.minute)
+    }
+
+    /// Normalized time of day (0.0 = midnight, 0.5 = noon, 1.0 = midnight).
+    pub fn day_progress(&self) -> f32 {
+        (self.hour as f32 + self.minute as f32 / 60.0) / 24.0
+    }
+
+    /// Whether it's daytime (6:00–21:00).
+    pub fn is_day(&self) -> bool {
+        self.hour >= 6 && self.hour < 21
     }
 }
 
