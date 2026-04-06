@@ -1,9 +1,8 @@
 //! Map tab: tooltip, zoom label, cursor-to-world helpers.
 
 use bevy::prelude::*;
-use cordon_core::primitive::Tier;
 
-use super::{LaptopFont, LaptopTab, TabContent};
+use super::LaptopTab;
 use crate::PlayingState;
 use crate::laptop::LaptopCamera;
 use crate::laptop::input::CameraTarget;
@@ -29,12 +28,9 @@ pub enum TooltipContent {
         faction_icon: String,
         name: String,
         creatures: String,
-        creatures_tier: Tier,
         radiation: String,
-        radiation_tier: Tier,
         hazard_icon: String,
         loot: String,
-        loot_tier: Tier,
     },
     Npc {
         faction_icon: String,
@@ -43,16 +39,6 @@ pub enum TooltipContent {
         rank: String,
         status: String,
     },
-}
-
-pub fn tier_color(t: &Tier) -> Color {
-    match t {
-        Tier::VeryLow => Color::srgb(0.5, 0.8, 0.5),
-        Tier::Low => Color::srgb(0.7, 0.9, 0.4),
-        Tier::Medium => Color::srgb(1.0, 0.85, 0.3),
-        Tier::High => Color::srgb(1.0, 0.5, 0.2),
-        Tier::VeryHigh => Color::srgb(1.0, 0.25, 0.25),
-    }
 }
 
 /// Marker for UI elements that should only show on the Map tab.
@@ -252,6 +238,7 @@ fn update_tooltip(tooltip: Res<TooltipContent>, mut text_q: Query<&mut Text, Wit
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn update_zoom_label(
     target: Res<CameraTarget>,
     mut label_q: Query<&mut Text, (With<ZoomLabel>, Without<TooltipText>, Without<TimeLabel>)>,
@@ -265,6 +252,7 @@ fn update_zoom_label(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn update_time_label(
     sim: Option<Res<SimWorld>>,
     mut label_q: Query<&mut Text, (With<TimeLabel>, Without<TooltipText>, Without<ZoomLabel>)>,

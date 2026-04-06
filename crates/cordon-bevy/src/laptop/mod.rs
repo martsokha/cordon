@@ -60,12 +60,9 @@ struct AreaTooltipInfo {
     faction_icon: String,
     name: String,
     creatures: String,
-    creatures_tier: Tier,
     radiation: String,
-    radiation_tier: Tier,
     hazard_icon: String,
     loot: String,
-    loot_tier: Tier,
 }
 
 #[derive(Component)]
@@ -89,7 +86,6 @@ struct SelectedNpc(Option<Uid<Npc>>);
 
 const COLOR_AREA: Color = Color::srgba(1.0, 1.0, 1.0, 0.08);
 const COLOR_AREA_BORDER: Color = Color::srgba(1.0, 1.0, 1.0, 0.25);
-const COLOR_AREA_HOVER: Color = Color::srgba(1.0, 1.0, 1.0, 0.15);
 const COLOR_NPC: Color = Color::srgb(0.7, 0.7, 0.7);
 const COLOR_NPC_SELECTED: Color = Color::srgb(1.0, 0.9, 0.3);
 const COLOR_NPC_SQUAD: Color = Color::srgb(0.7, 0.6, 0.25);
@@ -136,18 +132,6 @@ fn setup_camera(mut commands: Commands) {
             ..OrthographicProjection::default_2d()
         }),
     ));
-}
-
-fn enable_laptop_camera(mut camera_q: Query<&mut Camera, With<LaptopCamera>>) {
-    for mut cam in &mut camera_q {
-        cam.is_active = true;
-    }
-}
-
-fn disable_laptop_camera(mut camera_q: Query<&mut Camera, With<LaptopCamera>>) {
-    for mut cam in &mut camera_q {
-        cam.is_active = false;
-    }
 }
 
 fn tier_key(t: &Tier) -> &'static str {
@@ -226,20 +210,17 @@ fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
             tier_key(&area.danger.creatures),
             &format!("{:?}", area.danger.creatures),
         ),
-        creatures_tier: area.danger.creatures,
         radiation: l10n_or(
             l10n,
             tier_key(&area.danger.radiation),
             &format!("{:?}", area.danger.radiation),
         ),
-        radiation_tier: area.danger.radiation,
         hazard_icon: hazard_icon_str,
         loot: l10n_or(
             l10n,
             tier_key(&area.loot_tier),
             &format!("{:?}", area.loot_tier),
         ),
-        loot_tier: area.loot_tier,
     }
 }
 
@@ -264,7 +245,7 @@ fn spawn_map(
         let radius = area.radius.value();
         let info = build_area_info(l10n, area);
 
-        let area_entity = commands.spawn((
+        let _area_entity = commands.spawn((
             MapWorldEntity,
             AreaCircle,
             AreaData(info),
@@ -296,7 +277,7 @@ fn spawn_map(
         .collect();
 
     let dot_size = 6.0;
-    let hit_size = 20.0;
+    let _hit_size = 20.0;
     for (i, (uid, npc)) in sim_world.0.npcs.iter().enumerate() {
         let faction_icon = faction_icon_str(Some(npc.faction.as_str())).to_string();
         let faction_name = l10n_or(
@@ -320,7 +301,7 @@ fn spawn_map(
         );
 
         // Spawn near a random area, offset slightly so they don't stack
-        let hash = (npc.id.value() as f32).sin() * 43758.5453;
+        let hash = (npc.id.value() as f32).sin() * 43_758.547;
         let area_idx = (i + npc.id.value() as usize) % area_positions.len().max(1);
         let base_pos = if area_positions.is_empty() {
             Vec2::ZERO
@@ -333,7 +314,7 @@ fn spawn_map(
         );
         let spawn_pos = base_pos + scatter;
 
-        let npc_entity = commands.spawn((
+        let _npc_entity = commands.spawn((
             MapWorldEntity,
             NpcDot { uid: *uid },
             Action::Idle {
@@ -389,11 +370,10 @@ fn update_hover(
     let mut closest_npc: Option<(&NpcDotInfo, &Action, &Intent, f32)> = None;
     for (info, transform, action, intent) in &npcs {
         let dist = cursor.distance(transform.translation.truncate());
-        if dist < npc_hit {
-            if closest_npc.is_none() || dist < closest_npc.unwrap().3 {
+        if dist < npc_hit
+            && (closest_npc.is_none() || dist < closest_npc.unwrap().3) {
                 closest_npc = Some((info, action, intent, dist));
             }
-        }
     }
     if let Some((info, action, intent, _)) = closest_npc {
         *tooltip = TooltipContent::Npc {
@@ -415,12 +395,9 @@ fn update_hover(
                 faction_icon: i.faction_icon.clone(),
                 name: i.name.clone(),
                 creatures: i.creatures.clone(),
-                creatures_tier: i.creatures_tier,
                 radiation: i.radiation.clone(),
-                radiation_tier: i.radiation_tier,
                 hazard_icon: i.hazard_icon.clone(),
                 loot: i.loot.clone(),
-                loot_tier: i.loot_tier,
             };
             return;
         }
@@ -448,11 +425,10 @@ fn handle_npc_click(
     for (dot, transform) in &dots {
         let pos = transform.translation.truncate();
         let dist = pos.distance(cursor_world);
-        if dist <= hit_radius {
-            if closest.is_none() || dist < closest.unwrap().1 {
+        if dist <= hit_radius
+            && (closest.is_none() || dist < closest.unwrap().1) {
                 closest = Some((dot.uid, dist));
             }
-        }
     }
 
     match closest {

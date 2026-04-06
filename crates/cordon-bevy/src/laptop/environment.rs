@@ -133,6 +133,7 @@ fn hazard_type_to_float(h: &cordon_core::primitive::HazardType) -> f32 {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn spawn_environment(
     mut commands: Commands,
     game_data: Res<GameDataResource>,

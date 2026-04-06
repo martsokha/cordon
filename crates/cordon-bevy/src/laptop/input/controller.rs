@@ -55,15 +55,13 @@ fn read_zoom(
     let factor = 1.0 - delta * ZOOM_SENSITIVITY;
     let new_zoom = (target.zoom * factor).clamp(ZOOM_MIN, ZOOM_MAX);
 
-    if let Some(cursor_screen) = windows.single().ok().and_then(|w| w.cursor_position()) {
-        if let Some((camera, cam_transform, _)) = cameras.iter().next() {
-            if let Ok(cursor_world) = camera.viewport_to_world_2d(cam_transform, cursor_screen) {
+    if let Some(cursor_screen) = windows.single().ok().and_then(|w| w.cursor_position())
+        && let Some((camera, cam_transform, _)) = cameras.iter().next()
+            && let Ok(cursor_world) = camera.viewport_to_world_2d(cam_transform, cursor_screen) {
                 let zoom_ratio = 1.0 - new_zoom / target.zoom;
                 let offset = (cursor_world - target.position) * zoom_ratio;
                 target.position += offset;
             }
-        }
-    }
 
     target.zoom = new_zoom;
     target.following = None;

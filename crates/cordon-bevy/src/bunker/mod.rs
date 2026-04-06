@@ -137,8 +137,3 @@ fn enable_bunker_camera(mut camera_q: Query<&mut Camera, With<FpsCamera>>) {
     }
 }
 
-fn disable_bunker_camera(mut camera_q: Query<&mut Camera, With<FpsCamera>>) {
-    for mut cam in &mut camera_q {
-        cam.is_active = false;
-    }
-}

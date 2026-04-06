@@ -4,12 +4,8 @@
 //! InGame state, runs the first morning phase to generate initial NPCs,
 //! and provides the world state for other systems to read.
 
-use std::collections::HashMap;
-
 use bevy::prelude::*;
-use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NamePool;
-use cordon_core::primitive::Id;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::simulation::day;
 use cordon_sim::simulation::npcs::DefaultNpcGenerator;
@@ -45,14 +41,6 @@ fn tick_game_time(time: Res<Time>, mut acc: ResMut<TimeAccumulator>, mut sim: Re
 /// Bevy resource wrapping the simulation world.
 #[derive(Resource)]
 pub struct SimWorld(pub World);
-
-/// Bevy resource holding the resolved faction→namepool mapping.
-#[derive(Resource)]
-pub struct FactionNamePools(pub HashMap<Id<Faction>, NamePool>);
-
-/// Fallback name pool for factions with no configured pool.
-#[derive(Resource)]
-pub struct FallbackNamePool(pub NamePool);
 
 pub fn init_world(mut commands: Commands, game_data: Res<GameDataResource>) {
     let data = &game_data.0;
@@ -92,6 +80,4 @@ pub fn init_world(mut commands: Commands, game_data: Res<GameDataResource>) {
     }
 
     commands.insert_resource(SimWorld(world));
-    commands.insert_resource(FactionNamePools(faction_pools));
-    commands.insert_resource(FallbackNamePool(fallback));
 }

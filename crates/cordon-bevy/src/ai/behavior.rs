@@ -43,6 +43,7 @@ impl Behavior for Action {
 ///
 /// Positional intents store a resolved world position so the behavior
 /// system can drive movement without looking up area definitions.
+#[allow(dead_code)]
 #[derive(Component, Debug, Clone)]
 pub enum Intent {
     /// Came to trade at the bunker.
