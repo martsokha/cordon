@@ -33,11 +33,11 @@ impl PlayerRank {
     /// Maximum number of squads (runners + guards) at this rank.
     pub fn max_squads(self) -> u8 {
         match self {
-            PlayerRank::Nobody => 2,
-            PlayerRank::Known => 3,
-            PlayerRank::Established => 4,
-            PlayerRank::Connected => 5,
-            PlayerRank::Legend => 6,
+            PlayerRank::Nobody => 1,
+            PlayerRank::Known => 2,
+            PlayerRank::Established => 3,
+            PlayerRank::Connected => 4,
+            PlayerRank::Legend => 5,
         }
     }
 

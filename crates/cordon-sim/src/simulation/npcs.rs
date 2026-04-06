@@ -18,8 +18,8 @@ use crate::state::world::World;
 pub trait NpcGenerator {
     /// How many visitors arrive today.
     fn visitor_count<R: Rng>(&self, day: u32, rng: &mut R) -> u32 {
-        let base_count = 3 + (day / 10).min(5);
-        rng.random_range(base_count..=base_count + 3)
+        let base_count = 30 + (day / 5).min(20);
+        rng.random_range(base_count..=base_count + 10)
     }
 
     /// Pick name keys from a name pool.

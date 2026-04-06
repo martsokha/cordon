@@ -1,5 +1,6 @@
 //! Laptop view: the Zone map with areas, bunker, and NPC dots.
 
+mod environment;
 mod input;
 mod ui;
 
@@ -25,7 +26,12 @@ pub struct LaptopPlugin;
 
 impl Plugin for LaptopPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((UiLunexPlugins, input::InputPlugin, ui::UiPlugin));
+        app.add_plugins((
+            UiLunexPlugins,
+            input::InputPlugin,
+            ui::UiPlugin,
+            environment::EnvironmentPlugin,
+        ));
         app.insert_resource(SelectedNpc::default());
         app.add_systems(Startup, setup_camera);
         app.add_systems(
@@ -83,12 +89,12 @@ struct NpcFaction(Id<Faction>);
 #[derive(Resource, Default)]
 struct SelectedNpc(Option<Uid<Npc>>);
 
-const COLOR_AREA: Color = Color::srgba(0.3, 0.6, 0.3, 0.15);
-const COLOR_AREA_BORDER: Color = Color::srgba(0.3, 0.6, 0.3, 0.5);
-const COLOR_AREA_HOVER: Color = Color::srgba(0.4, 0.8, 0.4, 0.25);
-const COLOR_NPC: Color = Color::srgb(0.85, 0.85, 0.85);
+const COLOR_AREA: Color = Color::srgba(1.0, 1.0, 1.0, 0.08);
+const COLOR_AREA_BORDER: Color = Color::srgba(1.0, 1.0, 1.0, 0.25);
+const COLOR_AREA_HOVER: Color = Color::srgba(1.0, 1.0, 1.0, 0.15);
+const COLOR_NPC: Color = Color::srgb(0.5, 0.5, 0.5);
 const COLOR_NPC_SELECTED: Color = Color::srgb(1.0, 0.9, 0.3);
-const COLOR_NPC_SQUAD: Color = Color::srgb(0.9, 0.75, 0.3);
+const COLOR_NPC_SQUAD: Color = Color::srgb(0.7, 0.6, 0.25);
 fn hazard_icon(h: &HazardType) -> &'static str {
     match h {
         HazardType::Chemical => "X",
@@ -244,7 +250,7 @@ fn spawn_map(
                 Dimension(Vec2::new(radius * 2.0, radius * 2.0)),
                 Mesh2d(meshes.add(Circle::new(radius))),
                 MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_AREA))),
-                Transform::from_xyz(x, y, 0.0),
+                Transform::from_xyz(x, y, 0.01),
             ))
             .id();
 
@@ -310,17 +316,9 @@ fn spawn_map(
         .map(|a| Vec2::new(a.location.x, a.location.y))
         .collect();
 
-    let bunker_pos = Vec2::ZERO;
-    let spawn_radius = 80.0;
     let dot_size = 6.0;
     let hit_size = 20.0;
     for (i, (uid, npc)) in sim_world.0.npcs.iter().enumerate() {
-        let angle = (i as f32) * 2.39996;
-        let spawn_pos = Vec2::new(
-            bunker_pos.x + angle.cos() * spawn_radius,
-            bunker_pos.y + angle.sin() * spawn_radius,
-        );
-
         let faction_icon = faction_icon_str(Some(npc.faction.as_str())).to_string();
         let faction_name = l10n_or(
             l10n,
@@ -336,23 +334,31 @@ fn spawn_map(
             })
             .unwrap_or_else(|| format!("Rank {}", npc.rank()));
 
-        let idle_pos = Vec2::new(
-            bunker_pos.x + angle.cos() * 25.0,
-            bunker_pos.y + angle.sin() * 25.0,
+        let intent = pick_intent(
+            npc,
+            &area_positions,
+            data.faction(&npc.faction).is_some_and(|f| f.recruitable),
         );
+
+        // Spawn near a random area, offset slightly so they don't stack
+        let hash = (npc.id.value() as f32).sin() * 43758.5453;
+        let area_idx = (i + npc.id.value() as usize) % area_positions.len().max(1);
+        let base_pos = if area_positions.is_empty() {
+            Vec2::ZERO
+        } else {
+            area_positions[area_idx]
+        };
+        let scatter = Vec2::new(
+            hash.fract() * 60.0 - 30.0,
+            (hash * 1.3).fract() * 60.0 - 30.0,
+        );
+        let spawn_pos = base_pos + scatter;
 
         let npc_entity = commands
             .spawn((
                 NpcDot { uid: *uid },
-                Action::Walk {
-                    target: idle_pos,
-                    speed: 15.0,
-                },
-                pick_intent(
-                    npc,
-                    &area_positions,
-                    data.faction(&npc.faction).is_some_and(|f| f.recruitable),
-                ),
+                Action::Idle { timer: 2.0 + (i as f32 % 5.0) },
+                intent,
                 IntentPhase::Approach,
                 NpcDotInfo {
                     faction_icon: faction_icon.clone(),

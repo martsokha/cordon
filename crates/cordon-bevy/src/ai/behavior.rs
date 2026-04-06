@@ -99,11 +99,11 @@ pub fn pick_intent(
         }
     };
 
-    if roll < 20 {
+    if roll < 5 {
         Intent::Visit
-    } else if recruitable && roll < 25 {
+    } else if recruitable && roll < 8 {
         Intent::Recruit
-    } else if roll < 40 {
+    } else if roll < 30 {
         Intent::Patrol {
             target: pick_area(),
         }
