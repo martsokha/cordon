@@ -14,6 +14,7 @@ impl Plugin for BunkerPlugin {
             OnEnter(PlayingState::Bunker),
             (setup_bunker.run_if(not(resource_exists::<BunkerSpawned>)), grab_cursor, enable_bunker_camera),
         );
+        app.add_systems(OnEnter(PlayingState::Laptop), hide_interact_prompt);
         app.add_systems(OnExit(PlayingState::Bunker), (release_cursor, disable_bunker_camera));
         app.add_systems(
             Update,
@@ -33,7 +34,7 @@ struct FpsCamera;
 struct LaptopObject;
 
 #[derive(Component)]
-struct CrosshairUi;
+struct BunkerUi;
 
 #[derive(Component)]
 struct InteractPrompt;
@@ -126,7 +127,7 @@ fn setup_bunker(
     ));
 
     commands.spawn((
-        CrosshairUi,
+        BunkerUi,
         Node {
             position_type: PositionType::Absolute,
             left: Val::Percent(50.0),
@@ -224,6 +225,12 @@ fn fps_move(
         transform.translation += movement;
         transform.translation.x = transform.translation.x.clamp(-4.5, 4.5);
         transform.translation.z = transform.translation.z.clamp(-4.5, 4.5);
+    }
+}
+
+fn hide_interact_prompt(mut prompt_q: Query<&mut Visibility, With<InteractPrompt>>) {
+    for mut vis in &mut prompt_q {
+        *vis = Visibility::Hidden;
     }
 }
 
