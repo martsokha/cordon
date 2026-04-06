@@ -3,6 +3,7 @@
 use bevy::prelude::*;
 use cordon_core::primitive::tier::Tier;
 
+use super::input::CameraTarget;
 use crate::PlayingState;
 
 /// Font handle for all laptop UI text.
@@ -17,7 +18,8 @@ impl Plugin for UiPlugin {
         app.add_systems(Startup, load_font);
         app.add_systems(
             Update,
-            (follow_cursor, update_tooltip_ui).run_if(in_state(PlayingState::Laptop)),
+            (follow_cursor, update_tooltip_ui, update_zoom_label)
+                .run_if(in_state(PlayingState::Laptop)),
         );
     }
 }
@@ -68,6 +70,9 @@ pub struct TtRow2Value;
 
 #[derive(Component)]
 pub struct TtHazardIcon;
+
+#[derive(Component)]
+pub struct ZoomLabel;
 
 #[derive(Component)]
 pub struct TtRow3Label;
@@ -163,6 +168,23 @@ pub fn spawn_tooltip_panel(commands: &mut Commands, font: &Handle<Font>) {
         );
         spawn_stat_row(p, "Loot", TtRow3Label, TtRow3Value, &lbl_font, &val_font);
     });
+
+    commands.spawn((
+        ZoomLabel,
+        Node {
+            position_type: PositionType::Absolute,
+            right: Val::Px(12.0),
+            bottom: Val::Px(12.0),
+            ..default()
+        },
+        Text::new("x1.0"),
+        TextFont {
+            font: font.clone(),
+            font_size: 12.0,
+            ..default()
+        },
+        TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5)),
+    ));
 }
 
 fn spawn_stat_row(
@@ -359,5 +381,15 @@ fn update_tooltip_ui(
                 c.0 = COLOR_LABEL;
             }
         }
+    }
+}
+
+fn update_zoom_label(target: Res<CameraTarget>, mut label_q: Query<&mut Text, With<ZoomLabel>>) {
+    if !target.is_changed() {
+        return;
+    }
+    let level = (1.0 / target.zoom * 10.0).round() / 10.0;
+    for mut text in &mut label_q {
+        text.0 = format!("x{level:.1}");
     }
 }

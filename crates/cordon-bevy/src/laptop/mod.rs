@@ -36,10 +36,7 @@ impl Plugin for LaptopPlugin {
         app.add_systems(Startup, setup_camera);
         app.add_systems(OnEnter(PlayingState::Laptop), enable_laptop_camera);
         app.add_systems(OnExit(PlayingState::Laptop), disable_laptop_camera);
-        app.add_systems(
-            OnEnter(PlayingState::Laptop),
-            spawn_map,
-        );
+        app.add_systems(OnEnter(PlayingState::Laptop), spawn_map);
         app.add_systems(
             Update,
             (handle_npc_click, update_npc_selection, deselect_or_exit)
@@ -432,7 +429,7 @@ fn spawn_map(
 fn handle_npc_click(
     mouse: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
-    cameras: Query<(&Camera, &GlobalTransform)>,
+    cameras: Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
     dots: Query<(&NpcDot, &Transform)>,
     mut selected: ResMut<SelectedNpc>,
 ) {
@@ -500,8 +497,8 @@ fn deselect_or_exit(
     mut selected: ResMut<SelectedNpc>,
     mut next_state: ResMut<NextState<PlayingState>>,
 ) {
-    if keys.just_pressed(KeyCode::Escape) {
-        if selected.0.is_some() {
+    if keys.just_pressed(KeyCode::KeyE) || keys.just_pressed(KeyCode::Escape) {
+        if selected.0.is_some() && keys.just_pressed(KeyCode::Escape) {
             selected.0 = None;
         } else {
             *next_state = NextState::Pending(PlayingState::Bunker);

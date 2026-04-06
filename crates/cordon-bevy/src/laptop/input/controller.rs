@@ -93,7 +93,8 @@ fn read_keyboard_pan(
     }
 
     let zoom_scale = current_zoom_scale(&camera_q);
-    target.position += dir.normalize() * PAN_SPEED * zoom_scale * time.delta_secs();
+    let speed = Vec2::new(PAN_SPEED, PAN_SPEED * 0.75);
+    target.position += dir.normalize() * speed * zoom_scale * time.delta_secs();
     target.following = None;
 }
 
