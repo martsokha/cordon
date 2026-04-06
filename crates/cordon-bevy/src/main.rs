@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod ai;
+mod bunker;
 mod laptop;
 mod locale;
 mod world;
@@ -13,7 +14,15 @@ use cordon_data::gamedata::GameDataPlugin;
 pub enum AppState {
     #[default]
     Loading,
-    InGame,
+    Playing,
+}
+
+#[derive(SubStates, Default, Clone, Eq, PartialEq, Hash, Debug)]
+#[source(AppState = AppState::Playing)]
+pub enum PlayingState {
+    #[default]
+    Bunker,
+    Laptop,
 }
 
 fn main() {
@@ -33,13 +42,15 @@ fn main() {
                 }),
         )
         .init_state::<AppState>()
+        .add_sub_state::<PlayingState>()
         .add_plugins(GameDataPlugin {
             loading: AppState::Loading,
-            ready: AppState::InGame,
+            ready: AppState::Playing,
         })
         .add_plugins(locale::LocalePlugin)
         .add_plugins(world::WorldPlugin)
         .add_plugins(ai::AiPlugin)
+        .add_plugins(bunker::BunkerPlugin)
         .add_plugins(laptop::LaptopPlugin)
         .run();
 }

@@ -3,7 +3,7 @@
 use bevy::prelude::*;
 use cordon_core::primitive::tier::Tier;
 
-use crate::AppState;
+use crate::PlayingState;
 
 /// Font handle for all laptop UI text.
 #[derive(Resource)]
@@ -17,7 +17,7 @@ impl Plugin for UiPlugin {
         app.add_systems(Startup, load_font);
         app.add_systems(
             Update,
-            (follow_cursor, update_tooltip_ui).run_if(in_state(AppState::InGame)),
+            (follow_cursor, update_tooltip_ui).run_if(in_state(PlayingState::Laptop)),
         );
     }
 }

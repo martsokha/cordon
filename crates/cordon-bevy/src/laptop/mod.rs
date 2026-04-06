@@ -17,7 +17,7 @@ use cordon_core::primitive::uid::Uid;
 use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
 
-use crate::AppState;
+use crate::PlayingState;
 use crate::ai::behavior::{Action, Intent, IntentPhase, pick_intent};
 use crate::locale::{GameLocalization, l10n_or};
 use crate::world::SimWorld;
@@ -34,14 +34,16 @@ impl Plugin for LaptopPlugin {
         ));
         app.insert_resource(SelectedNpc::default());
         app.add_systems(Startup, setup_camera);
+        app.add_systems(OnEnter(PlayingState::Laptop), enable_laptop_camera);
+        app.add_systems(OnExit(PlayingState::Laptop), disable_laptop_camera);
         app.add_systems(
-            OnEnter(AppState::InGame),
-            spawn_map.after(crate::world::init_world),
+            OnEnter(PlayingState::Laptop),
+            spawn_map,
         );
         app.add_systems(
             Update,
-            (handle_npc_click, update_npc_selection, deselect_on_escape)
-                .run_if(in_state(AppState::InGame)),
+            (handle_npc_click, update_npc_selection, deselect_or_exit)
+                .run_if(in_state(PlayingState::Laptop)),
         );
     }
 }
@@ -118,9 +120,17 @@ fn faction_icon_str(faction: Option<&str>) -> &'static str {
     }
 }
 
+#[derive(Component)]
+struct LaptopCamera;
+
 fn setup_camera(mut commands: Commands) {
     commands.spawn((
+        LaptopCamera,
         Camera2d,
+        Camera {
+            is_active: false,
+            ..default()
+        },
         UiSourceCamera::<0>,
         Transform::from_xyz(0.0, -100.0, 1000.0),
         Projection::Orthographic(OrthographicProjection {
@@ -128,6 +138,18 @@ fn setup_camera(mut commands: Commands) {
             ..OrthographicProjection::default_2d()
         }),
     ));
+}
+
+fn enable_laptop_camera(mut camera_q: Query<&mut Camera, With<LaptopCamera>>) {
+    for mut cam in &mut camera_q {
+        cam.is_active = true;
+    }
+}
+
+fn disable_laptop_camera(mut camera_q: Query<&mut Camera, With<LaptopCamera>>) {
+    for mut cam in &mut camera_q {
+        cam.is_active = false;
+    }
 }
 
 fn tier_key(t: &Tier) -> &'static str {
@@ -473,8 +495,16 @@ fn update_npc_selection(
     }
 }
 
-fn deselect_on_escape(keys: Res<ButtonInput<KeyCode>>, mut selected: ResMut<SelectedNpc>) {
+fn deselect_or_exit(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut selected: ResMut<SelectedNpc>,
+    mut next_state: ResMut<NextState<PlayingState>>,
+) {
     if keys.just_pressed(KeyCode::Escape) {
-        selected.0 = None;
+        if selected.0.is_some() {
+            selected.0 = None;
+        } else {
+            *next_state = NextState::Pending(PlayingState::Bunker);
+        }
     }
 }

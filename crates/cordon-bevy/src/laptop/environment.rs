@@ -5,7 +5,7 @@ use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
 use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dPlugin};
 
-use crate::AppState;
+use crate::PlayingState;
 
 pub struct EnvironmentPlugin;
 
@@ -15,7 +15,7 @@ impl Plugin for EnvironmentPlugin {
             Material2dPlugin::<TerrainMaterial>::default(),
             Material2dPlugin::<CloudMaterial>::default(),
         ));
-        app.add_systems(OnEnter(AppState::InGame), spawn_environment);
+        app.add_systems(OnEnter(PlayingState::Laptop), spawn_environment);
     }
 }
 

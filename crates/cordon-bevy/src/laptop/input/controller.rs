@@ -6,7 +6,7 @@ use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 
 use super::{CameraTarget, ZOOM_MAX, ZOOM_MIN};
-use crate::AppState;
+use crate::PlayingState;
 
 const ZOOM_SENSITIVITY: f32 = 0.12;
 const PAN_SPEED: f32 = 300.0;
@@ -25,7 +25,7 @@ impl Plugin for ControllerPlugin {
             Update,
             (read_zoom, read_keyboard_pan, read_drag_pan, read_edge_pan)
                 .in_set(ControllerSet)
-                .run_if(in_state(AppState::InGame)),
+                .run_if(in_state(PlayingState::Laptop)),
         );
     }
 }

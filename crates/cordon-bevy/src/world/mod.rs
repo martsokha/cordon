@@ -21,7 +21,7 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::InGame), init_world);
+        app.add_systems(OnEnter(AppState::Playing), init_world);
     }
 }
 

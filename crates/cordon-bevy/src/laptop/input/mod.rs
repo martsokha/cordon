@@ -8,7 +8,7 @@ pub mod controller;
 
 use bevy::prelude::*;
 
-use crate::AppState;
+use crate::PlayingState;
 
 pub struct InputPlugin;
 
@@ -20,7 +20,7 @@ impl Plugin for InputPlugin {
             Update,
             apply_camera
                 .after(controller::ControllerSet)
-                .run_if(in_state(AppState::InGame)),
+                .run_if(in_state(PlayingState::Laptop)),
         );
     }
 }
