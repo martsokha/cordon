@@ -21,7 +21,7 @@ use std::collections::HashMap;
 use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext, LoadedFolder};
 use bevy::prelude::*;
-
+use bevy::state::state::FreelyMutableState;
 use cordon_core::entity::bunker::UpgradeDef;
 use cordon_core::entity::faction::FactionDef;
 use cordon_core::entity::name::NamePool;
@@ -34,16 +34,6 @@ use cordon_core::world::loot::LootTables;
 use cordon_core::world::narrative::quest::QuestDef;
 
 use crate::catalog::GameData;
-
-/// Application state for the loading flow.
-#[derive(States, Default, Clone, Eq, PartialEq, Hash, Debug)]
-pub enum AppState {
-    /// Loading game data from JSON assets.
-    #[default]
-    Loading,
-    /// All data loaded, game is running.
-    InGame,
-}
 
 /// A raw JSON asset — holds unparsed bytes from a `.json` file.
 #[derive(Asset, TypePath)]
@@ -59,8 +49,8 @@ struct RawJsonError(#[from] std::io::Error);
 
 impl AssetLoader for RawJsonLoader {
     type Asset = RawJson;
-    type Settings = ();
     type Error = RawJsonError;
+    type Settings = ();
 
     async fn load(
         &self,
@@ -92,7 +82,6 @@ struct LoadingFolders {
 }
 
 impl LoadingFolders {
-    /// Check if all folders are fully loaded.
     fn all_loaded(&self, server: &AssetServer) -> bool {
         server.is_loaded_with_dependencies(&self.areas)
             && server.is_loaded_with_dependencies(&self.events)
@@ -106,16 +95,37 @@ impl LoadingFolders {
 }
 
 /// Bevy plugin that loads all game data from `assets/data/`.
-pub struct GameDataPlugin;
+///
+/// Generic over the app's state type. Provide the loading state
+/// (when to start loading) and the target state (when loading is done).
+pub struct GameDataPlugin<S: FreelyMutableState> {
+    /// State during which loading happens.
+    pub loading: S,
+    /// State to transition to when all data is loaded.
+    pub ready: S,
+}
 
-impl Plugin for GameDataPlugin {
+impl<S: FreelyMutableState> Plugin for GameDataPlugin<S> {
     fn build(&self, app: &mut App) {
+        let loading = self.loading.clone();
+        let ready = self.ready.clone();
+
         app.init_asset::<RawJson>()
             .init_asset_loader::<RawJsonLoader>()
-            .add_systems(OnEnter(AppState::Loading), start_loading)
-            .add_systems(Update, assemble_game_data.run_if(in_state(AppState::Loading)));
+            .add_systems(OnEnter(loading.clone()), start_loading)
+            .add_systems(
+                Update,
+                assemble_game_data::<S>
+                    .run_if(in_state(loading))
+                    .run_if(resource_exists::<LoadingFolders>),
+            )
+            .insert_resource(ReadyState(ready));
     }
 }
+
+/// Holds the target state to transition to after loading.
+#[derive(Resource)]
+struct ReadyState<S: FreelyMutableState>(S);
 
 fn start_loading(mut commands: Commands, server: Res<AssetServer>) {
     commands.insert_resource(LoadingFolders {
@@ -130,13 +140,14 @@ fn start_loading(mut commands: Commands, server: Res<AssetServer>) {
     });
 }
 
-fn assemble_game_data(
+fn assemble_game_data<S: FreelyMutableState>(
     loading: Res<LoadingFolders>,
     server: Res<AssetServer>,
     folders: Res<Assets<LoadedFolder>>,
     raw: Res<Assets<RawJson>>,
+    ready: Res<ReadyState<S>>,
     mut commands: Commands,
-    mut next_state: ResMut<NextState<AppState>>,
+    mut next_state: ResMut<NextState<S>>,
 ) {
     if !loading.all_loaded(&server) {
         return;
@@ -144,17 +155,29 @@ fn assemble_game_data(
 
     let areas = parse_folder(&loading.areas, &folders, &raw, |d: &AreaDef| d.id.clone());
     let events = parse_folder(&loading.events, &folders, &raw, |d: &EventDef| d.id.clone());
-    let factions = parse_folder(&loading.factions, &folders, &raw, |d: &FactionDef| d.id.clone());
+    let factions = parse_folder(&loading.factions, &folders, &raw, |d: &FactionDef| {
+        d.id.clone()
+    });
     let items = parse_folder(&loading.items, &folders, &raw, |d: &ItemDef| d.id.clone());
-    let name_pools = parse_folder(&loading.namepools, &folders, &raw, |d: &NamePool| d.id.clone());
+    let name_pools = parse_folder(&loading.namepools, &folders, &raw, |d: &NamePool| {
+        d.id.clone()
+    });
     let perks = parse_folder(&loading.perks, &folders, &raw, |d: &PerkDef| d.id.clone());
     let quests = parse_folder(&loading.quests, &folders, &raw, |d: &QuestDef| d.id.clone());
-    let upgrades = parse_folder(&loading.upgrades, &folders, &raw, |d: &UpgradeDef| d.id.clone());
+    let upgrades = parse_folder(&loading.upgrades, &folders, &raw, |d: &UpgradeDef| {
+        d.id.clone()
+    });
 
     info!(
         "Game data loaded: {} areas, {} events, {} factions, {} items, {} namepools, {} perks, {} quests, {} upgrades",
-        areas.len(), events.len(), factions.len(), items.len(),
-        name_pools.len(), perks.len(), quests.len(), upgrades.len(),
+        areas.len(),
+        events.len(),
+        factions.len(),
+        items.len(),
+        name_pools.len(),
+        perks.len(),
+        quests.len(),
+        upgrades.len(),
     );
 
     commands.insert_resource(GameDataResource(GameData {
@@ -169,7 +192,8 @@ fn assemble_game_data(
         loot_tables: LootTables::default(),
     }));
     commands.remove_resource::<LoadingFolders>();
-    next_state.set(AppState::InGame);
+    commands.remove_resource::<ReadyState<S>>();
+    *next_state = NextState::Pending(ready.0.clone());
 }
 
 /// Parse all JSON files in a loaded folder into a keyed HashMap.

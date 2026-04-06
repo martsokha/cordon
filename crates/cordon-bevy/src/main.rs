@@ -4,7 +4,14 @@ mod laptop;
 
 use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
-use cordon_data::gamedata::{AppState, GameDataPlugin};
+use cordon_data::gamedata::GameDataPlugin;
+
+#[derive(States, Default, Clone, Eq, PartialEq, Hash, Debug)]
+pub enum AppState {
+    #[default]
+    Loading,
+    InGame,
+}
 
 fn main() {
     App::new()
@@ -23,7 +30,10 @@ fn main() {
                 }),
         )
         .init_state::<AppState>()
-        .add_plugins(GameDataPlugin)
+        .add_plugins(GameDataPlugin {
+            loading: AppState::Loading,
+            ready: AppState::InGame,
+        })
         .add_plugins(laptop::LaptopPlugin)
         .run();
 }

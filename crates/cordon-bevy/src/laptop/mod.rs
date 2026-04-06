@@ -4,8 +4,9 @@
 //! as circles. NPC dots roam within their assigned areas.
 
 use bevy::prelude::*;
+use cordon_data::gamedata::GameDataResource;
 
-use cordon_data::gamedata::{AppState, GameDataResource};
+use crate::AppState;
 
 /// Bevy plugin for the laptop map view.
 pub struct LaptopPlugin;
