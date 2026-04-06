@@ -8,6 +8,7 @@ use cordon_core::primitive::Tier;
 use cordon_data::gamedata::GameDataResource;
 
 use crate::PlayingState;
+use crate::world::SimWorld;
 
 /// Whether the CRT effect is active (disabled by laptop upgrade).
 #[derive(Resource)]
@@ -35,12 +36,19 @@ impl Plugin for EnvironmentPlugin {
             Material2dPlugin::<CrtMaterial>::default(),
         ));
         app.add_systems(OnEnter(PlayingState::Laptop), spawn_environment);
-        app.add_systems(Update, toggle_crt.run_if(in_state(PlayingState::Laptop)));
+        app.add_systems(
+            Update,
+            (toggle_crt, sync_day_night).run_if(in_state(PlayingState::Laptop)),
+        );
     }
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
-pub struct TerrainMaterial {}
+pub struct TerrainMaterial {
+    /// 0.0 = midnight, 0.5 = noon, 1.0 = midnight.
+    #[uniform(0)]
+    pub day_progress: f32,
+}
 
 impl Material2d for TerrainMaterial {
     fn fragment_shader() -> ShaderRef {
@@ -49,7 +57,11 @@ impl Material2d for TerrainMaterial {
 }
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
-pub struct CloudMaterial {}
+pub struct CloudMaterial {
+    /// 0.0 = midnight, 0.5 = noon, 1.0 = midnight.
+    #[uniform(0)]
+    pub day_progress: f32,
+}
 
 impl Material2d for CloudMaterial {
     fn fragment_shader() -> ShaderRef {
@@ -60,6 +72,12 @@ impl Material2d for CloudMaterial {
         AlphaMode2d::Blend
     }
 }
+
+#[derive(Component)]
+struct TerrainEntity;
+
+#[derive(Component)]
+struct CloudEntity;
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct AnomalyMaterial {
@@ -134,8 +152,9 @@ fn spawn_environment(
 
     // Terrain
     commands.spawn((
+        TerrainEntity,
         Mesh2d(meshes.add(Rectangle::new(5000.0, 5000.0))),
-        MeshMaterial2d(terrain_mats.add(TerrainMaterial {})),
+        MeshMaterial2d(terrain_mats.add(TerrainMaterial { day_progress: 0.33 })),
         Transform::from_xyz(0.0, 0.0, 0.001),
     ));
 
@@ -160,8 +179,9 @@ fn spawn_environment(
 
     // Clouds
     commands.spawn((
+        CloudEntity,
         Mesh2d(meshes.add(Rectangle::new(5000.0, 5000.0))),
-        MeshMaterial2d(cloud_mats.add(CloudMaterial {})),
+        MeshMaterial2d(cloud_mats.add(CloudMaterial { day_progress: 0.33 })),
         Transform::from_xyz(0.0, 0.0, 5.0),
     ));
 
@@ -174,14 +194,37 @@ fn spawn_environment(
     ));
 }
 
-fn toggle_crt(
-    crt: Res<CrtEnabled>,
-    mut query: Query<&mut Visibility, With<CrtOverlay>>,
-) {
+fn toggle_crt(crt: Res<CrtEnabled>, mut query: Query<&mut Visibility, With<CrtOverlay>>) {
     if !crt.is_changed() {
         return;
     }
     for mut vis in &mut query {
-        *vis = if crt.0 { Visibility::Visible } else { Visibility::Hidden };
+        *vis = if crt.0 {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
+    }
+}
+
+fn sync_day_night(
+    sim: Option<Res<SimWorld>>,
+    terrain_q: Query<&MeshMaterial2d<TerrainMaterial>, With<TerrainEntity>>,
+    cloud_q: Query<&MeshMaterial2d<CloudMaterial>, With<CloudEntity>>,
+    mut terrain_mats: ResMut<Assets<TerrainMaterial>>,
+    mut cloud_mats: ResMut<Assets<CloudMaterial>>,
+) {
+    let Some(sim) = sim else { return };
+    let progress = sim.0.time.day_progress();
+
+    for handle in &terrain_q {
+        if let Some(mat) = terrain_mats.get_mut(&handle.0) {
+            mat.day_progress = progress;
+        }
+    }
+    for handle in &cloud_q {
+        if let Some(mat) = cloud_mats.get_mut(&handle.0) {
+            mat.day_progress = progress;
+        }
     }
 }

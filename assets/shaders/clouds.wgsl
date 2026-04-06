@@ -31,6 +31,11 @@ fn fbm(p: vec2<f32>, octaves: i32) -> f32 {
     return value;
 }
 
+struct DayNight {
+    day_progress: f32,
+}
+@group(2) @binding(0) var<uniform> day_night: DayNight;
+
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let t = globals.time;
@@ -64,8 +69,9 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     // Thinner wispy edges
     let wisp = smoothstep(0.38, 0.55, shape) - density;
 
-    // Day/night cycle (synced with terrain)
-    let day_cycle = sin(t * 0.05) * 0.5 + 0.5;
+    // Day/night cycle synced with game time
+    let noon_dist = abs(day_night.day_progress - 0.5) * 2.0;
+    let day_cycle = 1.0 - noon_dist;
 
     // Cloud color shifts with time of day
     let night_shadow = vec3<f32>(0.15, 0.15, 0.25);

@@ -31,6 +31,11 @@ fn fbm(p: vec2<f32>, octaves: i32) -> f32 {
     return value;
 }
 
+struct DayNight {
+    day_progress: f32,
+}
+@group(2) @binding(0) var<uniform> day_night: DayNight;
+
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let snapped = in.world_position.xy;
@@ -91,8 +96,9 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let road = 1.0 - smoothstep(0.01, 0.04, road_val);
     color = mix(color, dirt_road, road * 0.5);
 
-    // Day/night cycle (full cycle ~120 seconds for testing, slow in real game)
-    let day_cycle = sin(globals.time * 0.05) * 0.5 + 0.5; // 0=night, 1=noon
+    // Day/night cycle synced with game time
+    let noon_dist = abs(day_night.day_progress - 0.5) * 2.0;
+    let day_cycle = 1.0 - noon_dist;
     let night_tint = vec3<f32>(0.15, 0.18, 0.35); // blue-ish night
     let day_brightness = mix(0.35, 1.0, day_cycle);
     color = mix(color * night_tint * 2.0, color, day_cycle) * day_brightness;

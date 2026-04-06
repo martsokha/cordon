@@ -70,7 +70,12 @@ impl Plugin for MapUiPlugin {
         );
         app.add_systems(
             Update,
-            (follow_cursor, update_tooltip, update_zoom_label, update_time_label)
+            (
+                follow_cursor,
+                update_tooltip,
+                update_zoom_label,
+                update_time_label,
+            )
                 .run_if(in_state(PlayingState::Laptop))
                 .run_if(resource_equals(LaptopTab::Map)),
         );
@@ -251,7 +256,10 @@ fn update_zoom_label(
     target: Res<CameraTarget>,
     mut label_q: Query<&mut Text, (With<ZoomLabel>, Without<TooltipText>, Without<TimeLabel>)>,
 ) {
-    let level = (1.0 / target.zoom * 10.0).round() / 10.0;
+    use crate::laptop::input::{ZOOM_MIN, ZOOM_MAX};
+    // Map ortho scale (ZOOM_MIN..ZOOM_MAX) to display (4x..1x)
+    let t = (target.zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN); // 0=zoomed in, 1=zoomed out
+    let level = ((1.0 - t) * 3.0 + 1.0).clamp(1.0, 4.0);
     for mut text in &mut label_q {
         text.0 = format!("x{level:.1}");
     }
