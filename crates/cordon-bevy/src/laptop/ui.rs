@@ -133,8 +133,22 @@ pub fn spawn_tooltip_panel(commands: &mut Commands) {
             ..default()
         });
 
-        spawn_stat_row(p, "Creatures", TtRow1Label, TtRow1Value, &lbl_font, &val_font);
-        spawn_stat_row(p, "Radiation", TtRow2Label, TtRow2Value, &lbl_font, &val_font);
+        spawn_stat_row(
+            p,
+            "Creatures",
+            TtRow1Label,
+            TtRow1Value,
+            &lbl_font,
+            &val_font,
+        );
+        spawn_stat_row(
+            p,
+            "Radiation",
+            TtRow2Label,
+            TtRow2Value,
+            &lbl_font,
+            &val_font,
+        );
         spawn_stat_row(p, "Loot", TtRow3Label, TtRow3Value, &lbl_font, &val_font);
     });
 }
@@ -199,23 +213,58 @@ fn update_tooltip_ui(
     mut r1_lbl: Query<&mut Text, (With<TtRow1Label>, Without<TtHeader>, Without<TtHazardIcon>)>,
     mut r1_val: Query<
         (&mut Text, &mut TextColor),
-        (With<TtRow1Value>, Without<TtHeader>, Without<TtHazardIcon>, Without<TtRow1Label>),
+        (
+            With<TtRow1Value>,
+            Without<TtHeader>,
+            Without<TtHazardIcon>,
+            Without<TtRow1Label>,
+        ),
     >,
     mut r2_lbl: Query<
         &mut Text,
-        (With<TtRow2Label>, Without<TtHeader>, Without<TtHazardIcon>, Without<TtRow1Label>, Without<TtRow1Value>),
+        (
+            With<TtRow2Label>,
+            Without<TtHeader>,
+            Without<TtHazardIcon>,
+            Without<TtRow1Label>,
+            Without<TtRow1Value>,
+        ),
     >,
     mut r2_val: Query<
         (&mut Text, &mut TextColor),
-        (With<TtRow2Value>, Without<TtHeader>, Without<TtHazardIcon>, Without<TtRow1Label>, Without<TtRow1Value>, Without<TtRow2Label>),
+        (
+            With<TtRow2Value>,
+            Without<TtHeader>,
+            Without<TtHazardIcon>,
+            Without<TtRow1Label>,
+            Without<TtRow1Value>,
+            Without<TtRow2Label>,
+        ),
     >,
     mut r3_lbl: Query<
         &mut Text,
-        (With<TtRow3Label>, Without<TtHeader>, Without<TtHazardIcon>, Without<TtRow1Label>, Without<TtRow1Value>, Without<TtRow2Label>, Without<TtRow2Value>),
+        (
+            With<TtRow3Label>,
+            Without<TtHeader>,
+            Without<TtHazardIcon>,
+            Without<TtRow1Label>,
+            Without<TtRow1Value>,
+            Without<TtRow2Label>,
+            Without<TtRow2Value>,
+        ),
     >,
     mut r3_val: Query<
         (&mut Text, &mut TextColor),
-        (With<TtRow3Value>, Without<TtHeader>, Without<TtHazardIcon>, Without<TtRow1Label>, Without<TtRow1Value>, Without<TtRow2Label>, Without<TtRow2Value>, Without<TtRow3Label>),
+        (
+            With<TtRow3Value>,
+            Without<TtHeader>,
+            Without<TtHazardIcon>,
+            Without<TtRow1Label>,
+            Without<TtRow1Value>,
+            Without<TtRow2Label>,
+            Without<TtRow2Value>,
+            Without<TtRow3Label>,
+        ),
     >,
 ) {
     if !tooltip.is_changed() || matches!(*tooltip, TooltipContent::Hidden) {
@@ -225,29 +274,78 @@ fn update_tooltip_ui(
     match &*tooltip {
         TooltipContent::Hidden => {}
         TooltipContent::Area {
-            faction_icon, name, creatures, creatures_tier,
-            radiation, radiation_tier, hazard_icon, loot, loot_tier,
+            faction_icon,
+            name,
+            creatures,
+            creatures_tier,
+            radiation,
+            radiation_tier,
+            hazard_icon,
+            loot,
+            loot_tier,
         } => {
-            for mut t in &mut header_q { t.0 = format!("{faction_icon} {name}"); }
-            for mut t in &mut hazard_q { t.0.clone_from(hazard_icon); }
-            for mut t in &mut r1_lbl { t.0 = "Creatures:".into(); }
-            for (mut t, mut c) in &mut r1_val { t.0.clone_from(creatures); c.0 = tier_color(creatures_tier); }
-            for mut t in &mut r2_lbl { t.0 = "Radiation:".into(); }
-            for (mut t, mut c) in &mut r2_val { t.0.clone_from(radiation); c.0 = tier_color(radiation_tier); }
-            for mut t in &mut r3_lbl { t.0 = "Loot:".into(); }
-            for (mut t, mut c) in &mut r3_val { t.0.clone_from(loot); c.0 = tier_color(loot_tier); }
+            for mut t in &mut header_q {
+                t.0 = format!("{faction_icon} {name}");
+            }
+            for mut t in &mut hazard_q {
+                t.0.clone_from(hazard_icon);
+            }
+            for mut t in &mut r1_lbl {
+                t.0 = "Creatures:".into();
+            }
+            for (mut t, mut c) in &mut r1_val {
+                t.0.clone_from(creatures);
+                c.0 = tier_color(creatures_tier);
+            }
+            for mut t in &mut r2_lbl {
+                t.0 = "Radiation:".into();
+            }
+            for (mut t, mut c) in &mut r2_val {
+                t.0.clone_from(radiation);
+                c.0 = tier_color(radiation_tier);
+            }
+            for mut t in &mut r3_lbl {
+                t.0 = "Loot:".into();
+            }
+            for (mut t, mut c) in &mut r3_val {
+                t.0.clone_from(loot);
+                c.0 = tier_color(loot_tier);
+            }
         }
         TooltipContent::Npc {
-            faction_icon, name, faction, rank, status,
+            faction_icon,
+            name,
+            faction,
+            rank,
+            status,
         } => {
-            for mut t in &mut header_q { t.0 = format!("{faction_icon} {name}"); }
-            for mut t in &mut hazard_q { t.0.clear(); }
-            for mut t in &mut r1_lbl { t.0 = "Faction:".into(); }
-            for (mut t, mut c) in &mut r1_val { t.0.clone_from(faction); c.0 = Color::WHITE; }
-            for mut t in &mut r2_lbl { t.0 = "Rank:".into(); }
-            for (mut t, mut c) in &mut r2_val { t.0.clone_from(rank); c.0 = Color::WHITE; }
-            for mut t in &mut r3_lbl { t.0 = "Status:".into(); }
-            for (mut t, mut c) in &mut r3_val { t.0.clone_from(status); c.0 = COLOR_LABEL; }
+            for mut t in &mut header_q {
+                t.0 = format!("{faction_icon} {name}");
+            }
+            for mut t in &mut hazard_q {
+                t.0.clear();
+            }
+            for mut t in &mut r1_lbl {
+                t.0 = "Faction:".into();
+            }
+            for (mut t, mut c) in &mut r1_val {
+                t.0.clone_from(faction);
+                c.0 = Color::WHITE;
+            }
+            for mut t in &mut r2_lbl {
+                t.0 = "Rank:".into();
+            }
+            for (mut t, mut c) in &mut r2_val {
+                t.0.clone_from(rank);
+                c.0 = Color::WHITE;
+            }
+            for mut t in &mut r3_lbl {
+                t.0 = "Status:".into();
+            }
+            for (mut t, mut c) in &mut r3_val {
+                t.0.clone_from(status);
+                c.0 = COLOR_LABEL;
+            }
         }
     }
 }

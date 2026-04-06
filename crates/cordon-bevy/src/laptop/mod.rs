@@ -1,6 +1,6 @@
 //! Laptop view: the Zone map with areas, bunker, and NPC dots.
 
-mod controls;
+mod input;
 mod ui;
 
 use bevy::prelude::*;
@@ -25,7 +25,7 @@ pub struct LaptopPlugin;
 
 impl Plugin for LaptopPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((UiLunexPlugins, controls::ControlsPlugin, ui::UiPlugin));
+        app.add_plugins((UiLunexPlugins, input::InputPlugin, ui::UiPlugin));
         app.insert_resource(SelectedNpc::default());
         app.add_systems(Startup, setup_camera);
         app.add_systems(
