@@ -4,6 +4,8 @@ use bevy::asset::LoadedFolder;
 use bevy::prelude::*;
 use bevy_fluent::prelude::*;
 use bevy_lunex::prelude::*;
+use cordon_core::entity::faction::RankScheme;
+use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::primitive::hazard::HazardType;
 use cordon_core::primitive::tier::Tier;
 use cordon_core::primitive::uid::Uid;
@@ -47,17 +49,26 @@ struct LocaleHandle(Handle<LoadedFolder>);
 pub struct GameLocalization(pub Localization);
 
 #[derive(Resource, Default)]
-struct TooltipContent {
-    visible: bool,
-    faction_icon: String,
-    name: String,
-    creatures: String,
-    creatures_tier: Tier,
-    radiation: String,
-    radiation_tier: Tier,
-    hazard_icon: String,
-    loot: String,
-    loot_tier: Tier,
+enum TooltipContent {
+    #[default]
+    Hidden,
+    Area {
+        faction_icon: String,
+        name: String,
+        creatures: String,
+        creatures_tier: Tier,
+        radiation: String,
+        radiation_tier: Tier,
+        hazard_icon: String,
+        loot: String,
+        loot_tier: Tier,
+    },
+    Npc {
+        faction_icon: String,
+        name: String,
+        faction: String,
+        rank: String,
+    },
 }
 
 #[derive(Component)]
@@ -91,6 +102,14 @@ struct NpcDot {
     roam_radius: f32,
 }
 
+#[derive(Component, Clone)]
+struct NpcDotInfo {
+    faction_icon: String,
+    name: String,
+    faction: String,
+    rank: String,
+}
+
 #[derive(Component)]
 struct TooltipPanel;
 
@@ -98,16 +117,22 @@ struct TooltipPanel;
 struct TtHeader;
 
 #[derive(Component)]
-struct TtCreatures;
+struct TtRow1Label;
+#[derive(Component)]
+struct TtRow1Value;
 
 #[derive(Component)]
-struct TtRadiation;
+struct TtRow2Label;
+#[derive(Component)]
+struct TtRow2Value;
 
 #[derive(Component)]
 struct TtHazardIcon;
 
 #[derive(Component)]
-struct TtLoot;
+struct TtRow3Label;
+#[derive(Component)]
+struct TtRow3Value;
 
 const COLOR_BUNKER: Color = Color::srgb(1.0, 0.8, 0.2);
 const COLOR_AREA: Color = Color::srgba(0.3, 0.6, 0.3, 0.15);
@@ -186,6 +211,31 @@ fn tier_key(t: &Tier) -> &'static str {
         Tier::Medium => "tier-medium",
         Tier::High => "tier-high",
         Tier::VeryHigh => "tier-veryhigh",
+    }
+}
+
+fn rank_scheme_key(scheme: &RankScheme) -> &'static str {
+    match scheme {
+        RankScheme::Military => "military",
+        RankScheme::Loose => "loose",
+        RankScheme::Religious => "religious",
+        RankScheme::Academic => "academic",
+    }
+}
+
+fn resolve_npc_name(l10n: &Localization, name: &NpcName) -> String {
+    let first = l10n_or(l10n, &name.first, &name.first);
+    match (&name.format, &name.second) {
+        (NameFormat::Alias, _) => first,
+        (NameFormat::FirstSurname, Some(second)) => {
+            let second = l10n_or(l10n, second, second);
+            format!("{first} {second}")
+        }
+        (NameFormat::FirstAlias, Some(second)) => {
+            let second = l10n_or(l10n, second, second);
+            format!("{first} \"{second}\"")
+        }
+        _ => first,
     }
 }
 
@@ -293,9 +343,23 @@ fn spawn_map(
             ..default()
         });
 
-        spawn_stat_row(p, "Creatures", TtCreatures, &lbl_font, &val_font);
-        spawn_stat_row(p, "Radiation", TtRadiation, &lbl_font, &val_font);
-        spawn_stat_row(p, "Loot", TtLoot, &lbl_font, &val_font);
+        spawn_stat_row(
+            p,
+            "Creatures",
+            TtRow1Label,
+            TtRow1Value,
+            &lbl_font,
+            &val_font,
+        );
+        spawn_stat_row(
+            p,
+            "Radiation",
+            TtRow2Label,
+            TtRow2Value,
+            &lbl_font,
+            &val_font,
+        );
+        spawn_stat_row(p, "Loot", TtRow3Label, TtRow3Value, &lbl_font, &val_font);
     });
 
     for area in data.areas.values() {
@@ -328,16 +392,17 @@ fn spawn_map(
                 }
                 if let Ok(d) = data_q.get(area_entity) {
                     let i = &d.0;
-                    tooltip.visible = true;
-                    tooltip.faction_icon.clone_from(&i.faction_icon);
-                    tooltip.name.clone_from(&i.name);
-                    tooltip.creatures.clone_from(&i.creatures);
-                    tooltip.creatures_tier = i.creatures_tier;
-                    tooltip.radiation.clone_from(&i.radiation);
-                    tooltip.radiation_tier = i.radiation_tier;
-                    tooltip.hazard_icon.clone_from(&i.hazard_icon);
-                    tooltip.loot.clone_from(&i.loot);
-                    tooltip.loot_tier = i.loot_tier;
+                    *tooltip = TooltipContent::Area {
+                        faction_icon: i.faction_icon.clone(),
+                        name: i.name.clone(),
+                        creatures: i.creatures.clone(),
+                        creatures_tier: i.creatures_tier,
+                        radiation: i.radiation.clone(),
+                        radiation_tier: i.radiation_tier,
+                        hazard_icon: i.hazard_icon.clone(),
+                        loot: i.loot.clone(),
+                        loot_tier: i.loot_tier,
+                    };
                 }
             },
         );
@@ -352,7 +417,7 @@ fn spawn_map(
                         m.color = COLOR_AREA;
                     }
                 }
-                tooltip.visible = false;
+                *tooltip = TooltipContent::Hidden;
             },
         );
 
@@ -372,25 +437,72 @@ fn spawn_map(
 
     let bunker_pos = Vec2::ZERO;
     let bunker_radius = 40.0;
-    for (i, (uid, _npc)) in sim_world.0.npcs.iter().enumerate() {
+    for (i, (uid, npc)) in sim_world.0.npcs.iter().enumerate() {
         let angle = (i as f32) * 2.39996;
         let offset = bunker_radius * 0.3 + (i as f32 % 5.0) * 8.0;
-        commands.spawn((
-            NpcDot {
-                uid: *uid,
-                direction: Vec2::new(angle.cos(), angle.sin()),
-                speed: 10.0 + (i as f32 % 3.0) * 4.0,
-                home: bunker_pos,
-                roam_radius: bunker_radius,
+        let dot_size = 4.0;
+
+        let faction_icon = faction_icon_str(Some(npc.faction.as_str())).to_string();
+        let faction_name = l10n_or(
+            l10n,
+            &format!("faction-{}", npc.faction.as_str()),
+            npc.faction.as_str(),
+        );
+        let name_display = resolve_npc_name(l10n, &npc.name);
+        let rank_title = data
+            .faction(&npc.faction)
+            .map(|fdef| {
+                let key = format!("rank-{}-{}", rank_scheme_key(&fdef.rank_scheme), npc.rank());
+                l10n_or(l10n, &key, &key)
+            })
+            .unwrap_or_else(|| format!("Rank {}", npc.rank()));
+
+        let npc_entity = commands
+            .spawn((
+                NpcDot {
+                    uid: *uid,
+                    direction: Vec2::new(angle.cos(), angle.sin()),
+                    speed: 10.0 + (i as f32 % 3.0) * 4.0,
+                    home: bunker_pos,
+                    roam_radius: bunker_radius,
+                },
+                NpcDotInfo {
+                    faction_icon: faction_icon.clone(),
+                    name: name_display,
+                    faction: faction_name,
+                    rank: rank_title,
+                },
+                Dimension(Vec2::splat(dot_size * 2.0)),
+                Mesh2d(meshes.add(Circle::new(dot_size))),
+                MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_NPC))),
+                Transform::from_xyz(
+                    bunker_pos.x + angle.cos() * offset,
+                    bunker_pos.y + angle.sin() * offset,
+                    0.5,
+                ),
+            ))
+            .id();
+
+        commands.entity(npc_entity).observe(
+            move |_: On<Pointer<Over>>,
+                  data_q: Query<&NpcDotInfo>,
+                  mut tooltip: ResMut<TooltipContent>| {
+                if let Ok(info) = data_q.get(npc_entity) {
+                    *tooltip = TooltipContent::Npc {
+                        faction_icon: info.faction_icon.clone(),
+                        name: info.name.clone(),
+                        faction: info.faction.clone(),
+                        rank: info.rank.clone(),
+                    };
+                }
             },
-            Mesh2d(meshes.add(Circle::new(4.0))),
-            MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_NPC))),
-            Transform::from_xyz(
-                bunker_pos.x + angle.cos() * offset,
-                bunker_pos.y + angle.sin() * offset,
-                0.5,
-            ),
-        ));
+        );
+
+        commands.entity(npc_entity).observe(
+            move |_: On<Pointer<Out>>, mut tooltip: ResMut<TooltipContent>| {
+                *tooltip = TooltipContent::Hidden;
+            },
+        );
     }
 
     info!(
@@ -403,7 +515,8 @@ fn spawn_map(
 fn spawn_stat_row(
     parent: &mut bevy::prelude::ChildSpawnerCommands,
     label: &str,
-    marker: impl Component,
+    lbl_marker: impl Component,
+    val_marker: impl Component,
     lbl_font: &TextFont,
     val_font: &TextFont,
 ) {
@@ -415,12 +528,13 @@ fn spawn_stat_row(
         })
         .with_children(|row| {
             row.spawn((
+                lbl_marker,
                 Text::new(format!("{label}:")),
                 lbl_font.clone(),
                 TextColor(COLOR_LABEL),
             ));
             row.spawn((
-                marker,
+                val_marker,
                 Text::new(""),
                 val_font.clone(),
                 TextColor(Color::WHITE),
@@ -438,8 +552,9 @@ fn follow_cursor(
         .ok()
         .and_then(|w| w.cursor_position())
         .unwrap_or_default();
+    let visible = !matches!(*tooltip, TooltipContent::Hidden);
     for (mut node, mut vis) in &mut panel_q {
-        if tooltip.visible {
+        if visible {
             *vis = Visibility::Visible;
             node.left = Val::Px(cursor.x + 16.0);
             node.top = Val::Px(cursor.y + 16.0);
@@ -454,53 +569,141 @@ fn update_tooltip_ui(
     tooltip: Res<TooltipContent>,
     mut header_q: Query<&mut Text, (With<TtHeader>, Without<TtHazardIcon>)>,
     mut hazard_q: Query<&mut Text, (With<TtHazardIcon>, Without<TtHeader>)>,
-    mut creatures_q: Query<
-        (&mut Text, &mut TextColor),
-        (With<TtCreatures>, Without<TtHeader>, Without<TtHazardIcon>),
-    >,
-    mut radiation_q: Query<
+    mut r1_lbl: Query<&mut Text, (With<TtRow1Label>, Without<TtHeader>, Without<TtHazardIcon>)>,
+    mut r1_val: Query<
         (&mut Text, &mut TextColor),
         (
-            With<TtRadiation>,
+            With<TtRow1Value>,
             Without<TtHeader>,
             Without<TtHazardIcon>,
-            Without<TtCreatures>,
+            Without<TtRow1Label>,
         ),
     >,
-    mut loot_q: Query<
-        (&mut Text, &mut TextColor),
+    mut r2_lbl: Query<
+        &mut Text,
         (
-            With<TtLoot>,
+            With<TtRow2Label>,
             Without<TtHeader>,
             Without<TtHazardIcon>,
-            Without<TtCreatures>,
-            Without<TtRadiation>,
+            Without<TtRow1Label>,
+            Without<TtRow1Value>,
+        ),
+    >,
+    mut r2_val: Query<
+        (&mut Text, &mut TextColor),
+        (
+            With<TtRow2Value>,
+            Without<TtHeader>,
+            Without<TtHazardIcon>,
+            Without<TtRow1Label>,
+            Without<TtRow1Value>,
+            Without<TtRow2Label>,
+        ),
+    >,
+    mut r3_lbl: Query<
+        &mut Text,
+        (
+            With<TtRow3Label>,
+            Without<TtHeader>,
+            Without<TtHazardIcon>,
+            Without<TtRow1Label>,
+            Without<TtRow1Value>,
+            Without<TtRow2Label>,
+            Without<TtRow2Value>,
+        ),
+    >,
+    mut r3_val: Query<
+        (&mut Text, &mut TextColor),
+        (
+            With<TtRow3Value>,
+            Without<TtHeader>,
+            Without<TtHazardIcon>,
+            Without<TtRow1Label>,
+            Without<TtRow1Value>,
+            Without<TtRow2Label>,
+            Without<TtRow2Value>,
+            Without<TtRow3Label>,
         ),
     >,
 ) {
-    if !tooltip.is_changed() || !tooltip.visible {
+    if !tooltip.is_changed() || matches!(*tooltip, TooltipContent::Hidden) {
         return;
     }
 
-    let header = format!("{} {}", tooltip.faction_icon, tooltip.name);
-    for mut t in &mut header_q {
-        t.0 = header.clone();
-    }
-    for mut t in &mut hazard_q {
-        t.0.clone_from(&tooltip.hazard_icon);
-    }
-
-    for (mut t, mut c) in &mut creatures_q {
-        t.0.clone_from(&tooltip.creatures);
-        c.0 = tier_color(&tooltip.creatures_tier);
-    }
-    for (mut t, mut c) in &mut radiation_q {
-        t.0.clone_from(&tooltip.radiation);
-        c.0 = tier_color(&tooltip.radiation_tier);
-    }
-    for (mut t, mut c) in &mut loot_q {
-        t.0.clone_from(&tooltip.loot);
-        c.0 = tier_color(&tooltip.loot_tier);
+    match &*tooltip {
+        TooltipContent::Hidden => {}
+        TooltipContent::Area {
+            faction_icon,
+            name,
+            creatures,
+            creatures_tier,
+            radiation,
+            radiation_tier,
+            hazard_icon,
+            loot,
+            loot_tier,
+        } => {
+            for mut t in &mut header_q {
+                t.0 = format!("{faction_icon} {name}");
+            }
+            for mut t in &mut hazard_q {
+                t.0.clone_from(hazard_icon);
+            }
+            for mut t in &mut r1_lbl {
+                t.0 = "Creatures:".into();
+            }
+            for (mut t, mut c) in &mut r1_val {
+                t.0.clone_from(creatures);
+                c.0 = tier_color(creatures_tier);
+            }
+            for mut t in &mut r2_lbl {
+                t.0 = "Radiation:".into();
+            }
+            for (mut t, mut c) in &mut r2_val {
+                t.0.clone_from(radiation);
+                c.0 = tier_color(radiation_tier);
+            }
+            for mut t in &mut r3_lbl {
+                t.0 = "Loot:".into();
+            }
+            for (mut t, mut c) in &mut r3_val {
+                t.0.clone_from(loot);
+                c.0 = tier_color(loot_tier);
+            }
+        }
+        TooltipContent::Npc {
+            faction_icon,
+            name,
+            faction,
+            rank,
+        } => {
+            for mut t in &mut header_q {
+                t.0 = format!("{faction_icon} {name}");
+            }
+            for mut t in &mut hazard_q {
+                t.0.clear();
+            }
+            for mut t in &mut r1_lbl {
+                t.0 = "Faction:".into();
+            }
+            for (mut t, mut c) in &mut r1_val {
+                t.0.clone_from(faction);
+                c.0 = Color::WHITE;
+            }
+            for mut t in &mut r2_lbl {
+                t.0 = "Rank:".into();
+            }
+            for (mut t, mut c) in &mut r2_val {
+                t.0.clone_from(rank);
+                c.0 = Color::WHITE;
+            }
+            for mut t in &mut r3_lbl {
+                t.0.clear();
+            }
+            for (mut t, _) in &mut r3_val {
+                t.0.clear();
+            }
+        }
     }
 }
 
