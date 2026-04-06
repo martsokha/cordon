@@ -29,7 +29,10 @@ impl Plugin for LaptopPlugin {
         ));
         app.insert_resource(SelectedNpc::default());
         app.add_systems(Startup, setup_camera);
-        app.add_systems(OnEnter(PlayingState::Laptop), spawn_map);
+        app.add_systems(
+            OnEnter(PlayingState::Laptop),
+            spawn_map.run_if(not(resource_exists::<MapSpawned>)),
+        );
         app.add_systems(
             Update,
             (
@@ -119,6 +122,9 @@ fn faction_icon_str(faction: Option<&str>) -> &'static str {
         _ => "[ ]",
     }
 }
+
+#[derive(Resource)]
+struct MapSpawned;
 
 #[derive(Component)]
 pub struct LaptopCamera;
@@ -230,13 +236,18 @@ fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
             HazardType::Electric => "icons/hazards/electric.png".to_string(),
             HazardType::Gravitational => "icons/hazards/gravitational.png".to_string(),
         }),
-        hazard_count: area.danger.hazard.as_ref().map(|h| match h.intensity {
-            Tier::VeryLow => 1,
-            Tier::Low => 2,
-            Tier::Medium => 3,
-            Tier::High => 4,
-            Tier::VeryHigh => 5,
-        }).unwrap_or(0),
+        hazard_count: area
+            .danger
+            .hazard
+            .as_ref()
+            .map(|h| match h.intensity {
+                Tier::VeryLow => 1,
+                Tier::Low => 2,
+                Tier::Medium => 3,
+                Tier::High => 4,
+                Tier::VeryHigh => 5,
+            })
+            .unwrap_or(0),
         loot: l10n_or(
             l10n,
             tier_key(&area.loot_tier),
@@ -284,7 +295,6 @@ fn spawn_map(
             MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_AREA_BORDER))),
             Transform::from_xyz(x, y, 0.1),
         ));
-
     }
 
     commands.spawn((
@@ -365,6 +375,8 @@ fn spawn_map(
         data.areas.len(),
         sim_world.0.npcs.len()
     );
+
+    commands.insert_resource(MapSpawned);
 }
 
 #[allow(clippy::type_complexity)]
@@ -397,10 +409,9 @@ fn update_hover(
     let mut closest_npc: Option<(&NpcDotInfo, &Action, &Intent, f32)> = None;
     for (info, transform, action, intent) in &npcs {
         let dist = cursor.distance(transform.translation.truncate());
-        if dist < npc_hit
-            && (closest_npc.is_none() || dist < closest_npc.unwrap().3) {
-                closest_npc = Some((info, action, intent, dist));
-            }
+        if dist < npc_hit && (closest_npc.is_none() || dist < closest_npc.unwrap().3) {
+            closest_npc = Some((info, action, intent, dist));
+        }
     }
     if let Some((info, action, intent, _)) = closest_npc {
         *tooltip = TooltipContent::Npc {
@@ -466,10 +477,9 @@ fn handle_npc_click(
     for (dot, transform) in &dots {
         let pos = transform.translation.truncate();
         let dist = pos.distance(cursor_world);
-        if dist <= hit_radius
-            && (closest.is_none() || dist < closest.unwrap().1) {
-                closest = Some((dot.uid, dist));
-            }
+        if dist <= hit_radius && (closest.is_none() || dist < closest.unwrap().1) {
+            closest = Some((dot.uid, dist));
+        }
     }
 
     match closest {

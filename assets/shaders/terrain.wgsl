@@ -54,6 +54,8 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let swamp = vec3<f32>(0.06, 0.08, 0.05);
     let rocky = vec3<f32>(0.12, 0.11, 0.09);
     let dirt_road = vec3<f32>(0.16, 0.13, 0.09);
+    let desert_sand = vec3<f32>(0.18, 0.15, 0.10);
+    let desert_rock = vec3<f32>(0.14, 0.12, 0.08);
 
     // Biome selection
     var color: vec3<f32>;
@@ -61,14 +63,26 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
         // Low elevation: swamp/water areas
         color = mix(swamp, grassland, smoothstep(0.2, 0.35, elevation));
     } else if elevation < 0.55 {
-        // Mid elevation: forest or grassland based on moisture
-        color = mix(grassland, forest, smoothstep(0.4, 0.7, moisture));
+        if moisture < 0.35 {
+            // Dry mid: desert / arid scrub
+            let desert_detail = noise(uv * 8.0 + 5.0);
+            color = mix(desert_sand, desert_rock, desert_detail * 0.5);
+            color = mix(color, grassland, smoothstep(0.2, 0.35, moisture));
+        } else {
+            // Wet mid: forest or grassland
+            color = mix(grassland, forest, smoothstep(0.4, 0.7, moisture));
+        }
     } else if elevation < 0.7 {
-        // Higher: dense forest or rocky
-        color = mix(forest, deep_forest, smoothstep(0.55, 0.7, elevation));
-        color = mix(color, rocky, smoothstep(0.6, 0.8, 1.0 - moisture));
+        if moisture < 0.3 {
+            // Dry high: rocky desert
+            color = mix(desert_rock, rocky, smoothstep(0.55, 0.7, elevation));
+        } else {
+            // Wet high: dense forest
+            color = mix(forest, deep_forest, smoothstep(0.55, 0.7, elevation));
+            color = mix(color, rocky, smoothstep(0.6, 0.8, 1.0 - moisture));
+        }
     } else {
-        // High: rocky terrain
+        // Very high: rocky terrain
         color = mix(rocky, dirt_road, detail * 0.3);
     }
 
@@ -95,6 +109,24 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let road_val = abs(noise(road_uv + vec2<f32>(road_warp, 0.0)) - 0.5);
     let road = 1.0 - smoothstep(0.01, 0.04, road_val);
     color = mix(color, dirt_road, road * 0.5);
+
+    // River with sandy banks — flows mostly north-south
+    let river_uv = snapped * vec2<f32>(0.0008, 0.0003);
+    let river_warp = fbm(river_uv * 4.0 + 20.0, 4) * 0.3;
+    let river_val = abs(noise(river_uv + vec2<f32>(river_warp, river_warp * 0.3)) - 0.5);
+    let river_fade = 1.0 - smoothstep(0.35, 0.5, elevation);
+
+    let water = vec3<f32>(0.03, 0.05, 0.10);
+    let wet_sand = vec3<f32>(0.10, 0.09, 0.06);
+    let dry_sand = vec3<f32>(0.14, 0.12, 0.08);
+
+    let sand_outer = (1.0 - smoothstep(0.015, 0.03, river_val)) * river_fade;
+    let sand_inner = (1.0 - smoothstep(0.008, 0.015, river_val)) * river_fade;
+    let river_line = (1.0 - smoothstep(0.002, 0.008, river_val)) * river_fade;
+
+    color = mix(color, dry_sand, sand_outer * 0.5);
+    color = mix(color, wet_sand, sand_inner * 0.6);
+    color = mix(color, water, river_line * 0.9);
 
     // Day/night cycle synced with game time
     let noon_dist = abs(day_night.day_progress - 0.5) * 2.0;

@@ -136,4 +136,3 @@ fn enable_bunker_camera(mut camera_q: Query<&mut Camera, With<FpsCamera>>) {
         cam.is_active = true;
     }
 }
-

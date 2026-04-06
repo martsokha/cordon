@@ -21,6 +21,12 @@ pub struct TooltipPanel;
 #[derive(Component)]
 pub struct TooltipRoot;
 
+#[derive(Component)]
+struct TooltipHeader;
+
+#[derive(Component)]
+struct TooltipIcons;
+
 #[derive(Resource, Default, Clone)]
 pub enum TooltipContent {
     #[default]
@@ -74,7 +80,12 @@ impl Plugin for MapUiPlugin {
         );
         app.add_systems(
             Update,
-            (follow_cursor, update_tooltip, update_zoom_label, update_time_label)
+            (
+                follow_cursor,
+                update_tooltip,
+                update_zoom_label,
+                update_time_label,
+            )
                 .run_if(in_state(PlayingState::Laptop))
                 .run_if(resource_equals(LaptopTab::Map)),
         );
@@ -91,10 +102,18 @@ fn update_map_ui_visibility(
     }
     let visible = *active_tab == LaptopTab::Map;
     for mut vis in &mut ui_q {
-        *vis = if visible { Visibility::Visible } else { Visibility::Hidden };
+        *vis = if visible {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
     }
     for mut vis in &mut world_q {
-        *vis = if visible { Visibility::Visible } else { Visibility::Hidden };
+        *vis = if visible {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
     }
 }
 
@@ -106,7 +125,9 @@ pub fn cursor_world_pos(
     let window = windows.single().ok()?;
     let cursor_screen = window.cursor_position()?;
     let (camera, cam_transform) = cameras.iter().next()?;
-    camera.viewport_to_world_2d(cam_transform, cursor_screen).ok()
+    camera
+        .viewport_to_world_2d(cam_transform, cursor_screen)
+        .ok()
 }
 
 pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
@@ -128,11 +149,43 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
             Visibility::Hidden,
         ))
         .with_children(|p| {
+            // Header row: name text + hazard icons
+            p.spawn(Node {
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                column_gap: Val::Px(4.0),
+                ..default()
+            })
+            .with_children(|row| {
+                row.spawn((
+                    TooltipHeader,
+                    Text::new(""),
+                    TextFont {
+                        font: font.clone(),
+                        font_size: 13.0,
+                        ..default()
+                    },
+                    TextColor(Color::WHITE),
+                ));
+                row.spawn((
+                    TooltipIcons,
+                    Node {
+                        flex_direction: FlexDirection::Row,
+                        column_gap: Val::Px(2.0),
+                        ..default()
+                    },
+                ));
+            });
+            // Stat rows as TextSpan
             p.spawn((
                 TooltipRoot,
                 Text::new(""),
-                TextFont { font: font.clone(), font_size: 12.0, ..default() },
-                TextColor(Color::WHITE),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 11.0,
+                    ..default()
+                },
+                TextColor(COLOR_LABEL),
             ));
         });
 
@@ -147,7 +200,11 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
             ..default()
         },
         Text::new("x1.0"),
-        TextFont { font: font.clone(), font_size: 12.0, ..default() },
+        TextFont {
+            font: font.clone(),
+            font_size: 12.0,
+            ..default()
+        },
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.4)),
     ));
 
@@ -162,7 +219,11 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
             ..default()
         },
         Text::new("Day 1  08:00"),
-        TextFont { font: font.clone(), font_size: 12.0, ..default() },
+        TextFont {
+            font: font.clone(),
+            font_size: 12.0,
+            ..default()
+        },
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5)),
     ));
 }
@@ -189,77 +250,149 @@ fn follow_cursor(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn update_tooltip(
     tooltip: Res<TooltipContent>,
-    root_q: Query<Entity, With<TooltipRoot>>,
+    root_q: Query<(Entity, Option<&Children>), With<TooltipRoot>>,
+    mut header_q: Query<&mut Text, (With<TooltipHeader>, Without<TooltipRoot>)>,
+    icons_q: Query<(Entity, Option<&Children>), (With<TooltipIcons>, Without<TooltipRoot>)>,
     mut commands: Commands,
     font: Option<Res<super::LaptopFont>>,
+    asset_server: Res<AssetServer>,
 ) {
     if !tooltip.is_changed() {
         return;
     }
     let Some(font) = font else { return };
-    let Ok(root_entity) = root_q.single() else { return };
+    let Ok((root_entity, root_children)) = root_q.single() else {
+        return;
+    };
     let f = font.0.clone();
 
-    // Build spans: (text, font_size, color)
-    let spans: Vec<(String, f32, Color)> = match &*tooltip {
-        TooltipContent::Hidden => vec![],
-        TooltipContent::Area {
-            faction_icon, name, creatures, creatures_tier,
-            radiation, radiation_tier, hazard_icon, hazard_image: _, hazard_count,
-            loot, loot_tier,
-        } => {
-            let haz = if *hazard_count > 0 {
-                format!(" {}", hazard_icon.repeat(*hazard_count as usize))
-            } else {
-                String::new()
-            };
-            vec![
-                (format!("{faction_icon} {name}{haz}"), 13.0, Color::WHITE),
-                (format!("\nCreatures: "), 11.0, COLOR_LABEL),
-                (creatures.clone(), 11.0, tier_color(creatures_tier)),
-                (format!("\nRadiation: "), 11.0, COLOR_LABEL),
-                (radiation.clone(), 11.0, tier_color(radiation_tier)),
-                (format!("\nLoot: "), 11.0, COLOR_LABEL),
-                (loot.clone(), 11.0, tier_color(loot_tier)),
-            ]
+    // Despawn old text span children
+    if let Some(children) = root_children {
+        for child in children.iter() {
+            commands.entity(child).despawn();
         }
-        TooltipContent::Npc {
-            faction_icon, name, faction, rank, status,
-        } => {
-            vec![
-                (format!("{faction_icon} {name}"), 13.0, Color::WHITE),
-                ("\nFaction: ".into(), 11.0, COLOR_LABEL),
-                (faction.clone(), 11.0, Color::srgb(0.7, 0.7, 0.7)),
-                ("\nRank: ".into(), 11.0, COLOR_LABEL),
-                (rank.clone(), 11.0, Color::srgb(0.8, 0.8, 0.6)),
-                ("\nStatus: ".into(), 11.0, COLOR_LABEL),
-                (status.clone(), 11.0, COLOR_LABEL),
-            ]
-        }
-    };
-
-    // Set root text to first span (or empty)
-    if let Some((first_text, first_size, first_color)) = spans.first() {
-        commands.entity(root_entity)
-            .insert(Text::new(first_text.clone()))
-            .insert(TextFont { font: f.clone(), font_size: *first_size, ..default() })
-            .insert(TextColor(*first_color));
-    } else {
-        commands.entity(root_entity).insert(Text::new(""));
     }
 
-    // Remove old TextSpan children
+    // Extract data before mutating
+    let header_text;
+    let hazard_img: Option<String>;
+    let hazard_n: u8;
+    let spans: Vec<(String, Color)>;
+
+    match &*tooltip {
+        TooltipContent::Hidden => {
+            header_text = String::new();
+            hazard_img = None;
+            hazard_n = 0;
+            spans = vec![];
+        }
+        TooltipContent::Area {
+            faction_icon,
+            name,
+            creatures,
+            creatures_tier,
+            radiation,
+            radiation_tier,
+            hazard_icon: _,
+            hazard_image,
+            hazard_count,
+            loot,
+            loot_tier,
+        } => {
+            header_text = format!("{faction_icon} {name}");
+            hazard_img = hazard_image.clone();
+            hazard_n = *hazard_count;
+            spans = vec![
+                ("Creatures: ".into(), COLOR_LABEL),
+                (creatures.clone(), tier_color(creatures_tier)),
+                ("\nRadiation: ".into(), COLOR_LABEL),
+                (radiation.clone(), tier_color(radiation_tier)),
+                ("\nLoot: ".into(), COLOR_LABEL),
+                (loot.clone(), tier_color(loot_tier)),
+            ];
+        }
+        TooltipContent::Npc {
+            faction_icon,
+            name,
+            faction,
+            rank,
+            status,
+        } => {
+            header_text = format!("{faction_icon} {name}");
+            hazard_img = None;
+            hazard_n = 0;
+            spans = vec![
+                ("Faction: ".into(), COLOR_LABEL),
+                (faction.clone(), Color::srgb(0.7, 0.7, 0.7)),
+                ("\nRank: ".into(), COLOR_LABEL),
+                (rank.clone(), Color::srgb(0.8, 0.8, 0.6)),
+                ("\nStatus: ".into(), COLOR_LABEL),
+                (status.clone(), COLOR_LABEL),
+            ];
+        }
+    }
+
+    // Update header text
+    for mut text in &mut header_q {
+        text.0 = header_text.clone();
+    }
+
+    // Update hazard icons
+    if let Ok((icons_entity, icon_children)) = icons_q.single() {
+        if let Some(children) = icon_children {
+            for child in children.iter() {
+                commands.entity(child).despawn();
+            }
+        }
+        commands.entity(icons_entity).clear_children();
+        if let Some(path) = &hazard_img {
+            let img: Handle<Image> = asset_server.load(path.clone());
+            for _ in 0..hazard_n {
+                let icon = commands
+                    .spawn((
+                        ImageNode {
+                            image: img.clone(),
+                            ..default()
+                        },
+                        Node {
+                            width: Val::Px(14.0),
+                            height: Val::Px(14.0),
+                            ..default()
+                        },
+                    ))
+                    .id();
+                commands.entity(icons_entity).add_child(icon);
+            }
+        }
+    }
+
+    // Update stat spans
+    commands
+        .entity(root_entity)
+        .insert(Text::new(""))
+        .insert(TextFont {
+            font: f.clone(),
+            font_size: 11.0,
+            ..default()
+        })
+        .insert(TextColor(COLOR_LABEL));
     commands.entity(root_entity).clear_children();
 
-    // Add remaining spans as children
-    for (text, size, color) in spans.iter().skip(1) {
-        let span = commands.spawn((
-            TextSpan::new(text.clone()),
-            TextFont { font: f.clone(), font_size: *size, ..default() },
-            TextColor(*color),
-        )).id();
+    for (text, color) in &spans {
+        let span = commands
+            .spawn((
+                TextSpan::new(text.clone()),
+                TextFont {
+                    font: f.clone(),
+                    font_size: 11.0,
+                    ..default()
+                },
+                TextColor(*color),
+            ))
+            .id();
         commands.entity(root_entity).add_child(span);
     }
 }

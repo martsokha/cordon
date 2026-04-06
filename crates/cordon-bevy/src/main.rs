@@ -2,6 +2,7 @@
 
 mod ai;
 mod bunker;
+mod debug;
 mod laptop;
 mod locale;
 mod world;
@@ -52,5 +53,6 @@ fn main() {
         .add_plugins(ai::AiPlugin)
         .add_plugins(bunker::BunkerPlugin)
         .add_plugins(laptop::LaptopPlugin)
+        .add_plugins(debug::DebugPlugin)
         .run();
 }

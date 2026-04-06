@@ -24,6 +24,9 @@ impl Default for CrtEnabled {
 #[derive(Component)]
 struct CrtOverlay;
 
+#[derive(Resource)]
+struct EnvironmentSpawned;
+
 pub struct EnvironmentPlugin;
 
 impl Plugin for EnvironmentPlugin {
@@ -35,7 +38,10 @@ impl Plugin for EnvironmentPlugin {
             Material2dPlugin::<AnomalyMaterial>::default(),
             Material2dPlugin::<CrtMaterial>::default(),
         ));
-        app.add_systems(OnEnter(PlayingState::Laptop), spawn_environment);
+        app.add_systems(
+            OnEnter(PlayingState::Laptop),
+            spawn_environment.run_if(not(resource_exists::<EnvironmentSpawned>)),
+        );
         app.add_systems(
             Update,
             (toggle_crt, sync_day_night).run_if(in_state(PlayingState::Laptop)),
@@ -193,6 +199,8 @@ fn spawn_environment(
         MeshMaterial2d(crt_mats.add(CrtMaterial {})),
         Transform::from_xyz(0.0, 0.0, 7.0),
     ));
+
+    commands.insert_resource(EnvironmentSpawned);
 }
 
 fn toggle_crt(crt: Res<CrtEnabled>, mut query: Query<&mut Visibility, With<CrtOverlay>>) {
