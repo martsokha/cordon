@@ -1,0 +1,82 @@
+//! Anomaly zone shader material and spawning.
+
+use bevy::prelude::*;
+use bevy::render::render_resource::AsBindGroup;
+use bevy::shader::ShaderRef;
+use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dPlugin};
+use cordon_core::primitive::{HazardType, Tier};
+use cordon_data::gamedata::GameDataResource;
+
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
+pub struct AnomalyMaterial {
+    #[uniform(0)]
+    pub hazard_type: f32,
+    #[uniform(0)]
+    pub intensity: f32,
+    #[uniform(0)]
+    pub _padding1: f32,
+    #[uniform(0)]
+    pub _padding2: f32,
+}
+
+impl Material2d for AnomalyMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/anomaly.wgsl".into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
+    }
+}
+
+pub struct AnomalyPlugin;
+
+impl Plugin for AnomalyPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins(Material2dPlugin::<AnomalyMaterial>::default());
+    }
+}
+
+fn tier_to_intensity(t: &Tier) -> f32 {
+    match t {
+        Tier::VeryLow => 0.2,
+        Tier::Low => 0.4,
+        Tier::Medium => 0.6,
+        Tier::High => 0.8,
+        Tier::VeryHigh => 1.0,
+    }
+}
+
+fn hazard_type_to_float(h: &HazardType) -> f32 {
+    match h {
+        HazardType::Chemical => 0.0,
+        HazardType::Thermal => 1.0,
+        HazardType::Electric => 2.0,
+        HazardType::Gravitational => 3.0,
+    }
+}
+
+pub fn spawn(
+    commands: &mut Commands,
+    game_data: &GameDataResource,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    anomaly_mats: &mut ResMut<Assets<AnomalyMaterial>>,
+) {
+    for area in game_data.0.areas.values() {
+        if let Some(hazard) = &area.danger.hazard {
+            let x = area.location.x;
+            let y = area.location.y;
+            let r = area.radius.value() * 1.2;
+            commands.spawn((
+                Mesh2d(meshes.add(Circle::new(r))),
+                MeshMaterial2d(anomaly_mats.add(AnomalyMaterial {
+                    hazard_type: hazard_type_to_float(&hazard.kind),
+                    intensity: tier_to_intensity(&hazard.intensity),
+                    _padding1: 0.0,
+                    _padding2: 0.0,
+                })),
+                Transform::from_xyz(x, y, 3.0),
+            ));
+        }
+    }
+}
