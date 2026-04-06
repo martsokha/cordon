@@ -19,11 +19,11 @@ fn noise(p: vec2<f32>) -> f32 {
     return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
 }
 
-fn fbm(p: vec2<f32>) -> f32 {
+fn fbm(p: vec2<f32>, octaves: i32) -> f32 {
     var value = 0.0;
     var amplitude = 0.5;
     var pos = p;
-    for (var i = 0; i < 6; i++) {
+    for (var i = 0; i < octaves; i++) {
         value += amplitude * noise(pos);
         pos *= 2.0;
         amplitude *= 0.5;
@@ -31,40 +31,50 @@ fn fbm(p: vec2<f32>) -> f32 {
     return value;
 }
 
-const PIXEL_SIZE: f32 = 4.0;
-
-fn pixelate(p: vec2<f32>) -> vec2<f32> {
-    return floor(p / PIXEL_SIZE) * PIXEL_SIZE;
-}
-
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let t = globals.time;
-    let world = pixelate(in.world_position.xy);
+    let world = in.world_position.xy;
 
-    // Large base layer
-    let uv1 = world * 0.006 + vec2<f32>(t * 0.08, t * 0.02);
-    // Medium layer drifting at a different angle
-    let uv2 = world * 0.012 + vec2<f32>(t * 0.06, t * 0.03) + 13.0;
-    // Small detail layer, fastest
-    let uv3 = world * 0.025 + vec2<f32>(t * 0.12, t * 0.04) + 37.0;
-
-    let n1 = fbm(uv1);
-    let n2 = fbm(uv2);
-    let n3 = fbm(uv3);
-    let combined = n1 * 0.4 + n2 * 0.35 + n3 * 0.25;
-    let cloud = smoothstep(0.48, 0.58, combined);
-
-    // Fade on edges
+    // Clamp to terrain bounds (5000x5000, ±2500)
     let edge = max(abs(world.x), abs(world.y));
-    let edge_fade = 1.0 - smoothstep(4000.0, 6000.0, edge);
+    if edge > 2500.0 {
+        discard;
+    }
+    let terrain_fade = 1.0 - smoothstep(2000.0, 2500.0, edge);
 
-    let white = vec3<f32>(0.88, 0.88, 0.92);
-    let alpha = cloud * edge_fade * 0.4;
+    // Large slow-moving cloud mass
+    let uv1 = world * 0.003 + vec2<f32>(t * 0.04, t * 0.01);
+    let n1 = fbm(uv1, 6);
 
-    if alpha < 0.01 {
+    // Medium wispy layer drifting at different angle
+    let uv2 = world * 0.007 + vec2<f32>(t * 0.03, t * 0.015) + 17.0;
+    let n2 = fbm(uv2, 5);
+
+    // Small fast detail wisps
+    let uv3 = world * 0.015 + vec2<f32>(t * 0.06, t * 0.02) + 41.0;
+    let n3 = fbm(uv3, 4);
+
+    // Combine: base shape from large, edges from medium, texture from small
+    let shape = n1 * 0.5 + n2 * 0.3 + n3 * 0.2;
+
+    // Cloud density with soft edges (wider smoothstep = softer clouds)
+    let density = smoothstep(0.42, 0.62, shape);
+
+    // Thinner wispy edges
+    let wisp = smoothstep(0.38, 0.55, shape) - density;
+
+    // Cloud color: slightly blue-gray shadows, brighter tops
+    let shadow = vec3<f32>(0.55, 0.55, 0.60);
+    let highlight = vec3<f32>(0.85, 0.85, 0.90);
+    let cloud_color = mix(shadow, highlight, smoothstep(0.45, 0.6, shape));
+
+    // Combine density and wisps
+    let alpha = (density * 0.35 + wisp * 0.12) * terrain_fade;
+
+    if alpha < 0.005 {
         discard;
     }
 
-    return vec4<f32>(white, alpha);
+    return vec4<f32>(cloud_color, alpha);
 }

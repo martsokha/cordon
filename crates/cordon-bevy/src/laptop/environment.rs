@@ -44,9 +44,17 @@ impl Material2d for CloudMaterial {
 fn spawn_environment(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
     mut terrain_mats: ResMut<Assets<TerrainMaterial>>,
     mut cloud_mats: ResMut<Assets<CloudMaterial>>,
 ) {
+    // Black background that extends far beyond the terrain
+    commands.spawn((
+        Mesh2d(meshes.add(Rectangle::new(50000.0, 50000.0))),
+        MeshMaterial2d(materials.add(ColorMaterial::from_color(Color::BLACK))),
+        Transform::from_xyz(0.0, 0.0, 0.0001),
+    ));
+
     commands.spawn((
         Mesh2d(meshes.add(Rectangle::new(5000.0, 5000.0))),
         MeshMaterial2d(terrain_mats.add(TerrainMaterial {})),
