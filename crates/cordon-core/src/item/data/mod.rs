@@ -9,16 +9,16 @@ mod relic;
 mod throwable;
 mod weapon;
 
-pub self::use ammo::AmmoData;
-pub use armor::{ArmorData, ArmorSlot};
-pub use attachment::AttachmentData;
-pub use consumable::ConsumableData;
-pub use document::DocumentData;
-pub use relic::{RelicData, RelicStability};
 use serde::{Deserialize, Serialize};
-pub use throwable::ThrowableData;
-pub use weapon::{FireMode, WeaponData};
 
+pub use self::ammo::AmmoData;
+pub use self::armor::{ArmorData, ArmorSlot};
+pub use self::attachment::AttachmentData;
+pub use self::consumable::ConsumableData;
+pub use self::document::DocumentData;
+pub use self::relic::{RelicData, RelicStability};
+pub use self::throwable::ThrowableData;
+pub use self::weapon::{FireMode, WeaponData};
 use super::category::ItemCategory;
 use crate::primitive::IdMarker;
 

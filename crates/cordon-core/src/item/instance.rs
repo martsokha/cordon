@@ -29,7 +29,7 @@ pub enum Authenticity {
 /// Relic stability is defined by the relic type in [`RelicData`](super::RelicData),
 /// not per-instance — it's an inherent property of that relic kind.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Item {
+pub struct ItemInstance {
     /// ID of the [`ItemDef`](super::ItemDef) this is an instance of.
     pub def_id: Id<ItemMarker>,
     /// Condition from 0.0 (destroyed/spoiled) to 1.0 (factory new/fresh).
@@ -40,7 +40,7 @@ pub struct Item {
     pub authenticity: Authenticity,
 }
 
-impl Item {
+impl ItemInstance {
     /// Create a new genuine item with the given condition.
     pub fn new(def_id: Id<ItemMarker>, condition: Condition) -> Self {
         Self {

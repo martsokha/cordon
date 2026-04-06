@@ -4,7 +4,7 @@ use cordon_core::entity::bunker::{Upgrade, UpgradeDef};
 use cordon_core::entity::faction::{Faction, FactionDef};
 use cordon_core::entity::name::{NamePool, NamePoolMarker};
 use cordon_core::entity::perk::{Perk, PerkDef};
-use cordon_core::item::{ItemDef, ItemMarker};
+use cordon_core::item::{Item, ItemDef};
 use cordon_core::primitive::Id;
 use cordon_core::world::area::{Area, AreaDef};
 use cordon_core::world::event::{Event, EventDef};
@@ -24,7 +24,7 @@ use cordon_core::world::narrative::quest::{Quest, QuestDef};
 /// All lookups are by typed ID aliases from [`cordon_core::primitive`].
 pub struct GameData {
     /// Item definitions keyed by item ID.
-    pub items: HashMap<Id<ItemMarker>, ItemDef>,
+    pub items: HashMap<Id<Item>, ItemDef>,
     /// Faction definitions keyed by faction ID.
     pub factions: HashMap<Id<Faction>, FactionDef>,
     /// Area definitions keyed by area ID.
@@ -45,7 +45,7 @@ pub struct GameData {
 
 impl GameData {
     /// Look up an item definition by ID.
-    pub fn item(&self, id: &Id<ItemMarker>) -> Option<&ItemDef> {
+    pub fn item(&self, id: &Id<Item>) -> Option<&ItemDef> {
         self.items.get(id)
     }
 

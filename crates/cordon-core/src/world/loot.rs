@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use super::area::Area;
-use crate::item::ItemMarker;
+use crate::item::Item;
 use crate::primitive::Id;
 
 /// A weighted entry in a loot table.
@@ -13,7 +13,7 @@ use crate::primitive::Id;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LootEntry {
     /// Item definition ID.
-    pub item_id: Id<ItemMarker>,
+    pub item_id: Id<Item>,
     /// Selection weight (higher = more likely).
     pub weight: u32,
     /// Minimum condition of dropped item (0.0–1.0).

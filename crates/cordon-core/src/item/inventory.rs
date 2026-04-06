@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::instance::Item;
+use super::instance::ItemInstance;
 
 /// A slot-based inventory. Each item occupies one slot.
 ///
@@ -13,7 +13,7 @@ pub struct Inventory {
     /// Maximum number of items this inventory can hold.
     capacity: u8,
     /// Items currently stored.
-    items: Vec<Item>,
+    items: Vec<ItemInstance>,
 }
 
 impl Inventory {
@@ -51,7 +51,7 @@ impl Inventory {
     }
 
     /// Try to add an item. Returns `Err(item)` if full.
-    pub fn add(&mut self, item: Item) -> Result<(), Item> {
+    pub fn add(&mut self, item: ItemInstance) -> Result<(), ItemInstance> {
         if self.is_full() {
             Err(item)
         } else {
@@ -61,7 +61,7 @@ impl Inventory {
     }
 
     /// Remove an item by index. Returns `None` if out of bounds.
-    pub fn remove(&mut self, index: usize) -> Option<Item> {
+    pub fn remove(&mut self, index: usize) -> Option<ItemInstance> {
         if index < self.items.len() {
             Some(self.items.remove(index))
         } else {
@@ -70,12 +70,12 @@ impl Inventory {
     }
 
     /// Get a reference to all items.
-    pub fn items(&self) -> &[Item] {
+    pub fn items(&self) -> &[ItemInstance] {
         &self.items
     }
 
     /// Get a mutable reference to all items.
-    pub fn items_mut(&mut self) -> &mut [Item] {
+    pub fn items_mut(&mut self) -> &mut [ItemInstance] {
         &mut self.items
     }
 

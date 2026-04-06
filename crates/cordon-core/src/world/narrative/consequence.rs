@@ -11,7 +11,7 @@ use super::quest::Quest;
 use crate::entity::bunker::Upgrade;
 use crate::entity::faction::Faction;
 use crate::entity::npc::{Npc, NpcTemplate};
-use crate::item::{Item, ItemCategory, ItemMarker};
+use crate::item::{Item, ItemCategory, ItemInstance};
 use crate::primitive::{Credits, Id, Relation, Uid};
 use crate::world::area::Area;
 use crate::world::event::Event;
@@ -23,7 +23,7 @@ use crate::world::event::Event;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ObjectiveCondition {
     /// Player must have a specific item in storage.
-    HaveItem(Id<ItemMarker>),
+    HaveItem(Id<Item>),
     /// Player must have at least this many credits.
     HaveCredits(Credits),
     /// Player must reach a minimum standing with a faction.
@@ -40,7 +40,7 @@ pub enum ObjectiveCondition {
     /// A specific quest must have been completed successfully.
     QuestCompleted(Id<Quest>),
     /// Player must deliver a specific item to the quest NPC.
-    DeliverItem(Id<ItemMarker>),
+    DeliverItem(Id<Item>),
     /// Simply wait (used with timeout_days on the stage).
     Wait,
 }
@@ -59,9 +59,9 @@ pub enum Consequence {
     /// Take credits from the player.
     TakeCredits(Credits),
     /// Give an item to the player (placed in storage).
-    GiveItem(Id<ItemMarker>),
+    GiveItem(Id<Item>),
     /// Remove an item from the player's storage.
-    TakeItem(Id<ItemMarker>),
+    TakeItem(Id<Item>),
     /// Trigger an event by its def ID.
     TriggerEvent(Id<Event>),
     /// Start a quest.

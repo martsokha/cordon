@@ -2,10 +2,10 @@
 
 pub mod behavior;
 
-use behavior::Action;
 use bevy::prelude::*;
 use moonshine_behavior::prelude::*;
 
+use self::behavior::Action;
 use crate::AppState;
 
 pub struct AiPlugin;

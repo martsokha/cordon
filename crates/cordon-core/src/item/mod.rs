@@ -12,12 +12,12 @@ mod effect;
 mod instance;
 mod inventory;
 
-pub use category::ItemCategory;
-pub use data::{
+pub use self::category::ItemCategory;
+pub use self::data::{
     AmmoData, ArmorData, ArmorSlot, AttachmentData, Caliber, ConsumableData, DocumentData,
     FireMode, ItemData, RelicData, RelicStability, ThrowableData, WeaponData,
 };
-pub use def::{Item as ItemMarker, ItemDef, Supplier};
-pub use effect::{Effect, EffectTarget};
-pub use instance::{Authenticity, Item};
-pub use inventory::Inventory;
+pub use self::def::{Item, ItemDef, Supplier};
+pub use self::effect::{Effect, EffectTarget};
+pub use self::instance::{Authenticity, ItemInstance};
+pub use self::inventory::Inventory;

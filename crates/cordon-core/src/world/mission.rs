@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use super::area::Area;
 use crate::entity::npc::Npc;
 use crate::entity::perk::Perk;
-use crate::item::{Item, ItemCategory};
+use crate::item::{ItemCategory, ItemInstance};
 use crate::primitive::{Day, Id, Location, Uid};
 
 /// What kind of mission a runner is being sent on.
@@ -23,7 +23,7 @@ pub enum MissionType {
     /// Bring goods to a buyer in another sector (guaranteed sale, transit risk).
     Delivery {
         /// Items being delivered.
-        items: Vec<Item>,
+        items: Vec<ItemInstance>,
         /// Destination area ID.
         to: Id<Area>,
     },
@@ -85,7 +85,7 @@ pub struct MissionResult {
     /// What happened.
     pub outcome: MissionOutcome,
     /// Items the runner brought back (empty on failure/lost).
-    pub loot: Vec<Item>,
+    pub loot: Vec<ItemInstance>,
     /// Change to the runner's condition (negative = damage).
     /// Applied via [`Condition::degrade()`](crate::primitive::Condition::degrade).
     pub runner_condition_delta: f32,
