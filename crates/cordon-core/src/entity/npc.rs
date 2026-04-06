@@ -10,6 +10,7 @@ use crate::entity::perk::Perk;
 use crate::item::Inventory;
 use crate::primitive::credits::Credits;
 use crate::primitive::experience::Experience;
+use crate::primitive::health::Health;
 use crate::primitive::id::{Id, IdMarker};
 use crate::primitive::uid::Uid;
 
@@ -58,7 +59,7 @@ pub enum Personality {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Npc {
     /// Unique runtime ID for this NPC instance.
-    pub id: Uid,
+    pub id: Uid<Npc>,
     /// Name stored as localization keys, resolved at display time.
     pub name: NpcName,
     /// Faction ID this NPC belongs to.
@@ -70,10 +71,8 @@ pub struct Npc {
 
     /// Items the NPC is carrying.
     pub inventory: Inventory,
-    /// Health (0.0–1.0). Drops from combat, radiation, hazards.
-    pub health: f32,
-    /// Stamina (0.0–1.0). Drops from missions, travel, overwork.
-    pub stamina: f32,
+    /// Health. Drops from combat, radiation, hazards.
+    pub health: Health,
 
     /// How much this NPC trusts the player (-1.0 to 1.0).
     pub trust: f32,

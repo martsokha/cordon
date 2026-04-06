@@ -113,7 +113,7 @@ pub trait NpcGenerator {
     /// Build a complete NPC from generated parts.
     fn generate<R: Rng>(
         &self,
-        id: Uid,
+        id: Uid<Npc>,
         faction: Id<Faction>,
         name_pool: &NamePool,
         rng: &mut R,
@@ -129,8 +129,7 @@ pub trait NpcGenerator {
             faction,
             xp,
             inventory: Inventory::new(self.inventory_slots(rank)),
-            health: 1.0,
-            stamina: 1.0,
+            health: cordon_core::primitive::health::Health::FULL,
             trust: 0.0,
             wealth,
             personality,

@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::entity::faction::Faction;
-use crate::entity::npc::Role;
+use crate::entity::npc::{Npc, Role};
 use crate::primitive::credits::Credits;
 use crate::primitive::experience::Experience;
 use crate::primitive::id::Id;
@@ -78,7 +78,7 @@ impl PlayerRank {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SquadMember {
     /// Runtime UID of the hired NPC.
-    pub npc_id: Uid,
+    pub npc_id: Uid<Npc>,
     /// Whether this NPC is a runner or guard.
     pub role: Role,
 }

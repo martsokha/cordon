@@ -5,6 +5,7 @@ use bevy_fluent::prelude::*;
 use bevy_lunex::prelude::*;
 use cordon_core::entity::faction::{Faction, RankScheme};
 use cordon_core::entity::name::{NameFormat, NpcName};
+use cordon_core::entity::npc::Npc;
 use cordon_core::primitive::hazard::HazardType;
 use cordon_core::primitive::id::Id;
 use cordon_core::primitive::tier::Tier;
@@ -13,8 +14,8 @@ use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
 
 use crate::AppState;
-use crate::ai::behavior::VisitorBehavior;
-use crate::locale::{l10n_or, GameLocalization};
+use crate::ai::behavior::{Action, Intent};
+use crate::locale::{GameLocalization, l10n_or};
 use crate::world::SimWorld;
 
 pub struct LaptopPlugin;
@@ -31,7 +32,13 @@ impl Plugin for LaptopPlugin {
         );
         app.add_systems(
             Update,
-            (follow_cursor, update_tooltip_ui, handle_npc_click, update_npc_selection, deselect_on_escape)
+            (
+                follow_cursor,
+                update_tooltip_ui,
+                handle_npc_click,
+                update_npc_selection,
+                deselect_on_escape,
+            )
                 .run_if(in_state(AppState::InGame)),
         );
     }
@@ -57,6 +64,7 @@ enum TooltipContent {
         name: String,
         faction: String,
         rank: String,
+        status: String,
     },
 }
 
@@ -84,7 +92,7 @@ struct AreaTooltipInfo {
 
 #[derive(Component)]
 struct NpcDot {
-    uid: Uid,
+    uid: Uid<Npc>,
 }
 
 #[derive(Component, Clone)]
@@ -99,7 +107,7 @@ struct NpcDotInfo {
 struct NpcFaction(Id<Faction>);
 
 #[derive(Resource, Default)]
-struct SelectedNpc(Option<Uid>);
+struct SelectedNpc(Option<Uid<Npc>>);
 
 #[derive(Component)]
 struct TooltipPanel;
@@ -192,6 +200,26 @@ fn rank_scheme_key(scheme: &RankScheme) -> &'static str {
         RankScheme::Religious => "religious",
         RankScheme::Academic => "academic",
     }
+}
+
+fn format_npc_status(action: &Action, intent: &Intent) -> String {
+    let doing = match action {
+        Action::Idle { .. } => "Idle",
+        Action::Walk { .. } => "Walking",
+        Action::Follow { .. } => "Following",
+        Action::Trade => "Trading",
+        Action::Flee { .. } => "Fleeing",
+    };
+    let goal = match intent {
+        Intent::Visit => "visiting",
+        Intent::Scavenge(_) => "scavenging",
+        Intent::Patrol(_) => "patrolling",
+        Intent::Quest(_) => "on a quest",
+        Intent::Escort(_) => "escorting",
+        Intent::Recruit => "looking for work",
+        Intent::Leave => "leaving",
+    };
+    format!("{doing} ({goal})")
 }
 
 fn resolve_npc_name(l10n: &Localization, name: &NpcName) -> String {
@@ -440,7 +468,11 @@ fn spawn_map(
         let npc_entity = commands
             .spawn((
                 NpcDot { uid: *uid },
-                VisitorBehavior::Arrive { target: idle_pos },
+                Action::Walk {
+                    target: idle_pos,
+                    speed: 15.0,
+                },
+                Intent::Visit,
                 NpcDotInfo {
                     faction_icon: faction_icon.clone(),
                     name: name_display,
@@ -457,14 +489,15 @@ fn spawn_map(
 
         commands.entity(npc_entity).observe(
             move |_: On<Pointer<Over>>,
-                  data_q: Query<&NpcDotInfo>,
+                  data_q: Query<(&NpcDotInfo, &Action, &Intent)>,
                   mut tooltip: ResMut<TooltipContent>| {
-                if let Ok(info) = data_q.get(npc_entity) {
+                if let Ok((info, action, intent)) = data_q.get(npc_entity) {
                     *tooltip = TooltipContent::Npc {
                         faction_icon: info.faction_icon.clone(),
                         name: info.name.clone(),
                         faction: info.faction.clone(),
                         rank: info.rank.clone(),
+                        status: format_npc_status(action, intent),
                     };
                 }
             },
@@ -475,7 +508,6 @@ fn spawn_map(
                 *tooltip = TooltipContent::Hidden;
             },
         );
-
     }
 
     info!(
@@ -649,6 +681,7 @@ fn update_tooltip_ui(
             name,
             faction,
             rank,
+            status,
         } => {
             for mut t in &mut header_q {
                 t.0 = format!("{faction_icon} {name}");
@@ -671,10 +704,11 @@ fn update_tooltip_ui(
                 c.0 = Color::WHITE;
             }
             for mut t in &mut r3_lbl {
-                t.0.clear();
+                t.0 = "Status:".into();
             }
-            for (mut t, _) in &mut r3_val {
-                t.0.clear();
+            for (mut t, mut c) in &mut r3_val {
+                t.0.clone_from(status);
+                c.0 = COLOR_LABEL;
             }
         }
     }
@@ -701,7 +735,7 @@ fn handle_npc_click(
     };
 
     let hit_radius = 20.0;
-    let mut closest: Option<(Uid, f32)> = None;
+    let mut closest: Option<(Uid<Npc>, f32)> = None;
     for (dot, transform) in &dots {
         let pos = transform.translation.truncate();
         let dist = pos.distance(cursor_world);

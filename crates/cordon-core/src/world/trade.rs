@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::entity::npc::Npc;
 use crate::item::Item;
 use crate::item::def::Item as ItemMarker;
 use crate::primitive::credits::Credits;
@@ -21,7 +22,7 @@ pub struct TradeItem {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TradeOffer {
     /// Runtime UID of the NPC involved in this trade.
-    pub npc_id: Uid,
+    pub npc_id: Uid<Npc>,
     /// Items the NPC is offering to sell.
     pub npc_selling: Vec<TradeItem>,
     /// Items the NPC wants to buy from the player.

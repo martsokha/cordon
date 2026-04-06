@@ -82,7 +82,7 @@ pub struct World {
     /// Live area states keyed by area ID.
     pub areas: HashMap<Id<Area>, AreaState>,
     /// All NPCs in the world keyed by runtime UID.
-    pub npcs: HashMap<Uid, Npc>,
+    pub npcs: HashMap<Uid<Npc>, Npc>,
     pub active_events: Vec<ActiveEvent>,
     pub active_missions: Vec<ActiveMission>,
     /// Quests currently in progress.
@@ -128,8 +128,8 @@ impl World {
     }
 
     /// Allocate a unique runtime ID for NPCs and missions.
-    pub fn alloc_uid(&mut self) -> Uid {
-        let uid = Uid(self.next_uid);
+    pub fn alloc_uid<T: 'static>(&mut self) -> Uid<T> {
+        let uid = Uid::new(self.next_uid);
         self.next_uid += 1;
         uid
     }

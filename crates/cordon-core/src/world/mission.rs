@@ -7,6 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::entity::npc::Npc;
 use crate::entity::perk::Perk;
 use crate::item::{Item, ItemCategory};
 use crate::primitive::id::Id;
@@ -52,9 +53,9 @@ pub enum MissionOutcome {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MissionPlan {
     /// Unique mission ID.
-    pub id: Uid,
+    pub id: Uid<MissionPlan>,
     /// Runtime UID of the runner being sent.
-    pub runner_id: Uid,
+    pub runner_id: Uid<Npc>,
     /// Destination area ID.
     pub destination: Id<Area>,
     /// What kind of mission this is.
@@ -83,7 +84,7 @@ pub struct ActiveMission {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MissionResult {
     /// ID of the mission that completed.
-    pub mission_id: Uid,
+    pub mission_id: Uid<MissionPlan>,
     /// What happened.
     pub outcome: MissionOutcome,
     /// Items the runner brought back (empty on failure/lost).

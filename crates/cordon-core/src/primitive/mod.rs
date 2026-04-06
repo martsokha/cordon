@@ -16,6 +16,9 @@ pub mod environment;
 /// Experience points for players and NPCs.
 pub mod experience;
 
+/// NPC health value (0.0–1.0).
+pub mod health;
+
 /// Environmental hazard types in the Zone.
 pub mod hazard;
 

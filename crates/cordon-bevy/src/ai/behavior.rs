@@ -1,93 +1,131 @@
-//! NPC visitor behavior using moonshine_behavior.
+//! NPC behavior: Action (state machine) + Intent (goal).
 
 use bevy::prelude::*;
+use cordon_core::entity::npc::Npc;
+use cordon_core::primitive::id::Id;
+use cordon_core::primitive::uid::Uid;
+use cordon_core::world::area::Area;
+use cordon_core::world::narrative::quest::Quest;
 use moonshine_behavior::prelude::*;
 
-/// Visitor NPC behavior states.
+/// What the NPC is physically doing right now.
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
-pub enum VisitorBehavior {
-    /// Walking toward the bunker from spawn point.
-    Arrive { target: Vec2 },
-    /// Milling around near the bunker.
+pub enum Action {
+    /// Standing around, waiting.
     Idle { timer: f32 },
-    /// Walking to the trading counter.
-    Approach { target: Vec2 },
-    /// At the counter, ready to trade.
+    /// Moving toward a point.
+    Walk { target: Vec2, speed: f32 },
+    /// Following another NPC.
+    Follow {
+        #[reflect(ignore)]
+        target: Uid<Npc>,
+    },
+    /// At the counter, engaged in trade.
     Trade,
-    /// Walking away, will despawn at edge.
-    Leave { target: Vec2 },
+    /// Running from danger.
+    Flee { target: Vec2 },
 }
 
-impl Behavior for VisitorBehavior {
+impl Behavior for Action {
     fn filter_next(&self, next: &Self) -> bool {
-        use VisitorBehavior::*;
+        use Action::*;
         match_next! {
             self => next,
-            Arrive { .. } => Idle { .. },
-            Idle { .. } => Approach { .. } | Leave { .. },
-            Approach { .. } => Trade,
-            Trade => Leave { .. }
+            Idle { .. } => Walk { .. } | Trade | Follow { .. } | Flee { .. },
+            Walk { .. } => Idle { .. } | Trade | Follow { .. } | Flee { .. },
+            Follow { .. } => Idle { .. } | Walk { .. } | Flee { .. },
+            Trade => Idle { .. } | Walk { .. } | Flee { .. },
+            Flee { .. } => Idle { .. } | Walk { .. }
         }
     }
 }
 
-/// Move NPC dots toward their behavior target.
-pub fn drive_visitor_behavior(
-    time: Res<Time>,
-    mut query: Query<(BehaviorMut<VisitorBehavior>, &mut Transform)>,
-) {
+/// Why the NPC is doing what they're doing.
+#[derive(Component, Debug, Clone)]
+pub enum Intent {
+    /// Came to trade at the bunker.
+    Visit,
+    /// Heading to an area to scavenge loot.
+    Scavenge(Id<Area>),
+    /// Faction patrol route.
+    Patrol(Id<Area>),
+    /// Pursuing a quest objective.
+    Quest(Id<Quest>),
+    /// Escorting another NPC.
+    Escort(Uid<Npc>),
+    /// Looking for work at the bunker.
+    Recruit,
+    /// Done, heading out of the map.
+    Leave,
+}
+
+/// Drive NPC actions based on their current state.
+pub fn drive_actions(time: Res<Time>, mut query: Query<(BehaviorMut<Action>, &mut Transform)>) {
     let dt = time.delta_secs();
 
     for (mut behavior, mut transform) in &mut query {
         let pos = transform.translation.truncate();
 
         match behavior.current_mut() {
-            VisitorBehavior::Arrive { target } => {
-                let dir = (*target - pos).normalize_or_zero();
-                let speed = 15.0;
-                transform.translation.x += dir.x * speed * dt;
-                transform.translation.y += dir.y * speed * dt;
-
-                if pos.distance(*target) < 2.0 {
-                    let idle_time = 3.0 + (pos.x * 100.0).sin().abs() * 4.0;
-                    let _ = behavior.try_start(VisitorBehavior::Idle { timer: idle_time });
-                }
-            }
-            VisitorBehavior::Idle { timer } => {
+            Action::Idle { timer } => {
                 *timer -= dt;
-                let wander = Vec2::new(
-                    (time.elapsed_secs() * 0.3 + pos.x * 0.1).sin() * 2.0,
-                    (time.elapsed_secs() * 0.25 + pos.y * 0.1).cos() * 2.0,
-                );
+                let phase = time.elapsed_secs() * 0.3 + pos.x * 0.1;
+                let wander = Vec2::new(phase.sin() * 2.0, (phase * 0.7).cos() * 2.0);
                 transform.translation.x += wander.x * dt;
                 transform.translation.y += wander.y * dt;
+            }
+            Action::Walk { target, speed } => {
+                let dir = (*target - pos).normalize_or_zero();
+                transform.translation.x += dir.x * *speed * dt;
+                transform.translation.y += dir.y * *speed * dt;
+            }
+            Action::Follow { .. } => {
+                // TODO: look up target transform, move toward it
+            }
+            Action::Trade => {}
+            Action::Flee { target } => {
+                let dir = (*target - pos).normalize_or_zero();
+                let speed = 20.0;
+                transform.translation.x += dir.x * speed * dt;
+                transform.translation.y += dir.y * speed * dt;
+            }
+        }
+    }
+}
 
-                if *timer <= 0.0 {
+/// Transition NPCs between actions based on their intent.
+pub fn drive_intents(mut query: Query<(BehaviorMut<Action>, &Intent, &Transform)>) {
+    for (mut behavior, intent, transform) in &mut query {
+        let pos = transform.translation.truncate();
+
+        match behavior.current() {
+            Action::Idle { timer } if *timer <= 0.0 => match intent {
+                Intent::Visit => {
                     let counter = Vec2::new(8.0, 0.0);
-                    let _ = behavior.try_start(VisitorBehavior::Approach { target: counter });
+                    let _ = behavior.try_start(Action::Walk {
+                        target: counter,
+                        speed: 10.0,
+                    });
                 }
-            }
-            VisitorBehavior::Approach { target } => {
-                let dir = (*target - pos).normalize_or_zero();
-                let speed = 10.0;
-                transform.translation.x += dir.x * speed * dt;
-                transform.translation.y += dir.y * speed * dt;
-
-                if pos.distance(*target) < 2.0 {
-                    let _ = behavior.try_start(VisitorBehavior::Trade);
+                Intent::Leave => {
+                    let exit = pos.normalize_or_zero() * 100.0;
+                    let _ = behavior.try_start(Action::Walk {
+                        target: exit,
+                        speed: 12.0,
+                    });
                 }
-            }
-            VisitorBehavior::Trade => {
-                // Stays here until player interacts or timeout
-                // For now, trade for a few seconds then leave
-            }
-            VisitorBehavior::Leave { target } => {
-                let dir = (*target - pos).normalize_or_zero();
-                let speed = 12.0;
-                transform.translation.x += dir.x * speed * dt;
-                transform.translation.y += dir.y * speed * dt;
-            }
+                _ => {}
+            },
+            Action::Walk { target, .. } if pos.distance(*target) < 2.0 => match intent {
+                Intent::Visit => {
+                    let _ = behavior.try_start(Action::Trade);
+                }
+                _ => {
+                    let _ = behavior.try_start(Action::Idle { timer: 2.0 });
+                }
+            },
+            _ => {}
         }
     }
 }

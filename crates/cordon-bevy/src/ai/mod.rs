@@ -2,22 +2,23 @@
 
 pub mod behavior;
 
+use behavior::Action;
 use bevy::prelude::*;
 use moonshine_behavior::prelude::*;
 
 use crate::AppState;
-use behavior::VisitorBehavior;
 
 pub struct AiPlugin;
 
 impl Plugin for AiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(BehaviorPlugin::<VisitorBehavior>::default());
+        app.add_plugins(BehaviorPlugin::<Action>::default());
         app.add_systems(
             Update,
             (
-                transition::<VisitorBehavior>,
-                behavior::drive_visitor_behavior,
+                transition::<Action>,
+                behavior::drive_actions,
+                behavior::drive_intents,
             )
                 .chain()
                 .run_if(in_state(AppState::InGame)),
