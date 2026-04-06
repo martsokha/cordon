@@ -73,10 +73,9 @@ fn apply_camera(
     let half_map = 2500.0;
     for (mut transform, mut proj) in &mut camera_q {
         let current = transform.translation.truncate();
-        let new_pos = current.lerp(goal, factor).clamp(
-            Vec2::splat(-half_map),
-            Vec2::splat(half_map),
-        );
+        let new_pos = current
+            .lerp(goal, factor)
+            .clamp(Vec2::splat(-half_map), Vec2::splat(half_map));
         transform.translation.x = new_pos.x;
         transform.translation.y = new_pos.y;
 

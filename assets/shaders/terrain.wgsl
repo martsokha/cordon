@@ -32,18 +32,25 @@ fn fbm(p: vec2<f32>) -> f32 {
     return value;
 }
 
+const PIXEL_SIZE: f32 = 4.0;
+
+fn pixelate(p: vec2<f32>) -> vec2<f32> {
+    return floor(p / PIXEL_SIZE) * PIXEL_SIZE;
+}
+
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    let uv = in.world_position.xy * 0.003;
+    let snapped = pixelate(in.world_position.xy);
+    let uv = snapped * 0.003;
 
     let n = fbm(uv);
     let detail = fbm(uv * 3.0 + 7.0);
 
     // Base terrain colors (very dark, desaturated Zone palette)
-    let dark_green = vec3<f32>(0.05, 0.07, 0.04);
-    let mid_green = vec3<f32>(0.07, 0.09, 0.06);
-    let olive = vec3<f32>(0.08, 0.08, 0.06);
-    let brown = vec3<f32>(0.07, 0.06, 0.05);
+    let dark_green = vec3<f32>(0.03, 0.04, 0.03);
+    let mid_green = vec3<f32>(0.05, 0.06, 0.04);
+    let olive = vec3<f32>(0.06, 0.05, 0.04);
+    let brown = vec3<f32>(0.04, 0.04, 0.03);
 
     // Blend terrain types
     var color = mix(dark_green, mid_green, n);

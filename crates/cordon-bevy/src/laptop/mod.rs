@@ -46,7 +46,7 @@ impl Plugin for LaptopPlugin {
     }
 }
 
-use ui::{TooltipContent, spawn_tooltip_panel};
+use ui::{LaptopFont, TooltipContent, spawn_tooltip_panel};
 
 #[derive(Component)]
 struct Bunker;
@@ -92,7 +92,7 @@ struct SelectedNpc(Option<Uid<Npc>>);
 const COLOR_AREA: Color = Color::srgba(1.0, 1.0, 1.0, 0.08);
 const COLOR_AREA_BORDER: Color = Color::srgba(1.0, 1.0, 1.0, 0.25);
 const COLOR_AREA_HOVER: Color = Color::srgba(1.0, 1.0, 1.0, 0.15);
-const COLOR_NPC: Color = Color::srgb(0.5, 0.5, 0.5);
+const COLOR_NPC: Color = Color::srgb(0.7, 0.7, 0.7);
 const COLOR_NPC_SELECTED: Color = Color::srgb(1.0, 0.9, 0.3);
 const COLOR_NPC_SQUAD: Color = Color::srgb(0.7, 0.6, 0.25);
 fn hazard_icon(h: &HazardType) -> &'static str {
@@ -226,6 +226,7 @@ fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
 fn spawn_map(
     game_data: Res<GameDataResource>,
     sim_world: Res<SimWorld>,
+    laptop_font: Res<LaptopFont>,
     l10n: Option<Res<GameLocalization>>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -235,7 +236,7 @@ fn spawn_map(
     let empty_l10n = Localization::default();
     let l10n = l10n.as_ref().map(|r| &r.0).unwrap_or(&empty_l10n);
 
-    spawn_tooltip_panel(&mut commands);
+    spawn_tooltip_panel(&mut commands, &laptop_font.0);
 
     for area in data.areas.values() {
         let x = area.location.x;
@@ -357,7 +358,9 @@ fn spawn_map(
         let npc_entity = commands
             .spawn((
                 NpcDot { uid: *uid },
-                Action::Idle { timer: 2.0 + (i as f32 % 5.0) },
+                Action::Idle {
+                    timer: 2.0 + (i as f32 % 5.0),
+                },
                 intent,
                 IntentPhase::Approach,
                 NpcDotInfo {

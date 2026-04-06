@@ -5,16 +5,25 @@ use cordon_core::primitive::tier::Tier;
 
 use crate::AppState;
 
+/// Font handle for all laptop UI text.
+#[derive(Resource)]
+pub struct LaptopFont(pub Handle<Font>);
+
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(TooltipContent::default());
+        app.add_systems(Startup, load_font);
         app.add_systems(
             Update,
             (follow_cursor, update_tooltip_ui).run_if(in_state(AppState::InGame)),
         );
     }
+}
+
+fn load_font(mut commands: Commands, server: Res<AssetServer>) {
+    commands.insert_resource(LaptopFont(server.load("fonts/PTMono-Regular.ttf")));
 }
 
 #[derive(Resource, Default)]
@@ -78,16 +87,19 @@ pub fn tier_color(t: &Tier) -> Color {
 }
 
 /// Spawn the tooltip panel as a UI entity. Call from spawn_map.
-pub fn spawn_tooltip_panel(commands: &mut Commands) {
+pub fn spawn_tooltip_panel(commands: &mut Commands, font: &Handle<Font>) {
     let hdr_font = TextFont {
+        font: font.clone(),
         font_size: 14.0,
         ..default()
     };
     let lbl_font = TextFont {
+        font: font.clone(),
         font_size: 11.0,
         ..default()
     };
     let val_font = TextFont {
+        font: font.clone(),
         font_size: 12.0,
         ..default()
     };

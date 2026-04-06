@@ -31,10 +31,16 @@ fn fbm(p: vec2<f32>) -> f32 {
     return value;
 }
 
+const PIXEL_SIZE: f32 = 4.0;
+
+fn pixelate(p: vec2<f32>) -> vec2<f32> {
+    return floor(p / PIXEL_SIZE) * PIXEL_SIZE;
+}
+
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let t = globals.time;
-    let world = in.world_position.xy;
+    let world = pixelate(in.world_position.xy);
 
     // Large base layer
     let uv1 = world * 0.006 + vec2<f32>(t * 0.08, t * 0.02);
