@@ -1,5 +1,8 @@
 //! Laptop view: the Zone map with areas, bunker, and NPC dots.
 
+mod controls;
+mod ui;
+
 use bevy::prelude::*;
 use bevy_fluent::prelude::*;
 use bevy_lunex::prelude::*;
@@ -14,7 +17,7 @@ use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
 
 use crate::AppState;
-use crate::ai::behavior::{Action, Intent};
+use crate::ai::behavior::{Action, Intent, IntentPhase, pick_intent};
 use crate::locale::{GameLocalization, l10n_or};
 use crate::world::SimWorld;
 
@@ -22,8 +25,7 @@ pub struct LaptopPlugin;
 
 impl Plugin for LaptopPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(UiLunexPlugins);
-        app.insert_resource(TooltipContent::default());
+        app.add_plugins((UiLunexPlugins, controls::ControlsPlugin, ui::UiPlugin));
         app.insert_resource(SelectedNpc::default());
         app.add_systems(Startup, setup_camera);
         app.add_systems(
@@ -32,41 +34,13 @@ impl Plugin for LaptopPlugin {
         );
         app.add_systems(
             Update,
-            (
-                follow_cursor,
-                update_tooltip_ui,
-                handle_npc_click,
-                update_npc_selection,
-                deselect_on_escape,
-            )
+            (handle_npc_click, update_npc_selection, deselect_on_escape)
                 .run_if(in_state(AppState::InGame)),
         );
     }
 }
 
-#[derive(Resource, Default)]
-enum TooltipContent {
-    #[default]
-    Hidden,
-    Area {
-        faction_icon: String,
-        name: String,
-        creatures: String,
-        creatures_tier: Tier,
-        radiation: String,
-        radiation_tier: Tier,
-        hazard_icon: String,
-        loot: String,
-        loot_tier: Tier,
-    },
-    Npc {
-        faction_icon: String,
-        name: String,
-        faction: String,
-        rank: String,
-        status: String,
-    },
-}
+use ui::{TooltipContent, spawn_tooltip_panel};
 
 #[derive(Component)]
 struct Bunker;
@@ -109,49 +83,12 @@ struct NpcFaction(Id<Faction>);
 #[derive(Resource, Default)]
 struct SelectedNpc(Option<Uid<Npc>>);
 
-#[derive(Component)]
-struct TooltipPanel;
-
-#[derive(Component)]
-struct TtHeader;
-
-#[derive(Component)]
-struct TtRow1Label;
-#[derive(Component)]
-struct TtRow1Value;
-
-#[derive(Component)]
-struct TtRow2Label;
-#[derive(Component)]
-struct TtRow2Value;
-
-#[derive(Component)]
-struct TtHazardIcon;
-
-#[derive(Component)]
-struct TtRow3Label;
-#[derive(Component)]
-struct TtRow3Value;
-
-const COLOR_BUNKER: Color = Color::srgb(1.0, 0.8, 0.2);
 const COLOR_AREA: Color = Color::srgba(0.3, 0.6, 0.3, 0.15);
 const COLOR_AREA_BORDER: Color = Color::srgba(0.3, 0.6, 0.3, 0.5);
 const COLOR_AREA_HOVER: Color = Color::srgba(0.4, 0.8, 0.4, 0.25);
-const COLOR_NPC: Color = Color::srgb(0.7, 0.7, 0.7);
+const COLOR_NPC: Color = Color::srgb(0.85, 0.85, 0.85);
 const COLOR_NPC_SELECTED: Color = Color::srgb(1.0, 0.9, 0.3);
 const COLOR_NPC_SQUAD: Color = Color::srgb(0.9, 0.75, 0.3);
-const COLOR_LABEL: Color = Color::srgba(0.6, 0.6, 0.6, 1.0);
-
-fn tier_color(t: &Tier) -> Color {
-    match t {
-        Tier::VeryLow => Color::srgb(0.5, 0.8, 0.5),
-        Tier::Low => Color::srgb(0.7, 0.9, 0.4),
-        Tier::Medium => Color::srgb(1.0, 0.85, 0.3),
-        Tier::High => Color::srgb(1.0, 0.5, 0.2),
-        Tier::VeryHigh => Color::srgb(1.0, 0.25, 0.25),
-    }
-}
-
 fn hazard_icon(h: &HazardType) -> &'static str {
     match h {
         HazardType::Chemical => "X",
@@ -180,6 +117,10 @@ fn setup_camera(mut commands: Commands) {
         Camera2d,
         UiSourceCamera::<0>,
         Transform::from_xyz(0.0, -100.0, 1000.0),
+        Projection::Orthographic(OrthographicProjection {
+            scale: 1.0,
+            ..OrthographicProjection::default_2d()
+        }),
     ));
 }
 
@@ -207,13 +148,13 @@ fn format_npc_status(action: &Action, intent: &Intent) -> String {
         Action::Idle { .. } => "Idle",
         Action::Walk { .. } => "Walking",
         Action::Follow { .. } => "Following",
-        Action::Trade => "Trading",
+        Action::Trade { .. } => "Trading",
         Action::Flee { .. } => "Fleeing",
     };
     let goal = match intent {
         Intent::Visit => "visiting",
-        Intent::Scavenge(_) => "scavenging",
-        Intent::Patrol(_) => "patrolling",
+        Intent::Scavenge { .. } => "scavenging",
+        Intent::Patrol { .. } => "patrolling",
         Intent::Quest(_) => "on a quest",
         Intent::Escort(_) => "escorting",
         Intent::Recruit => "looking for work",
@@ -288,78 +229,7 @@ fn spawn_map(
     let empty_l10n = Localization::default();
     let l10n = l10n.as_ref().map(|r| &r.0).unwrap_or(&empty_l10n);
 
-    let hdr_font = TextFont {
-        font_size: 14.0,
-        ..default()
-    };
-    let lbl_font = TextFont {
-        font_size: 11.0,
-        ..default()
-    };
-    let val_font = TextFont {
-        font_size: 12.0,
-        ..default()
-    };
-
-    let mut panel = commands.spawn((
-        TooltipPanel,
-        Node {
-            position_type: PositionType::Absolute,
-            flex_direction: FlexDirection::Column,
-            padding: UiRect::all(Val::Px(10.0)),
-            row_gap: Val::Px(3.0),
-            min_width: Val::Px(200.0),
-            ..default()
-        },
-        Visibility::Hidden,
-    ));
-    panel
-        .insert(BackgroundColor(Color::srgba(0.06, 0.06, 0.1, 0.93)))
-        .insert(GlobalZIndex(100));
-    panel.with_children(|p| {
-        p.spawn(Node {
-            flex_direction: FlexDirection::Row,
-            justify_content: JustifyContent::SpaceBetween,
-            ..default()
-        })
-        .with_children(|row| {
-            row.spawn((
-                TtHeader,
-                Text::new(""),
-                hdr_font.clone(),
-                TextColor(Color::WHITE),
-            ));
-            row.spawn((
-                TtHazardIcon,
-                Text::new(""),
-                hdr_font.clone(),
-                TextColor(Color::WHITE),
-            ));
-        });
-
-        p.spawn(Node {
-            height: Val::Px(4.0),
-            ..default()
-        });
-
-        spawn_stat_row(
-            p,
-            "Creatures",
-            TtRow1Label,
-            TtRow1Value,
-            &lbl_font,
-            &val_font,
-        );
-        spawn_stat_row(
-            p,
-            "Radiation",
-            TtRow2Label,
-            TtRow2Value,
-            &lbl_font,
-            &val_font,
-        );
-        spawn_stat_row(p, "Loot", TtRow3Label, TtRow3Value, &lbl_font, &val_font);
-    });
+    spawn_tooltip_panel(&mut commands);
 
     for area in data.areas.values() {
         let x = area.location.x;
@@ -429,14 +299,20 @@ fn spawn_map(
 
     commands.spawn((
         Bunker,
-        Mesh2d(meshes.add(Rectangle::new(16.0, 16.0))),
-        MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_BUNKER))),
+        Mesh2d(meshes.add(Circle::new(10.0))),
+        MeshMaterial2d(materials.add(ColorMaterial::from_color(Color::WHITE))),
         Transform::from_xyz(0.0, 0.0, 1.0),
     ));
 
+    let area_positions: Vec<Vec2> = data
+        .areas
+        .values()
+        .map(|a| Vec2::new(a.location.x, a.location.y))
+        .collect();
+
     let bunker_pos = Vec2::ZERO;
     let spawn_radius = 80.0;
-    let dot_size = 4.0;
+    let dot_size = 6.0;
     let hit_size = 20.0;
     for (i, (uid, npc)) in sim_world.0.npcs.iter().enumerate() {
         let angle = (i as f32) * 2.39996;
@@ -472,7 +348,12 @@ fn spawn_map(
                     target: idle_pos,
                     speed: 15.0,
                 },
-                Intent::Visit,
+                pick_intent(
+                    npc,
+                    &area_positions,
+                    data.faction(&npc.faction).is_some_and(|f| f.recruitable),
+                ),
+                IntentPhase::Approach,
                 NpcDotInfo {
                     faction_icon: faction_icon.clone(),
                     name: name_display,
@@ -515,203 +396,6 @@ fn spawn_map(
         data.areas.len(),
         sim_world.0.npcs.len()
     );
-}
-
-fn spawn_stat_row(
-    parent: &mut bevy::prelude::ChildSpawnerCommands,
-    label: &str,
-    lbl_marker: impl Component,
-    val_marker: impl Component,
-    lbl_font: &TextFont,
-    val_font: &TextFont,
-) {
-    parent
-        .spawn(Node {
-            flex_direction: FlexDirection::Row,
-            justify_content: JustifyContent::SpaceBetween,
-            ..default()
-        })
-        .with_children(|row| {
-            row.spawn((
-                lbl_marker,
-                Text::new(format!("{label}:")),
-                lbl_font.clone(),
-                TextColor(COLOR_LABEL),
-            ));
-            row.spawn((
-                val_marker,
-                Text::new(""),
-                val_font.clone(),
-                TextColor(Color::WHITE),
-            ));
-        });
-}
-
-fn follow_cursor(
-    tooltip: Res<TooltipContent>,
-    windows: Query<&Window>,
-    mut panel_q: Query<(&mut Node, &mut Visibility), With<TooltipPanel>>,
-) {
-    let cursor = windows
-        .single()
-        .ok()
-        .and_then(|w| w.cursor_position())
-        .unwrap_or_default();
-    let visible = !matches!(*tooltip, TooltipContent::Hidden);
-    for (mut node, mut vis) in &mut panel_q {
-        if visible {
-            *vis = Visibility::Visible;
-            node.left = Val::Px(cursor.x + 16.0);
-            node.top = Val::Px(cursor.y + 16.0);
-        } else {
-            *vis = Visibility::Hidden;
-        }
-    }
-}
-
-#[allow(clippy::type_complexity)]
-fn update_tooltip_ui(
-    tooltip: Res<TooltipContent>,
-    mut header_q: Query<&mut Text, (With<TtHeader>, Without<TtHazardIcon>)>,
-    mut hazard_q: Query<&mut Text, (With<TtHazardIcon>, Without<TtHeader>)>,
-    mut r1_lbl: Query<&mut Text, (With<TtRow1Label>, Without<TtHeader>, Without<TtHazardIcon>)>,
-    mut r1_val: Query<
-        (&mut Text, &mut TextColor),
-        (
-            With<TtRow1Value>,
-            Without<TtHeader>,
-            Without<TtHazardIcon>,
-            Without<TtRow1Label>,
-        ),
-    >,
-    mut r2_lbl: Query<
-        &mut Text,
-        (
-            With<TtRow2Label>,
-            Without<TtHeader>,
-            Without<TtHazardIcon>,
-            Without<TtRow1Label>,
-            Without<TtRow1Value>,
-        ),
-    >,
-    mut r2_val: Query<
-        (&mut Text, &mut TextColor),
-        (
-            With<TtRow2Value>,
-            Without<TtHeader>,
-            Without<TtHazardIcon>,
-            Without<TtRow1Label>,
-            Without<TtRow1Value>,
-            Without<TtRow2Label>,
-        ),
-    >,
-    mut r3_lbl: Query<
-        &mut Text,
-        (
-            With<TtRow3Label>,
-            Without<TtHeader>,
-            Without<TtHazardIcon>,
-            Without<TtRow1Label>,
-            Without<TtRow1Value>,
-            Without<TtRow2Label>,
-            Without<TtRow2Value>,
-        ),
-    >,
-    mut r3_val: Query<
-        (&mut Text, &mut TextColor),
-        (
-            With<TtRow3Value>,
-            Without<TtHeader>,
-            Without<TtHazardIcon>,
-            Without<TtRow1Label>,
-            Without<TtRow1Value>,
-            Without<TtRow2Label>,
-            Without<TtRow2Value>,
-            Without<TtRow3Label>,
-        ),
-    >,
-) {
-    if !tooltip.is_changed() || matches!(*tooltip, TooltipContent::Hidden) {
-        return;
-    }
-
-    match &*tooltip {
-        TooltipContent::Hidden => {}
-        TooltipContent::Area {
-            faction_icon,
-            name,
-            creatures,
-            creatures_tier,
-            radiation,
-            radiation_tier,
-            hazard_icon,
-            loot,
-            loot_tier,
-        } => {
-            for mut t in &mut header_q {
-                t.0 = format!("{faction_icon} {name}");
-            }
-            for mut t in &mut hazard_q {
-                t.0.clone_from(hazard_icon);
-            }
-            for mut t in &mut r1_lbl {
-                t.0 = "Creatures:".into();
-            }
-            for (mut t, mut c) in &mut r1_val {
-                t.0.clone_from(creatures);
-                c.0 = tier_color(creatures_tier);
-            }
-            for mut t in &mut r2_lbl {
-                t.0 = "Radiation:".into();
-            }
-            for (mut t, mut c) in &mut r2_val {
-                t.0.clone_from(radiation);
-                c.0 = tier_color(radiation_tier);
-            }
-            for mut t in &mut r3_lbl {
-                t.0 = "Loot:".into();
-            }
-            for (mut t, mut c) in &mut r3_val {
-                t.0.clone_from(loot);
-                c.0 = tier_color(loot_tier);
-            }
-        }
-        TooltipContent::Npc {
-            faction_icon,
-            name,
-            faction,
-            rank,
-            status,
-        } => {
-            for mut t in &mut header_q {
-                t.0 = format!("{faction_icon} {name}");
-            }
-            for mut t in &mut hazard_q {
-                t.0.clear();
-            }
-            for mut t in &mut r1_lbl {
-                t.0 = "Faction:".into();
-            }
-            for (mut t, mut c) in &mut r1_val {
-                t.0.clone_from(faction);
-                c.0 = Color::WHITE;
-            }
-            for mut t in &mut r2_lbl {
-                t.0 = "Rank:".into();
-            }
-            for (mut t, mut c) in &mut r2_val {
-                t.0.clone_from(rank);
-                c.0 = Color::WHITE;
-            }
-            for mut t in &mut r3_lbl {
-                t.0 = "Status:".into();
-            }
-            for (mut t, mut c) in &mut r3_val {
-                t.0.clone_from(status);
-                c.0 = COLOR_LABEL;
-            }
-        }
-    }
 }
 
 fn handle_npc_click(
