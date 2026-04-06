@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 
+mod ai;
 mod laptop;
+mod locale;
 mod world;
 
 use bevy::asset::AssetPlugin;
@@ -35,7 +37,9 @@ fn main() {
             loading: AppState::Loading,
             ready: AppState::InGame,
         })
+        .add_plugins(locale::LocalePlugin)
         .add_plugins(world::WorldPlugin)
+        .add_plugins(ai::AiPlugin)
         .add_plugins(laptop::LaptopPlugin)
         .run();
 }

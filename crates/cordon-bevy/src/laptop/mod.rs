@@ -1,52 +1,41 @@
 //! Laptop view: the Zone map with areas, bunker, and NPC dots.
 
-use bevy::asset::LoadedFolder;
 use bevy::prelude::*;
 use bevy_fluent::prelude::*;
 use bevy_lunex::prelude::*;
-use cordon_core::entity::faction::RankScheme;
+use cordon_core::entity::faction::{Faction, RankScheme};
 use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::primitive::hazard::HazardType;
+use cordon_core::primitive::id::Id;
 use cordon_core::primitive::tier::Tier;
 use cordon_core::primitive::uid::Uid;
 use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
-use fluent_content::Content;
 
 use crate::AppState;
+use crate::ai::behavior::VisitorBehavior;
+use crate::locale::{l10n_or, GameLocalization};
 use crate::world::SimWorld;
 
 pub struct LaptopPlugin;
 
 impl Plugin for LaptopPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((UiLunexPlugins, FluentPlugin));
-        app.insert_resource(Locale::new("en-US".parse().expect("valid locale")));
+        app.add_plugins(UiLunexPlugins);
         app.insert_resource(TooltipContent::default());
-        app.add_systems(Startup, (setup_camera, start_locale_load));
-        app.add_systems(
-            Update,
-            build_localization
-                .run_if(in_state(AppState::Loading))
-                .run_if(resource_exists::<LocaleHandle>)
-                .run_if(not(resource_exists::<GameLocalization>)),
-        );
+        app.insert_resource(SelectedNpc::default());
+        app.add_systems(Startup, setup_camera);
         app.add_systems(
             OnEnter(AppState::InGame),
             spawn_map.after(crate::world::init_world),
         );
         app.add_systems(
             Update,
-            (move_npcs, follow_cursor, update_tooltip_ui).run_if(in_state(AppState::InGame)),
+            (follow_cursor, update_tooltip_ui, handle_npc_click, update_npc_selection, deselect_on_escape)
+                .run_if(in_state(AppState::InGame)),
         );
     }
 }
-
-#[derive(Resource)]
-struct LocaleHandle(Handle<LoadedFolder>);
-
-#[derive(Resource)]
-pub struct GameLocalization(pub Localization);
 
 #[derive(Resource, Default)]
 enum TooltipContent {
@@ -96,10 +85,6 @@ struct AreaTooltipInfo {
 #[derive(Component)]
 struct NpcDot {
     uid: Uid,
-    direction: Vec2,
-    speed: f32,
-    home: Vec2,
-    roam_radius: f32,
 }
 
 #[derive(Component, Clone)]
@@ -109,6 +94,12 @@ struct NpcDotInfo {
     faction: String,
     rank: String,
 }
+
+#[derive(Component, Clone)]
+struct NpcFaction(Id<Faction>);
+
+#[derive(Resource, Default)]
+struct SelectedNpc(Option<Uid>);
 
 #[derive(Component)]
 struct TooltipPanel;
@@ -139,6 +130,8 @@ const COLOR_AREA: Color = Color::srgba(0.3, 0.6, 0.3, 0.15);
 const COLOR_AREA_BORDER: Color = Color::srgba(0.3, 0.6, 0.3, 0.5);
 const COLOR_AREA_HOVER: Color = Color::srgba(0.4, 0.8, 0.4, 0.25);
 const COLOR_NPC: Color = Color::srgb(0.7, 0.7, 0.7);
+const COLOR_NPC_SELECTED: Color = Color::srgb(1.0, 0.9, 0.3);
+const COLOR_NPC_SQUAD: Color = Color::srgb(0.9, 0.75, 0.3);
 const COLOR_LABEL: Color = Color::srgba(0.6, 0.6, 0.6, 1.0);
 
 fn tier_color(t: &Tier) -> Color {
@@ -180,28 +173,6 @@ fn setup_camera(mut commands: Commands) {
         UiSourceCamera::<0>,
         Transform::from_xyz(0.0, -100.0, 1000.0),
     ));
-}
-
-fn start_locale_load(mut commands: Commands, server: Res<AssetServer>) {
-    commands.insert_resource(LocaleHandle(server.load_folder("locale")));
-}
-
-fn build_localization(
-    handle: Res<LocaleHandle>,
-    server: Res<AssetServer>,
-    builder: LocalizationBuilder,
-    mut commands: Commands,
-) {
-    if !server.is_loaded_with_dependencies(&handle.0) {
-        return;
-    }
-    let l10n = builder.build(&handle.0);
-    info!("Localization built: {:?}", l10n);
-    commands.insert_resource(GameLocalization(l10n));
-}
-
-fn l10n_or(l10n: &Localization, key: &str, fallback: &str) -> String {
-    l10n.content(key).unwrap_or_else(|| fallback.to_string())
 }
 
 fn tier_key(t: &Tier) -> &'static str {
@@ -436,11 +407,15 @@ fn spawn_map(
     ));
 
     let bunker_pos = Vec2::ZERO;
-    let bunker_radius = 40.0;
+    let spawn_radius = 80.0;
+    let dot_size = 4.0;
+    let hit_size = 20.0;
     for (i, (uid, npc)) in sim_world.0.npcs.iter().enumerate() {
         let angle = (i as f32) * 2.39996;
-        let offset = bunker_radius * 0.3 + (i as f32 % 5.0) * 8.0;
-        let dot_size = 4.0;
+        let spawn_pos = Vec2::new(
+            bunker_pos.x + angle.cos() * spawn_radius,
+            bunker_pos.y + angle.sin() * spawn_radius,
+        );
 
         let faction_icon = faction_icon_str(Some(npc.faction.as_str())).to_string();
         let faction_name = l10n_or(
@@ -457,29 +432,26 @@ fn spawn_map(
             })
             .unwrap_or_else(|| format!("Rank {}", npc.rank()));
 
+        let idle_pos = Vec2::new(
+            bunker_pos.x + angle.cos() * 25.0,
+            bunker_pos.y + angle.sin() * 25.0,
+        );
+
         let npc_entity = commands
             .spawn((
-                NpcDot {
-                    uid: *uid,
-                    direction: Vec2::new(angle.cos(), angle.sin()),
-                    speed: 10.0 + (i as f32 % 3.0) * 4.0,
-                    home: bunker_pos,
-                    roam_radius: bunker_radius,
-                },
+                NpcDot { uid: *uid },
+                VisitorBehavior::Arrive { target: idle_pos },
                 NpcDotInfo {
                     faction_icon: faction_icon.clone(),
                     name: name_display,
                     faction: faction_name,
                     rank: rank_title,
                 },
-                Dimension(Vec2::splat(dot_size * 2.0)),
+                NpcFaction(npc.faction.clone()),
+                Dimension(Vec2::splat(hit_size)),
                 Mesh2d(meshes.add(Circle::new(dot_size))),
                 MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_NPC))),
-                Transform::from_xyz(
-                    bunker_pos.x + angle.cos() * offset,
-                    bunker_pos.y + angle.sin() * offset,
-                    0.5,
-                ),
+                Transform::from_xyz(spawn_pos.x, spawn_pos.y, 0.5),
             ))
             .id();
 
@@ -503,6 +475,7 @@ fn spawn_map(
                 *tooltip = TooltipContent::Hidden;
             },
         );
+
     }
 
     info!(
@@ -707,23 +680,74 @@ fn update_tooltip_ui(
     }
 }
 
-fn move_npcs(time: Res<Time>, mut query: Query<(&mut NpcDot, &mut Transform)>) {
-    let dt = time.delta_secs();
-    for (mut npc, mut transform) in &mut query {
-        let pos = Vec2::new(transform.translation.x, transform.translation.y);
-        let new_pos = pos + npc.direction * npc.speed * dt;
-        let dist = new_pos.distance(npc.home);
-        if dist > npc.roam_radius {
-            let to_home = (npc.home - new_pos).normalize_or_zero();
-            npc.direction = (npc.direction * 0.3 + to_home * 0.7).normalize_or_zero();
-        } else {
-            let w = Vec2::new(
-                (time.elapsed_secs() * 3.0 + transform.translation.x).sin() * 0.1,
-                (time.elapsed_secs() * 2.7 + transform.translation.y).cos() * 0.1,
-            );
-            npc.direction = (npc.direction + w).normalize_or_zero();
+fn handle_npc_click(
+    mouse: Res<ButtonInput<MouseButton>>,
+    windows: Query<&Window>,
+    cameras: Query<(&Camera, &GlobalTransform)>,
+    dots: Query<(&NpcDot, &Transform)>,
+    mut selected: ResMut<SelectedNpc>,
+) {
+    if !mouse.just_pressed(MouseButton::Left) {
+        return;
+    }
+    let Some(cursor_screen) = windows.single().ok().and_then(|w| w.cursor_position()) else {
+        return;
+    };
+    let Some((camera, cam_transform)) = cameras.iter().next() else {
+        return;
+    };
+    let Ok(cursor_world) = camera.viewport_to_world_2d(cam_transform, cursor_screen) else {
+        return;
+    };
+
+    let hit_radius = 20.0;
+    let mut closest: Option<(Uid, f32)> = None;
+    for (dot, transform) in &dots {
+        let pos = transform.translation.truncate();
+        let dist = pos.distance(cursor_world);
+        if dist <= hit_radius {
+            if closest.is_none() || dist < closest.unwrap().1 {
+                closest = Some((dot.uid, dist));
+            }
         }
-        transform.translation.x += npc.direction.x * npc.speed * dt;
-        transform.translation.y += npc.direction.y * npc.speed * dt;
+    }
+
+    match closest {
+        Some((uid, _)) if selected.0 == Some(uid) => selected.0 = None,
+        Some((uid, _)) => selected.0 = Some(uid),
+        None => selected.0 = None,
+    }
+}
+
+fn update_npc_selection(
+    selected: Res<SelectedNpc>,
+    sim_world: Res<SimWorld>,
+    mut dots: Query<(&NpcDot, &NpcFaction, &MeshMaterial2d<ColorMaterial>)>,
+    mut mats: ResMut<Assets<ColorMaterial>>,
+) {
+    if !selected.is_changed() {
+        return;
+    }
+
+    let selected_faction = selected
+        .0
+        .and_then(|uid| sim_world.0.npcs.get(&uid))
+        .map(|npc| &npc.faction);
+
+    for (dot, faction, mat_handle) in &mut dots {
+        let color = match (selected.0, selected_faction) {
+            (Some(uid), _) if uid == dot.uid => COLOR_NPC_SELECTED,
+            (_, Some(sel_faction)) if *sel_faction == faction.0 => COLOR_NPC_SQUAD,
+            _ => COLOR_NPC,
+        };
+        if let Some(m) = mats.get_mut(&mat_handle.0) {
+            m.color = color;
+        }
+    }
+}
+
+fn deselect_on_escape(keys: Res<ButtonInput<KeyCode>>, mut selected: ResMut<SelectedNpc>) {
+    if keys.just_pressed(KeyCode::Escape) {
+        selected.0 = None;
     }
 }
