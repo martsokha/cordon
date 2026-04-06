@@ -32,11 +32,7 @@ impl Plugin for LaptopPlugin {
         ));
         app.insert_resource(SelectedNpc::default());
         app.add_systems(Startup, setup_camera);
-        app.add_systems(
-            OnEnter(PlayingState::Laptop),
-            (enable_laptop_camera, spawn_map),
-        );
-        app.add_systems(OnExit(PlayingState::Laptop), disable_laptop_camera);
+        app.add_systems(OnEnter(PlayingState::Laptop), spawn_map);
         app.add_systems(
             Update,
             (
@@ -134,6 +130,7 @@ fn setup_camera(mut commands: Commands) {
         Camera2d,
         Camera {
             is_active: false,
+            order: 1,
             ..default()
         },
         Transform::from_xyz(0.0, -100.0, 1000.0),

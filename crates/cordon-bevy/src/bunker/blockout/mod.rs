@@ -417,24 +417,28 @@ fn spawn_bunker(
     );
 
     // === STORAGE (back_z to divider_z) ===
-    spawn_shelf_unit(
-        &mut commands,
-        &mut meshes,
-        pal.metal_dark.clone(),
-        Vec3::new(-hw + 0.25, 0.0, -3.5),
-        0.4,
-        1.5,
-        3,
-    );
-    spawn_shelf_unit(
-        &mut commands,
-        &mut meshes,
-        pal.metal_dark.clone(),
-        Vec3::new(hw - 0.25, 0.0, -3.5),
-        0.4,
-        1.5,
-        3,
-    );
+    for z in [-2.5, -4.0] {
+        spawn_shelf_unit(
+            &mut commands,
+            &mut meshes,
+            pal.metal_dark.clone(),
+            Vec3::new(-hw + 0.3, 0.0, z),
+            0.5,
+            1.2,
+            3,
+        );
+    }
+    for z in [-2.5, -4.0] {
+        spawn_shelf_unit(
+            &mut commands,
+            &mut meshes,
+            pal.metal_dark.clone(),
+            Vec3::new(hw - 0.3, 0.0, z),
+            0.5,
+            1.2,
+            3,
+        );
+    }
     // Crates
     for (pos, size) in [
         (Vec3::new(0.5, 0.15, -4.0), Vec3::new(0.3, 0.3, 0.3)),
@@ -455,25 +459,57 @@ fn spawn_bunker(
         0.6,
     );
 
-    // Shelves in desk room (both walls)
-    spawn_shelf_unit(
+    // Chair behind desk
+    // Seat
+    spawn_box(
         &mut commands,
         &mut meshes,
-        pal.metal_dark.clone(),
-        Vec3::new(-hw + 0.25, 0.0, 0.0),
-        0.45,
-        1.2,
-        3,
+        pal.wood.clone(),
+        Vec3::new(0.0, 0.45, desk_z - 0.5),
+        Vec3::new(0.4, 0.04, 0.4),
     );
-    spawn_shelf_unit(
+    // Backrest
+    spawn_box(
         &mut commands,
         &mut meshes,
-        pal.metal_dark.clone(),
-        Vec3::new(hw - 0.25, 0.0, 0.0),
-        0.45,
-        1.2,
-        3,
+        pal.wood.clone(),
+        Vec3::new(0.0, 0.7, desk_z - 0.7),
+        Vec3::new(0.4, 0.5, 0.04),
     );
+    // Legs
+    for (dx, dz) in [(-0.17, -0.17), (0.17, -0.17), (-0.17, 0.17), (0.17, 0.17)] {
+        spawn_box(
+            &mut commands,
+            &mut meshes,
+            pal.metal_dark.clone(),
+            Vec3::new(dx, 0.225, desk_z - 0.5 + dz),
+            Vec3::new(0.03, 0.45, 0.03),
+        );
+    }
+
+    // Shelves in desk room (both walls, two per side)
+    for z in [-0.6, 0.8] {
+        spawn_shelf_unit(
+            &mut commands,
+            &mut meshes,
+            pal.metal_dark.clone(),
+            Vec3::new(-hw + 0.3, 0.0, z),
+            0.5,
+            1.2,
+            3,
+        );
+    }
+    for z in [-0.6, 0.8] {
+        spawn_shelf_unit(
+            &mut commands,
+            &mut meshes,
+            pal.metal_dark.clone(),
+            Vec3::new(hw - 0.3, 0.0, z),
+            0.5,
+            1.2,
+            3,
+        );
+    }
 
     // Laptop
     spawn_box(

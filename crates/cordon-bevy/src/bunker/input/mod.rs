@@ -14,10 +14,7 @@ impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(controller::ControllerPlugin);
         app.add_systems(OnEnter(PlayingState::Bunker), grab_cursor);
-        app.add_systems(
-            OnEnter(PlayingState::Laptop),
-            (hide_interact_prompt, release_cursor),
-        );
+        app.add_systems(OnEnter(PlayingState::Laptop), hide_interact_prompt);
         app.add_systems(
             Update,
             (update_interact_prompt, interact).run_if(in_state(PlayingState::Bunker)),
@@ -87,5 +84,13 @@ fn is_near_laptop(
     let Ok(laptop) = laptop_q.single() else {
         return false;
     };
-    cam.translation.distance(laptop.translation) < INTERACT_DIST
+    let dist = cam.translation.distance(laptop.translation);
+    if dist > INTERACT_DIST {
+        return false;
+    }
+
+    // Check if looking toward the laptop (dot product > 0.5 ≈ within ~60° cone)
+    let to_laptop = (laptop.translation - cam.translation).normalize_or_zero();
+    let forward = cam.forward().as_vec3();
+    forward.dot(to_laptop) > 0.5
 }
