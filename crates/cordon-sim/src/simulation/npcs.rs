@@ -37,29 +37,33 @@ pub trait NpcGenerator {
                 } else {
                     &pool.names[rng.random_range(0..pool.names.len())]
                 };
-                let last = if pool.surnames.is_empty() {
+                let surname = if pool.surnames.is_empty() {
                     ""
                 } else {
                     &pool.surnames[rng.random_range(0..pool.surnames.len())]
                 };
-                if last.is_empty() {
+                if surname.is_empty() {
                     first.to_string()
                 } else {
-                    format!("{first} {last}")
+                    format!("{first} {surname}")
                 }
             }
-            NameFormat::TitleName => {
-                let title = if pool.titles.is_empty() {
-                    "Brother"
-                } else {
-                    &pool.titles[rng.random_range(0..pool.titles.len())]
-                };
-                let name = if pool.names.is_empty() {
+            NameFormat::FirstAlias => {
+                let first = if pool.names.is_empty() {
                     "Unknown"
                 } else {
                     &pool.names[rng.random_range(0..pool.names.len())]
                 };
-                format!("{title} {name}")
+                let alias = if pool.aliases.is_empty() {
+                    ""
+                } else {
+                    &pool.aliases[rng.random_range(0..pool.aliases.len())]
+                };
+                if alias.is_empty() {
+                    first.to_string()
+                } else {
+                    format!("{first} '{alias}'")
+                }
             }
         }
     }

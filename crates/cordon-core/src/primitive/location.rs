@@ -2,10 +2,12 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::distance::Distance;
+
 /// A 2D position on the Zone map.
 ///
 /// Uses floating-point coordinates in arbitrary map units.
-/// Used for sector positions, runner tracking, bunker location, etc.
+/// Used for area positions, runner tracking, bunker location, etc.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Location {
     pub x: f32,
@@ -22,14 +24,14 @@ impl Location {
     }
 
     /// Euclidean distance to another location.
-    pub fn distance_to(self, other: Self) -> f32 {
+    pub fn distance_to(self, other: Self) -> Distance {
         let dx = self.x - other.x;
         let dy = self.y - other.y;
-        (dx * dx + dy * dy).sqrt()
+        Distance::new((dx * dx + dy * dy).sqrt())
     }
 
-    /// Whether a point is within a given radius of this location.
-    pub fn within_radius(self, center: Self, radius: f32) -> bool {
-        self.distance_to(center) <= radius
+    /// Whether a point is within a given distance of this location.
+    pub fn within_radius(self, center: Self, radius: Distance) -> bool {
+        self.distance_to(center).value() <= radius.value()
     }
 }

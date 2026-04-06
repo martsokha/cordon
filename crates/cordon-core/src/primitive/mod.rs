@@ -4,6 +4,9 @@ pub mod condition;
 /// In-game currency.
 pub mod credits;
 
+/// Distance between two points in map units.
+pub mod distance;
+
 /// Duration in seconds.
 pub mod duration;
 

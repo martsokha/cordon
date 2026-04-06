@@ -21,12 +21,12 @@ pub fn tick_factions(world: &mut World) {
 
     for (def_id, factions) in event_data {
         if def_id == war_id {
-            // Warring factions increase danger in sectors they control
-            for sector in world.sectors.values_mut() {
-                if let Some(ref ctrl) = sector.controlling_faction
+            // Warring factions increase danger in areas they control
+            for area in world.areas.values_mut() {
+                if let Some(ref ctrl) = area.controlling_faction
                     && factions.contains(ctrl)
                 {
-                    sector.danger_modifier += 0.1;
+                    area.danger_modifier += 0.1;
                 }
             }
         } else if def_id == coup_id {

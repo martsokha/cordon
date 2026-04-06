@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::entity::bunker::Upgrade;
 use crate::entity::faction::Faction;
+use crate::primitive::distance::Distance;
 use crate::primitive::id::{Id, IdMarker};
 use crate::primitive::location::Location;
 
@@ -30,8 +31,8 @@ pub struct AreaDef {
     pub id: Id<Area>,
     /// Center position on the Zone map.
     pub location: Location,
-    /// Radius of the area's area of influence in map units.
-    pub radius: f32,
+    /// Radius of the area's influence.
+    pub radius: Distance,
     /// Base danger level (0.0–1.0). Modified at runtime by events.
     pub base_danger: f32,
     /// Base reward quality (0.0–1.0). Affects loot table selection.

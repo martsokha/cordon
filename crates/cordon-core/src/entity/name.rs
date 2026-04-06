@@ -2,7 +2,7 @@
 //!
 //! Name pools are loaded from config and define how NPC names are
 //! generated for each faction. Some factions use aliases (callsigns),
-//! others use first + surname combinations.
+//! others use first + surname or first + alias combinations.
 
 use serde::{Deserialize, Serialize};
 
@@ -17,9 +17,8 @@ pub enum NameFormat {
     /// Combine a first name and surname (e.g., "Sergei Volkov").
     /// Used by Garrison, Institute.
     FirstSurname,
-    /// Pick a title + name (e.g., "Brother Ash", "Prophet Ember").
-    /// Used by the Devoted.
-    TitleName,
+    /// Combine a first name and alias (e.g., "Sergei 'Viper'").
+    FirstAlias,
 }
 
 /// A pool of names for NPC generation, loaded from config.
@@ -35,10 +34,10 @@ pub struct NamePool {
     pub format: NameFormat,
     /// First names or aliases. Always used.
     pub names: Vec<String>,
-    /// Surnames. Only used with [`NameFormat::FirstSurname`].
+    /// Surnames. Used with [`NameFormat::FirstSurname`].
     pub surnames: Vec<String>,
-    /// Titles. Only used with [`NameFormat::TitleName`].
-    pub titles: Vec<String>,
+    /// Aliases used as second part in [`NameFormat::FirstAlias`].
+    pub aliases: Vec<String>,
 }
 
 /// Marker for name pool IDs.

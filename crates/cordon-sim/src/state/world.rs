@@ -80,7 +80,7 @@ pub struct World {
     pub player: PlayerState,
     pub bunker: BaseState,
     /// Live area states keyed by area ID.
-    pub sectors: HashMap<Id<Area>, AreaState>,
+    pub areas: HashMap<Id<Area>, AreaState>,
     /// All NPCs in the world keyed by runtime UID.
     pub npcs: HashMap<Uid, Npc>,
     pub active_events: Vec<ActiveEvent>,
@@ -103,9 +103,9 @@ impl World {
     /// The seed determines the entire game session. All randomness
     /// is derived from it through per-subsystem RNGs.
     pub fn new(seed: u64, faction_ids: Vec<Id<Faction>>, sector_ids: &[Id<Area>]) -> Self {
-        let mut sectors = HashMap::new();
+        let mut areas = HashMap::new();
         for id in sector_ids {
-            sectors.insert(id.clone(), AreaState::new(id.clone()));
+            areas.insert(id.clone(), AreaState::new(id.clone()));
         }
 
         let player = PlayerState::new(&faction_ids);
@@ -114,7 +114,7 @@ impl World {
             time: GameTime::new(),
             player,
             bunker: BaseState::new(),
-            sectors,
+            areas,
             npcs: HashMap::new(),
             active_events: Vec::new(),
             active_missions: Vec::new(),

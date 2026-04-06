@@ -56,6 +56,6 @@ pub struct Effect {
     pub value: f32,
     /// How long this effect lasts. [`Duration::INSTANT`] means applied once.
     pub duration: Duration,
-    /// Area of effect radius in meters. `None` means single-target (self or direct hit).
-    pub aoe: Option<f32>,
+    /// Area of effect radius. `None` means single-target (self or direct hit).
+    pub aoe: Option<crate::primitive::distance::Distance>,
 }
