@@ -69,7 +69,8 @@ fn fps_move(
             * MOVE_SPEED
             * time.delta_secs();
         transform.translation += movement;
-        transform.translation.x = transform.translation.x.clamp(-4.5, 4.5);
-        transform.translation.z = transform.translation.z.clamp(-4.5, 4.5);
+        // Player stays on their side: behind trade grate (z < 1.3), within walls
+        transform.translation.x = transform.translation.x.clamp(-1.8, 1.8);
+        transform.translation.z = transform.translation.z.clamp(-4.7, 1.3);
     }
 }
