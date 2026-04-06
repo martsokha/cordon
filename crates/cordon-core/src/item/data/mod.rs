@@ -31,6 +31,7 @@ impl IdMarker for Caliber {}
 /// Each variant wraps a dedicated data struct. The compiler enforces
 /// that a weapon always has a caliber, armor always has a slot, etc.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum ItemData {
     /// Food, medicine, drinks, pills.
     Consumable(ConsumableData),

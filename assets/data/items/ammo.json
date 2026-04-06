@@ -1,0 +1,141 @@
+[
+  {
+    "id": "9x18mm",
+    "data": {
+      "type": "ammo",
+      "caliber": "9x18mm",
+      "damage": 20.0,
+      "penetration": 3,
+      "quantity": 16
+    },
+    "base_price": 50,
+    "suppliers": [
+      { "faction": "drifters", "price_multiplier": 0.9 },
+      { "faction": "syndicate", "price_multiplier": 1.0 },
+      { "faction": "garrison", "price_multiplier": 1.1 }
+    ],
+    "rarity": "common",
+    "durability": 1.0
+  },
+  {
+    "id": "9x18mm_ap",
+    "data": {
+      "type": "ammo",
+      "caliber": "9x18mm",
+      "damage": 18.0,
+      "penetration": 5,
+      "quantity": 16
+    },
+    "base_price": 80,
+    "suppliers": [
+      { "faction": "garrison", "price_multiplier": 1.0 },
+      { "faction": "mercenaries", "price_multiplier": 1.1 }
+    ],
+    "rarity": "uncommon",
+    "durability": 1.0
+  },
+  {
+    "id": "9x19mm",
+    "data": {
+      "type": "ammo",
+      "caliber": "9x19mm",
+      "damage": 25.0,
+      "penetration": 5,
+      "quantity": 16
+    },
+    "base_price": 70,
+    "suppliers": [
+      { "faction": "mercenaries", "price_multiplier": 0.9 },
+      { "faction": "garrison", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.1 }
+    ],
+    "rarity": "common",
+    "durability": 1.0
+  },
+  {
+    "id": "9x19mm_ap",
+    "data": {
+      "type": "ammo",
+      "caliber": "9x19mm",
+      "damage": 22.0,
+      "penetration": 8,
+      "quantity": 16
+    },
+    "base_price": 110,
+    "suppliers": [
+      { "faction": "mercenaries", "price_multiplier": 0.95 },
+      { "faction": "garrison", "price_multiplier": 1.1 }
+    ],
+    "rarity": "uncommon",
+    "durability": 1.0
+  },
+  {
+    "id": "5.45x39mm",
+    "data": {
+      "type": "ammo",
+      "caliber": "5.45x39mm",
+      "damage": 35.0,
+      "penetration": 12,
+      "quantity": 30
+    },
+    "base_price": 150,
+    "suppliers": [
+      { "faction": "garrison", "price_multiplier": 0.9 },
+      { "faction": "order", "price_multiplier": 1.0 },
+      { "faction": "mercenaries", "price_multiplier": 1.1 }
+    ],
+    "rarity": "common",
+    "durability": 1.0
+  },
+  {
+    "id": "5.45x39mm_ap",
+    "data": {
+      "type": "ammo",
+      "caliber": "5.45x39mm",
+      "damage": 30.0,
+      "penetration": 18,
+      "quantity": 30
+    },
+    "base_price": 250,
+    "suppliers": [
+      { "faction": "garrison", "price_multiplier": 1.0 },
+      { "faction": "order", "price_multiplier": 1.1 }
+    ],
+    "rarity": "uncommon",
+    "durability": 1.0
+  },
+  {
+    "id": "5.56x45mm",
+    "data": {
+      "type": "ammo",
+      "caliber": "5.56x45mm",
+      "damage": 38.0,
+      "penetration": 14,
+      "quantity": 30
+    },
+    "base_price": 200,
+    "suppliers": [
+      { "faction": "mercenaries", "price_multiplier": 0.85 },
+      { "faction": "institute", "price_multiplier": 1.0 }
+    ],
+    "rarity": "uncommon",
+    "durability": 1.0
+  },
+  {
+    "id": "5.56x45mm_ap",
+    "data": {
+      "type": "ammo",
+      "caliber": "5.56x45mm",
+      "damage": 33.0,
+      "penetration": 21,
+      "quantity": 30
+    },
+    "base_price": 350,
+    "suppliers": [
+      { "faction": "mercenaries", "price_multiplier": 0.9 },
+      { "faction": "institute", "price_multiplier": 1.1 }
+    ],
+    "rarity": "rare",
+    "durability": 1.0
+  }
+]

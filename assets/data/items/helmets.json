@@ -1,0 +1,87 @@
+[
+  {
+    "id": "balaclava",
+    "data": {
+      "type": "armor",
+      "slot": "helmet",
+      "resistances": { "ballistic": 1, "radiation": 1, "chemical": 1, "thermal": 1, "electric": 1, "gravitational": 1 },
+      "bonus_slots": 0,
+      "durability": 0.5
+    },
+    "base_price": 100,
+    "suppliers": [
+      { "faction": "drifters", "price_multiplier": 0.8 },
+      { "faction": "syndicate", "price_multiplier": 1.0 }
+    ],
+    "rarity": "common",
+    "durability": 1.5
+  },
+  {
+    "id": "steel_helmet",
+    "data": {
+      "type": "armor",
+      "slot": "helmet",
+      "resistances": { "ballistic": 8, "radiation": 0, "chemical": 0, "thermal": 0, "electric": 0, "gravitational": 0 },
+      "bonus_slots": 0,
+      "durability": 1.2
+    },
+    "base_price": 1000,
+    "suppliers": [
+      { "faction": "garrison", "price_multiplier": 0.9 },
+      { "faction": "order", "price_multiplier": 1.0 }
+    ],
+    "rarity": "common",
+    "durability": 0.8
+  },
+  {
+    "id": "tactical_helmet",
+    "data": {
+      "type": "armor",
+      "slot": "helmet",
+      "resistances": { "ballistic": 12, "radiation": 2, "chemical": 0, "thermal": 0, "electric": 0, "gravitational": 0 },
+      "bonus_slots": 0,
+      "durability": 1.0
+    },
+    "base_price": 3500,
+    "suppliers": [
+      { "faction": "mercenaries", "price_multiplier": 0.95 },
+      { "faction": "garrison", "price_multiplier": 1.1 }
+    ],
+    "rarity": "uncommon",
+    "durability": 0.7
+  },
+  {
+    "id": "respirator",
+    "data": {
+      "type": "armor",
+      "slot": "helmet",
+      "resistances": { "ballistic": 0, "radiation": 3, "chemical": 5, "thermal": 0, "electric": 0, "gravitational": 0 },
+      "bonus_slots": 0,
+      "durability": 0.6
+    },
+    "base_price": 1500,
+    "suppliers": [
+      { "faction": "collective", "price_multiplier": 0.9 },
+      { "faction": "institute", "price_multiplier": 1.0 }
+    ],
+    "rarity": "common",
+    "durability": 1.0
+  },
+  {
+    "id": "cbrn_mask",
+    "data": {
+      "type": "armor",
+      "slot": "helmet",
+      "resistances": { "ballistic": 2, "radiation": 6, "chemical": 8, "thermal": 3, "electric": 2, "gravitational": 0 },
+      "bonus_slots": 0,
+      "durability": 0.8
+    },
+    "base_price": 6000,
+    "suppliers": [
+      { "faction": "collective", "price_multiplier": 0.85 },
+      { "faction": "institute", "price_multiplier": 0.95 }
+    ],
+    "rarity": "uncommon",
+    "durability": 0.8
+  }
+]

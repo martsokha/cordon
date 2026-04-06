@@ -256,7 +256,7 @@ fn update_zoom_label(
     target: Res<CameraTarget>,
     mut label_q: Query<&mut Text, (With<ZoomLabel>, Without<TooltipText>, Without<TimeLabel>)>,
 ) {
-    use crate::laptop::input::{ZOOM_MIN, ZOOM_MAX};
+    use crate::laptop::input::{ZOOM_MAX, ZOOM_MIN};
     // Map ortho scale (ZOOM_MIN..ZOOM_MAX) to display (4x..1x)
     let t = (target.zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN); // 0=zoomed in, 1=zoomed out
     let level = ((1.0 - t) * 3.0 + 1.0).clamp(1.0, 4.0);

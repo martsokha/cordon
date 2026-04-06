@@ -16,8 +16,11 @@ pub struct AmmoData {
     pub caliber: Id<Caliber>,
     /// Base damage per round.
     pub damage: f32,
-    /// Armor penetration value (0.0–1.0). Higher = better against armor.
-    pub penetration: f32,
+    /// Armor penetration value. Compared against armor's protection
+    /// value — if penetration exceeds armor, full damage goes through.
+    /// If lower, damage is reduced proportionally.
+    /// Typical range: 5 (pistol) to 40 (AP rifle).
+    pub penetration: u32,
     /// Number of rounds per box.
     pub quantity: u32,
 }

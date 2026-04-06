@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 /// multipliers, and NPC reactions when they see it on your shelves.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Rarity {
     /// Bread, bandages, pistol rounds. Always available somewhere.
     Common,
