@@ -7,11 +7,10 @@ use bevy::prelude::*;
 
 use super::{CameraTarget, ZOOM_MAX, ZOOM_MIN};
 use crate::PlayingState;
+use crate::laptop::ui::LaptopTab;
 
 const ZOOM_SENSITIVITY: f32 = 0.12;
 const PAN_SPEED: f32 = 300.0;
-const EDGE_PAN_MARGIN: f32 = 20.0;
-const EDGE_PAN_SPEED: f32 = 200.0;
 
 /// System set for all controller input systems.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -23,9 +22,10 @@ impl Plugin for ControllerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (read_zoom, read_keyboard_pan, read_drag_pan, read_edge_pan)
+            (read_zoom, read_keyboard_pan, read_drag_pan)
                 .in_set(ControllerSet)
-                .run_if(in_state(PlayingState::Laptop)),
+                .run_if(in_state(PlayingState::Laptop))
+                .run_if(resource_equals(LaptopTab::Map)),
         );
     }
 }
@@ -116,48 +116,5 @@ fn read_drag_pan(
 
     let zoom_scale = current_zoom_scale(&camera_q);
     target.position -= Vec2::new(delta.x, -delta.y) * zoom_scale;
-    target.following = None;
-}
-
-fn read_edge_pan(
-    windows: Query<&Window>,
-    time: Res<Time>,
-    camera_q: Query<&Projection, With<Camera2d>>,
-    mouse: Res<ButtonInput<MouseButton>>,
-    mut target: ResMut<CameraTarget>,
-) {
-    if mouse.pressed(MouseButton::Left) {
-        return;
-    }
-    let Some(window) = windows.single().ok() else {
-        return;
-    };
-    let Some(cursor) = window.cursor_position() else {
-        return;
-    };
-
-    let w = window.width();
-    let h = window.height();
-    let mut dir = Vec2::ZERO;
-
-    if cursor.x < EDGE_PAN_MARGIN {
-        dir.x -= 1.0;
-    }
-    if cursor.x > w - EDGE_PAN_MARGIN {
-        dir.x += 1.0;
-    }
-    if cursor.y < EDGE_PAN_MARGIN {
-        dir.y += 1.0;
-    }
-    if cursor.y > h - EDGE_PAN_MARGIN {
-        dir.y -= 1.0;
-    }
-
-    if dir == Vec2::ZERO {
-        return;
-    }
-
-    let zoom_scale = current_zoom_scale(&camera_q);
-    target.position += dir.normalize() * EDGE_PAN_SPEED * zoom_scale * time.delta_secs();
     target.following = None;
 }

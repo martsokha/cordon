@@ -1,16 +1,12 @@
-//! Laptop UI: tooltip, zoom label.
-//!
-//! Uses standard Bevy UI (Node/Text) for screen-space elements.
+//! Map tab: tooltip, zoom label, cursor-to-world helpers.
 
 use bevy::prelude::*;
 use cordon_core::primitive::tier::Tier;
 
-use super::input::CameraTarget;
-use super::LaptopCamera;
+use super::{LaptopFont, LaptopTab, TabContent};
 use crate::PlayingState;
-
-#[derive(Resource)]
-pub struct LaptopFont(pub Handle<Font>);
+use crate::laptop::LaptopCamera;
+use crate::laptop::input::CameraTarget;
 
 #[derive(Component)]
 pub struct ZoomLabel;
@@ -55,29 +51,71 @@ pub fn tier_color(t: &Tier) -> Color {
     }
 }
 
-pub struct UiPlugin;
+/// Marker for UI elements that should only show on the Map tab.
+#[derive(Component)]
+pub struct MapOnlyUi;
 
-impl Plugin for UiPlugin {
+pub struct MapUiPlugin;
+
+impl Plugin for MapUiPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(TooltipContent::default());
-        app.add_systems(Startup, load_font);
+        app.add_systems(
+            Update,
+            update_map_ui_visibility.run_if(in_state(PlayingState::Laptop)),
+        );
         app.add_systems(
             Update,
             (follow_cursor, update_tooltip, update_zoom_label)
-                .run_if(in_state(PlayingState::Laptop)),
+                .run_if(in_state(PlayingState::Laptop))
+                .run_if(resource_equals(LaptopTab::Map)),
         );
     }
 }
 
-fn load_font(mut commands: Commands, server: Res<AssetServer>) {
-    commands.insert_resource(LaptopFont(server.load("fonts/PTMono-Regular.ttf")));
+fn update_map_ui_visibility(
+    active_tab: Res<LaptopTab>,
+    mut ui_q: Query<&mut Visibility, (With<MapOnlyUi>, Without<super::MapWorldEntity>)>,
+    mut world_q: Query<&mut Visibility, (With<super::MapWorldEntity>, Without<MapOnlyUi>)>,
+) {
+    if !active_tab.is_changed() {
+        return;
+    }
+    let visible = *active_tab == LaptopTab::Map;
+    for mut vis in &mut ui_q {
+        *vis = if visible {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
+    }
+    for mut vis in &mut world_q {
+        *vis = if visible {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
+    }
 }
 
-/// Spawn laptop UI elements.
-pub fn spawn_ui(commands: &mut Commands, font: &Handle<Font>) {
+/// Get cursor position in 2D world space via the laptop camera.
+pub fn cursor_world_pos(
+    windows: &Query<&Window>,
+    cameras: &Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
+) -> Option<Vec2> {
+    let window = windows.single().ok()?;
+    let cursor_screen = window.cursor_position()?;
+    let (camera, cam_transform) = cameras.iter().next()?;
+    camera
+        .viewport_to_world_2d(cam_transform, cursor_screen)
+        .ok()
+}
+
+pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
     // Tooltip panel
     commands
         .spawn((
+            MapOnlyUi,
             TooltipPanel,
             Node {
                 position_type: PositionType::Absolute,
@@ -105,11 +143,12 @@ pub fn spawn_ui(commands: &mut Commands, font: &Handle<Font>) {
 
     // Zoom label
     commands.spawn((
+        MapOnlyUi,
         ZoomLabel,
         Node {
             position_type: PositionType::Absolute,
             right: Val::Px(16.0),
-            bottom: Val::Px(16.0),
+            bottom: Val::Px(48.0),
             ..default()
         },
         Text::new("x1.0"),
@@ -120,17 +159,6 @@ pub fn spawn_ui(commands: &mut Commands, font: &Handle<Font>) {
         },
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.4)),
     ));
-}
-
-/// Get cursor position in 2D world space via the laptop camera.
-pub fn cursor_world_pos(
-    windows: &Query<&Window>,
-    cameras: &Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
-) -> Option<Vec2> {
-    let window = windows.single().ok()?;
-    let cursor_screen = window.cursor_position()?;
-    let (camera, cam_transform) = cameras.iter().next()?;
-    camera.viewport_to_world_2d(cam_transform, cursor_screen).ok()
 }
 
 fn follow_cursor(
@@ -155,10 +183,7 @@ fn follow_cursor(
     }
 }
 
-fn update_tooltip(
-    tooltip: Res<TooltipContent>,
-    mut text_q: Query<&mut Text, With<TooltipText>>,
-) {
+fn update_tooltip(tooltip: Res<TooltipContent>, mut text_q: Query<&mut Text, With<TooltipText>>) {
     if !tooltip.is_changed() {
         return;
     }
@@ -166,7 +191,13 @@ fn update_tooltip(
     let content = match &*tooltip {
         TooltipContent::Hidden => String::new(),
         TooltipContent::Area {
-            faction_icon, name, creatures, radiation, hazard_icon, loot, ..
+            faction_icon,
+            name,
+            creatures,
+            radiation,
+            hazard_icon,
+            loot,
+            ..
         } => {
             let haz = if hazard_icon.is_empty() {
                 String::new()
@@ -178,11 +209,13 @@ fn update_tooltip(
             )
         }
         TooltipContent::Npc {
-            faction_icon, name, faction, rank, status,
+            faction_icon,
+            name,
+            faction,
+            rank,
+            status,
         } => {
-            format!(
-                "{faction_icon} {name}\nFaction: {faction}\nRank: {rank}\nStatus: {status}"
-            )
+            format!("{faction_icon} {name}\nFaction: {faction}\nRank: {rank}\nStatus: {status}")
         }
     };
 

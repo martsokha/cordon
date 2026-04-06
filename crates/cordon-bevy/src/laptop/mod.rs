@@ -50,7 +50,8 @@ impl Plugin for LaptopPlugin {
     }
 }
 
-use ui::{LaptopFont, TooltipContent, ZoomLabel, cursor_world_pos, spawn_ui};
+use ui::map::{TooltipContent, cursor_world_pos};
+use ui::{LaptopFont, MapWorldEntity, spawn_ui};
 
 #[derive(Component)]
 struct Bunker;
@@ -270,15 +271,16 @@ fn spawn_map(
         let info = build_area_info(l10n, area);
 
         let area_entity = commands.spawn((
+            MapWorldEntity,
             AreaCircle,
             AreaData(info),
-
             Mesh2d(meshes.add(Circle::new(radius))),
             MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_AREA))),
             Transform::from_xyz(x, y, 0.01),
         ));
 
         commands.spawn((
+            MapWorldEntity,
             Mesh2d(meshes.add(Annulus::new(radius - 2.0, radius))),
             MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_AREA_BORDER))),
             Transform::from_xyz(x, y, 0.1),
@@ -286,6 +288,7 @@ fn spawn_map(
     }
 
     commands.spawn((
+        MapWorldEntity,
         Bunker,
         Mesh2d(meshes.add(Circle::new(10.0))),
         MeshMaterial2d(materials.add(ColorMaterial::from_color(Color::WHITE))),
@@ -337,6 +340,7 @@ fn spawn_map(
         let spawn_pos = base_pos + scatter;
 
         let npc_entity = commands.spawn((
+            MapWorldEntity,
             NpcDot { uid: *uid },
             Action::Idle {
                 timer: 2.0 + (i as f32 % 5.0),
@@ -350,7 +354,6 @@ fn spawn_map(
                 rank: rank_title,
             },
             NpcFaction(npc.faction.clone()),
-
             Mesh2d(meshes.add(Circle::new(dot_size))),
             MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_NPC))),
             Transform::from_xyz(spawn_pos.x, spawn_pos.y, 0.5),
