@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 pub struct Experience(u32);
 
 impl Experience {
+    /// Define NPC rank thresholds.
+    const NPC_RANK_THRESHOLDS: [u32; 5] = [0, 1000, 2500, 5000, 10000];
     /// Zero experience.
     pub const ZERO: Self = Self(0);
 
@@ -36,6 +38,21 @@ impl Experience {
     /// Whether this experience meets or exceeds a threshold.
     pub fn meets(self, threshold: u32) -> bool {
         self.0 >= threshold
+    }
+
+    /// Derive NPC rank tier (1–5) from this experience value.
+    pub fn npc_rank(self) -> u8 {
+        if self.0 >= Self::NPC_RANK_THRESHOLDS[4] {
+            5
+        } else if self.0 >= Self::NPC_RANK_THRESHOLDS[3] {
+            4
+        } else if self.0 >= Self::NPC_RANK_THRESHOLDS[2] {
+            3
+        } else if self.0 >= Self::NPC_RANK_THRESHOLDS[1] {
+            2
+        } else {
+            1
+        }
     }
 }
 

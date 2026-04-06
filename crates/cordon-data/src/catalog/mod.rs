@@ -74,4 +74,19 @@ impl GameData {
     pub fn area_ids(&self) -> Vec<Id<Area>> {
         self.areas.keys().cloned().collect()
     }
+
+    /// Build a faction-to-namepool mapping for NPC generation.
+    ///
+    /// Resolves each faction's `name_pool` ID to the actual [`NamePool`].
+    /// Returns a map keyed by faction ID for use with the simulation layer.
+    pub fn faction_name_pools(&self) -> HashMap<Id<Faction>, NamePool> {
+        self.factions
+            .iter()
+            .filter_map(|(fid, fdef)| {
+                self.name_pools
+                    .get(&fdef.namepool)
+                    .map(|pool| (fid.clone(), pool.clone()))
+            })
+            .collect()
+    }
 }

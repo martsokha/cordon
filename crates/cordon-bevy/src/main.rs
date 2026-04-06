@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 mod laptop;
+mod world;
 
 use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
@@ -34,6 +35,7 @@ fn main() {
             loading: AppState::Loading,
             ready: AppState::InGame,
         })
+        .add_plugins(world::WorldPlugin)
         .add_plugins(laptop::LaptopPlugin)
         .run();
 }

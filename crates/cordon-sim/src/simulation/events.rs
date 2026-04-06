@@ -18,7 +18,7 @@ use crate::state::world::World;
 /// world state. Creates [`ActiveEvent`] instances for events that fire.
 pub fn roll_daily_events(world: &mut World, event_defs: &[EventDef]) {
     let day = world.time.day;
-    let day_num = day.0;
+    let day_num = day.value();
 
     // Escalation: events get more frequent as days progress
     let escalation = (day_num as f32 / 100.0).min(1.0);

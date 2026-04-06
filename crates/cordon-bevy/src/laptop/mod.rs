@@ -6,11 +6,13 @@ use bevy_fluent::prelude::*;
 use bevy_lunex::prelude::*;
 use cordon_core::primitive::hazard::HazardType;
 use cordon_core::primitive::tier::Tier;
+use cordon_core::primitive::uid::Uid;
 use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
 use fluent_content::Content;
 
 use crate::AppState;
+use crate::world::SimWorld;
 
 pub struct LaptopPlugin;
 
@@ -27,7 +29,10 @@ impl Plugin for LaptopPlugin {
                 .run_if(resource_exists::<LocaleHandle>)
                 .run_if(not(resource_exists::<GameLocalization>)),
         );
-        app.add_systems(OnEnter(AppState::InGame), spawn_map);
+        app.add_systems(
+            OnEnter(AppState::InGame),
+            spawn_map.after(crate::world::init_world),
+        );
         app.add_systems(
             Update,
             (move_npcs, follow_cursor, update_tooltip_ui).run_if(in_state(AppState::InGame)),
@@ -79,6 +84,7 @@ struct AreaTooltipInfo {
 
 #[derive(Component)]
 struct NpcDot {
+    uid: Uid,
     direction: Vec2,
     speed: f32,
     home: Vec2,
@@ -223,6 +229,7 @@ fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
 
 fn spawn_map(
     game_data: Res<GameDataResource>,
+    sim_world: Res<SimWorld>,
     l10n: Option<Res<GameLocalization>>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -354,25 +361,6 @@ fn spawn_map(
             MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_AREA_BORDER))),
             Transform::from_xyz(x, y, 0.1),
         ));
-
-        for i in 0..2 {
-            let angle = (i as f32) * 2.39996;
-            commands.spawn((
-                NpcDot {
-                    direction: Vec2::new(angle.cos(), angle.sin()),
-                    speed: 12.0 + (i as f32) * 4.0,
-                    home: Vec2::new(x, y),
-                    roam_radius: radius * 0.8,
-                },
-                Mesh2d(meshes.add(Circle::new(4.0))),
-                MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_NPC))),
-                Transform::from_xyz(
-                    x + angle.cos() * radius * 0.3,
-                    y + angle.sin() * radius * 0.3,
-                    0.5,
-                ),
-            ));
-        }
     }
 
     commands.spawn((
@@ -382,7 +370,34 @@ fn spawn_map(
         Transform::from_xyz(0.0, 0.0, 1.0),
     ));
 
-    info!("Laptop map: {} areas", data.areas.len());
+    let bunker_pos = Vec2::ZERO;
+    let bunker_radius = 40.0;
+    for (i, (uid, _npc)) in sim_world.0.npcs.iter().enumerate() {
+        let angle = (i as f32) * 2.39996;
+        let offset = bunker_radius * 0.3 + (i as f32 % 5.0) * 8.0;
+        commands.spawn((
+            NpcDot {
+                uid: *uid,
+                direction: Vec2::new(angle.cos(), angle.sin()),
+                speed: 10.0 + (i as f32 % 3.0) * 4.0,
+                home: bunker_pos,
+                roam_radius: bunker_radius,
+            },
+            Mesh2d(meshes.add(Circle::new(4.0))),
+            MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_NPC))),
+            Transform::from_xyz(
+                bunker_pos.x + angle.cos() * offset,
+                bunker_pos.y + angle.sin() * offset,
+                0.5,
+            ),
+        ));
+    }
+
+    info!(
+        "Laptop map: {} areas, {} npcs",
+        data.areas.len(),
+        sim_world.0.npcs.len()
+    );
 }
 
 fn spawn_stat_row(

@@ -1,6 +1,6 @@
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::{NameFormat, NamePool, NpcName};
-use cordon_core::entity::npc::{Need, Npc, NpcCondition, Personality, npc_rank_from_xp};
+use cordon_core::entity::npc::{Npc, Personality};
 use cordon_core::item::Inventory;
 use cordon_core::primitive::credits::Credits;
 use cordon_core::primitive::experience::Experience;
@@ -119,7 +119,7 @@ pub trait NpcGenerator {
         rng: &mut R,
     ) -> Npc {
         let xp = self.generate_xp(rng);
-        let rank = npc_rank_from_xp(xp);
+        let rank = xp.npc_rank();
         let personality = self.generate_personality(rng);
         let wealth = self.generate_wealth(rank, rng);
 
@@ -129,10 +129,10 @@ pub trait NpcGenerator {
             faction,
             xp,
             inventory: Inventory::new(self.inventory_slots(rank)),
-            condition: NpcCondition::Healthy,
+            health: 1.0,
+            stamina: 1.0,
             trust: 0.0,
             wealth,
-            need: Need::None,
             personality,
             perks: Vec::new(),
             revealed_perks: Vec::new(),
@@ -167,7 +167,7 @@ pub fn spawn_daily_visitors(
     name_pools: &std::collections::HashMap<Id<Faction>, NamePool>,
     fallback_pool: &NamePool,
 ) -> Vec<Npc> {
-    let day = world.time.day.0;
+    let day = world.time.day.value();
     let count = generator.visitor_count(day, &mut world.rng.npcs);
 
     let mut visitors = Vec::new();

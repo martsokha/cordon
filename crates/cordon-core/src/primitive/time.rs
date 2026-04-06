@@ -1,68 +1,83 @@
-//! Day/phase time system for the game loop.
+//! Day-based time system for the game loop.
 //!
-//! Each in-game day has four phases: Morning, Midday, Evening, Night.
-//! The simulation advances one phase at a time.
+//! Each in-game day has two periods: working hours (when trading,
+//! visitors, and missions happen) and off hours (end-of-day
+//! bookkeeping, events expire, new day begins).
+
+use std::num::NonZeroU32;
 
 use serde::{Deserialize, Serialize};
 
 /// An in-game day, starting from day 1.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[derive(Serialize, Deserialize)]
-pub struct Day(pub u32);
+pub struct Day(NonZeroU32);
 
-/// One of four phases within a day.
-///
-/// The day cycle follows: Morning → Midday → Evening → Night → next day.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Phase {
-    /// Preparation: check prices, dispatch runners, review intel.
-    Morning,
-    /// Trading: customers arrive, buy/sell/negotiate.
-    Midday,
-    /// Consequences: runners return, faction visits, events resolve.
-    Evening,
-    /// Management: upgrades, planning, end-of-day bookkeeping.
-    Night,
-}
+impl Day {
+    /// Day 1.
+    pub const FIRST: Self = Self(NonZeroU32::new(1).unwrap());
 
-impl Phase {
-    /// Returns the next phase, or `None` if this is the last phase of the day.
-    pub fn next(self) -> Option<Phase> {
-        match self {
-            Phase::Morning => Some(Phase::Midday),
-            Phase::Midday => Some(Phase::Evening),
-            Phase::Evening => Some(Phase::Night),
-            Phase::Night => None,
-        }
+    /// Create a day from a raw value. Panics if zero.
+    pub fn new(value: u32) -> Self {
+        Self(NonZeroU32::new(value).expect("day must be >= 1"))
+    }
+
+    /// Get the raw day number.
+    pub fn value(self) -> u32 {
+        self.0.get()
+    }
+
+    /// Advance to the next day.
+    pub fn next(self) -> Self {
+        Self(self.0.checked_add(1).expect("day overflow"))
     }
 }
 
-/// Tracks the current day and phase within the game.
+/// Whether the bunker is open for business.
+#[derive(
+    Debug,
+    Default,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize
+)]
+pub enum Period {
+    /// Trading, visitors, missions dispatched.
+    #[default]
+    Working,
+    /// End-of-day: events expire, payroll, preparation for next day.
+    Off,
+}
+
+/// Tracks the current day and period within the game.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GameTime {
     /// The current day number.
     pub day: Day,
-    /// The current phase within the day.
-    pub phase: Phase,
+    /// Current period of the day.
+    pub period: Period,
 }
 
 impl GameTime {
-    /// Create a new game time starting at Day 1, Morning.
+    /// Create a new game time starting at Day 1, working hours.
     pub fn new() -> Self {
         Self {
-            day: Day(1),
-            phase: Phase::Morning,
+            day: Day::FIRST,
+            period: Period::Working,
         }
     }
 
-    /// Advance to the next phase. If the current phase is Night,
-    /// rolls over to the next day's Morning.
+    /// Advance to the next period. Working → Off → next day Working.
     pub fn advance(&mut self) {
-        match self.phase.next() {
-            Some(next) => self.phase = next,
-            None => {
-                self.day.0 += 1;
-                self.phase = Phase::Morning;
+        match self.period {
+            Period::Working => self.period = Period::Off,
+            Period::Off => {
+                self.day = self.day.next();
+                self.period = Period::Working;
             }
         }
     }

@@ -21,6 +21,7 @@ impl IdMarker for Faction {}
 /// for rank titles (e.g., `Military` → `"rank.military.1"` through
 /// `"rank.military.5"`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum RankScheme {
     /// Grunt, Soldier, Veteran, Officer, Commander.
     /// Used by the Order, Garrison.
@@ -54,7 +55,7 @@ pub struct FactionDef {
     /// Item categories this faction typically sells.
     pub sells: Vec<ItemCategory>,
     /// Name pool ID used to generate NPC names for this faction.
-    pub name_pool: Id<NamePoolMarker>,
+    pub namepool: Id<NamePoolMarker>,
     /// Base relations with other factions.
     pub relations: Vec<(Id<Faction>, Relation)>,
 }

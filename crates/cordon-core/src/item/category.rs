@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 /// Does not carry type-specific data — see [`ItemData`](super::ItemData)
 /// for that.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ItemCategory {
     /// Food, medicine, drinks, pills.
     Consumable,

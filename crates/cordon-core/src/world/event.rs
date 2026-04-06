@@ -111,12 +111,12 @@ pub struct ActiveEvent {
 impl ActiveEvent {
     /// Whether this event has expired (current day is past its end).
     pub fn is_expired(&self, current_day: Day) -> bool {
-        current_day.0 >= self.day_started.0 + self.duration_days as u32
+        current_day.value() >= self.day_started.value() + self.duration_days as u32
     }
 
     /// How many days remain until this event expires.
     pub fn days_remaining(&self, current_day: Day) -> u32 {
-        let end = self.day_started.0 + self.duration_days as u32;
-        end.saturating_sub(current_day.0)
+        let end = self.day_started.value() + self.duration_days as u32;
+        end.saturating_sub(current_day.value())
     }
 }

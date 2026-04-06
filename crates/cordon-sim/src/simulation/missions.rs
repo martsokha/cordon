@@ -27,7 +27,7 @@ pub fn dispatch_mission(world: &mut World, plan: MissionPlan) -> Result<(), &'st
     // TODO: compute travel time from sector distance, events, runner perks
     let travel_days = 1_u32; // placeholder
 
-    let return_day = Day(world.time.day.0 + travel_days);
+    let return_day = Day::new(world.time.day.value() + travel_days);
 
     let mission = ActiveMission {
         plan,

@@ -4,7 +4,7 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NamePool;
 use cordon_core::entity::npc::Npc;
 use cordon_core::primitive::id::Id;
-use cordon_core::primitive::time::Phase;
+use cordon_core::primitive::time::Period;
 use cordon_core::world::event::EventDef;
 use cordon_core::world::mission::MissionResult;
 
@@ -12,29 +12,27 @@ use crate::simulation::npcs::NpcGenerator;
 use crate::simulation::{events, factions, missions, npcs};
 use crate::state::world::World;
 
-/// Results from advancing a phase, for the game layer to consume.
-pub enum PhaseResult {
-    Morning {
+/// Results from advancing a period, for the game layer to consume.
+pub enum PeriodResult {
+    Working {
         visitors: Vec<Npc>,
         events_started: usize,
     },
-    Midday,
-    Evening {
+    Off {
         mission_results: Vec<MissionResult>,
     },
-    Night,
 }
 
-/// Advance the world by one phase. Returns what happened for the UI to render.
-pub fn advance_phase(
+/// Advance the world by one period. Returns what happened for the UI to render.
+pub fn advance_period(
     world: &mut World,
     event_defs: &[EventDef],
     npc_gen: &impl NpcGenerator,
     name_pools: &HashMap<Id<Faction>, NamePool>,
     fallback_pool: &NamePool,
-) -> PhaseResult {
-    match world.time.phase {
-        Phase::Morning => {
+) -> PeriodResult {
+    match world.time.period {
+        Period::Working => {
             let event_count_before = world.active_events.len();
             events::roll_daily_events(world, event_defs);
             let events_started = world.active_events.len() - event_count_before;
@@ -44,25 +42,16 @@ pub fn advance_phase(
 
             world.time.advance();
 
-            PhaseResult::Morning {
+            PeriodResult::Working {
                 visitors,
                 events_started,
             }
         }
-        Phase::Midday => {
-            world.time.advance();
-            PhaseResult::Midday
-        }
-        Phase::Evening => {
+        Period::Off => {
             let mission_results = missions::resolve_missions(world);
-            world.time.advance();
-            PhaseResult::Evening { mission_results }
-        }
-        Phase::Night => {
             events::expire_events(world);
-            // TODO: spoilage, relic degradation, payroll deduction
             world.time.advance();
-            PhaseResult::Night
+            PeriodResult::Off { mission_results }
         }
     }
 }
