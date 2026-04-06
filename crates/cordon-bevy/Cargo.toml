@@ -28,3 +28,7 @@ cordon-sim = { workspace = true }
 
 # Game engine
 bevy = { workspace = true }
+bevy_lunex = { workspace = true }
+bevy_fluent = { workspace = true }
+unic-langid = "0.9"
+fluent_content = "0.0.5"
