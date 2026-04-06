@@ -7,9 +7,8 @@
     "danger": {
       "creatures": "low",
       "radiation": "verylow",
-      "hostility": "low"
+      "hazard": null
     },
-    "hazards": [],
     "loot_tier": "low",
     "default_faction": null
   },
@@ -21,9 +20,8 @@
     "danger": {
       "creatures": "low",
       "radiation": "low",
-      "hostility": "medium"
+      "hazard": null
     },
-    "hazards": [],
     "loot_tier": "medium",
     "default_faction": "order"
   },
@@ -35,9 +33,8 @@
     "danger": {
       "creatures": "medium",
       "radiation": "medium",
-      "hostility": "low"
+      "hazard": { "kind": "gravitational", "intensity": "medium" }
     },
-    "hazards": ["chemical", "gravitational"],
     "loot_tier": "medium",
     "default_faction": "collective"
   },
@@ -49,9 +46,8 @@
     "danger": {
       "creatures": "low",
       "radiation": "low",
-      "hostility": "high"
+      "hazard": { "kind": "chemical", "intensity": "high" }
     },
-    "hazards": ["chemical"],
     "loot_tier": "medium",
     "default_faction": "syndicate"
   }

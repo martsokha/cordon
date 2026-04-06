@@ -1,4 +1,5 @@
 use cordon_core::primitive::id::Id;
+use cordon_core::primitive::relation::Relation;
 use cordon_core::world::event::Event;
 
 use crate::state::world::World;
@@ -36,7 +37,7 @@ pub fn tick_factions(world: &mut World) {
             {
                 let current = standing.value();
                 let delta = -(current as f32 * 0.3) as i8;
-                standing.apply(delta);
+                standing.apply(Relation::new(delta));
             }
         }
     }

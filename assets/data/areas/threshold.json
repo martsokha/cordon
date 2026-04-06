@@ -7,9 +7,8 @@
     "danger": {
       "creatures": "verylow",
       "radiation": "verylow",
-      "hostility": "verylow"
+      "hazard": null
     },
-    "hazards": [],
     "loot_tier": "verylow",
     "default_faction": "garrison"
   },
@@ -21,9 +20,8 @@
     "danger": {
       "creatures": "low",
       "radiation": "low",
-      "hostility": "low"
+      "hazard": { "kind": "chemical", "intensity": "low" }
     },
-    "hazards": ["chemical"],
     "loot_tier": "verylow",
     "default_faction": "syndicate"
   }

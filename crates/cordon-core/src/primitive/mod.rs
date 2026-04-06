@@ -28,6 +28,9 @@ pub mod location;
 /// Item rarity tiers.
 pub mod rarity;
 
+/// Signed relationship value (-100 to +100).
+pub mod relation;
+
 /// Five-level scale used across the game.
 pub mod tier;
 

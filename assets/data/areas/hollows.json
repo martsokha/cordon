@@ -7,9 +7,8 @@
     "danger": {
       "creatures": "medium",
       "radiation": "medium",
-      "hostility": "medium"
+      "hazard": { "kind": "thermal", "intensity": "high" }
     },
-    "hazards": ["thermal"],
     "loot_tier": "high",
     "default_faction": "mercenaries"
   },
@@ -21,9 +20,8 @@
     "danger": {
       "creatures": "low",
       "radiation": "high",
-      "hostility": "low"
+      "hazard": { "kind": "electric", "intensity": "medium" }
     },
-    "hazards": ["electric"],
     "loot_tier": "high",
     "default_faction": "institute"
   },
@@ -35,9 +33,8 @@
     "danger": {
       "creatures": "medium",
       "radiation": "high",
-      "hostility": "high"
+      "hazard": { "kind": "gravitational", "intensity": "high" }
     },
-    "hazards": ["gravitational", "electric"],
     "loot_tier": "high",
     "default_faction": "devoted"
   },
@@ -49,9 +46,8 @@
     "danger": {
       "creatures": "veryhigh",
       "radiation": "high",
-      "hostility": "medium"
+      "hazard": { "kind": "chemical", "intensity": "veryhigh" }
     },
-    "hazards": ["chemical", "gravitational", "thermal"],
     "loot_tier": "veryhigh",
     "default_faction": null
   },
@@ -63,9 +59,8 @@
     "danger": {
       "creatures": "high",
       "radiation": "veryhigh",
-      "hostility": "low"
+      "hazard": { "kind": "electric", "intensity": "veryhigh" }
     },
-    "hazards": ["electric", "gravitational"],
     "loot_tier": "veryhigh",
     "default_faction": null
   }

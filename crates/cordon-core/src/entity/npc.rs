@@ -5,6 +5,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::entity::faction::Faction;
+use crate::entity::name::NpcName;
 use crate::entity::perk::Perk;
 use crate::item::Inventory;
 use crate::primitive::credits::Credits;
@@ -82,8 +83,8 @@ pub enum Personality {
 pub struct Npc {
     /// Unique runtime ID for this NPC instance.
     pub id: Uid,
-    /// Display name or alias (e.g., "Viper", "Matches").
-    pub name: String,
+    /// Name stored as localization keys, resolved at display time.
+    pub name: NpcName,
     /// Faction ID this NPC belongs to.
     pub faction: Id<Faction>,
     /// Accumulated experience. Rank tier is derived from this.

@@ -20,16 +20,27 @@ impl IdMarker for Area {}
 
 /// How dangerous an area is across different dimensions.
 ///
-/// Each dimension uses a [`Tier`] rating. The sim modifies these
-/// at runtime based on events.
+/// Each dimension uses a [`Tier`] rating. The optional hazard
+/// combines a type and intensity — an area can have at most one
+/// dominant environmental hazard.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DangerProfile {
     /// Creature density and aggression.
     pub creatures: Tier,
     /// Ambient radiation level.
     pub radiation: Tier,
-    /// How aggressive NPCs and factions are in this area.
-    pub hostility: Tier,
+    /// Dominant environmental hazard and its intensity.
+    /// `None` means no environmental hazard beyond radiation/creatures.
+    pub hazard: Option<Hazard>,
+}
+
+/// An environmental hazard with a type and intensity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Hazard {
+    /// What kind of hazard.
+    pub kind: HazardType,
+    /// How severe it is.
+    pub intensity: Tier,
 }
 
 /// An area of the Zone, loaded from config.
@@ -53,8 +64,6 @@ pub struct AreaDef {
     pub environment: Environment,
     /// Base danger across different dimensions.
     pub danger: DangerProfile,
-    /// Environmental hazard types present in this area.
-    pub hazards: Vec<HazardType>,
     /// Loot quality tier for this area.
     pub loot_tier: Tier,
     /// Faction ID that controls this area by default, if any.

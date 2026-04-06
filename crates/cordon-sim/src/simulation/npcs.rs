@@ -1,5 +1,5 @@
 use cordon_core::entity::faction::Faction;
-use cordon_core::entity::name::{NameFormat, NamePool};
+use cordon_core::entity::name::{NameFormat, NamePool, NpcName};
 use cordon_core::entity::npc::{Need, Npc, NpcCondition, Personality, npc_rank_from_xp};
 use cordon_core::item::Inventory;
 use cordon_core::primitive::credits::Credits;
@@ -22,49 +22,32 @@ pub trait NpcGenerator {
         rng.random_range(base_count..=base_count + 3)
     }
 
-    /// Generate a display name from a name pool.
-    fn generate_name<R: Rng>(&self, pool: &NamePool, rng: &mut R) -> String {
+    /// Pick name keys from a name pool.
+    fn generate_name<R: Rng>(&self, pool: &NamePool, rng: &mut R) -> NpcName {
+        let mut pick = |list: &[String]| -> String {
+            if list.is_empty() {
+                "unknown".to_string()
+            } else {
+                list[rng.random_range(0..list.len())].clone()
+            }
+        };
+
         match pool.format {
-            NameFormat::Alias => {
-                if pool.names.is_empty() {
-                    return "Unknown".to_string();
-                }
-                pool.names[rng.random_range(0..pool.names.len())].clone()
-            }
-            NameFormat::FirstSurname => {
-                let first = if pool.names.is_empty() {
-                    "Unknown"
-                } else {
-                    &pool.names[rng.random_range(0..pool.names.len())]
-                };
-                let surname = if pool.surnames.is_empty() {
-                    ""
-                } else {
-                    &pool.surnames[rng.random_range(0..pool.surnames.len())]
-                };
-                if surname.is_empty() {
-                    first.to_string()
-                } else {
-                    format!("{first} {surname}")
-                }
-            }
-            NameFormat::FirstAlias => {
-                let first = if pool.names.is_empty() {
-                    "Unknown"
-                } else {
-                    &pool.names[rng.random_range(0..pool.names.len())]
-                };
-                let alias = if pool.aliases.is_empty() {
-                    ""
-                } else {
-                    &pool.aliases[rng.random_range(0..pool.aliases.len())]
-                };
-                if alias.is_empty() {
-                    first.to_string()
-                } else {
-                    format!("{first} '{alias}'")
-                }
-            }
+            NameFormat::Alias => NpcName {
+                format: NameFormat::Alias,
+                first: pick(&pool.aliases),
+                second: None,
+            },
+            NameFormat::FirstSurname => NpcName {
+                format: NameFormat::FirstSurname,
+                first: pick(&pool.names),
+                second: Some(pick(&pool.surnames)),
+            },
+            NameFormat::FirstAlias => NpcName {
+                format: NameFormat::FirstAlias,
+                first: pick(&pool.names),
+                second: Some(pick(&pool.aliases)),
+            },
         }
     }
 

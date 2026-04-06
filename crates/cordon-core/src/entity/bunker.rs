@@ -15,6 +15,7 @@ use crate::entity::faction::Faction;
 use crate::item::Inventory;
 use crate::primitive::credits::Credits;
 use crate::primitive::id::{Id, IdMarker};
+use crate::primitive::relation::Relation;
 
 /// Marker for upgrade IDs.
 pub struct Upgrade;
@@ -40,7 +41,7 @@ pub enum UpgradeSource {
         /// Faction ID that offers this upgrade.
         faction: Id<Faction>,
         /// Minimum standing required.
-        min_standing: i8,
+        min_standing: Relation,
     },
     /// Rewarded for completing a specific quest or mission.
     /// Not purchasable — earned through gameplay.

@@ -13,6 +13,7 @@ use crate::entity::npc::NpcTemplate;
 use crate::item::def::Item;
 use crate::primitive::credits::Credits;
 use crate::primitive::id::Id;
+use crate::primitive::relation::Relation;
 use crate::world::area::Area;
 use crate::world::event::Event;
 use crate::world::narrative::quest::Quest;
@@ -30,7 +31,7 @@ pub enum ObjectiveCondition {
     /// Player must reach a minimum standing with a faction.
     FactionStanding {
         faction: Id<Faction>,
-        min_standing: i8,
+        min_standing: Relation,
     },
     /// Player must have a specific upgrade installed.
     HaveUpgrade(Id<Upgrade>),
@@ -51,7 +52,10 @@ pub enum ObjectiveCondition {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Consequence {
     /// Change standing with a faction.
-    StandingChange { faction: Id<Faction>, delta: i8 },
+    StandingChange {
+        faction: Id<Faction>,
+        delta: Relation,
+    },
     /// Give credits to the player.
     GiveCredits(Credits),
     /// Take credits from the player.
