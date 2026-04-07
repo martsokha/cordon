@@ -8,6 +8,9 @@ pub mod behavior;
 /// Combat resolution: weapon firing, damage, hostility checks.
 pub mod combat;
 
+/// Player → sim command boundary.
+pub mod commands;
+
 /// ECS components for NPCs and squads.
 pub mod components;
 

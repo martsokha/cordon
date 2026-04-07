@@ -6,6 +6,8 @@
 //! expiry — runs as separate systems gated on the message.
 
 use bevy::prelude::*;
+use bevy_prng::WyRand;
+use bevy_rand::prelude::GlobalRng;
 use cordon_core::primitive::Day;
 use cordon_data::gamedata::GameDataResource;
 
@@ -63,15 +65,15 @@ fn roll_today_events(
     game_data: Res<GameDataResource>,
     factions: Res<FactionIndex>,
     mut events: ResMut<EventLog>,
+    mut rng: Single<&mut WyRand, With<GlobalRng>>,
 ) {
-    let mut rng = rand::rng();
     let event_defs: Vec<_> = game_data.0.events.values().cloned().collect();
     roll_daily_events(
         &mut events.0,
         &event_defs,
         &factions.0,
         clock.0.day,
-        &mut rng,
+        &mut **rng,
     );
 }
 

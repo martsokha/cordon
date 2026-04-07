@@ -10,10 +10,13 @@
 //! `.in_set(SimSet::X)` without naming individual function symbols.
 
 use bevy::prelude::*;
+use bevy_prng::WyRand;
+use bevy_rand::prelude::EntropyPlugin;
 use cordon_data::gamedata::GameDataResource;
 
 use crate::behavior::BehaviorPlugin;
 use crate::combat::CombatPlugin;
+use crate::commands::CommandsPlugin;
 use crate::day::DayCyclePlugin;
 use crate::death::DeathPlugin;
 use crate::loot::LootPlugin;
@@ -26,6 +29,10 @@ use crate::squad_ai::SquadAiPlugin;
 /// sim sleeps cleanly during loading.
 #[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SimSet {
+    /// Player commands applied first so an order issued this frame
+    /// takes effect before any AI re-evaluation later in the same
+    /// frame. The only place player intent enters the sim.
+    Commands,
     /// Per-frame house-keeping (squad cleanup, etc).
     Cleanup,
     /// Population top-up: spawns NPC and squad entities.
@@ -51,12 +58,14 @@ pub struct CordonSimPlugin;
 
 impl Plugin for CordonSimPlugin {
     fn build(&self, app: &mut App) {
+        app.add_plugins(EntropyPlugin::<WyRand>::default());
         app.init_resource::<SquadIdIndex>();
         app.init_resource::<UidAllocator>();
 
         app.configure_sets(
             Update,
             (
+                SimSet::Commands,
                 SimSet::Cleanup,
                 SimSet::Spawn,
                 SimSet::Goals,
@@ -74,6 +83,7 @@ impl Plugin for CordonSimPlugin {
 
         app.add_systems(Update, spawn::spawn_population.in_set(SimSet::Spawn));
         app.add_plugins((
+            CommandsPlugin,
             DayCyclePlugin,
             BehaviorPlugin,
             SquadAiPlugin,
@@ -97,6 +107,7 @@ pub mod prelude {
         SquadFormation, SquadGoal, SquadHomePosition, SquadId, SquadLeader, SquadMarker,
         SquadMembers, SquadMembership, SquadWaypoints, Trust, Wealth, Xp,
     };
+    pub use crate::commands::{Owned, SquadCommand};
     pub use crate::events::{
         CorpseRemoved, DayRolled, ItemLooted, NpcDied, ShotFired, SquadSpawned,
     };

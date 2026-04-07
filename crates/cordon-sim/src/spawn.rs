@@ -12,6 +12,8 @@
 use std::collections::HashMap;
 
 use bevy::prelude::*;
+use bevy_prng::WyRand;
+use bevy_rand::prelude::GlobalRng;
 use cordon_core::entity::name::NamePool;
 use cordon_core::entity::npc::Npc as NpcData;
 use cordon_core::primitive::Uid;
@@ -56,9 +58,9 @@ pub fn spawn_population(
     factions: Res<FactionIndex>,
     game_data: Res<GameDataResource>,
     mut squad_index: ResMut<SquadIdIndex>,
+    mut rng: Single<&mut WyRand, With<GlobalRng>>,
     alive_npcs: Query<(), With<NpcId>>,
 ) {
-    let mut rng = rand::rng();
     let data = &game_data.0;
 
     let generator = DefaultNpcGenerator;
@@ -71,7 +73,7 @@ pub fn spawn_population(
         let target = generator.target_population(day);
         let deficit = target.saturating_sub(current);
         schedule.day = Some(day);
-        schedule.waves = plan_daily_waves(deficit, day_progress, &mut rng);
+        schedule.waves = plan_daily_waves(deficit, day_progress, &mut **rng);
     }
 
     // Drain any waves whose scheduled in-day progress has been reached.
@@ -113,7 +115,7 @@ pub fn spawn_population(
     };
 
     let spawn = roll_population_top_up(
-        &mut rng,
+        &mut **rng,
         &mut uids,
         &factions,
         &generator,
@@ -158,7 +160,7 @@ pub fn spawn_population(
             None => member_entities[0],
         };
 
-        let home = pick_home_position(&area_centres, &mut rng);
+        let home = pick_home_position(&area_centres, &mut **rng);
 
         let squad_uid = squad.id;
         let squad_entity = commands
