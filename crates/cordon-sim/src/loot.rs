@@ -4,12 +4,11 @@
 use bevy::prelude::*;
 use cordon_core::item::{ItemData, Loadout};
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::components::{LoadoutComp, NpcMarker, Xp};
 
-use super::AiSet;
-use super::behavior::{CombatTarget, LootState};
-use super::death::Dead;
-use crate::PlayingState;
+use crate::behavior::{CombatTarget, Dead, LootState};
+use crate::components::{LoadoutComp, NpcMarker, Xp};
+use crate::events::ItemLooted;
+use crate::plugin::SimSet;
 
 const LOOT_REACH: f32 = 12.0;
 const LOOT_INTERVAL_SECS: f32 = 0.4;
@@ -18,12 +17,12 @@ pub struct LootPlugin;
 
 impl Plugin for LootPlugin {
     fn build(&self, app: &mut App) {
+        app.add_message::<ItemLooted>();
         app.add_systems(
             Update,
             (try_start_looting, drive_loot)
                 .chain()
-                .in_set(AiSet::Loot)
-                .run_if(in_state(PlayingState::Laptop)),
+                .in_set(SimSet::Loot),
         );
     }
 }
@@ -38,7 +37,6 @@ fn try_start_looting(
         (With<NpcMarker>, Without<Dead>, Without<LootState>),
     >,
 ) {
-    // Snapshot non-empty corpses with their positions.
     let corpse_snapshot: Vec<(Entity, Vec2)> = corpses
         .iter()
         .filter_map(|(entity, t, loadout)| {
@@ -53,7 +51,6 @@ fn try_start_looting(
     }
 
     for (entity, transform, combat_target) in &alive {
-        // Don't pre-empt fighting.
         if combat_target.0.is_some() {
             continue;
         }
@@ -79,14 +76,15 @@ fn try_start_looting(
     }
 }
 
-/// Drive `LootState`: tick the progress timer, transfer one item per
-/// interval. Removes the component when the corpse is empty or
-/// vanishes, or when the looter starts a fight.
+/// Tick `LootState` and transfer one item per interval. Removes the
+/// component when the corpse is empty or vanishes, or when the looter
+/// starts a fight.
 #[allow(clippy::type_complexity)]
 fn drive_loot(
     time: Res<Time>,
     game_data: Res<GameDataResource>,
     mut commands: Commands,
+    mut looted: MessageWriter<ItemLooted>,
     mut looters: Query<
         (Entity, &Xp, &CombatTarget, &mut LootState, &mut LoadoutComp),
         Without<Dead>,
@@ -97,13 +95,11 @@ fn drive_loot(
     let dt = time.delta_secs();
 
     for (entity, xp, combat_target, mut loot_state, mut looter_loadout) in &mut looters {
-        // Combat takes priority — drop loot if we picked up a fight.
         if combat_target.0.is_some() {
             commands.entity(entity).remove::<LootState>();
             continue;
         }
 
-        // Corpse vanished?
         let corpse_entity = loot_state.corpse;
         if corpses.get(corpse_entity).is_err() {
             commands.entity(entity).remove::<LootState>();
@@ -116,7 +112,6 @@ fn drive_loot(
         }
         loot_state.progress_secs = LOOT_INTERVAL_SECS;
 
-        // Pop one item from the corpse in priority order.
         let item_taken = {
             let Ok(mut corpse_loadout) = corpses.get_mut(corpse_entity) else {
                 commands.entity(entity).remove::<LootState>();
@@ -137,7 +132,6 @@ fn drive_loot(
             continue;
         };
 
-        // Compute capacity from rank + equipped armor, then add.
         let armor_data = looter_loadout
             .0
             .armor
@@ -148,6 +142,12 @@ fn drive_loot(
                 _ => None,
             });
         let capacity = Loadout::general_capacity(xp.rank(), armor_data);
+        let item_id = item.def_id.clone();
         let _ = looter_loadout.0.add_to_general(item, capacity);
+        looted.write(ItemLooted {
+            looter: entity,
+            corpse: corpse_entity,
+            item: item_id,
+        });
     }
 }

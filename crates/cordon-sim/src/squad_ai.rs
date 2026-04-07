@@ -1,53 +1,45 @@
 //! Squad AI: vision-shared engagement, formation positioning, goal
 //! transitions, and squad lifecycle.
 //!
-//! Squad data lives on Bevy entities (with components from
-//! `cordon_sim::components`). NPC members carry a `SquadMembership`
-//! back-pointer. The hot-path systems iterate squads + members via
-//! ECS queries — there's no HashMap fallback.
+//! Squads are Bevy entities. NPC members carry a [`SquadMembership`]
+//! back-pointer. Hot-path systems iterate squads + members via ECS
+//! queries — there is no HashMap fallback.
 
 use std::collections::HashMap;
 
 use bevy::prelude::*;
 use cordon_core::entity::squad::Goal;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::components::{
-    LoadoutComp, NpcMarker, SquadActivity, SquadFacing, SquadFaction, SquadFormation, SquadGoal,
-    SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
-};
-use cordon_sim::resources::SquadIdIndex;
 
-use super::AiSet;
-use super::behavior::{CombatTarget, MovementSpeed, MovementTarget};
-use super::combat::{AnomalyZone, Vision, is_hostile, line_blocked, weapon_range};
-use super::death::Dead;
-use crate::PlayingState;
+use crate::behavior::{AnomalyZone, CombatTarget, Dead, MovementSpeed, MovementTarget, Vision};
+use crate::combat::{is_hostile, line_blocked, weapon_range};
+use crate::components::{
+    LoadoutComp, NpcMarker, SquadActivity, SquadFacing, SquadFaction, SquadFormation, SquadGoal,
+    SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints, Xp,
+};
+use crate::plugin::SimSet;
+use crate::resources::SquadIdIndex;
 
 const SQUAD_WALK_SPEED: f32 = 30.0;
 const ENGAGE_WALK_SPEED: f32 = 38.0;
 const PATROL_HOLD_SECS: f32 = 6.0;
 const ARRIVED_DIST: f32 = 12.0;
 
-pub struct SquadPlugin;
+pub struct SquadAiPlugin;
 
-impl Plugin for SquadPlugin {
+impl Plugin for SquadAiPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
             (
-                cleanup_dead_squads.in_set(AiSet::Cleanup),
-                drive_squad_goals.in_set(AiSet::Goals),
-                update_squad_engagement.in_set(AiSet::Engagement),
-                drive_squad_formation.in_set(AiSet::Formation),
-            )
-                .run_if(in_state(PlayingState::Laptop)),
+                cleanup_dead_squads.in_set(SimSet::Cleanup),
+                drive_squad_goals.in_set(SimSet::Goals),
+                update_squad_engagement.in_set(SimSet::Engagement),
+                drive_squad_formation.in_set(SimSet::Formation),
+            ),
         );
     }
 }
-
-// ====================================================================
-// Engagement scanning (vision shared by squad).
-// ====================================================================
 
 struct NpcSnap {
     entity: Entity,
@@ -117,7 +109,6 @@ fn update_squad_engagement(
         .map(|(t, a)| (t.translation.truncate(), a.radius))
         .collect();
 
-    // Snapshot every alive NPC for the spatial grid.
     let snapshot: Vec<NpcSnap> = members_q
         .iter()
         .map(|(entity, member, vision, transform)| NpcSnap {
@@ -128,7 +119,6 @@ fn update_squad_engagement(
         })
         .collect();
 
-    // Build a faction lookup per squad.
     let squad_faction: HashMap<Entity, &cordon_core::primitive::Id<cordon_core::entity::faction::Faction>> = squads_q
         .iter()
         .map(|(e, f, _)| (e, &f.0))
@@ -202,12 +192,10 @@ fn update_squad_engagement(
     for (squad_entity, mut activity, mut facing, leader) in squad_state_q.iter_mut() {
         match squad_hostile.get(&squad_entity) {
             Some(hostile) => {
-                let same =
-                    matches!(*activity, SquadActivity::Engage { hostiles } if hostiles == *hostile);
+                let same = matches!(*activity, SquadActivity::Engage { hostiles } if hostiles == *hostile);
                 if !same {
                     *activity = SquadActivity::Engage { hostiles: *hostile };
                 }
-                // Point facing toward the hostile leader.
                 let our_pos = snapshot.iter().find(|n| n.entity == leader.0).map(|n| n.pos);
                 let hostile_leader = squad_leader.get(hostile).copied();
                 let hostile_pos = hostile_leader
@@ -228,8 +216,7 @@ fn update_squad_engagement(
         }
     }
 
-    // Pass C: assign per-member CombatTarget for engaging squads,
-    // clear it for everyone else.
+    // Pass C: assign per-member CombatTarget.
     let snapshot_by_squad: HashMap<Entity, Vec<&NpcSnap>> = {
         let mut m: HashMap<Entity, Vec<&NpcSnap>> = HashMap::new();
         for n in &snapshot {
@@ -290,10 +277,6 @@ fn update_squad_engagement(
     }
 }
 
-// ====================================================================
-// Goal-driven activity transitions.
-// ====================================================================
-
 fn drive_squad_goals(
     time: Res<Time>,
     mut squads_q: Query<(&SquadGoal, &mut SquadActivity, &mut SquadWaypoints)>,
@@ -335,10 +318,6 @@ fn next_activity_for_goal(goal: &Goal, waypoints: &mut SquadWaypoints) -> SquadA
     }
 }
 
-// ====================================================================
-// Formation positioning.
-// ====================================================================
-
 #[allow(clippy::type_complexity)]
 fn drive_squad_formation(
     game_data: Res<GameDataResource>,
@@ -378,7 +357,6 @@ fn drive_squad_formation(
 
     let items = &game_data.0.items;
 
-    // Snapshot leader positions per squad entity.
     let mut squad_leader_pos: HashMap<Entity, Vec2> = HashMap::new();
     for (squad_entity, _, leader, _, _, _, _) in squad_state_q.iter() {
         if let Ok(t) = leaders_q.get(leader.0) {
@@ -407,16 +385,14 @@ fn drive_squad_formation(
             }
         }
 
-        // Flip arrived Move → Hold.
-        if let SquadActivity::Move { target } = *activity {
-            if p.distance(target) < ARRIVED_DIST {
-                *activity = SquadActivity::Hold {
-                    duration_secs: PATROL_HOLD_SECS,
-                };
-            }
+        if let SquadActivity::Move { target } = *activity
+            && p.distance(target) < ARRIVED_DIST
+        {
+            *activity = SquadActivity::Hold {
+                duration_secs: PATROL_HOLD_SECS,
+            };
         }
 
-        // Update facing.
         let new_facing = match *activity {
             SquadActivity::Move { target } => (target - p).normalize_or_zero(),
             _ => facing.0,
@@ -428,19 +404,17 @@ fn drive_squad_formation(
         }
     }
 
-    // Snapshot per-squad data needed in pass B.
-    let squad_info: HashMap<Entity, (SquadActivity, Vec2, cordon_core::entity::squad::Formation, usize)> =
-        squad_state_q
-            .iter()
-            .map(|(e, _, _, members, formation, activity, facing)| {
-                (e, (activity.clone(), facing.0, formation.0, members.0.len()))
-            })
-            .collect();
+    let squad_info: HashMap<
+        Entity,
+        (SquadActivity, Vec2, cordon_core::entity::squad::Formation, usize),
+    > = squad_state_q
+        .iter()
+        .map(|(e, _, _, members, formation, activity, facing)| {
+            (e, (activity.clone(), facing.0, formation.0, members.0.len()))
+        })
+        .collect();
 
-    // Pass B: per-member — write MovementTarget.
-    for (member, transform, combat_target, loadout, mut move_target, mut speed) in
-        &mut members_q
-    {
+    for (member, transform, combat_target, loadout, mut move_target, mut speed) in &mut members_q {
         let Some((activity, facing_v, formation, member_count)) =
             squad_info.get(&member.squad).cloned()
         else {
@@ -448,7 +422,6 @@ fn drive_squad_formation(
         };
         let pos = transform.translation.truncate();
 
-        // === Engaging? Move toward our personal combat target. ===
         if matches!(activity, SquadActivity::Engage { .. }) {
             if let Some(target_entity) = combat_target.0
                 && let Ok(target_t) = targets_q.get(target_entity)
@@ -474,7 +447,6 @@ fn drive_squad_formation(
             continue;
         }
 
-        // === Not engaging: walk to formation slot. ===
         let Some(leader_p) = squad_leader_pos.get(&member.squad).copied() else {
             continue;
         };
@@ -521,15 +493,13 @@ fn set_movement_target(
     }
 }
 
-// ====================================================================
-// Squad lifecycle.
-// ====================================================================
-
+/// Squad lifecycle: drop dead members, promote new leaders, despawn
+/// fully-dead squads. Throttled to 1 Hz.
 fn cleanup_dead_squads(
     time: Res<Time>,
     mut throttle: Local<f32>,
     mut commands: Commands,
-    alive_q: Query<&cordon_sim::components::Xp, (With<NpcMarker>, Without<Dead>)>,
+    alive_q: Query<&Xp, (With<NpcMarker>, Without<Dead>)>,
     mut squads_q: Query<(Entity, &mut SquadMembers, &mut SquadLeader)>,
 ) {
     const CLEANUP_INTERVAL_SECS: f32 = 1.0;
@@ -540,14 +510,12 @@ fn cleanup_dead_squads(
     *throttle = 0.0;
 
     for (squad_entity, mut members, mut leader) in &mut squads_q {
-        // Drop members that no longer satisfy the alive query.
         members.0.retain(|m| alive_q.get(*m).is_ok());
         if members.0.is_empty() {
             commands.entity(squad_entity).despawn();
             continue;
         }
         if alive_q.get(leader.0).is_err() {
-            // Promote highest-rank surviving member as new leader.
             let new_leader = members
                 .0
                 .iter()

@@ -12,13 +12,12 @@ use cordon_core::primitive::{HazardType, Tier};
 use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
 
+use cordon_sim::behavior::{CombatTarget, FireState, MovementSpeed, MovementTarget, Vision};
 use cordon_sim::components::{
     FactionId, NpcMarker, NpcNameComp, SquadFormation, SquadHomePosition, SquadMembership, Xp,
 };
 
 use crate::PlayingState;
-use crate::ai::behavior::{CombatTarget, FireState, MovementSpeed, MovementTarget};
-use crate::ai::combat::Vision;
 use crate::locale::{GameLocalization, l10n_or};
 
 pub struct LaptopPlugin;
@@ -354,7 +353,7 @@ fn update_hover(
             &MovementTarget,
             &CombatTarget,
             &SquadMembership,
-            Option<&crate::ai::behavior::LootState>,
+            Option<&cordon_sim::behavior::LootState>,
         ),
         With<NpcMarker>,
     >,
