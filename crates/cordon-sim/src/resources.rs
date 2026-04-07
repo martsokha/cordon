@@ -88,7 +88,7 @@ impl Default for UidAllocator {
 }
 
 impl UidAllocator {
-    pub fn alloc<T: 'static>(&mut self) -> Uid<T> {
+    pub fn alloc<T: Send + Sync + 'static>(&mut self) -> Uid<T> {
         let uid = Uid::new(self.next);
         self.next += 1;
         uid

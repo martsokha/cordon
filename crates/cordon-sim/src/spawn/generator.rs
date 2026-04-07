@@ -6,7 +6,7 @@ use cordon_core::entity::name::{NameFormat, NamePool, NpcName};
 use cordon_core::entity::npc::{Npc, Personality};
 use cordon_core::entity::squad::{Goal, Squad};
 use cordon_core::item::{Item, ItemDef, Loadout};
-use cordon_core::primitive::{Credits, Experience, Health, Id, Rank, Uid};
+use cordon_core::primitive::{Credits, Experience, Id, Pool, Rank, Uid};
 use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
@@ -143,8 +143,7 @@ pub trait NpcGenerator {
             faction,
             xp,
             loadout: Loadout::new(),
-            health: Health::FULL,
-            max_hp: 100,
+            health: Pool::full(),
             trust: 0.0,
             wealth,
             personality,
@@ -159,7 +158,7 @@ pub trait NpcGenerator {
     /// Target alive-NPC population in the Zone. Spawning replenishes
     /// toward this number rather than dumping a fixed batch each day.
     fn target_population(&self, _day: u32) -> u32 {
-        200
+        1000
     }
 }
 

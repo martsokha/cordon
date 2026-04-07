@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::item::effect::Effect;
+use crate::item::effect::TimedEffect;
 use crate::primitive::Duration;
 
 /// Data for throwable items.
@@ -11,7 +11,7 @@ use crate::primitive::Duration;
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ThrowableData {
     /// Effects applied on impact. Each has its own duration and aoe.
-    pub effects: Vec<Effect>,
+    pub effects: Vec<TimedEffect>,
     /// Seconds to prime and throw (animation/use time).
     pub use_time: Duration,
 }

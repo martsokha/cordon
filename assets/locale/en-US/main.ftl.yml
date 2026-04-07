@@ -1,5 +1,7 @@
 locale: en-US
 resources:
   - areas.ftl
+  - factions.ftl
   - names.ftl
+  - ranks.ftl
   - ui.ftl

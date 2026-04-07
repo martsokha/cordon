@@ -296,7 +296,7 @@ fn resolve_combat(
     let mut targets_apply = sets.p2();
     for hit in hits {
         if let Ok((mut hp, mut loadout)) = targets_apply.get_mut(hit.target) {
-            hp.current.damage(hit.dealt);
+            hp.deplete(hit.dealt);
             if hit.absorbed > 0
                 && let Some(armor) = &mut loadout.0.armor
             {

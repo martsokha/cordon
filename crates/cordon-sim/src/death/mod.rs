@@ -42,7 +42,7 @@ fn handle_deaths(
 ) {
     let now = clock.0;
     for (entity, hp) in &q {
-        if hp.is_alive() {
+        if !hp.is_empty() {
             continue;
         }
         commands.entity(entity).insert(Dead { died_at: now });

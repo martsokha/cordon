@@ -23,7 +23,7 @@ use cordon_core::primitive::Uid;
 use cordon_data::gamedata::GameDataResource;
 use rand::{Rng, RngExt};
 
-use crate::components::{NpcBundle, NpcId, SquadBundle, SquadMembership};
+use crate::components::{NpcBundle, NpcMarker, SquadBundle, SquadMembership};
 use crate::resources::{FactionIndex, GameClock, SquadIdIndex, UidAllocator};
 use crate::spawn::generator::{
     DefaultNpcGenerator, LoadoutContext, NpcGenerator, roll_population_top_up,
@@ -62,7 +62,7 @@ pub fn spawn_population(
     game_data: Res<GameDataResource>,
     mut squad_index: ResMut<SquadIdIndex>,
     mut rng: Single<&mut WyRand, With<GlobalRng>>,
-    alive_npcs: Query<(), With<NpcId>>,
+    alive_npcs: Query<(), With<NpcMarker>>,
 ) {
     let data = &game_data.0;
 

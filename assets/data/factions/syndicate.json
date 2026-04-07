@@ -1,0 +1,14 @@
+{
+  "id": "syndicate",
+  "recruitable": true,
+  "rank_scheme": "loose",
+  "buys": ["weapon", "relic", "tech"],
+  "sells": ["weapon", "consumable", "attachment"],
+  "namepool": "aliases",
+  "relations": [
+    ["garrison", -60],
+    ["institute", -30],
+    ["devoted", 10],
+    ["drifters", 30]
+  ]
+}

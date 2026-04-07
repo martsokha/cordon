@@ -16,10 +16,13 @@ mod stash;
 pub use self::category::ItemCategory;
 pub use self::data::{
     AmmoData, ArmorData, ArmorSlot, AttachmentData, Caliber, ConsumableData, DocumentData,
-    FireMode, ItemData, RelicData, RelicStability, ThrowableData, WeaponData,
+    FireMode, ItemData, RelicData, ThrowableData, WeaponData,
 };
 pub use self::def::{Item, ItemDef, Supplier};
-pub use self::effect::{Effect, EffectTarget};
+pub use self::effect::{
+    EffectDuration, EffectTrigger, PassiveModifier, ResourceTarget, StatTarget, TimedEffect,
+    TriggeredEffect,
+};
 pub use self::instance::{Authenticity, ItemInstance};
 pub use self::loadout::{BASE_GENERAL_SLOTS, Loadout, MAX_RELIC_SLOTS};
 pub use self::stash::Stash;

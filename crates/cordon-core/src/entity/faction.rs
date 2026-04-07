@@ -23,16 +23,16 @@ impl IdMarker for Faction {}
 #[serde(rename_all = "lowercase")]
 pub enum RankScheme {
     /// Grunt, Soldier, Veteran, Officer, Commander.
-    /// Used by the Order, Garrison.
+    /// Used by the Garrison.
     Military,
     /// Rookie, Seasoned, Hardened, Boss, Legend.
-    /// Used by Drifters, Syndicate, Mercenaries.
+    /// Used by Drifters and the Syndicate.
     Loose,
     /// Pilgrim, Acolyte, Keeper, Prophet, Ascended.
     /// Used by the Devoted.
     Religious,
     /// Recruit, Researcher, Senior, Director, Council.
-    /// Used by the Collective, Institute.
+    /// Used by the Institute.
     Academic,
 }
 
@@ -43,7 +43,8 @@ pub enum RankScheme {
 /// from localization files, not stored here.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FactionDef {
-    /// Unique identifier and localization key (e.g., `"order"`, `"drifters"`).
+    /// Unique identifier and localization key (e.g., `"garrison"`,
+    /// `"drifters"`).
     pub id: Id<Faction>,
     /// Whether NPCs from this faction can be recruited as runners/guards.
     pub recruitable: bool,

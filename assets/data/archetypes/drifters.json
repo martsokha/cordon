@@ -8,7 +8,7 @@
         "armor": [{ "id": "leather_jacket", "weight": 3 }],
         "helmet": [{ "id": "balaclava" }],
         "ammo_boxes": 2,
-        "consumables": [{ "id": "bandage" }, { "id": "ration" }, { "id": "water_canteen" }],
+        "consumables": [{ "id": "bandage" }, { "id": "ration" }],
         "consumable_count": 2
       },
       "experienced": {

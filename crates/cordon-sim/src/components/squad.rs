@@ -13,10 +13,6 @@ use cordon_core::primitive::{Id, Uid};
 #[derive(Component, Debug, Clone, Copy)]
 pub struct SquadMarker;
 
-/// Stable runtime identifier for the squad.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct SquadId(pub Uid<Squad>);
-
 #[derive(Component, Debug, Clone)]
 pub struct SquadFaction(pub Id<Faction>);
 
@@ -77,7 +73,7 @@ impl Default for SquadActivity {
 #[derive(Bundle)]
 pub struct SquadBundle {
     pub marker: SquadMarker,
-    pub id: SquadId,
+    pub id: Uid<Squad>,
     pub faction: SquadFaction,
     pub goal: SquadGoal,
     pub formation: SquadFormation,
@@ -93,7 +89,7 @@ impl SquadBundle {
     pub fn from_squad(squad: Squad, leader: Entity, members: Vec<Entity>, home: Vec2) -> Self {
         Self {
             marker: SquadMarker,
-            id: SquadId(squad.id),
+            id: squad.id,
             faction: SquadFaction(squad.faction),
             goal: SquadGoal(squad.goal),
             formation: SquadFormation(squad.formation),

@@ -1,0 +1,14 @@
+{
+  "id": "garrison",
+  "recruitable": false,
+  "rank_scheme": "military",
+  "buys": ["weapon", "ammo", "armor"],
+  "sells": ["weapon", "ammo"],
+  "namepool": "slavic",
+  "relations": [
+    ["syndicate", -60],
+    ["institute", 40],
+    ["devoted", -50],
+    ["drifters", -30]
+  ]
+}

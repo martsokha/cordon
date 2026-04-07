@@ -17,7 +17,7 @@ use super::faction::Faction;
 use super::name::NpcName;
 use super::perk::Perk;
 use crate::item::Loadout;
-use crate::primitive::{Credits, Experience, Health, Id, IdMarker, Rank, Uid};
+use crate::primitive::{Credits, Experience, Health, Id, IdMarker, Pool, Rank, Uid};
 
 /// Marker for NPC template IDs (used in quest consequences).
 pub struct NpcTemplate;
@@ -74,10 +74,9 @@ pub struct Npc {
 
     /// Equipped weapons, armor, and carried items.
     pub loadout: Loadout,
-    /// Health. Drops from combat, radiation, hazards.
-    pub health: Health,
-    /// Maximum HP cap. Default 100; relics may modify it later.
-    pub max_hp: u32,
+    /// Health pool. Current / max HP; drops from combat, radiation,
+    /// and hazards.
+    pub health: Pool<Health>,
 
     /// How much this NPC trusts the player (-1.0 to 1.0).
     pub trust: f32,

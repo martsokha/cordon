@@ -1,0 +1,14 @@
+{
+  "id": "devoted",
+  "recruitable": false,
+  "rank_scheme": "religious",
+  "buys": ["relic", "consumable", "document"],
+  "sells": ["relic", "consumable"],
+  "namepool": "slavic",
+  "relations": [
+    ["garrison", -50],
+    ["syndicate", 10],
+    ["institute", -30],
+    ["drifters", 10]
+  ]
+}

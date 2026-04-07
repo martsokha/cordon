@@ -4,16 +4,30 @@
     "data": {
       "type": "consumable",
       "effects": [
-        { "target": "Health", "value": 15.0, "duration": null, "aoe": null },
-        { "target": "Bleeding", "value": 1.0, "duration": 5, "aoe": null }
+        {
+          "target": "Health",
+          "value": 15.0,
+          "duration": "instant"
+        },
+        {
+          "target": "Bleeding",
+          "value": 1.0,
+          "duration": { "secs": 5 }
+        }
       ],
       "use_time": 3,
       "spoil_days": null
     },
     "base_price": 30,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "drifters",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common"
   },
@@ -22,16 +36,30 @@
     "data": {
       "type": "consumable",
       "effects": [
-        { "target": "Health", "value": 50.0, "duration": null, "aoe": null },
-        { "target": "Bleeding", "value": 1.0, "duration": 10, "aoe": null }
+        {
+          "target": "Health",
+          "value": 50.0,
+          "duration": "instant"
+        },
+        {
+          "target": "Bleeding",
+          "value": 1.0,
+          "duration": { "secs": 10 }
+        }
       ],
       "use_time": 6,
       "spoil_days": null
     },
     "base_price": 250,
     "suppliers": [
-      { "faction": "collective", "price_multiplier": 0.9 },
-      { "faction": "institute", "price_multiplier": 1.0 }
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "institute",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common"
   },
@@ -40,15 +68,25 @@
     "data": {
       "type": "consumable",
       "effects": [
-        { "target": "Radiation", "value": -5.0, "duration": 10, "aoe": null }
+        {
+          "target": "RadiationLevel",
+          "value": -5.0,
+          "duration": { "secs": 10 }
+        }
       ],
       "use_time": 2,
       "spoil_days": 365
     },
     "base_price": 180,
     "suppliers": [
-      { "faction": "collective", "price_multiplier": 0.85 },
-      { "faction": "institute", "price_multiplier": 1.0 }
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.85
+      },
+      {
+        "faction": "institute",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common"
   },
@@ -57,32 +95,25 @@
     "data": {
       "type": "consumable",
       "effects": [
-        { "target": "Hunger", "value": 60.0, "duration": null, "aoe": null }
+        {
+          "target": "Hunger",
+          "value": 60.0,
+          "duration": "instant"
+        }
       ],
       "use_time": 8,
       "spoil_days": 60
     },
     "base_price": 40,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.9 },
-      { "faction": "drifters", "price_multiplier": 1.0 }
-    ],
-    "rarity": "common"
-  },
-  {
-    "id": "water_canteen",
-    "data": {
-      "type": "consumable",
-      "effects": [
-        { "target": "Thirst", "value": 70.0, "duration": null, "aoe": null }
-      ],
-      "use_time": 3,
-      "spoil_days": 30
-    },
-    "base_price": 25,
-    "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.85 },
-      { "faction": "collective", "price_multiplier": 1.0 }
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "drifters",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common"
   }

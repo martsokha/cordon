@@ -29,7 +29,7 @@
       "hazard": null
     },
     "loot_tier": "medium",
-    "default_faction": "order"
+    "default_faction": "garrison"
   },
   {
     "id": "farms",
@@ -48,7 +48,7 @@
       }
     },
     "loot_tier": "medium",
-    "default_faction": "collective"
+    "default_faction": "drifters"
   },
   {
     "id": "factory",

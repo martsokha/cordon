@@ -1,9 +1,8 @@
 //! Per-NPC ECS components.
 //!
-//! These replace the old `World.npcs: HashMap<Uid<Npc>, Npc>` model:
-//! every NPC is a Bevy entity with the components below. The
-//! `cordon-core` `Npc` struct still exists as the spawn-time / save-game
-//! shape, consumed by [`NpcBundle::from_npc`].
+//! Every NPC is a Bevy entity with the components below. The
+//! `cordon-core` `Npc` struct is the spawn-time / save-game shape,
+//! consumed by [`NpcBundle::from_npc`].
 
 use bevy::prelude::*;
 use cordon_core::entity::faction::Faction;
@@ -11,17 +10,22 @@ use cordon_core::entity::name::NpcName;
 use cordon_core::entity::npc::{Npc, Personality, Role};
 use cordon_core::entity::perk::Perk;
 use cordon_core::item::Loadout;
-use cordon_core::primitive::{Credits, Experience, Health, Id, Rank, Uid};
+use cordon_core::primitive::{
+    Credits, Experience, Health, Hunger, Id, Pool, Rank, Stamina, Uid,
+};
+
+/// Health pool component (current + max HP).
+pub type Hp = Pool<Health>;
+
+/// Stamina pool component.
+pub type StaminaPool = Pool<Stamina>;
+
+/// Hunger pool component. At max = fully satiated, at 0 = starving.
+pub type HungerPool = Pool<Hunger>;
 
 /// Marker that this entity is an NPC. Use as a query filter.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct NpcMarker;
-
-/// Stable runtime identifier. Persists across this game session and
-/// is the key used in save files; for *runtime* lookups, prefer the
-/// entity itself.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct NpcId(pub Uid<Npc>);
 
 /// Localized name. Wrapper avoids shadowing `bevy::prelude::Name`.
 #[derive(Component, Debug, Clone)]
@@ -36,23 +40,6 @@ pub struct Xp(pub Experience);
 impl Xp {
     pub fn rank(&self) -> Rank {
         self.0.npc_rank()
-    }
-}
-
-/// Current and max HP, both as plain integers.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct Hp {
-    pub current: Health,
-    pub max: u32,
-}
-
-impl Hp {
-    pub fn new(current: Health, max: u32) -> Self {
-        Self { current, max }
-    }
-
-    pub fn is_alive(&self) -> bool {
-        self.current.is_alive()
     }
 }
 
@@ -88,11 +75,13 @@ pub struct Employment {
 #[derive(Bundle)]
 pub struct NpcBundle {
     pub marker: NpcMarker,
-    pub id: NpcId,
+    pub id: Uid<Npc>,
     pub name: NpcNameComp,
     pub faction: FactionId,
     pub xp: Xp,
     pub hp: Hp,
+    pub stamina: StaminaPool,
+    pub hunger: HungerPool,
     pub loadout: LoadoutComp,
     pub wealth: Wealth,
     pub trust: Trust,
@@ -105,17 +94,15 @@ pub struct NpcBundle {
 impl NpcBundle {
     /// Construct an [`NpcBundle`] from a freshly-rolled [`Npc`].
     pub fn from_npc(npc: Npc) -> Self {
-        let max_hp = npc.max_hp;
         Self {
             marker: NpcMarker,
-            id: NpcId(npc.id),
+            id: npc.id,
             name: NpcNameComp(npc.name),
             faction: FactionId(npc.faction),
             xp: Xp(npc.xp),
-            hp: Hp {
-                current: npc.health,
-                max: max_hp,
-            },
+            hp: npc.health,
+            stamina: StaminaPool::full(),
+            hunger: HungerPool::full(),
             loadout: LoadoutComp(npc.loadout),
             wealth: Wealth(npc.wealth),
             trust: Trust(npc.trust),

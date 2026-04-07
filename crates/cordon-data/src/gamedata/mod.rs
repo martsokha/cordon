@@ -205,7 +205,21 @@ fn assemble_game_data<S: FreelyMutableState>(
     *next_state = NextState::Pending(ready.0.clone());
 }
 
+/// Either a single definition or an array of them. Asset files can
+/// use whichever shape reads best — one file per definition for
+/// cleanly scoped records (factions), or an array per file for
+/// tightly related groups (items of the same type).
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+enum OneOrMany<T> {
+    One(T),
+    Many(Vec<T>),
+}
+
 /// Parse all JSON files in a loaded folder into a keyed HashMap.
+///
+/// Each file may contain either a single definition object or an
+/// array of definitions; the loader accepts both shapes.
 fn parse_folder<T, M>(
     handle: &Handle<LoadedFolder>,
     folders: &Assets<LoadedFolder>,
@@ -224,8 +238,11 @@ where
         let Some(json) = raw.get(&file_handle.clone().typed::<RawJson>()) else {
             continue;
         };
-        match serde_json::from_slice::<Vec<T>>(&json.0) {
-            Ok(defs) => {
+        match serde_json::from_slice::<OneOrMany<T>>(&json.0) {
+            Ok(OneOrMany::One(def)) => {
+                map.insert(key(&def), def);
+            }
+            Ok(OneOrMany::Many(defs)) => {
                 for def in defs {
                     map.insert(key(&def), def);
                 }

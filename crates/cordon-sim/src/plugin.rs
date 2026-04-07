@@ -100,10 +100,10 @@ pub mod prelude {
         MovementTarget, Vision,
     };
     pub use crate::components::{
-        Employment, FactionId, Hp, LoadoutComp, Loyalty, NpcBundle, NpcId, NpcMarker, NpcNameComp,
-        Perks, PersonalityComp, SquadActivity, SquadBundle, SquadFacing, SquadFaction,
-        SquadFormation, SquadGoal, SquadHomePosition, SquadId, SquadLeader, SquadMarker,
-        SquadMembers, SquadMembership, SquadWaypoints, Trust, Wealth, Xp,
+        Employment, FactionId, Hp, HungerPool, LoadoutComp, Loyalty, NpcBundle, NpcMarker,
+        NpcNameComp, Perks, PersonalityComp, SquadActivity, SquadBundle, SquadFacing,
+        SquadFaction, SquadFormation, SquadGoal, SquadHomePosition, SquadLeader, SquadMarker,
+        SquadMembers, SquadMembership, SquadWaypoints, StaminaPool, Trust, Wealth, Xp,
     };
     pub use crate::events::{
         CorpseRemoved, DayRolled, ItemLooted, NpcDied, ShotFired, SquadSpawned,

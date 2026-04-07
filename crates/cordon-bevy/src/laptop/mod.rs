@@ -126,9 +126,6 @@ fn faction_icon_str(faction: Option<&str>) -> &'static str {
     match faction {
         Some("garrison") => "[G]",
         Some("syndicate") => "[S]",
-        Some("order") => "[O]",
-        Some("collective") => "[C]",
-        Some("mercenaries") => "[M]",
         Some("institute") => "[I]",
         Some("devoted") => "[D]",
         Some("drifters") => "[d]",
@@ -548,7 +545,7 @@ fn attach_npc_visuals(
         };
         let spawn_pos = home + slot_offset;
 
-        let is_military = matches!(faction_str, "garrison" | "order" | "mercenaries");
+        let is_military = matches!(faction_str, "garrison");
         let vision = Vision::for_npc(rank, is_military);
 
         commands.entity(entity).insert((

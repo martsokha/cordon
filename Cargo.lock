@@ -2030,11 +2030,13 @@ dependencies = [
 name = "cordon-core"
 version = "0.1.0"
 dependencies = [
+ "bevy",
  "derive_builder",
  "derive_more",
  "jiff",
  "semver",
  "serde",
+ "serde_json",
  "strum",
  "thiserror 2.0.18",
  "uuid",

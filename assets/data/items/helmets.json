@@ -4,14 +4,27 @@
     "data": {
       "type": "armor",
       "slot": "helmet",
-      "resistances": { "ballistic": 1, "radiation": 1, "chemical": 1, "thermal": 1, "electric": 1, "gravitational": 1 },
+      "resistances": {
+        "ballistic": 1,
+        "radiation": 1,
+        "chemical": 1,
+        "thermal": 1,
+        "electric": 1,
+        "gravitational": 1
+      },
       "inventory_slots": 0,
       "relic_slots": 0
     },
     "base_price": 100,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.8 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.8
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common",
     "durability": 40
@@ -21,14 +34,23 @@
     "data": {
       "type": "armor",
       "slot": "helmet",
-      "resistances": { "ballistic": 8, "radiation": 0, "chemical": 0, "thermal": 0, "electric": 0, "gravitational": 0 },
+      "resistances": {
+        "ballistic": 8,
+        "radiation": 0,
+        "chemical": 0,
+        "thermal": 0,
+        "electric": 0,
+        "gravitational": 0
+      },
       "inventory_slots": 0,
       "relic_slots": 0
     },
     "base_price": 1000,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.9 },
-      { "faction": "order", "price_multiplier": 1.0 }
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.9
+      }
     ],
     "rarity": "common",
     "durability": 160
@@ -38,14 +60,27 @@
     "data": {
       "type": "armor",
       "slot": "helmet",
-      "resistances": { "ballistic": 12, "radiation": 2, "chemical": 0, "thermal": 0, "electric": 0, "gravitational": 0 },
+      "resistances": {
+        "ballistic": 12,
+        "radiation": 2,
+        "chemical": 0,
+        "thermal": 0,
+        "electric": 0,
+        "gravitational": 0
+      },
       "inventory_slots": 0,
       "relic_slots": 0
     },
     "base_price": 3500,
     "suppliers": [
-      { "faction": "mercenaries", "price_multiplier": 0.95 },
-      { "faction": "garrison", "price_multiplier": 1.1 }
+      {
+        "faction": "syndicate",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "garrison",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "uncommon",
     "durability": 240
@@ -55,14 +90,27 @@
     "data": {
       "type": "armor",
       "slot": "helmet",
-      "resistances": { "ballistic": 0, "radiation": 3, "chemical": 5, "thermal": 0, "electric": 0, "gravitational": 0 },
+      "resistances": {
+        "ballistic": 0,
+        "radiation": 3,
+        "chemical": 5,
+        "thermal": 0,
+        "electric": 0,
+        "gravitational": 0
+      },
       "inventory_slots": 0,
       "relic_slots": 0
     },
     "base_price": 1500,
     "suppliers": [
-      { "faction": "collective", "price_multiplier": 0.9 },
-      { "faction": "institute", "price_multiplier": 1.0 }
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "institute",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common",
     "durability": 70
@@ -72,14 +120,27 @@
     "data": {
       "type": "armor",
       "slot": "helmet",
-      "resistances": { "ballistic": 2, "radiation": 6, "chemical": 8, "thermal": 3, "electric": 2, "gravitational": 0 },
+      "resistances": {
+        "ballistic": 2,
+        "radiation": 6,
+        "chemical": 8,
+        "thermal": 3,
+        "electric": 2,
+        "gravitational": 0
+      },
       "inventory_slots": 0,
       "relic_slots": 0
     },
     "base_price": 6000,
     "suppliers": [
-      { "faction": "collective", "price_multiplier": 0.85 },
-      { "faction": "institute", "price_multiplier": 0.95 }
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.85
+      },
+      {
+        "faction": "institute",
+        "price_multiplier": 0.95
+      }
     ],
     "rarity": "uncommon",
     "durability": 200

@@ -16,7 +16,7 @@
       }
     },
     "loot_tier": "high",
-    "default_faction": "mercenaries"
+    "default_faction": "syndicate"
   },
   {
     "id": "institute_outpost",

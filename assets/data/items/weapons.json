@@ -4,7 +4,9 @@
     "data": {
       "type": "weapon",
       "caliber": "9x18mm",
-      "fire_modes": ["Semi"],
+      "fire_modes": [
+        "Semi"
+      ],
       "fire_rate": 2.5,
       "accuracy": 0.55,
       "recoil": 0.25,
@@ -16,8 +18,14 @@
     },
     "base_price": 800,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.9 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common",
     "durability": 220
@@ -27,7 +35,10 @@
     "data": {
       "type": "weapon",
       "caliber": "9x18mm",
-      "fire_modes": ["Semi", "Auto"],
+      "fire_modes": [
+        "Semi",
+        "Auto"
+      ],
       "fire_rate": 12.0,
       "accuracy": 0.45,
       "recoil": 0.45,
@@ -39,8 +50,10 @@
     },
     "base_price": 1800,
     "suppliers": [
-      { "faction": "syndicate", "price_multiplier": 1.0 },
-      { "faction": "mercenaries", "price_multiplier": 1.05 }
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "uncommon",
     "durability": 240
@@ -50,7 +63,9 @@
     "data": {
       "type": "weapon",
       "caliber": "9x19mm",
-      "fire_modes": ["Semi"],
+      "fire_modes": [
+        "Semi"
+      ],
       "fire_rate": 2.0,
       "accuracy": 0.6,
       "recoil": 0.2,
@@ -62,8 +77,14 @@
     },
     "base_price": 2400,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 1.0 },
-      { "faction": "mercenaries", "price_multiplier": 1.1 }
+      {
+        "faction": "garrison",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "uncommon",
     "durability": 260
@@ -73,7 +94,13 @@
     "data": {
       "type": "weapon",
       "caliber": "9x19mm",
-      "fire_modes": ["Semi", { "Burst": 3 }, "Auto"],
+      "fire_modes": [
+        "Semi",
+        {
+          "Burst": 3
+        },
+        "Auto"
+      ],
       "fire_rate": 13.0,
       "accuracy": 0.7,
       "recoil": 0.3,
@@ -85,8 +112,14 @@
     },
     "base_price": 5500,
     "suppliers": [
-      { "faction": "mercenaries", "price_multiplier": 0.95 },
-      { "faction": "garrison", "price_multiplier": 1.1 }
+      {
+        "faction": "syndicate",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "garrison",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "uncommon",
     "durability": 320
@@ -96,7 +129,10 @@
     "data": {
       "type": "weapon",
       "caliber": "5.45x39mm",
-      "fire_modes": ["Semi", "Auto"],
+      "fire_modes": [
+        "Semi",
+        "Auto"
+      ],
       "fire_rate": 10.0,
       "accuracy": 0.6,
       "recoil": 0.45,
@@ -108,8 +144,14 @@
     },
     "base_price": 4500,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.95 },
-      { "faction": "syndicate", "price_multiplier": 1.05 }
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.05
+      }
     ],
     "rarity": "common",
     "durability": 320
@@ -119,7 +161,10 @@
     "data": {
       "type": "weapon",
       "caliber": "5.45x39mm",
-      "fire_modes": ["Semi", "Auto"],
+      "fire_modes": [
+        "Semi",
+        "Auto"
+      ],
       "fire_rate": 11.0,
       "accuracy": 0.7,
       "recoil": 0.35,
@@ -131,8 +176,10 @@
     },
     "base_price": 6500,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.9 },
-      { "faction": "order", "price_multiplier": 1.0 }
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.9
+      }
     ],
     "rarity": "common",
     "durability": 380
@@ -142,7 +189,10 @@
     "data": {
       "type": "weapon",
       "caliber": "5.45x39mm",
-      "fire_modes": ["Semi", "Auto"],
+      "fire_modes": [
+        "Semi",
+        "Auto"
+      ],
       "fire_rate": 12.0,
       "accuracy": 0.65,
       "recoil": 0.5,
@@ -154,8 +204,10 @@
     },
     "base_price": 9500,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.95 },
-      { "faction": "order", "price_multiplier": 1.05 }
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.95
+      }
     ],
     "rarity": "uncommon",
     "durability": 420
@@ -165,7 +217,13 @@
     "data": {
       "type": "weapon",
       "caliber": "5.56x45mm",
-      "fire_modes": ["Semi", { "Burst": 3 }, "Auto"],
+      "fire_modes": [
+        "Semi",
+        {
+          "Burst": 3
+        },
+        "Auto"
+      ],
       "fire_rate": 12.0,
       "accuracy": 0.75,
       "recoil": 0.3,
@@ -177,8 +235,14 @@
     },
     "base_price": 8500,
     "suppliers": [
-      { "faction": "mercenaries", "price_multiplier": 0.9 },
-      { "faction": "institute", "price_multiplier": 1.05 }
+      {
+        "faction": "syndicate",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "institute",
+        "price_multiplier": 1.05
+      }
     ],
     "rarity": "uncommon",
     "durability": 360
@@ -188,7 +252,13 @@
     "data": {
       "type": "weapon",
       "caliber": "5.56x45mm",
-      "fire_modes": ["Semi", { "Burst": 3 }, "Auto"],
+      "fire_modes": [
+        "Semi",
+        {
+          "Burst": 3
+        },
+        "Auto"
+      ],
       "fire_rate": 13.0,
       "accuracy": 0.8,
       "recoil": 0.25,
@@ -200,8 +270,14 @@
     },
     "base_price": 14000,
     "suppliers": [
-      { "faction": "mercenaries", "price_multiplier": 0.95 },
-      { "faction": "institute", "price_multiplier": 1.1 }
+      {
+        "faction": "syndicate",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "institute",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "rare",
     "durability": 420
@@ -211,7 +287,9 @@
     "data": {
       "type": "weapon",
       "caliber": "12gauge",
-      "fire_modes": ["Semi"],
+      "fire_modes": [
+        "Semi"
+      ],
       "fire_rate": 1.2,
       "accuracy": 0.5,
       "recoil": 0.7,
@@ -223,8 +301,14 @@
     },
     "base_price": 3200,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.85 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.85
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common",
     "durability": 280
@@ -234,7 +318,9 @@
     "data": {
       "type": "weapon",
       "caliber": "12gauge",
-      "fire_modes": ["Semi"],
+      "fire_modes": [
+        "Semi"
+      ],
       "fire_rate": 3.0,
       "accuracy": 0.55,
       "recoil": 0.6,
@@ -246,8 +332,10 @@
     },
     "base_price": 6000,
     "suppliers": [
-      { "faction": "syndicate", "price_multiplier": 0.95 },
-      { "faction": "mercenaries", "price_multiplier": 1.1 }
+      {
+        "faction": "syndicate",
+        "price_multiplier": 0.95
+      }
     ],
     "rarity": "uncommon",
     "durability": 320
@@ -257,7 +345,9 @@
     "data": {
       "type": "weapon",
       "caliber": "7.62x54r",
-      "fire_modes": ["Semi"],
+      "fire_modes": [
+        "Semi"
+      ],
       "fire_rate": 1.5,
       "accuracy": 0.95,
       "recoil": 0.5,
@@ -269,8 +359,10 @@
     },
     "base_price": 18000,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.9 },
-      { "faction": "order", "price_multiplier": 1.0 }
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.9
+      }
     ],
     "rarity": "rare",
     "durability": 420

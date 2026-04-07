@@ -12,11 +12,11 @@
 //! there is no other API.
 
 use bevy::prelude::*;
-use cordon_core::entity::squad::{Formation, Goal};
-use cordon_core::primitive::Id;
+use cordon_core::entity::squad::{Formation, Goal, Squad};
+use cordon_core::primitive::{Id, Uid};
 use cordon_core::world::area::Area;
 
-use crate::components::{SquadFormation, SquadGoal, SquadId, SquadMarker, SquadWaypoints};
+use crate::components::{SquadFormation, SquadGoal, SquadMarker, SquadWaypoints};
 
 /// Marker for squads under direct player control. Only owned squads
 /// react to [`SquadCommand`]s.
@@ -48,7 +48,7 @@ pub enum SquadCommand {
 pub(super) fn apply_squad_commands(
     mut messages: MessageReader<SquadCommand>,
     owned: Query<(), (With<SquadMarker>, With<Owned>)>,
-    squad_ids: Query<&SquadId>,
+    squad_ids: Query<&Uid<Squad>>,
     mut squads: Query<(&mut SquadGoal, &mut SquadFormation, &mut SquadWaypoints)>,
 ) {
     for cmd in messages.read() {
@@ -81,11 +81,11 @@ pub(super) fn apply_squad_commands(
             SquadCommand::Protect { other, .. } => {
                 // Goal::Protect stores a Uid<Squad> (save-game stable).
                 // Resolve the runtime entity to its uid via the
-                // SquadId component on the target.
-                let Ok(other_id) = squad_ids.get(*other) else {
+                // Uid<Squad> component on the target.
+                let Ok(other_uid) = squad_ids.get(*other) else {
                     continue;
                 };
-                goal.0 = Goal::Protect { other: other_id.0 };
+                goal.0 = Goal::Protect { other: *other_uid };
             }
             SquadCommand::Deliver { to, .. } => {
                 goal.0 = Goal::Deliver { to: [to.x, to.y] };
