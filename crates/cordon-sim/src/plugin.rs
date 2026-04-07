@@ -1,8 +1,8 @@
 //! Bevy plugin entry point for the world simulation.
 //!
 //! [`CordonSimPlugin`] is the public face of `cordon-sim`. It composes
-//! every sub-plugin (spawn, behavior, squad AI, combat, death, loot)
-//! and declares the [`SimSet`] order so cross-plugin systems run in a
+//! every sub-plugin (day, behavior, squad, combat, death, loot) and
+//! declares the [`SimSet`] order so cross-plugin systems run in a
 //! well-defined sequence each frame.
 //!
 //! All cordon-sim systems run inside `SimSet`. Downstream crates
@@ -16,13 +16,12 @@ use cordon_data::gamedata::GameDataResource;
 
 use crate::behavior::BehaviorPlugin;
 use crate::combat::CombatPlugin;
-use crate::commands::CommandsPlugin;
 use crate::day::DayCyclePlugin;
 use crate::death::DeathPlugin;
 use crate::loot::LootPlugin;
 use crate::resources::{GameClock, SquadIdIndex, UidAllocator};
 use crate::spawn;
-use crate::squad_ai::SquadAiPlugin;
+use crate::squad::SquadPlugin;
 
 /// Ordered system set for cordon-sim. The whole chain runs only when
 /// both [`GameClock`] and [`GameDataResource`] are present, so the
@@ -83,10 +82,9 @@ impl Plugin for CordonSimPlugin {
 
         app.add_systems(Update, spawn::spawn_population.in_set(SimSet::Spawn));
         app.add_plugins((
-            CommandsPlugin,
             DayCyclePlugin,
             BehaviorPlugin,
-            SquadAiPlugin,
+            SquadPlugin,
             CombatPlugin,
             DeathPlugin,
             LootPlugin,
@@ -101,7 +99,6 @@ pub mod prelude {
         AnomalyZone, CombatTarget, Dead, FireState, LootState, MAP_BOUND, MovementSpeed,
         MovementTarget, Vision,
     };
-    pub use crate::commands::{Owned, SquadCommand};
     pub use crate::components::{
         Employment, FactionId, Hp, LoadoutComp, Loyalty, NpcBundle, NpcId, NpcMarker, NpcNameComp,
         Perks, PersonalityComp, SquadActivity, SquadBundle, SquadFacing, SquadFaction,
@@ -114,4 +111,5 @@ pub mod prelude {
     pub use crate::resources::{
         AreaStates, EventLog, FactionIndex, GameClock, Player, SquadIdIndex, UidAllocator,
     };
+    pub use crate::squad::{Owned, SquadCommand};
 }

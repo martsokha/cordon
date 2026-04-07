@@ -96,7 +96,6 @@ fn spawn_wall(
     ));
 }
 
-#[allow(clippy::too_many_arguments)]
 fn spawn_grate_bars(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,

@@ -3,11 +3,14 @@
 //! [`spawn_population`] reads the live alive-NPC count from a Bevy
 //! query, computes the deficit toward the generator's target
 //! population, rolls fresh NPCs and squads via
-//! [`crate::world::generator::roll_population_top_up`], and spawns
-//! them as ECS entities.
+//! [`generator::roll_population_top_up`], and spawns them as ECS
+//! entities.
 //!
 //! Squad members reference each other via `Entity` so the AI hot path
 //! never has to do a HashMap probe by Uid.
+
+pub mod generator;
+pub mod loadout;
 
 use std::collections::HashMap;
 
@@ -22,7 +25,7 @@ use rand::{Rng, RngExt};
 
 use crate::components::{NpcBundle, NpcId, SquadBundle, SquadMembership};
 use crate::resources::{FactionIndex, GameClock, SquadIdIndex, UidAllocator};
-use crate::world::generator::{
+use crate::spawn::generator::{
     DefaultNpcGenerator, LoadoutContext, NpcGenerator, roll_population_top_up,
 };
 
@@ -206,7 +209,7 @@ fn plan_daily_waves<R: Rng>(deficit: u32, now_progress: f32, rng: &mut R) -> Vec
     // 06:00 = 0.25, 21:00 = 0.875.
     const DAY_START: f32 = 0.25;
     const DAY_END: f32 = 0.875;
-    let lower = now_progress.max(DAY_START).min(DAY_END);
+    let lower = now_progress.clamp(DAY_START, DAY_END);
     for i in 1..n {
         let chunk = base + if i < extra { 1 } else { 0 };
         if chunk == 0 {

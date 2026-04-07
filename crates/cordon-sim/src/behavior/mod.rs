@@ -92,7 +92,6 @@ pub struct Dead {
 /// Filters on `MovementTarget` so NPCs that aren't moving don't even
 /// touch their transform — Bevy's change detection skips them and the
 /// downstream transform-propagation system has less work.
-#[allow(clippy::type_complexity)]
 pub fn move_npcs(
     time: Res<Time>,
     mut q: Query<(&MovementTarget, &MovementSpeed, &mut Transform), Without<Dead>>,

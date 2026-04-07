@@ -1,15 +1,16 @@
 #![forbid(unsafe_code)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
+// Bevy systems naturally have many resource params and complex Query
+// types — these lints fire on idiomatic Bevy code, so they're allowed
+// crate-wide rather than per-system.
+#![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 /// Per-NPC behavior state and the per-NPC movement system.
 pub mod behavior;
 
 /// Combat resolution: weapon firing, damage, hostility checks.
 pub mod combat;
-
-/// Player → sim command boundary.
-pub mod commands;
 
 /// ECS components for NPCs and squads.
 pub mod components;
@@ -35,10 +36,6 @@ pub mod resources;
 /// NPC and squad spawning systems.
 pub mod spawn;
 
-/// Squad AI: engagement, formation, goal transitions, lifecycle.
-pub mod squad_ai;
-
-/// World state, day cycle, event scheduling, faction dynamics, NPC
-/// generation. Being progressively dissolved into ECS resources +
-/// systems.
-pub mod world;
+/// Squad behavior: engagement, formation, goals, lifecycle, and the
+/// player command boundary.
+pub mod squad;

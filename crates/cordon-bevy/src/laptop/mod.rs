@@ -268,7 +268,6 @@ fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn spawn_map(
     game_data: Res<GameDataResource>,
     laptop_font: Res<LaptopFont>,
@@ -323,7 +322,6 @@ fn spawn_map(
     commands.insert_resource(MapSpawned);
 }
 
-#[allow(clippy::type_complexity)]
 fn update_hover(
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
@@ -501,7 +499,6 @@ fn deselect_or_exit(
 /// Attach laptop-side visuals to freshly-spawned NPC entities. Runs
 /// after `spawn_population` every frame, but only does real work for
 /// entities that were just given a `SquadMembership`.
-#[allow(clippy::type_complexity)]
 fn attach_npc_visuals(
     game_data: Res<GameDataResource>,
     npc_assets: Res<NpcAssets>,

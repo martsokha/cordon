@@ -1,4 +1,8 @@
 #![forbid(unsafe_code)]
+// Bevy systems naturally have many resource params and complex Query
+// types — these lints fire on idiomatic Bevy code, so they're allowed
+// crate-wide rather than per-system.
+#![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 mod ai;
 mod bunker;

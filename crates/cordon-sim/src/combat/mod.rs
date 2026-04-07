@@ -148,7 +148,6 @@ struct HitIntent {
 /// from a position+armor snapshot built before mutation, drains the
 /// shooter's own ammo and wears its weapon, then queues a [`HitIntent`].
 /// A second pass applies the hit to the target via a fresh mutable query.
-#[allow(clippy::type_complexity)]
 fn resolve_combat(
     time: Res<Time>,
     game_data: Res<GameDataResource>,
@@ -187,110 +186,113 @@ fn resolve_combat(
 
     let mut hits: Vec<HitIntent> = Vec::new();
 
-    // Pass 1: shooter loop.
-    let mut shooters = sets.p1();
-    for (shooter_entity, shooter_transform, mut combat_target, mut fire_state, mut loadout) in
-        &mut shooters
+    // Pass 1: shooter loop. Scoped so the p1 borrow is released before
+    // we grab p2 below.
     {
-        let Some(target_entity) = combat_target.0 else {
-            continue;
-        };
-
-        let Some(&(target_pos, target_ballistic)) = target_snapshot.get(&target_entity) else {
-            combat_target.0 = None;
-            *fire_state = FireState::default();
-            continue;
-        };
-
-        let Some(weapon_inst) = loadout.0.equipped_weapon() else {
-            combat_target.0 = None;
-            *fire_state = FireState::default();
-            continue;
-        };
-        let Some(weapon_def) = items.get(&weapon_inst.def_id) else {
-            continue;
-        };
-        let (caliber, magazine, fire_rate, reload_secs_def, weapon_added, range) =
-            match &weapon_def.data {
-                ItemData::Weapon(w) => (
-                    w.caliber.clone(),
-                    w.magazine,
-                    w.fire_rate,
-                    w.reload_secs,
-                    w.added_damage,
-                    w.range.value(),
-                ),
-                _ => continue,
+        let mut shooters = sets.p1();
+        for (shooter_entity, shooter_transform, mut combat_target, mut fire_state, mut loadout) in
+            &mut shooters
+        {
+            let Some(target_entity) = combat_target.0 else {
+                continue;
             };
-        let mag_count = weapon_inst.count;
-        let loaded_ammo_id = weapon_inst.loaded_ammo.clone();
 
-        let shooter_pos = shooter_transform.translation.truncate();
-        if shooter_pos.distance(target_pos) > range {
-            continue;
-        }
-
-        if fire_state.reload_secs > 0.0 {
-            fire_state.reload_secs = (fire_state.reload_secs - dt).max(0.0);
-            continue;
-        }
-
-        if mag_count == 0 {
-            let started = refill_magazine(&mut loadout.0, items, &caliber, magazine);
-            if started {
-                fire_state.reload_secs = reload_secs_def;
-            } else {
+            let Some(&(target_pos, target_ballistic)) = target_snapshot.get(&target_entity) else {
                 combat_target.0 = None;
                 *fire_state = FireState::default();
+                continue;
+            };
+
+            let Some(weapon_inst) = loadout.0.equipped_weapon() else {
+                combat_target.0 = None;
+                *fire_state = FireState::default();
+                continue;
+            };
+            let Some(weapon_def) = items.get(&weapon_inst.def_id) else {
+                continue;
+            };
+            let (caliber, magazine, fire_rate, reload_secs_def, weapon_added, range) =
+                match &weapon_def.data {
+                    ItemData::Weapon(w) => (
+                        w.caliber.clone(),
+                        w.magazine,
+                        w.fire_rate,
+                        w.reload_secs,
+                        w.added_damage,
+                        w.range.value(),
+                    ),
+                    _ => continue,
+                };
+            let mag_count = weapon_inst.count;
+            let loaded_ammo_id = weapon_inst.loaded_ammo.clone();
+
+            let shooter_pos = shooter_transform.translation.truncate();
+            if shooter_pos.distance(target_pos) > range {
+                continue;
             }
-            continue;
+
+            if fire_state.reload_secs > 0.0 {
+                fire_state.reload_secs = (fire_state.reload_secs - dt).max(0.0);
+                continue;
+            }
+
+            if mag_count == 0 {
+                let started = refill_magazine(&mut loadout.0, items, &caliber, magazine);
+                if started {
+                    fire_state.reload_secs = reload_secs_def;
+                } else {
+                    combat_target.0 = None;
+                    *fire_state = FireState::default();
+                }
+                continue;
+            }
+
+            if fire_state.cooldown_secs > 0.0 {
+                fire_state.cooldown_secs = (fire_state.cooldown_secs - dt).max(0.0);
+                continue;
+            }
+
+            // Fire one shot.
+            let Some(loaded_ammo_id) = loaded_ammo_id else {
+                continue;
+            };
+            let Some(ammo_def) = items.get(&loaded_ammo_id) else {
+                continue;
+            };
+            let (ammo_damage, penetration) = match &ammo_def.data {
+                ItemData::Ammo(a) => (a.damage, a.penetration),
+                _ => continue,
+            };
+            let raw_damage = ammo_damage + weapon_added;
+
+            let (dealt, absorbed) =
+                Resistances::resolve_hit(target_ballistic, penetration, raw_damage);
+
+            if let Some(weapon) = &mut loadout.0.primary {
+                weapon.count = weapon.count.saturating_sub(1);
+                weapon.degrade(1);
+            }
+
+            shots.write(ShotFired {
+                shooter: shooter_entity,
+                from: shooter_pos,
+                to: target_pos,
+            });
+
+            fire_state.cooldown_secs = if fire_rate > 0.0 {
+                1.0 / fire_rate
+            } else {
+                1.0
+            };
+            hits.push(HitIntent {
+                target: target_entity,
+                dealt,
+                absorbed,
+            });
         }
-
-        if fire_state.cooldown_secs > 0.0 {
-            fire_state.cooldown_secs = (fire_state.cooldown_secs - dt).max(0.0);
-            continue;
-        }
-
-        // Fire one shot.
-        let Some(loaded_ammo_id) = loaded_ammo_id else {
-            continue;
-        };
-        let Some(ammo_def) = items.get(&loaded_ammo_id) else {
-            continue;
-        };
-        let (ammo_damage, penetration) = match &ammo_def.data {
-            ItemData::Ammo(a) => (a.damage, a.penetration),
-            _ => continue,
-        };
-        let raw_damage = ammo_damage + weapon_added;
-
-        let (dealt, absorbed) = Resistances::resolve_hit(target_ballistic, penetration, raw_damage);
-
-        if let Some(weapon) = &mut loadout.0.primary {
-            weapon.count = weapon.count.saturating_sub(1);
-            weapon.degrade(1);
-        }
-
-        shots.write(ShotFired {
-            shooter: shooter_entity,
-            from: shooter_pos,
-            to: target_pos,
-        });
-
-        fire_state.cooldown_secs = if fire_rate > 0.0 {
-            1.0 / fire_rate
-        } else {
-            1.0
-        };
-        hits.push(HitIntent {
-            target: target_entity,
-            dealt,
-            absorbed,
-        });
     }
 
     // Pass 2: apply HP damage and armor wear.
-    drop(shooters);
     let mut targets_apply = sets.p2();
     for hit in hits {
         if let Ok((mut hp, mut loadout)) = targets_apply.get_mut(hit.target) {

@@ -11,8 +11,7 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use cordon_core::entity::player::PlayerState;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::resources::{AreaStates, EventLog, FactionIndex, GameClock, Player};
-use cordon_sim::world::sectors::AreaState;
+use cordon_sim::resources::{AreaState, AreaStates, EventLog, FactionIndex, GameClock, Player};
 
 use crate::AppState;
 

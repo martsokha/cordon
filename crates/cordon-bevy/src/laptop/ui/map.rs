@@ -249,7 +249,6 @@ fn follow_cursor(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn update_tooltip(
     tooltip: Res<TooltipContent>,
     root_q: Query<(Entity, Option<&Children>), With<TooltipRoot>>,
@@ -395,7 +394,6 @@ fn update_tooltip(
     }
 }
 
-#[allow(clippy::type_complexity)]
 fn update_zoom_label(
     target: Res<CameraTarget>,
     mut label_q: Query<&mut Text, (With<ZoomLabel>, Without<TooltipRoot>, Without<TimeLabel>)>,
@@ -408,7 +406,6 @@ fn update_zoom_label(
     }
 }
 
-#[allow(clippy::type_complexity)]
 fn update_time_label(
     clock: Option<Res<GameClock>>,
     mut label_q: Query<&mut Text, (With<TimeLabel>, Without<TooltipRoot>, Without<ZoomLabel>)>,

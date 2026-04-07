@@ -1,11 +1,10 @@
 //! Player → sim command boundary.
 //!
-//! The player can only affect the simulated world by sending messages
-//! defined here. UI code (cordon-bevy) writes [`SquadCommand`] and
-//! [`WorldCommand`] messages; the sim's `apply_*_commands` systems
-//! own the only mutation paths and run first in [`SimSet::Commands`]
-//! so an order issued this frame takes effect before any AI
-//! re-evaluation later in the same frame.
+//! The player can only affect the simulated world by writing
+//! [`SquadCommand`] messages from the UI. The [`apply_squad_commands`]
+//! system below owns the only mutation path for player intent and
+//! runs first in `SimSet::Commands`, so an order issued this frame
+//! takes effect before any AI re-evaluation later in the same frame.
 //!
 //! Squad commands target only [`Owned`] squads. The apply system
 //! silently drops commands aimed at world (non-owned) squads — quest
@@ -18,7 +17,6 @@ use cordon_core::primitive::Id;
 use cordon_core::world::area::Area;
 
 use crate::components::{SquadFormation, SquadGoal, SquadId, SquadMarker, SquadWaypoints};
-use crate::plugin::SimSet;
 
 /// Marker for squads under direct player control. Only owned squads
 /// react to [`SquadCommand`]s.
@@ -43,21 +41,11 @@ pub enum SquadCommand {
     SetFormation { squad: Entity, formation: Formation },
 }
 
-pub struct CommandsPlugin;
-
-impl Plugin for CommandsPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_message::<SquadCommand>();
-        app.add_systems(Update, apply_squad_commands.in_set(SimSet::Commands));
-    }
-}
-
 /// Apply queued [`SquadCommand`]s to their target squads. Commands
 /// targeting unowned squads are dropped silently — the UI is
 /// responsible for not offering player commands against world
 /// squads, and there is no other mutation API.
-#[allow(clippy::type_complexity)]
-fn apply_squad_commands(
+pub(super) fn apply_squad_commands(
     mut messages: MessageReader<SquadCommand>,
     owned: Query<(), (With<SquadMarker>, With<Owned>)>,
     squad_ids: Query<&SquadId>,

@@ -34,7 +34,6 @@ impl Plugin for EnvironmentPlugin {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn spawn_environment(
     mut commands: Commands,
     game_data: Res<cordon_data::gamedata::GameDataResource>,

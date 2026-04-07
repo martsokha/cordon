@@ -10,7 +10,7 @@ use cordon_core::primitive::{Id, Relation};
 use cordon_core::world::area::Area;
 use cordon_core::world::event::{ActiveEvent, Event};
 
-use crate::world::sectors::AreaState;
+use crate::resources::AreaState;
 
 /// Well-known event def IDs (must match config).
 const EVENT_FACTION_WAR: &str = "faction_war";

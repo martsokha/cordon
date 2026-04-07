@@ -70,15 +70,15 @@ impl Loadout {
         helmet_def: Option<&ArmorData>,
     ) -> Resistances {
         let mut total = Resistances::NONE;
-        if let (Some(inst), Some(def)) = (&self.armor, armor_def) {
-            if !inst.is_broken() {
-                total = total.combine(def.resistances);
-            }
+        if let (Some(inst), Some(def)) = (&self.armor, armor_def)
+            && !inst.is_broken()
+        {
+            total = total.combine(def.resistances);
         }
-        if let (Some(inst), Some(def)) = (&self.helmet, helmet_def) {
-            if !inst.is_broken() {
-                total = total.combine(def.resistances);
-            }
+        if let (Some(inst), Some(def)) = (&self.helmet, helmet_def)
+            && !inst.is_broken()
+        {
+            total = total.combine(def.resistances);
         }
         total
     }

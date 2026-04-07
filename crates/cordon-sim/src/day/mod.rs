@@ -5,17 +5,20 @@
 //! Per-day work — daily event rolls, faction reactions, event
 //! expiry — runs as separate systems gated on the message.
 
+pub mod events;
+pub mod factions;
+
 use bevy::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::GlobalRng;
 use cordon_core::primitive::Day;
 use cordon_data::gamedata::GameDataResource;
 
+use crate::day::events::{expire_events, roll_daily_events};
+use crate::day::factions::tick_factions;
 use crate::events::DayRolled;
 use crate::plugin::SimSet;
 use crate::resources::{AreaStates, EventLog, FactionIndex, GameClock, Player};
-use crate::world::events::{expire_events, roll_daily_events};
-use crate::world::factions::tick_factions;
 
 pub struct DayCyclePlugin;
 

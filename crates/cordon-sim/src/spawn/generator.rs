@@ -11,7 +11,7 @@ use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
 use crate::resources::{FactionIndex, UidAllocator};
-use crate::world::loadout::generate_loadout;
+use crate::spawn::loadout::generate_loadout;
 
 /// Read-only references the loadout generator needs at NPC spawn time.
 pub struct LoadoutContext<'a> {
@@ -159,7 +159,7 @@ pub trait NpcGenerator {
     /// Target alive-NPC population in the Zone. Spawning replenishes
     /// toward this number rather than dumping a fixed batch each day.
     fn target_population(&self, _day: u32) -> u32 {
-        1000
+        200
     }
 }
 

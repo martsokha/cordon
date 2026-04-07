@@ -26,7 +26,6 @@ impl Plugin for LootPlugin {
 }
 
 /// Insert a `LootState` for alive non-combat NPCs standing on a corpse.
-#[allow(clippy::type_complexity)]
 fn try_start_looting(
     mut commands: Commands,
     corpses: Query<(Entity, &Transform, &LoadoutComp), With<Dead>>,
@@ -78,7 +77,6 @@ fn try_start_looting(
 /// Tick `LootState` and transfer one item per interval. Removes the
 /// component when the corpse is empty or vanishes, or when the looter
 /// starts a fight.
-#[allow(clippy::type_complexity)]
 fn drive_loot(
     time: Res<Time>,
     game_data: Res<GameDataResource>,

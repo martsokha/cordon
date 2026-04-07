@@ -101,7 +101,7 @@ impl Formation {
                 // 2 members → [+S, 0]; 3 → [-S, +S, 0]; 4 → [-1.5S, -.5S, +.5S, +1.5S].
                 // Slot 0 is the leader, so we fill slots 1..n with offsets.
                 for i in 1..n {
-                    let pair = ((i + 1) / 2) as f32;
+                    let pair = i.div_ceil(2) as f32;
                     let sign = if i % 2 == 1 { 1.0 } else { -1.0 };
                     out.push([sign * pair * SPACING, 0.0]);
                 }
@@ -109,7 +109,7 @@ impl Formation {
             Formation::Wedge => {
                 // Leader at point, members trailing in a V (-Y).
                 for i in 1..n {
-                    let depth = ((i + 1) / 2) as f32;
+                    let depth = i.div_ceil(2) as f32;
                     let sign = if i % 2 == 1 { 1.0 } else { -1.0 };
                     out.push([sign * depth * SPACING * 0.7, -depth * SPACING]);
                 }
