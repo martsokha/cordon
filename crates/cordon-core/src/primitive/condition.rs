@@ -1,13 +1,15 @@
-//! Item and equipment condition value.
+//! Item condition expressed as a 0.0–1.0 ratio of current/max durability.
 
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
 
-/// Condition of an item or piece of equipment, from 0.0 (destroyed) to 1.0 (factory new).
+/// Condition of an item or piece of equipment, from 0.0 (destroyed) to
+/// 1.0 (factory new). Computed from `current_durability / max_durability`.
 ///
-/// Price scales with condition² — a 0.5 condition item is worth ~25% of
-/// base price. Condition degrades with use and over time in poor storage.
-/// Repairs are done by sending items to faction workshops.
+/// Condition is a *derived view*, not stored data. The authoritative
+/// state lives in [`ItemInstance::durability`](crate::item::ItemInstance::durability).
+/// This wrapper exists so the price-calculation code and UI can speak
+/// in fractional terms when they need to.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[derive(Serialize, Deserialize, Display)]
 #[display("{_0:.0}%", _0 = _0 * 100.0)]
@@ -24,6 +26,15 @@ impl Condition {
         Self(value.clamp(0.0, 1.0))
     }
 
+    /// Compute condition from current and max durability values.
+    /// A `max` of zero is treated as "indestructible", returning [`Condition::PERFECT`].
+    pub fn from_durability(current: u32, max: u32) -> Self {
+        if max == 0 {
+            return Self::PERFECT;
+        }
+        Self::new(current as f32 / max as f32)
+    }
+
     /// Get the raw float value.
     pub fn value(self) -> f32 {
         self.0
@@ -32,15 +43,5 @@ impl Condition {
     /// The condition² factor used in price calculations.
     pub fn price_factor(self) -> f32 {
         self.0 * self.0
-    }
-
-    /// Apply wear (subtract), clamping at 0.0.
-    pub fn degrade(&mut self, amount: f32) {
-        self.0 = (self.0 - amount).max(0.0);
-    }
-
-    /// Apply repair (add), clamping at 1.0.
-    pub fn repair(&mut self, amount: f32) {
-        self.0 = (self.0 + amount).min(1.0);
     }
 }

@@ -2,8 +2,11 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::primitive::Resistances;
+
 /// Which armor slot this piece of armor occupies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ArmorSlot {
     /// Body armor: jackets, vests, suits.
     Suit,
@@ -13,16 +16,20 @@ pub enum ArmorSlot {
 
 /// Data for armor items.
 ///
-/// Armor occupies its own equipment slot (not inventory slots) and
-/// can grant bonus inventory slots while equipped.
+/// Armor occupies its own equipment slot in a [`Loadout`](crate::item::Loadout).
+/// All protection values are absolute — compared directly against the
+/// corresponding threat value via [`Resistances::resolve_hit`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArmorData {
     /// Which slot this armor occupies.
     pub slot: ArmorSlot,
-    /// Ballistic protection (0.0–1.0). Fraction of bullet damage absorbed.
-    pub ballistic_protection: f32,
-    /// Radiation protection (0.0–1.0). Fraction of radiation absorbed.
-    pub radiation_protection: f32,
-    /// Extra inventory slots granted while wearing this armor.
-    pub bonus_slots: u8,
+    /// Protection ratings against all damage types.
+    pub resistances: Resistances,
+    /// Extra general inventory slots granted while wearing this armor
+    /// (cargo pouches, harness loops).
+    pub inventory_slots: u8,
+    /// Number of relic slots this armor exposes. Capped at 4. Helmets
+    /// always have 0; suits vary by design.
+    #[serde(default)]
+    pub relic_slots: u8,
 }

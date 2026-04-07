@@ -1,4 +1,5 @@
 locale: en-US
 resources:
   - areas.ftl
+  - names.ftl
   - ui.ftl

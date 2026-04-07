@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::Caliber;
 use crate::item::def::Item;
-use crate::primitive::id::Id;
+use crate::primitive::Id;
 
 /// Data for weapon attachments.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

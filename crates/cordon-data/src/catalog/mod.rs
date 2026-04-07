@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
+use cordon_core::entity::archetype::{Archetype, ArchetypeDef};
 use cordon_core::entity::bunker::{Upgrade, UpgradeDef};
 use cordon_core::entity::faction::{Faction, FactionDef};
 use cordon_core::entity::name::{NamePool, NamePoolMarker};
 use cordon_core::entity::perk::{Perk, PerkDef};
-use cordon_core::item::ItemDef;
-use cordon_core::item::def::Item;
-use cordon_core::primitive::id::Id;
+use cordon_core::item::{Item, ItemDef};
+use cordon_core::primitive::Id;
 use cordon_core::world::area::{Area, AreaDef};
 use cordon_core::world::event::{Event, EventDef};
 use cordon_core::world::loot::LootTables;
@@ -22,7 +22,7 @@ use cordon_core::world::narrative::quest::{Quest, QuestDef};
 /// reference the same caliber ID string. No separate caliber registry.
 /// Player ranks are hardcoded in [`PlayerRank`](cordon_core::entity::player::PlayerRank).
 ///
-/// All lookups are by typed ID aliases from [`cordon_core::primitive::id`].
+/// All lookups are by typed ID aliases from [`cordon_core::primitive`].
 pub struct GameData {
     /// Item definitions keyed by item ID.
     pub items: HashMap<Id<Item>, ItemDef>,
@@ -42,6 +42,8 @@ pub struct GameData {
     pub name_pools: HashMap<Id<NamePoolMarker>, NamePool>,
     /// Loot tables keyed by area ID.
     pub loot_tables: LootTables,
+    /// NPC loadout archetypes keyed by faction ID (one per faction).
+    pub archetypes: HashMap<Id<Archetype>, ArchetypeDef>,
 }
 
 impl GameData {
@@ -65,6 +67,12 @@ impl GameData {
         self.perks.get(id)
     }
 
+    /// Look up the loadout archetype for a faction.
+    pub fn archetype_for_faction(&self, faction: &Id<Faction>) -> Option<&ArchetypeDef> {
+        // Archetype IDs mirror faction IDs, so we look up by the same string.
+        self.archetypes.get(&Id::<Archetype>::new(faction.as_str()))
+    }
+
     /// Get all faction IDs.
     pub fn faction_ids(&self) -> Vec<Id<Faction>> {
         self.factions.keys().cloned().collect()
@@ -73,5 +81,20 @@ impl GameData {
     /// Get all area IDs.
     pub fn area_ids(&self) -> Vec<Id<Area>> {
         self.areas.keys().cloned().collect()
+    }
+
+    /// Build a faction-to-namepool mapping for NPC generation.
+    ///
+    /// Resolves each faction's `name_pool` ID to the actual [`NamePool`].
+    /// Returns a map keyed by faction ID for use with the simulation layer.
+    pub fn faction_name_pools(&self) -> HashMap<Id<Faction>, NamePool> {
+        self.factions
+            .iter()
+            .filter_map(|(fid, fdef)| {
+                self.name_pools
+                    .get(&fdef.namepool)
+                    .map(|pool| (fid.clone(), pool.clone()))
+            })
+            .collect()
     }
 }

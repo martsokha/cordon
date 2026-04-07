@@ -1,70 +1,86 @@
-//! Day/phase time system for the game loop.
+//! Day-based time system for the game loop.
 //!
-//! Each in-game day has four phases: Morning, Midday, Evening, Night.
-//! The simulation advances one phase at a time.
+//! Time is tracked as day number + hour:minute.
+
+use std::num::NonZeroU32;
 
 use serde::{Deserialize, Serialize};
 
 /// An in-game day, starting from day 1.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[derive(Serialize, Deserialize)]
-pub struct Day(pub u32);
+pub struct Day(NonZeroU32);
 
-/// One of four phases within a day.
-///
-/// The day cycle follows: Morning → Midday → Evening → Night → next day.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Phase {
-    /// Preparation: check prices, dispatch runners, review intel.
-    Morning,
-    /// Trading: customers arrive, buy/sell/negotiate.
-    Midday,
-    /// Consequences: runners return, faction visits, events resolve.
-    Evening,
-    /// Management: upgrades, planning, end-of-day bookkeeping.
-    Night,
-}
+impl Day {
+    /// Day 1.
+    pub const FIRST: Self = Self(NonZeroU32::new(1).unwrap());
 
-impl Phase {
-    /// Returns the next phase, or `None` if this is the last phase of the day.
-    pub fn next(self) -> Option<Phase> {
-        match self {
-            Phase::Morning => Some(Phase::Midday),
-            Phase::Midday => Some(Phase::Evening),
-            Phase::Evening => Some(Phase::Night),
-            Phase::Night => None,
-        }
+    /// Create a day from a raw value. Panics if zero.
+    pub fn new(value: u32) -> Self {
+        Self(NonZeroU32::new(value).expect("day must be >= 1"))
+    }
+
+    /// Get the raw day number.
+    pub fn value(self) -> u32 {
+        self.0.get()
+    }
+
+    /// Advance to the next day.
+    pub fn next(self) -> Self {
+        Self(self.0.checked_add(1).expect("day overflow"))
     }
 }
 
-/// Tracks the current day and phase within the game.
+/// Tracks the current day and time of day.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GameTime {
     /// The current day number.
     pub day: Day,
-    /// The current phase within the day.
-    pub phase: Phase,
+    /// Hour of day (0–23).
+    pub hour: u8,
+    /// Minute of hour (0–59).
+    pub minute: u8,
 }
 
 impl GameTime {
-    /// Create a new game time starting at Day 1, Morning.
+    /// Create a new game time starting at Day 1, 08:00.
     pub fn new() -> Self {
         Self {
-            day: Day(1),
-            phase: Phase::Morning,
+            day: Day::FIRST,
+            hour: 8,
+            minute: 0,
         }
     }
 
-    /// Advance to the next phase. If the current phase is Night,
-    /// rolls over to the next day's Morning.
-    pub fn advance(&mut self) {
-        match self.phase.next() {
-            Some(next) => self.phase = next,
-            None => {
-                self.day.0 += 1;
-                self.phase = Phase::Morning;
-            }
+    /// Advance time by the given number of minutes.
+    pub fn advance_minutes(&mut self, minutes: u32) {
+        let total = self.hour as u32 * 60 + self.minute as u32 + minutes;
+        self.hour = ((total / 60) % 24) as u8;
+        self.minute = (total % 60) as u8;
+        let days = total / (24 * 60);
+        for _ in 0..days {
+            self.day = self.day.next();
         }
+    }
+
+    /// Advance time by the given number of hours.
+    pub fn advance_hours(&mut self, hours: u32) {
+        self.advance_minutes(hours * 60);
+    }
+
+    /// Formatted time string (e.g., "08:00").
+    pub fn time_str(&self) -> String {
+        format!("{:02}:{:02}", self.hour, self.minute)
+    }
+
+    /// Normalized time of day (0.0 = midnight, 0.5 = noon, 1.0 = midnight).
+    pub fn day_progress(&self) -> f32 {
+        (self.hour as f32 + self.minute as f32 / 60.0) / 24.0
+    }
+
+    /// Whether it's daytime (6:00–21:00).
+    pub fn is_day(&self) -> bool {
+        self.hour >= 6 && self.hour < 21
     }
 }
 

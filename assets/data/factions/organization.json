@@ -1,0 +1,53 @@
+[
+  {
+    "id": "order",
+    "recruitable": true,
+    "rank_scheme": "military",
+    "buys": ["weapon", "ammo", "armor", "consumable"],
+    "sells": ["weapon", "ammo"],
+    "namepool": "slavic",
+    "relations": [
+      ["garrison", 30],
+      ["syndicate", -60],
+      ["mercenaries", 0],
+      ["collective", -10],
+      ["institute", 10],
+      ["devoted", -50],
+      ["drifters", -20]
+    ]
+  },
+  {
+    "id": "collective",
+    "recruitable": true,
+    "rank_scheme": "academic",
+    "buys": ["relic", "document", "tech"],
+    "sells": ["consumable", "tech"],
+    "namepool": "slavic",
+    "relations": [
+      ["garrison", 10],
+      ["order", -10],
+      ["syndicate", -10],
+      ["mercenaries", 0],
+      ["institute", -40],
+      ["devoted", 20],
+      ["drifters", 0]
+    ]
+  },
+  {
+    "id": "devoted",
+    "recruitable": true,
+    "rank_scheme": "religious",
+    "buys": ["relic", "consumable"],
+    "sells": ["relic", "consumable"],
+    "namepool": "slavic",
+    "relations": [
+      ["garrison", -20],
+      ["order", -50],
+      ["syndicate", 10],
+      ["mercenaries", -10],
+      ["collective", 20],
+      ["institute", -30],
+      ["drifters", 10]
+    ]
+  }
+]

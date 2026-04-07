@@ -2,10 +2,12 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::Rank;
+
 /// Accumulated experience points.
 ///
 /// Used for both the player (determines [`PlayerRank`](crate::entity::player::PlayerRank))
-/// and NPCs (determines rank tier). XP only goes up — it never decays.
+/// and NPCs (determines [`Rank`]). XP only goes up — it never decays.
 ///
 /// NPCs gain XP from successful missions (runners) and survived raids
 /// (guards). The player gains XP from trades, completed quests, surviving
@@ -36,6 +38,11 @@ impl Experience {
     /// Whether this experience meets or exceeds a threshold.
     pub fn meets(self, threshold: u32) -> bool {
         self.0 >= threshold
+    }
+
+    /// Derive NPC rank from this experience value.
+    pub fn npc_rank(self) -> Rank {
+        Rank::from_xp(self)
     }
 }
 

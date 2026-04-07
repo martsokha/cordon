@@ -1,14 +1,13 @@
-//! Player state: rank, experience, credits, faction standings, and squads.
+//! Player state: rank, experience, credits, faction standings, hired
+//! squad, and the bunker's upgrade + storage state.
 
 use serde::{Deserialize, Serialize};
 
-use crate::entity::faction::Faction;
-use crate::entity::npc::Role;
-use crate::primitive::credits::Credits;
-use crate::primitive::experience::Experience;
-use crate::primitive::id::Id;
-use crate::primitive::relation::Relation;
-use crate::primitive::uid::Uid;
+use super::bunker::Upgrade;
+use super::faction::Faction;
+use super::npc::{Npc, Role};
+use crate::item::Stash;
+use crate::primitive::{Credits, Experience, Id, Relation, Uid};
 
 /// Player rank tier. Determines squad capacity and unlocks.
 ///
@@ -33,11 +32,11 @@ impl PlayerRank {
     /// Maximum number of squads (runners + guards) at this rank.
     pub fn max_squads(self) -> u8 {
         match self {
-            PlayerRank::Nobody => 2,
-            PlayerRank::Known => 3,
-            PlayerRank::Established => 4,
-            PlayerRank::Connected => 5,
-            PlayerRank::Legend => 6,
+            PlayerRank::Nobody => 1,
+            PlayerRank::Known => 2,
+            PlayerRank::Established => 3,
+            PlayerRank::Connected => 4,
+            PlayerRank::Legend => 5,
         }
     }
 
@@ -76,17 +75,18 @@ impl PlayerRank {
 
 /// A hired NPC assigned to a role.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SquadMember {
+pub struct HiredNpc {
     /// Runtime UID of the hired NPC.
-    pub npc_id: Uid,
+    pub npc_id: Uid<Npc>,
     /// Whether this NPC is a runner or guard.
     pub role: Role,
 }
 
-/// The player's current state.
+/// The player's complete state: identity, economy, faction relations,
+/// hired roster, and the bunker (storage + installed upgrades).
 ///
-/// Tracks experience, credits, faction standings, and the squad roster.
-/// Rank is derived from XP via [`PlayerRank::from_xp`].
+/// `BaseState` was previously a separate field on `World`; it's now
+/// inlined here so "the player" is a single source of truth.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayerState {
     /// Accumulated experience. Rank is derived from this.
@@ -95,14 +95,21 @@ pub struct PlayerState {
     pub credits: Credits,
     /// Relations with each faction, keyed by faction ID.
     pub standings: Vec<(Id<Faction>, Relation)>,
-    /// Currently employed NPCs and their roles.
-    pub squad: Vec<SquadMember>,
+    /// Currently hired NPCs and their roles.
+    pub hired: Vec<HiredNpc>,
     /// Whether the Garrison bribe has been paid this period.
     pub garrison_bribe_paid: bool,
+    /// All installed upgrade IDs (both bunker and camp).
+    pub upgrades: Vec<Id<Upgrade>>,
+    /// Main bunker storage.
+    pub storage: Stash,
+    /// Hidden storage (survives raids, invisible during inspections).
+    pub hidden_storage: Stash,
 }
 
 impl PlayerState {
-    /// Create a new player state with neutral standings for all given factions.
+    /// Create a new player state with neutral standings for all given factions
+    /// and an empty bunker.
     pub fn new(faction_ids: &[Id<Faction>]) -> Self {
         let standings = faction_ids
             .iter()
@@ -113,8 +120,11 @@ impl PlayerState {
             xp: Experience::ZERO,
             credits: Credits::new(5000),
             standings,
-            squad: Vec::new(),
+            hired: Vec::new(),
             garrison_bribe_paid: false,
+            upgrades: Vec::new(),
+            storage: Stash::new(20),
+            hidden_storage: Stash::new(0),
         }
     }
 
@@ -145,13 +155,23 @@ impl PlayerState {
             .map(|(_, s)| s)
     }
 
-    /// Number of currently employed NPCs.
-    pub fn squad_count(&self) -> u8 {
-        self.squad.len() as u8
+    /// Number of currently hired NPCs.
+    pub fn hired_count(&self) -> u8 {
+        self.hired.len() as u8
     }
 
-    /// Whether the player can hire another squad member.
+    /// Whether the player can hire another NPC.
     pub fn can_hire(&self) -> bool {
-        self.squad_count() < self.rank().max_squads()
+        self.hired_count() < self.rank().max_squads()
+    }
+
+    /// Check if an upgrade is installed (bunker or camp).
+    pub fn has_upgrade(&self, upgrade_id: &Id<Upgrade>) -> bool {
+        self.upgrades.iter().any(|u| u == upgrade_id)
+    }
+
+    /// Whether the base has a generator (prevents power outages).
+    pub fn has_power(&self) -> bool {
+        self.has_upgrade(&Id::<Upgrade>::new("generator"))
     }
 }

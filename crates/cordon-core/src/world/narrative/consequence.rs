@@ -7,16 +7,14 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::quest::Quest;
 use crate::entity::bunker::Upgrade;
 use crate::entity::faction::Faction;
-use crate::entity::npc::NpcTemplate;
-use crate::item::def::Item;
-use crate::primitive::credits::Credits;
-use crate::primitive::id::Id;
-use crate::primitive::relation::Relation;
+use crate::entity::npc::{Npc, NpcTemplate};
+use crate::item::{Item, ItemCategory};
+use crate::primitive::{Credits, Id, Relation, Uid};
 use crate::world::area::Area;
 use crate::world::event::Event;
-use crate::world::narrative::quest::Quest;
 
 /// A condition that must be met.
 ///
@@ -79,7 +77,7 @@ pub enum Consequence {
     GivePlayerXp(u32),
     /// Award experience points to an NPC (by runtime UID). NPC rank
     /// is derived from accumulated XP.
-    GiveNpcXp(crate::primitive::uid::Uid, u32),
+    GiveNpcXp(Uid<Npc>, u32),
     /// Modify danger in a target area.
     DangerModifier {
         /// Area ID. If `None`, applies zone-wide.
@@ -90,7 +88,7 @@ pub enum Consequence {
     /// Modify market prices for an item category.
     PriceModifier {
         /// Item category affected.
-        category: crate::item::ItemCategory,
+        category: ItemCategory,
         /// Price multiplier (e.g., 1.5 = 50% more expensive).
         multiplier: f32,
     },

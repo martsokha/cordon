@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::item::def::Item;
-use crate::primitive::id::Id;
-use crate::world::area::Area;
+use super::area::Area;
+use crate::item::Item;
+use crate::primitive::Id;
 
 /// A weighted entry in a loot table.
 ///

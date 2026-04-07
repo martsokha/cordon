@@ -1,0 +1,53 @@
+[
+  {
+    "id": "syndicate",
+    "recruitable": true,
+    "rank_scheme": "loose",
+    "buys": ["relic", "document", "tech"],
+    "sells": ["consumable", "throwable", "weapon"],
+    "namepool": "aliases",
+    "relations": [
+      ["garrison", -40],
+      ["order", -60],
+      ["mercenaries", 20],
+      ["collective", -10],
+      ["institute", -30],
+      ["devoted", 10],
+      ["drifters", 30]
+    ]
+  },
+  {
+    "id": "mercenaries",
+    "recruitable": true,
+    "rank_scheme": "loose",
+    "buys": ["weapon", "ammo", "armor", "consumable"],
+    "sells": ["weapon", "ammo", "attachment"],
+    "namepool": "western",
+    "relations": [
+      ["garrison", -10],
+      ["order", 0],
+      ["syndicate", 20],
+      ["collective", 0],
+      ["institute", 10],
+      ["devoted", -10],
+      ["drifters", 10]
+    ]
+  },
+  {
+    "id": "drifters",
+    "recruitable": true,
+    "rank_scheme": "loose",
+    "buys": ["consumable", "weapon", "ammo"],
+    "sells": ["consumable", "throwable", "document"],
+    "namepool": "aliases",
+    "relations": [
+      ["garrison", -30],
+      ["order", -20],
+      ["syndicate", 30],
+      ["mercenaries", 10],
+      ["collective", 0],
+      ["institute", -10],
+      ["devoted", 10]
+    ]
+  }
+]

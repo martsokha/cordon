@@ -1,0 +1,104 @@
+[
+  {
+    "id": "leather_jacket",
+    "data": {
+      "type": "armor",
+      "slot": "suit",
+      "resistances": { "ballistic": 3, "radiation": 0, "chemical": 0, "thermal": 1, "electric": 0, "gravitational": 0 },
+      "inventory_slots": 2,
+      "relic_slots": 0
+    },
+    "base_price": 500,
+    "suppliers": [
+      { "faction": "drifters", "price_multiplier": 0.9 },
+      { "faction": "syndicate", "price_multiplier": 1.0 }
+    ],
+    "rarity": "common",
+    "durability": 120
+  },
+  {
+    "id": "reinforced_coat",
+    "data": {
+      "type": "armor",
+      "slot": "suit",
+      "resistances": { "ballistic": 8, "radiation": 1, "chemical": 1, "thermal": 2, "electric": 0, "gravitational": 0 },
+      "inventory_slots": 3,
+      "relic_slots": 1
+    },
+    "base_price": 2500,
+    "suppliers": [
+      { "faction": "syndicate", "price_multiplier": 1.0 },
+      { "faction": "mercenaries", "price_multiplier": 1.1 }
+    ],
+    "rarity": "common",
+    "durability": 220
+  },
+  {
+    "id": "tactical_vest",
+    "data": {
+      "type": "armor",
+      "slot": "suit",
+      "resistances": { "ballistic": 12, "radiation": 0, "chemical": 0, "thermal": 0, "electric": 0, "gravitational": 0 },
+      "inventory_slots": 4,
+      "relic_slots": 1
+    },
+    "base_price": 5000,
+    "suppliers": [
+      { "faction": "mercenaries", "price_multiplier": 0.9 },
+      { "faction": "garrison", "price_multiplier": 1.2 }
+    ],
+    "rarity": "uncommon",
+    "durability": 320
+  },
+  {
+    "id": "hazard_suit",
+    "data": {
+      "type": "armor",
+      "slot": "suit",
+      "resistances": { "ballistic": 4, "radiation": 8, "chemical": 7, "thermal": 5, "electric": 4, "gravitational": 2 },
+      "inventory_slots": 2,
+      "relic_slots": 3
+    },
+    "base_price": 8000,
+    "suppliers": [
+      { "faction": "collective", "price_multiplier": 0.85 },
+      { "faction": "institute", "price_multiplier": 1.0 }
+    ],
+    "rarity": "uncommon",
+    "durability": 200
+  },
+  {
+    "id": "combat_armor",
+    "data": {
+      "type": "armor",
+      "slot": "suit",
+      "resistances": { "ballistic": 20, "radiation": 3, "chemical": 1, "thermal": 2, "electric": 1, "gravitational": 0 },
+      "inventory_slots": 4,
+      "relic_slots": 2
+    },
+    "base_price": 15000,
+    "suppliers": [
+      { "faction": "garrison", "price_multiplier": 1.0 },
+      { "faction": "order", "price_multiplier": 1.15 }
+    ],
+    "rarity": "rare",
+    "durability": 500
+  },
+  {
+    "id": "heavy_rig",
+    "data": {
+      "type": "armor",
+      "slot": "suit",
+      "resistances": { "ballistic": 25, "radiation": 4, "chemical": 3, "thermal": 3, "electric": 2, "gravitational": 1 },
+      "inventory_slots": 5,
+      "relic_slots": 4
+    },
+    "base_price": 25000,
+    "suppliers": [
+      { "faction": "garrison", "price_multiplier": 1.1 },
+      { "faction": "mercenaries", "price_multiplier": 1.2 }
+    ],
+    "rarity": "rare",
+    "durability": 800
+  }
+]

@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::Caliber;
-use crate::primitive::id::Id;
+use crate::primitive::Id;
 
 /// Data for ammunition items.
 ///
@@ -14,10 +14,12 @@ use crate::primitive::id::Id;
 pub struct AmmoData {
     /// Caliber ID this ammo belongs to (e.g., `"9x18mm"`).
     pub caliber: Id<Caliber>,
-    /// Base damage per round.
-    pub damage: f32,
-    /// Armor penetration value (0.0–1.0). Higher = better against armor.
-    pub penetration: f32,
-    /// Number of rounds per box.
+    /// Base damage per round in HP.
+    pub damage: u32,
+    /// Armor penetration value. Compared against armor's protection
+    /// value via [`Resistances::resolve_hit`](crate::primitive::Resistances::resolve_hit).
+    /// Typical range: 5 (pistol) to 40 (AP rifle).
+    pub penetration: u32,
+    /// Number of rounds per fresh box.
     pub quantity: u32,
 }

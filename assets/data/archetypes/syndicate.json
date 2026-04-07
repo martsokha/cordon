@@ -1,0 +1,64 @@
+[
+  {
+    "id": "syndicate",
+    "faction": "syndicate",
+    "ranks": {
+      "novice": {
+        "primary": [{ "id": "stechkin" }, { "id": "toz34" }],
+        "secondary": [{ "id": "pmm" }],
+        "armor": [{ "id": "leather_jacket" }, { "id": "reinforced_coat" }],
+        "helmet": [{ "id": "balaclava" }],
+        "ammo_boxes": 2,
+        "secondary_ammo_boxes": 1,
+        "consumables": [{ "id": "bandage" }, { "id": "ration" }],
+        "consumable_count": 2
+      },
+      "experienced": {
+        "primary": [{ "id": "mp5", "weight": 2 }, { "id": "stechkin" }, { "id": "saiga12" }],
+        "secondary": [{ "id": "pb_pistol" }],
+        "armor": [{ "id": "reinforced_coat", "weight": 2 }, { "id": "tactical_vest" }],
+        "helmet": [{ "id": "balaclava" }, { "id": "steel_helmet" }],
+        "ammo_boxes": 2,
+        "secondary_ammo_boxes": 1,
+        "consumables": [{ "id": "bandage" }, { "id": "medkit" }],
+        "consumable_count": 3
+      },
+      "veteran": {
+        "primary": [{ "id": "mp5", "weight": 2 }, { "id": "saiga12" }],
+        "secondary": [{ "id": "pb_pistol" }],
+        "armor": [{ "id": "tactical_vest" }],
+        "helmet": [{ "id": "tactical_helmet" }],
+        "ammo_boxes": 3,
+        "secondary_ammo_boxes": 1,
+        "consumables": [{ "id": "medkit" }, { "id": "antirad" }],
+        "consumable_count": 3
+      },
+      "master": {
+        "primary": [{ "id": "mp5" }, { "id": "ak74" }],
+        "secondary": [{ "id": "pb_pistol" }],
+        "armor": [{ "id": "tactical_vest" }],
+        "helmet": [{ "id": "tactical_helmet" }],
+        "ammo_boxes": 3,
+        "secondary_ammo_boxes": 2,
+        "consumables": [{ "id": "medkit" }, { "id": "antirad" }],
+        "consumable_count": 4
+      },
+      "legend": {
+        "primary": [{ "id": "ak74" }, { "id": "hk416" }],
+        "secondary": [{ "id": "pb_pistol" }],
+        "armor": [{ "id": "combat_armor" }],
+        "helmet": [{ "id": "tactical_helmet" }],
+        "ammo_boxes": 4,
+        "secondary_ammo_boxes": 2,
+        "consumables": [{ "id": "medkit" }, { "id": "antirad" }],
+        "consumable_count": 4
+      }
+    },
+    "squads": [
+      { "ranks": ["experienced", "novice", "novice"], "goal": "patrol", "formation": "column", "weight": 3 },
+      { "ranks": ["veteran", "experienced", "novice"], "goal": "patrol", "formation": "line", "weight": 3 },
+      { "ranks": ["experienced"], "goal": "scavenge", "formation": "loose", "weight": 2 },
+      { "ranks": ["master", "veteran", "experienced", "novice"], "goal": "patrol", "formation": "wedge", "weight": 1 }
+    ]
+  }
+]

@@ -1,1 +1,47 @@
-[]
+[
+  {
+    "id": "slavic",
+    "format": "firstsurname",
+    "names": [
+      "name-sergei", "name-ivan", "name-dmitri", "name-oleg",
+      "name-yuri", "name-viktor", "name-anton", "name-pavel",
+      "name-nikolai", "name-alexei", "name-grigori", "name-boris",
+      "name-konstantin", "name-mikhail", "name-vadim", "name-semyon"
+    ],
+    "surnames": [
+      "name-volkov", "name-petrov", "name-sokolov", "name-kuznetsov",
+      "name-morozov", "name-novikov", "name-popov", "name-lebedev",
+      "name-kozlov", "name-smirnov", "name-ivanov", "name-zaytsev",
+      "name-orlov", "name-baranov", "name-voronov", "name-tarasov"
+    ],
+    "aliases": []
+  },
+  {
+    "id": "western",
+    "format": "firstsurname",
+    "names": [
+      "name-james", "name-marcus", "name-eric", "name-karl",
+      "name-frank", "name-hans", "name-leon", "name-max",
+      "name-stefan", "name-wolf", "name-rolf", "name-klaus"
+    ],
+    "surnames": [
+      "name-hoffman", "name-weber", "name-hartmann", "name-krause",
+      "name-schultz", "name-becker", "name-walker", "name-frost",
+      "name-stone", "name-brenner", "name-richter", "name-lang"
+    ],
+    "aliases": []
+  },
+  {
+    "id": "aliases",
+    "format": "alias",
+    "names": [],
+    "surnames": [],
+    "aliases": [
+      "alias-viper", "alias-ghost", "alias-spark", "alias-patch",
+      "alias-razor", "alias-crow", "alias-needle", "alias-smoke",
+      "alias-flask", "alias-wire", "alias-hound", "alias-match",
+      "alias-dusk", "alias-grit", "alias-fuse", "alias-shade",
+      "alias-stitch", "alias-bolt", "alias-ash", "alias-pike"
+    ]
+  }
+]

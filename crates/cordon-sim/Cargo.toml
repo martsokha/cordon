@@ -23,6 +23,12 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 # Internal crates
 cordon-core = { workspace = true }
+cordon-data = { workspace = true }
+
+# Game engine — cordon-sim is a Bevy plugin so the world lives in ECS.
+bevy = { workspace = true }
+bevy_rand = { workspace = true }
+bevy_prng = { workspace = true }
 
 # Randomness
 rand = { workspace = true }

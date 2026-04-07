@@ -9,12 +9,11 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::area::Area;
+use super::narrative::consequence::Consequence;
+use super::narrative::quest::Quest;
 use crate::entity::faction::Faction;
-use crate::primitive::id::{Id, IdMarker};
-use crate::primitive::time::Day;
-use crate::world::area::Area;
-use crate::world::narrative::consequence::Consequence;
-use crate::world::narrative::quest::Quest;
+use crate::primitive::{Day, Id, IdMarker};
 
 /// Marker for event definition IDs.
 pub struct Event;
@@ -111,12 +110,12 @@ pub struct ActiveEvent {
 impl ActiveEvent {
     /// Whether this event has expired (current day is past its end).
     pub fn is_expired(&self, current_day: Day) -> bool {
-        current_day.0 >= self.day_started.0 + self.duration_days as u32
+        current_day.value() >= self.day_started.value() + self.duration_days as u32
     }
 
     /// How many days remain until this event expires.
     pub fn days_remaining(&self, current_day: Day) -> u32 {
-        let end = self.day_started.0 + self.duration_days as u32;
-        end.saturating_sub(current_day.0)
+        let end = self.day_started.value() + self.duration_days as u32;
+        end.saturating_sub(current_day.value())
     }
 }

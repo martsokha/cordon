@@ -1,17 +1,23 @@
-//! NPC attributes, roles, and employment.
+//! NPC spawn template + supporting types.
 //!
-//! [`Npc`] is a runtime entity with both visible and hidden attributes.
+//! [`Npc`] is the **spawn-time / save-game** representation of an NPC.
+//! At runtime, NPCs are Bevy entities composed of components defined
+//! in `cordon-sim::components`. The `Npc` struct only exists to be
+//! consumed by `cordon-sim::components::NpcBundle::from_npc` when
+//! spawning a fresh entity (and as the persistent shape for save/load
+//! once that exists).
+//!
+//! Methods on `Npc` are spawn-time helpers — they don't drive the
+//! running game. Runtime systems read components directly from the
+//! ECS, not from this struct.
 
 use serde::{Deserialize, Serialize};
 
-use crate::entity::faction::Faction;
-use crate::entity::name::NpcName;
-use crate::entity::perk::Perk;
-use crate::item::Inventory;
-use crate::primitive::credits::Credits;
-use crate::primitive::experience::Experience;
-use crate::primitive::id::{Id, IdMarker};
-use crate::primitive::uid::Uid;
+use super::faction::Faction;
+use super::name::NpcName;
+use super::perk::Perk;
+use crate::item::Loadout;
+use crate::primitive::{Credits, Experience, Health, Id, IdMarker, Rank, Uid};
 
 /// Marker for NPC template IDs (used in quest consequences).
 pub struct NpcTemplate;
@@ -24,30 +30,6 @@ pub enum Role {
     Runner,
     /// Stays at the bunker to deter theft, enable intimidation, and fight raids.
     Guard,
-}
-
-/// Physical condition of an NPC (visible to the player).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum NpcCondition {
-    /// Fully functional.
-    Healthy,
-    /// Reduced performance, needs medical attention.
-    Wounded,
-    /// Reduced performance from overwork or stress.
-    Exhausted,
-}
-
-/// What the NPC urgently needs (hidden from the player).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Need {
-    /// No urgent need.
-    None,
-    /// Needs medical supplies.
-    Wounded,
-    /// Needs food.
-    Starving,
-    /// Will accept almost any deal.
-    Desperate,
 }
 
 /// Core personality trait affecting negotiation behavior (hidden).
@@ -82,27 +64,25 @@ pub enum Personality {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Npc {
     /// Unique runtime ID for this NPC instance.
-    pub id: Uid,
+    pub id: Uid<Npc>,
     /// Name stored as localization keys, resolved at display time.
     pub name: NpcName,
     /// Faction ID this NPC belongs to.
     pub faction: Id<Faction>,
-    /// Accumulated experience. Rank tier is derived from this.
-    /// NPC XP thresholds: tier 1 = 0, tier 2 = 100, tier 3 = 500,
-    /// tier 4 = 2000, tier 5 = 10000.
+    /// Accumulated experience. [`Rank`] is derived from this.
     pub xp: Experience,
 
-    /// Items the NPC is carrying.
-    pub inventory: Inventory,
-    /// Physical condition (visible from appearance).
-    pub condition: NpcCondition,
+    /// Equipped weapons, armor, and carried items.
+    pub loadout: Loadout,
+    /// Health. Drops from combat, radiation, hazards.
+    pub health: Health,
+    /// Maximum HP cap. Default 100; relics may modify it later.
+    pub max_hp: u32,
 
     /// How much this NPC trusts the player (-1.0 to 1.0).
     pub trust: f32,
     /// How many credits the NPC can spend.
     pub wealth: Credits,
-    /// What the NPC actually needs (may differ from what they say).
-    pub need: Need,
     /// Core personality trait affecting negotiation.
     pub personality: Personality,
     /// Perk IDs this NPC has (hidden until revealed).
@@ -118,29 +98,10 @@ pub struct Npc {
     pub daily_pay: Credits,
 }
 
-/// NPC rank tier XP thresholds.
-const NPC_RANK_THRESHOLDS: [u32; 5] = [0, 100, 500, 2000, 10000];
-
-/// Derive NPC rank tier (1–5) from experience.
-pub fn npc_rank_from_xp(xp: Experience) -> u8 {
-    let v = xp.value();
-    if v >= NPC_RANK_THRESHOLDS[4] {
-        5
-    } else if v >= NPC_RANK_THRESHOLDS[3] {
-        4
-    } else if v >= NPC_RANK_THRESHOLDS[2] {
-        3
-    } else if v >= NPC_RANK_THRESHOLDS[1] {
-        2
-    } else {
-        1
-    }
-}
-
 impl Npc {
-    /// Current rank tier (1–5), derived from XP.
-    pub fn rank(&self) -> u8 {
-        npc_rank_from_xp(self.xp)
+    /// Current rank, derived from XP.
+    pub fn rank(&self) -> Rank {
+        self.xp.npc_rank()
     }
 
     /// Whether this NPC is currently employed (has a role).

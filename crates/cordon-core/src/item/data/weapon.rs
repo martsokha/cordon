@@ -3,8 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::Caliber;
-use crate::primitive::distance::Distance;
-use crate::primitive::id::Id;
+use crate::primitive::{Distance, Id};
 
 /// Weapon fire mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -32,8 +31,14 @@ pub struct WeaponData {
     pub recoil: f32,
     /// Magazine capacity in rounds.
     pub magazine: u32,
-    /// Effective range in meters.
-    pub effective_range: Distance,
+    /// Time to reload a fresh magazine, in seconds.
+    pub reload_secs: f32,
+    /// Effective firing range in map units.
+    pub range: Distance,
     /// Whether this weapon is suppressed (affects runner stealth missions).
     pub suppressed: bool,
+    /// Bonus damage on top of the ammo's base damage (long barrel,
+    /// custom load, hand-tuned action). Defaults to 0.
+    #[serde(default)]
+    pub added_damage: u32,
 }

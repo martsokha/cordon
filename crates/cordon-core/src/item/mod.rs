@@ -1,24 +1,25 @@
 //! Item definitions, effects, inventory, and item instances.
 //!
-//! Item names are not stored in definitions — the [`Id`](crate::primitive::id::Id)
+//! Item names are not stored in definitions — the [`Id`](crate::primitive::Id)
 //! doubles as the localization key. Display names are resolved at render time
 //! from language-specific localization files. Calibers are implicit: they exist
 //! because ammo and weapon items reference the same caliber ID string.
 
 mod category;
 mod data;
+mod def;
 mod effect;
 mod instance;
-mod inventory;
+mod loadout;
+mod stash;
 
-pub mod def;
-
-pub use category::ItemCategory;
-pub use data::{
+pub use self::category::ItemCategory;
+pub use self::data::{
     AmmoData, ArmorData, ArmorSlot, AttachmentData, Caliber, ConsumableData, DocumentData,
     FireMode, ItemData, RelicData, RelicStability, ThrowableData, WeaponData,
 };
-pub use def::{Item as ItemMarker, ItemDef, Supplier};
-pub use effect::{Effect, EffectTarget};
-pub use instance::{Authenticity, Item};
-pub use inventory::Inventory;
+pub use self::def::{Item, ItemDef, Supplier};
+pub use self::effect::{Effect, EffectTarget};
+pub use self::instance::{Authenticity, ItemInstance};
+pub use self::loadout::{BASE_GENERAL_SLOTS, Loadout, MAX_RELIC_SLOTS};
+pub use self::stash::Stash;

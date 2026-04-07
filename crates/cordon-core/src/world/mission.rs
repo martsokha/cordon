@@ -7,13 +7,11 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::area::Area;
+use crate::entity::npc::Npc;
 use crate::entity::perk::Perk;
-use crate::item::{Item, ItemCategory};
-use crate::primitive::id::Id;
-use crate::primitive::location::Location;
-use crate::primitive::time::Day;
-use crate::primitive::uid::Uid;
-use crate::world::area::Area;
+use crate::item::{ItemCategory, ItemInstance};
+use crate::primitive::{Day, Id, Location, Uid};
 
 /// What kind of mission a runner is being sent on.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,7 +23,7 @@ pub enum MissionType {
     /// Bring goods to a buyer in another sector (guaranteed sale, transit risk).
     Delivery {
         /// Items being delivered.
-        items: Vec<Item>,
+        items: Vec<ItemInstance>,
         /// Destination area ID.
         to: Id<Area>,
     },
@@ -52,9 +50,9 @@ pub enum MissionOutcome {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MissionPlan {
     /// Unique mission ID.
-    pub id: Uid,
+    pub id: Uid<MissionPlan>,
     /// Runtime UID of the runner being sent.
-    pub runner_id: Uid,
+    pub runner_id: Uid<Npc>,
     /// Destination area ID.
     pub destination: Id<Area>,
     /// What kind of mission this is.
@@ -83,17 +81,15 @@ pub struct ActiveMission {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MissionResult {
     /// ID of the mission that completed.
-    pub mission_id: Uid,
+    pub mission_id: Uid<MissionPlan>,
     /// What happened.
     pub outcome: MissionOutcome,
     /// Items the runner brought back (empty on failure/lost).
-    pub loot: Vec<Item>,
-    /// Change to the runner's condition (negative = damage).
-    /// Applied via [`Condition::degrade()`](crate::primitive::condition::Condition::degrade).
-    pub runner_condition_delta: f32,
-    /// Change to the runner's gear condition (negative = wear).
-    /// Applied via [`Condition::degrade()`](crate::primitive::condition::Condition::degrade).
-    pub gear_condition_delta: f32,
+    pub loot: Vec<ItemInstance>,
+    /// HP damage taken by the runner during the mission (0 = unscathed).
+    pub runner_damage: u32,
+    /// Durability damage taken by the runner's gear during the mission.
+    pub gear_damage: u32,
     /// Perk IDs that were revealed by this mission's events.
     pub perks_revealed: Vec<Id<Perk>>,
 }

@@ -1,16 +1,34 @@
 #![forbid(unsafe_code)]
+// Bevy systems naturally have many resource params and complex Query
+// types — these lints fire on idiomatic Bevy code, so they're allowed
+// crate-wide rather than per-system.
+#![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
+mod ai;
+mod bunker;
+mod debug;
 mod laptop;
+mod locale;
+mod world;
 
 use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataPlugin;
+use cordon_sim::plugin::CordonSimPlugin;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum AppState {
     #[default]
     Loading,
-    InGame,
+    Playing,
+}
+
+#[derive(SubStates, Default, Clone, Eq, PartialEq, Hash, Debug)]
+#[source(AppState = AppState::Playing)]
+pub enum PlayingState {
+    #[default]
+    Bunker,
+    Laptop,
 }
 
 fn main() {
@@ -30,10 +48,17 @@ fn main() {
                 }),
         )
         .init_state::<AppState>()
+        .add_sub_state::<PlayingState>()
         .add_plugins(GameDataPlugin {
             loading: AppState::Loading,
-            ready: AppState::InGame,
+            ready: AppState::Playing,
         })
+        .add_plugins(locale::LocalePlugin)
+        .add_plugins(world::WorldPlugin)
+        .add_plugins(CordonSimPlugin)
+        .add_plugins(ai::AiPlugin)
+        .add_plugins(bunker::BunkerPlugin)
         .add_plugins(laptop::LaptopPlugin)
+        .add_plugins(debug::DebugPlugin)
         .run();
 }

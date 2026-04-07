@@ -7,12 +7,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::entity::faction::Faction;
-use crate::primitive::distance::Distance;
-use crate::primitive::environment::Environment;
-use crate::primitive::hazard::HazardType;
-use crate::primitive::id::{Id, IdMarker};
-use crate::primitive::location::Location;
-use crate::primitive::tier::Tier;
+use crate::primitive::{Distance, Environment, HazardType, Id, IdMarker, Location, Tier};
 
 /// Marker for area (point of interest) IDs.
 pub struct Area;

@@ -2,8 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::distance::Distance;
-use crate::primitive::duration::Duration;
+use crate::primitive::{Distance, Duration};
 
 /// What stat or state an effect modifies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
