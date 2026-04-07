@@ -66,7 +66,6 @@ impl Loadout {
     /// Combined ballistic/hazard resistances from equipped armor,
     /// helmet, and relics.
     ///
-    /// Broken armor pieces (durability == 0) provide no protection.
     /// `resolve_relic` is called for each relic in
     /// [`self.relics`](Self::relics); returning `None` (e.g. the relic
     /// def isn't found in the catalog) skips that relic. Relic passive
@@ -87,14 +86,10 @@ impl Loadout {
         F: FnMut(&'a ItemInstance) -> Option<&'a RelicData>,
     {
         let mut base = Resistances::NONE;
-        if let (Some(inst), Some(def)) = (&self.armor, armor_def)
-            && !inst.is_broken()
-        {
+        if let (Some(_), Some(def)) = (&self.armor, armor_def) {
             base = base.combine(def.resistances);
         }
-        if let (Some(inst), Some(def)) = (&self.helmet, helmet_def)
-            && !inst.is_broken()
-        {
+        if let (Some(_), Some(def)) = (&self.helmet, helmet_def) {
             base = base.combine(def.resistances);
         }
 
@@ -106,9 +101,9 @@ impl Loadout {
         base.apply_passive_modifiers(relic_passives)
     }
 
-    /// The currently equipped primary weapon, if any (and not broken).
+    /// The currently equipped primary weapon, if any.
     pub fn equipped_weapon(&self) -> Option<&ItemInstance> {
-        self.primary.as_ref().filter(|w| !w.is_broken())
+        self.primary.as_ref()
     }
 
     /// Try to add an item to the general pouch. Returns `Err(item)` if

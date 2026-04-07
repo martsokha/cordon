@@ -4,7 +4,6 @@
 //! a currency amount, a distance, a health pool, etc. Used as
 //! building blocks by the entity, item, and world modules.
 
-mod condition;
 mod credits;
 mod distance;
 mod duration;
@@ -21,7 +20,6 @@ mod tier;
 mod time;
 mod uid;
 
-pub use self::condition::Condition;
 pub use self::credits::Credits;
 pub use self::distance::Distance;
 pub use self::duration::Duration;

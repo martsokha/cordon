@@ -50,7 +50,11 @@ pub fn is_hostile(
     false
 }
 
-/// True if the segment from `from` to `to` passes through any anomaly disk.
+/// True if the segment from `from` to `to` passes through any anomaly
+/// disk *that neither endpoint is standing inside*. An anomaly only
+/// blocks line-of-sight when the viewer is outside it looking through
+/// — squads patrolling inside the same fog can still see each other,
+/// otherwise everyone in an anomaly is permanently blind.
 pub fn line_blocked(from: Vec2, to: Vec2, anomalies: &[(Vec2, f32)]) -> bool {
     let dir = to - from;
     let len_sq = dir.length_squared();
@@ -58,10 +62,19 @@ pub fn line_blocked(from: Vec2, to: Vec2, anomalies: &[(Vec2, f32)]) -> bool {
         return false;
     }
     for (center, radius) in anomalies {
+        let r_sq = radius * radius;
+        // Skip if either endpoint is inside this anomaly: the
+        // observer (or target) is already in the fog and isn't
+        // line-blocked by their own surroundings.
+        if from.distance_squared(*center) <= r_sq
+            || to.distance_squared(*center) <= r_sq
+        {
+            continue;
+        }
         let to_center = *center - from;
         let t = (to_center.dot(dir) / len_sq).clamp(0.0, 1.0);
         let closest = from + dir * t;
-        if closest.distance_squared(*center) <= radius * radius {
+        if closest.distance_squared(*center) <= r_sq {
             return true;
         }
     }
@@ -82,15 +95,14 @@ pub fn weapon_range(items: &HashMap<Id<Item>, ItemDef>, loadout: &Loadout) -> f3
     }
 }
 
-/// Combined ballistic resistance from equipped (non-broken) suit,
-/// helmet, and relic passives. The relic closure resolves each
-/// `ItemInstance` in the loadout's relic slots to its `RelicData`
-/// via the item catalog; unknown ids are skipped.
+/// Combined ballistic resistance from equipped suit, helmet, and
+/// relic passives. The relic closure resolves each `ItemInstance` in
+/// the loadout's relic slots to its `RelicData` via the item
+/// catalog; unknown ids are skipped.
 fn equipped_ballistic(loadout: &Loadout, items: &HashMap<Id<Item>, ItemDef>) -> u32 {
     let armor = loadout
         .armor
         .as_ref()
-        .filter(|i| !i.is_broken())
         .and_then(|i| items.get(&i.def_id))
         .and_then(|def| match &def.data {
             ItemData::Armor(a) => Some(a),
@@ -99,7 +111,6 @@ fn equipped_ballistic(loadout: &Loadout, items: &HashMap<Id<Item>, ItemDef>) -> 
     let helmet = loadout
         .helmet
         .as_ref()
-        .filter(|i| !i.is_broken())
         .and_then(|i| items.get(&i.def_id))
         .and_then(|def| match &def.data {
             ItemData::Armor(a) => Some(a),
@@ -146,7 +157,6 @@ impl Plugin for CombatPlugin {
 struct HitIntent {
     target: Entity,
     dealt: u32,
-    absorbed: u32,
 }
 
 /// Tick down per-NPC fire cooldowns and apply damage when ready.
@@ -154,7 +164,7 @@ struct HitIntent {
 /// All NPC mutable access flows through a [`ParamSet`] so multiple
 /// `&mut LoadoutComp` queries don't overlap. The shooter loop reads
 /// from a position+armor snapshot built before mutation, drains the
-/// shooter's own ammo and wears its weapon, then queues a [`HitIntent`].
+/// shooter's own ammo, then queues a [`HitIntent`].
 /// A second pass applies the hit to the target via a fresh mutable query.
 fn resolve_combat(
     time: Res<Time>,
@@ -273,12 +283,10 @@ fn resolve_combat(
             };
             let raw_damage = ammo_damage + weapon_added;
 
-            let (dealt, absorbed) =
-                Resistances::resolve_hit(target_ballistic, penetration, raw_damage);
+            let dealt = Resistances::resolve_hit(target_ballistic, penetration, raw_damage);
 
             if let Some(weapon) = &mut loadout.0.primary {
                 weapon.count = weapon.count.saturating_sub(1);
-                weapon.degrade(1);
             }
 
             shots.write(ShotFired {
@@ -295,21 +303,15 @@ fn resolve_combat(
             hits.push(HitIntent {
                 target: target_entity,
                 dealt,
-                absorbed,
             });
         }
     }
 
-    // Pass 2: apply HP damage and armor wear.
+    // Pass 2: apply HP damage.
     let mut targets_apply = sets.p2();
     for hit in hits {
-        if let Ok((mut hp, mut loadout)) = targets_apply.get_mut(hit.target) {
+        if let Ok((mut hp, _loadout)) = targets_apply.get_mut(hit.target) {
             hp.deplete(hit.dealt);
-            if hit.absorbed > 0
-                && let Some(armor) = &mut loadout.0.armor
-            {
-                armor.degrade(hit.absorbed);
-            }
         }
     }
 }

@@ -1,10 +1,10 @@
-//! Price calculation with exponential condition scaling.
+//! Price calculation with world-state modifiers.
 //!
-//! The final price of an item is its base price multiplied by condition²
-//! and several world-state modifiers. This makes low-condition gear
-//! nearly worthless and creates a repair arbitrage opportunity.
+//! The final price of an item is its base price multiplied by several
+//! world-state modifiers (supply, demand, faction control, active
+//! events, player reputation).
 
-use crate::primitive::{Condition, Credits};
+use crate::primitive::Credits;
 
 /// Modifiers applied to an item's base price from the world state.
 ///
@@ -25,14 +25,10 @@ pub struct PriceModifiers {
 }
 
 impl PriceModifiers {
-    /// Compute the final price for an item.
-    ///
-    /// Uses [`Condition::price_factor`] (condition²) so a 0.5 item is
-    /// worth ~25% of base, 0.75 ≈ 56%. The result is always at least
-    /// 1 credit.
-    pub fn final_price(&self, base_price: Credits, condition: Condition) -> Credits {
+    /// Compute the final price for an item. The result is always at
+    /// least 1 credit.
+    pub fn final_price(&self, base_price: Credits) -> Credits {
         let price = base_price.value() as f64
-            * condition.price_factor() as f64
             * self.supply as f64
             * self.demand as f64
             * self.faction as f64
@@ -60,38 +56,91 @@ mod tests {
     use super::*;
 
     #[test]
-    fn condition_squared_pricing() {
-        use crate::primitive::Credits;
-
+    fn default_modifiers_yield_base_price() {
         let mods = PriceModifiers::default();
-        let base = Credits::new(10000);
+        assert_eq!(mods.final_price(Credits::new(10000)), Credits::new(10000));
+    }
 
-        assert_eq!(
-            mods.final_price(base, Condition::PERFECT),
-            Credits::new(10000)
-        );
-        assert_eq!(
-            mods.final_price(base, Condition::new(0.75)),
-            Credits::new(5625)
-        );
-        assert_eq!(
-            mods.final_price(base, Condition::new(0.5)),
-            Credits::new(2500)
-        );
-        assert_eq!(
-            mods.final_price(base, Condition::new(0.25)),
-            Credits::new(625)
-        );
+    #[test]
+    fn supply_scales_independently() {
+        let mods = PriceModifiers {
+            supply: 0.6,
+            ..PriceModifiers::default()
+        };
+        assert_eq!(mods.final_price(Credits::new(1000)), Credits::new(600));
+    }
+
+    #[test]
+    fn demand_scales_independently() {
+        let mods = PriceModifiers {
+            demand: 1.5,
+            ..PriceModifiers::default()
+        };
+        assert_eq!(mods.final_price(Credits::new(1000)), Credits::new(1500));
+    }
+
+    #[test]
+    fn faction_scales_independently() {
+        let mods = PriceModifiers {
+            faction: 0.8,
+            ..PriceModifiers::default()
+        };
+        assert_eq!(mods.final_price(Credits::new(1000)), Credits::new(800));
+    }
+
+    #[test]
+    fn event_scales_independently() {
+        let mods = PriceModifiers {
+            event: 2.5,
+            ..PriceModifiers::default()
+        };
+        assert_eq!(mods.final_price(Credits::new(1000)), Credits::new(2500));
+    }
+
+    #[test]
+    fn reputation_scales_independently() {
+        let mods = PriceModifiers {
+            reputation: 1.1,
+            ..PriceModifiers::default()
+        };
+        assert_eq!(mods.final_price(Credits::new(1000)), Credits::new(1100));
+    }
+
+    #[test]
+    fn modifiers_compound_multiplicatively() {
+        // 1000 * 0.5 * 2.0 * 1.2 * 1.0 * 0.9 = 1080
+        let mods = PriceModifiers {
+            supply: 0.5,
+            demand: 2.0,
+            faction: 1.2,
+            event: 1.0,
+            reputation: 0.9,
+        };
+        assert_eq!(mods.final_price(Credits::new(1000)), Credits::new(1080));
+    }
+
+    #[test]
+    fn rounding_is_to_nearest() {
+        // 100 * 1.006 = 100.6 → rounds to 101
+        let mods = PriceModifiers {
+            reputation: 1.006,
+            ..PriceModifiers::default()
+        };
+        assert_eq!(mods.final_price(Credits::new(100)), Credits::new(101));
+        // 100 * 1.004 = 100.4 → rounds to 100
+        let mods = PriceModifiers {
+            reputation: 1.004,
+            ..PriceModifiers::default()
+        };
+        assert_eq!(mods.final_price(Credits::new(100)), Credits::new(100));
     }
 
     #[test]
     fn price_never_zero() {
-        use crate::primitive::Credits;
-
-        let mods = PriceModifiers::default();
-        assert_eq!(
-            mods.final_price(Credits::new(100), Condition::new(0.01)),
-            Credits::new(1)
-        );
+        let mods = PriceModifiers {
+            supply: 0.001,
+            ..PriceModifiers::default()
+        };
+        assert_eq!(mods.final_price(Credits::new(100)), Credits::new(1));
     }
 }

@@ -43,17 +43,12 @@ pub struct ItemDef {
     pub id: Id<Item>,
     /// Type-specific data: consumable effects, weapon caliber, etc.
     pub data: ItemData,
-    /// Base price at condition 1.0 with no market modifiers.
+    /// Base price with no market modifiers.
     pub base_price: Credits,
     /// Factions that supply this item, each with a price multiplier.
     pub suppliers: Vec<Supplier>,
     /// How rare this item is. Affects loot tables and NPC behavior.
     pub rarity: Rarity,
-    /// Maximum durability budget for items that wear (weapons, armor).
-    /// Each absorbed hit or fired shot drains 1 point. At 0 the item
-    /// breaks. `None` means indestructible (consumables, ammo, documents).
-    #[serde(default)]
-    pub durability: Option<u32>,
 }
 
 impl ItemDef {

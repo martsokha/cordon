@@ -12,7 +12,7 @@
 | Document | Description |
 |----------|-------------|
 | [Core Loop](LOOP.md) | Day cycle, trading flow, economic and reputation loops |
-| [Items & Economy](ITEMS.md) | Item catalog, suppliers, price system, authenticity |
+| [Items & Economy](ITEMS.md) | Item catalog, suppliers, price system |
 | [NPCs & Interaction](NPCS.md) | NPC attributes, types, negotiation, recruitment, runners, guards, perks |
 | [Factions](FACTIONS.md) | Faction profiles, dynamics, standing system, events |
 | [Bunker & Upgrades](BUNKER.md) | Upgrade trees for laptop, radio, storage, shop, one-off purchases |
