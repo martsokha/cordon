@@ -75,6 +75,14 @@ pub fn spawn_ui(commands: &mut Commands, font: &Handle<Font>) {
 }
 
 fn spawn_tab_bar(commands: &mut Commands, font: &Handle<Font>) {
+    // Three-slot flex layout:
+    // - Left: time label (fixed-width slot so the center stays
+    //   optically centered as the time string breathes).
+    // - Center: tab buttons.
+    // - Right: money label, right-aligned in a matching fixed slot.
+    //
+    // Both labels are always visible — they're HUD state, not
+    // map-only overlays.
     commands
         .spawn((
             TabBar,
@@ -85,45 +93,105 @@ fn spawn_tab_bar(commands: &mut Commands, font: &Handle<Font>) {
                 right: Val::Px(0.0),
                 height: Val::Px(32.0),
                 flex_direction: FlexDirection::Row,
-                justify_content: JustifyContent::Center,
-                column_gap: Val::Px(2.0),
-                padding: UiRect::horizontal(Val::Px(4.0)),
+                justify_content: JustifyContent::SpaceBetween,
+                align_items: AlignItems::Center,
+                padding: UiRect::horizontal(Val::Px(16.0)),
                 ..default()
             },
             BackgroundColor(Color::srgba(0.04, 0.04, 0.06, 0.95)),
             GlobalZIndex(90),
         ))
         .with_children(|bar| {
-            for (tab, label) in [
-                (LaptopTab::Map, "MAP"),
-                (LaptopTab::Trade, "TRADE"),
-                (LaptopTab::Squad, "SQUAD"),
-                (LaptopTab::Intel, "INTEL"),
-                (LaptopTab::Upgrades, "UPGRADES"),
-            ] {
-                bar.spawn((
-                    TabButton(tab),
-                    Button,
-                    Node {
-                        padding: UiRect::axes(Val::Px(16.0), Val::Px(6.0)),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
+            // Left slot: time label.
+            bar.spawn((
+                Node {
+                    flex_direction: FlexDirection::Row,
+                    align_items: AlignItems::Center,
+                    width: Val::Px(160.0),
+                    ..default()
+                },
+                BackgroundColor(Color::NONE),
+            ))
+            .with_children(|slot| {
+                slot.spawn((
+                    map::TimeLabel,
+                    Text::new("Day 1  08:00"),
+                    TextFont {
+                        font: font.clone(),
+                        font_size: 13.0,
                         ..default()
                     },
-                    BackgroundColor(Color::srgba(0.12, 0.12, 0.15, 0.9)),
-                ))
-                .with_children(|btn| {
-                    btn.spawn((
-                        Text::new(label),
-                        TextFont {
-                            font: font.clone(),
-                            font_size: 11.0,
+                    TextColor(Color::srgba(1.0, 1.0, 1.0, 0.9)),
+                ));
+            });
+
+            // Center slot: tab buttons.
+            bar.spawn((
+                Node {
+                    flex_direction: FlexDirection::Row,
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    column_gap: Val::Px(2.0),
+                    ..default()
+                },
+                BackgroundColor(Color::NONE),
+            ))
+            .with_children(|slot| {
+                for (tab, label) in [
+                    (LaptopTab::Map, "MAP"),
+                    (LaptopTab::Trade, "TRADE"),
+                    (LaptopTab::Squad, "SQUAD"),
+                    (LaptopTab::Intel, "INTEL"),
+                    (LaptopTab::Upgrades, "UPGRADES"),
+                ] {
+                    slot.spawn((
+                        TabButton(tab),
+                        Button,
+                        Node {
+                            padding: UiRect::axes(Val::Px(16.0), Val::Px(6.0)),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
                             ..default()
                         },
-                        TextColor(Color::srgba(0.7, 0.7, 0.7, 1.0)),
-                    ));
-                });
-            }
+                        BackgroundColor(Color::srgba(0.12, 0.12, 0.15, 0.9)),
+                    ))
+                    .with_children(|btn| {
+                        btn.spawn((
+                            Text::new(label),
+                            TextFont {
+                                font: font.clone(),
+                                font_size: 11.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgba(0.7, 0.7, 0.7, 1.0)),
+                        ));
+                    });
+                }
+            });
+
+            // Right slot: money label, right-aligned.
+            bar.spawn((
+                Node {
+                    flex_direction: FlexDirection::Row,
+                    justify_content: JustifyContent::FlexEnd,
+                    align_items: AlignItems::Center,
+                    width: Val::Px(160.0),
+                    ..default()
+                },
+                BackgroundColor(Color::NONE),
+            ))
+            .with_children(|slot| {
+                slot.spawn((
+                    map::MoneyLabel,
+                    Text::new("5000 ¢"),
+                    TextFont {
+                        font: font.clone(),
+                        font_size: 13.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgba(1.0, 1.0, 1.0, 0.9)),
+                ));
+            });
         });
 }
 

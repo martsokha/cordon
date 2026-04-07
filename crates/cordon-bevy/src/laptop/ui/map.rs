@@ -16,6 +16,15 @@ pub struct ZoomLabel;
 pub struct TimeLabel;
 
 #[derive(Component)]
+pub struct MoneyLabel;
+
+/// The faint `+` reticle centered on the map view. Rendered as
+/// `MapOnlyUi` so it hides on other laptop tabs and on the bunker
+/// view (where no UI element carries the `MapOnlyUi` marker).
+#[derive(Component)]
+pub struct Crosshair;
+
+#[derive(Component)]
 pub struct TooltipPanel;
 
 #[derive(Component)]
@@ -92,14 +101,14 @@ impl Plugin for MapUiPlugin {
         );
         app.add_systems(
             Update,
-            (
-                follow_cursor,
-                update_tooltip,
-                update_zoom_label,
-                update_time_label,
-            )
+            (follow_cursor, update_tooltip, update_zoom_label)
                 .run_if(in_state(PlayingState::Laptop))
                 .run_if(resource_equals(LaptopTab::Map)),
+        );
+        // Tab-bar HUD labels update across every tab.
+        app.add_systems(
+            Update,
+            (update_time_label, update_money_label).run_if(in_state(PlayingState::Laptop)),
         );
     }
 }
@@ -220,20 +229,22 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.4)),
     ));
 
-    // Time display
+    // Crosshair — faint `+` centered on the map. Tagged MapOnlyUi
+    // so it shows only when the Map tab is active; also spawned in
+    // laptop UI (not bunker UI) so the bunker view never sees it.
     commands.spawn((
         MapOnlyUi,
-        TimeLabel,
+        Crosshair,
         Node {
             position_type: PositionType::Absolute,
-            left: Val::Px(16.0),
-            top: Val::Px(48.0),
+            left: Val::Percent(49.0),
+            top: Val::Percent(48.0),
             ..default()
         },
-        Text::new("Day 1  08:00"),
+        Text::new("+"),
         TextFont {
             font: font.clone(),
-            font_size: 12.0,
+            font_size: 20.0,
             ..default()
         },
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5)),
@@ -473,7 +484,15 @@ fn update_tooltip(
 
 fn update_zoom_label(
     target: Res<CameraTarget>,
-    mut label_q: Query<&mut Text, (With<ZoomLabel>, Without<TooltipRoot>, Without<TimeLabel>)>,
+    mut label_q: Query<
+        &mut Text,
+        (
+            With<ZoomLabel>,
+            Without<TooltipRoot>,
+            Without<TimeLabel>,
+            Without<MoneyLabel>,
+        ),
+    >,
 ) {
     use crate::laptop::input::{ZOOM_MAX, ZOOM_MIN};
     let t = (target.zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN);
@@ -485,11 +504,38 @@ fn update_zoom_label(
 
 fn update_time_label(
     clock: Option<Res<GameClock>>,
-    mut label_q: Query<&mut Text, (With<TimeLabel>, Without<TooltipRoot>, Without<ZoomLabel>)>,
+    mut label_q: Query<
+        &mut Text,
+        (
+            With<TimeLabel>,
+            Without<TooltipRoot>,
+            Without<ZoomLabel>,
+            Without<MoneyLabel>,
+        ),
+    >,
 ) {
     let Some(clock) = clock else { return };
     let t = &clock.0;
     for mut text in &mut label_q {
         text.0 = format!("Day {}  {}", t.day.value(), t.time_str());
+    }
+}
+
+fn update_money_label(
+    player: Option<Res<cordon_sim::resources::Player>>,
+    mut label_q: Query<
+        &mut Text,
+        (
+            With<MoneyLabel>,
+            Without<TooltipRoot>,
+            Without<ZoomLabel>,
+            Without<TimeLabel>,
+        ),
+    >,
+) {
+    let Some(player) = player else { return };
+    let credits = player.0.credits.value();
+    for mut text in &mut label_q {
+        text.0 = format!("{credits} ¢");
     }
 }

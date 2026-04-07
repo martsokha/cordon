@@ -15,12 +15,3 @@ hazard-chemical = Chemical
 hazard-thermal = Thermal
 hazard-electric = Electric
 hazard-gravitational = Gravitational
-
-# Area tooltip
-area-tooltip =
-    { $name }
-    { $environment }
-    Creatures: { $creatures }  Radiation: { $radiation }  Hostility: { $hostility }
-    Hazards: { $hazards }
-    Loot: { $loot }
-    Faction: { $faction }

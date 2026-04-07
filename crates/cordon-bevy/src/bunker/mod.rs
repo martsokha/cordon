@@ -30,9 +30,6 @@ pub struct FpsCamera;
 pub struct LaptopObject;
 
 #[derive(Component)]
-pub struct BunkerUi;
-
-#[derive(Component)]
 pub struct InteractPrompt;
 
 /// Camera zoomed to laptop. desk_z=1.0, screen at desk_z+0.12=1.12

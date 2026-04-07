@@ -110,23 +110,25 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let road = 1.0 - smoothstep(0.01, 0.04, road_val);
     color = mix(color, dirt_road, road * 0.5);
 
-    // River with sandy banks — flows mostly north-south
-    let river_uv = snapped * vec2<f32>(0.0008, 0.0003);
-    let river_warp = fbm(river_uv * 4.0 + 20.0, 4) * 0.3;
-    let river_val = abs(noise(river_uv + vec2<f32>(river_warp, river_warp * 0.3)) - 0.5);
-    let river_fade = 1.0 - smoothstep(0.35, 0.5, elevation);
+    // Thin streams. A higher UV frequency than the old rivers
+    // spreads the channels across the map, and a large positive
+    // offset keeps the sample region well away from the `(0, 0)`
+    // noise cell where the level set would otherwise close into
+    // a ring around the spawn.
+    //
+    // Placement is gated by both elevation (low ground, valleys)
+    // and moisture (wet biomes), so streams appear where biomes
+    // would naturally carry water rather than blanketing the map.
+    let stream_uv = snapped * vec2<f32>(0.003, 0.0015) + vec2<f32>(71.3, 49.7);
+    let stream_warp = fbm(stream_uv * 4.0, 4) * 0.4;
+    let stream_val = abs(noise(stream_uv + vec2<f32>(stream_warp, stream_warp * 0.3)) - 0.5);
+    let elevation_fade = 1.0 - smoothstep(0.35, 0.55, elevation);
+    let moisture_gate = smoothstep(0.45, 0.6, moisture);
+    let stream_fade = elevation_fade * moisture_gate;
 
-    let water = vec3<f32>(0.03, 0.05, 0.10);
-    let wet_sand = vec3<f32>(0.10, 0.09, 0.06);
-    let dry_sand = vec3<f32>(0.14, 0.12, 0.08);
-
-    let sand_outer = (1.0 - smoothstep(0.015, 0.03, river_val)) * river_fade;
-    let sand_inner = (1.0 - smoothstep(0.008, 0.015, river_val)) * river_fade;
-    let river_line = (1.0 - smoothstep(0.002, 0.008, river_val)) * river_fade;
-
-    color = mix(color, dry_sand, sand_outer * 0.5);
-    color = mix(color, wet_sand, sand_inner * 0.6);
-    color = mix(color, water, river_line * 0.9);
+    let stream_water = vec3<f32>(0.2, 0.3, 0.42);
+    let stream_line = (1.0 - smoothstep(0.0003, 0.0012, stream_val)) * stream_fade;
+    color = mix(color, stream_water, stream_line * 0.85);
 
     // Day/night cycle synced with game time
     let noon_dist = abs(day_night.day_progress - 0.5) * 2.0;

@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use super::{BunkerSpawned, BunkerUi, FpsCamera, InteractPrompt, LaptopObject};
+use super::{BunkerSpawned, FpsCamera, InteractPrompt, LaptopObject};
 use crate::PlayingState;
 
 pub struct BlockoutPlugin;
@@ -617,22 +617,6 @@ fn spawn_bunker(
     );
 
     // === UI ===
-    commands.spawn((
-        BunkerUi,
-        Node {
-            position_type: PositionType::Absolute,
-            left: Val::Percent(49.0),
-            top: Val::Percent(48.0),
-            ..default()
-        },
-        Text::new("+"),
-        TextFont {
-            font_size: 20.0,
-            ..default()
-        },
-        TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5)),
-    ));
-
     commands.spawn((
         InteractPrompt,
         Node {
