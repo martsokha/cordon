@@ -18,9 +18,11 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::GlobalRng;
+use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NamePool;
 use cordon_core::entity::npc::Npc as NpcData;
-use cordon_core::primitive::Uid;
+use cordon_core::primitive::{Id, Uid};
+use cordon_core::world::area::AreaKind;
 use cordon_data::gamedata::GameDataResource;
 use rand::{Rng, RngExt};
 
@@ -139,13 +141,20 @@ pub fn spawn_population(
         uid_to_entity.insert(uid, entity);
     }
 
-    // Pre-collect the area centres so we can pick a home position per
-    // squad without re-borrowing rng.
-    let area_centres: Vec<Vec2> = data
-        .areas
-        .values()
-        .map(|a| Vec2::new(a.location.x, a.location.y))
-        .collect();
+    // Pre-collect each faction's settlement centres so squads spawn
+    // inside their own controlled areas. Squads only ever spawn at
+    // Settlement-archetype areas — not at AnomalyFields, Wastelands,
+    // Anchors, or MutantLairs — so spawning happens at the bases the
+    // faction holds, not random points on the map.
+    let mut faction_settlements: HashMap<Id<Faction>, Vec<Vec2>> = HashMap::new();
+    for area in data.areas.values() {
+        if let AreaKind::Settlement { faction, .. } = &area.kind {
+            faction_settlements
+                .entry(faction.clone())
+                .or_default()
+                .push(Vec2::new(area.location.x, area.location.y));
+        }
+    }
 
     // Pass 2: spawn squads, resolving member uids → entities, and tag
     // each member with a SquadMembership component pointing back at
@@ -164,7 +173,7 @@ pub fn spawn_population(
             None => member_entities[0],
         };
 
-        let home = pick_home_position(&area_centres, &mut **rng);
+        let home = pick_faction_home(&faction_settlements, &squad.faction, &mut **rng);
 
         let squad_uid = squad.id;
         let squad_entity = commands
@@ -226,9 +235,18 @@ fn plan_daily_waves<R: Rng>(deficit: u32, now_progress: f32, rng: &mut R) -> Vec
     waves
 }
 
-/// Pick a random area centre with a small jitter, used as a squad's
-/// initial spawn position.
-fn pick_home_position<R: Rng>(centres: &[Vec2], rng: &mut R) -> Vec2 {
+/// Pick a random Settlement centre belonging to `faction`, with a
+/// small jitter, used as a squad's initial spawn position. If the
+/// faction has no settlements (e.g., a faction defined in data but
+/// with no held areas), fall back to the origin.
+fn pick_faction_home<R: Rng>(
+    settlements: &HashMap<Id<Faction>, Vec<Vec2>>,
+    faction: &Id<Faction>,
+    rng: &mut R,
+) -> Vec2 {
+    let Some(centres) = settlements.get(faction) else {
+        return Vec2::ZERO;
+    };
     if centres.is_empty() {
         return Vec2::ZERO;
     }
