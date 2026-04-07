@@ -21,5 +21,5 @@ pub use self::data::{
 pub use self::def::{Item, ItemDef, Supplier};
 pub use self::effect::{Effect, EffectTarget};
 pub use self::instance::{Authenticity, ItemInstance};
-pub use self::loadout::{Loadout, BASE_GENERAL_SLOTS, MAX_RELIC_SLOTS};
+pub use self::loadout::{BASE_GENERAL_SLOTS, Loadout, MAX_RELIC_SLOTS};
 pub use self::stash::Stash;

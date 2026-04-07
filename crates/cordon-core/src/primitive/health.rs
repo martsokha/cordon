@@ -7,7 +7,18 @@ use serde::{Deserialize, Serialize};
 /// Drops from combat, radiation, and environmental hazards.
 /// Recovers with medical supplies or rest. The default cap is 100;
 /// relics or perks may raise the maximum on a per-NPC basis.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize
+)]
 pub struct Health(u32);
 
 impl Health {

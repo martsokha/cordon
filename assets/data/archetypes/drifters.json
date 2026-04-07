@@ -4,7 +4,7 @@
     "faction": "drifters",
     "ranks": {
       "novice": {
-        "primary": [{ "id": "pmm" }, { "id": "trench_gun", "weight": 2 }],
+        "primary": [{ "id": "pmm" }, { "id": "toz34", "weight": 2 }],
         "armor": [{ "id": "leather_jacket", "weight": 3 }],
         "helmet": [{ "id": "balaclava" }],
         "ammo_boxes": 2,
@@ -12,7 +12,7 @@
         "consumable_count": 2
       },
       "experienced": {
-        "primary": [{ "id": "trench_gun", "weight": 2 }, { "id": "stechkin" }, { "id": "aks74u" }],
+        "primary": [{ "id": "toz34", "weight": 2 }, { "id": "stechkin" }, { "id": "aks74u" }],
         "secondary": [{ "id": "pmm" }],
         "armor": [{ "id": "leather_jacket", "weight": 2 }, { "id": "reinforced_coat" }],
         "helmet": [{ "id": "balaclava" }],

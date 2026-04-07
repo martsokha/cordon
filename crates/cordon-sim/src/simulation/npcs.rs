@@ -186,7 +186,8 @@ pub fn spawn_daily_visitors(
             .archetypes
             .get(&Id::<Archetype>::new(faction.as_str()))
         {
-            npc.loadout = generate_loadout(arch, npc.rank(), loadout_ctx.items, &mut world.rng.npcs);
+            npc.loadout =
+                generate_loadout(arch, npc.rank(), loadout_ctx.items, &mut world.rng.npcs);
         }
 
         visitors.push(npc);

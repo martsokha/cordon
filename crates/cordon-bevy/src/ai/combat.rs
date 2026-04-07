@@ -1,18 +1,16 @@
-//! Combat: vision, engagement, damage, death, looting.
+//! Combat: vision, engagement, weapon firing, damage application, tracers.
 //!
 //! Each NPC has a [`Vision`] radius. [`update_engagement`] scans for
 //! hostile NPCs in vision; if a hostile is in weapon range with clear
 //! line-of-sight, it pushes [`Action::Engage`]. Otherwise it pushes
 //! [`Action::Walk`] toward the target. Damage is resolved each tick by
 //! [`resolve_engage_actions`] using the loadout's equipped weapon and
-//! the first matching ammo box from the general pouch.
+//! the magazine's loaded ammo type.
 //!
 //! Anomaly disks block line-of-sight via [`AnomalyZone`].
 //!
-//! Death: when an NPC's health hits zero, [`handle_deaths`] tags the
-//! entity with [`Dead`] and recolors the dot. [`cleanup_corpses`]
-//! despawns it after [`CORPSE_PERSISTENCE_MINUTES`] of game time, or
-//! immediately when the loadout is fully looted.
+//! Death and looting are handled by sibling modules: [`super::death`]
+//! tags corpses with `Dead`, and [`super::loot`] drives the loot action.
 
 use std::collections::HashMap;
 
@@ -20,11 +18,12 @@ use bevy::prelude::*;
 use cordon_core::entity::faction::{Faction, FactionDef};
 use cordon_core::entity::npc::Npc;
 use cordon_core::item::{Item, ItemData, ItemDef, Loadout};
-use cordon_core::primitive::{GameTime, Id, Rank, Resistances, Uid};
+use cordon_core::primitive::{Id, Rank, Resistances, Uid};
 use cordon_data::gamedata::GameDataResource;
 use moonshine_behavior::prelude::*;
 
 use super::behavior::Action;
+use super::death::Dead;
 use crate::PlayingState;
 use crate::laptop::{MapWorldEntity, NpcDot, NpcFaction};
 use crate::world::SimWorld;
@@ -36,11 +35,13 @@ pub struct Vision {
 }
 
 impl Vision {
-    /// Default vision: 25 base + 3 per rank tier above Novice + 5 if
-    /// the NPC's faction has military training.
+    /// Default vision: 120 base + 15 per rank tier above Novice + 25 if
+    /// the NPC's faction has military training. Scales to the map's
+    /// area-radius scale (~60–165 units), so two NPCs in the same area
+    /// can spot each other reliably.
     pub fn for_npc(rank: Rank, is_military: bool) -> Self {
-        let from_rank = 25.0 + (rank.tier() as f32 - 1.0) * 3.0;
-        let from_faction = if is_military { 5.0 } else { 0.0 };
+        let from_rank = 120.0 + (rank.tier() as f32 - 1.0) * 15.0;
+        let from_faction = if is_military { 25.0 } else { 0.0 };
         Self {
             radius: from_rank + from_faction,
         }
@@ -51,12 +52,6 @@ impl Vision {
 #[derive(Component, Debug, Clone, Copy)]
 pub struct AnomalyZone {
     pub radius: f32,
-}
-
-/// Marker for a corpse with its time of death.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct Dead {
-    pub died_at: GameTime,
 }
 
 /// A short-lived line drawn from shooter to target on each shot.
@@ -70,12 +65,8 @@ pub struct Tracer {
 const TRACER_LIFE_SECS: f32 = 0.18;
 /// Tracer width in map units.
 const TRACER_WIDTH: f32 = 0.7;
-
-/// How long corpses persist before despawn (7 in-game days).
-pub const CORPSE_PERSISTENCE_MINUTES: u32 = 7 * 24 * 60;
-
-/// How fast a single loot transfer takes (seconds per item).
-const LOOT_INTERVAL_SECS: f32 = 0.4;
+/// Tracer fill colour (warm yellow-white).
+const TRACER_COLOR: Color = Color::srgba(1.0, 0.92, 0.55, 0.95);
 
 /// Whether two factions are hostile (relation ≤ -50 either way).
 pub fn is_hostile(
@@ -139,20 +130,6 @@ fn weapon_range(items: &HashMap<Id<Item>, ItemDef>, loadout: &Loadout) -> f32 {
     }
 }
 
-/// Time between shots (s) for the equipped weapon.
-fn shot_cooldown(items: &HashMap<Id<Item>, ItemDef>, loadout: &Loadout) -> f32 {
-    let Some(inst) = loadout.equipped_weapon() else {
-        return f32::INFINITY;
-    };
-    let Some(def) = items.get(&inst.def_id) else {
-        return f32::INFINITY;
-    };
-    match &def.data {
-        ItemData::Weapon(w) if w.fire_rate > 0.0 => 1.0 / w.fire_rate,
-        _ => f32::INFINITY,
-    }
-}
-
 /// Combined ballistic resistance from equipped (non-broken) suit + helmet.
 fn equipped_ballistic(loadout: &Loadout, items: &HashMap<Id<Item>, ItemDef>) -> u32 {
     let armor = loadout
@@ -194,30 +171,19 @@ fn find_ammo_idx(
     })
 }
 
-/// Plugin registering combat systems.
+/// Plugin registering combat systems (vision, engagement, firing, tracers).
 pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (
-                update_engagement,
-                resolve_engage_actions,
-                fade_tracers,
-                try_start_looting,
-                drive_loot_actions,
-                handle_deaths,
-                cleanup_corpses,
-            )
+            (update_engagement, resolve_engage_actions, fade_tracers)
                 .chain()
                 .run_if(in_state(PlayingState::Laptop)),
         );
     }
 }
-
-/// Distance under which an alive NPC will start looting an adjacent corpse.
-const LOOT_REACH: f32 = 8.0;
 
 /// Per-frame engagement decision for every alive NPC.
 #[allow(clippy::type_complexity)]
@@ -298,16 +264,17 @@ fn update_engagement(
         };
 
         if dist <= range {
-            // In range: enter or stay in Engage.
+            // In range: enter or stay in Engage. The cooldown starts at
+            // 0 so the first shot fires this same tick.
             let already_engaging = matches!(
                 behavior.current(),
                 Action::Engage { target, .. } if *target == target_uid
             );
             if !already_engaging {
-                let cooldown = shot_cooldown(items, &npc.loadout);
                 let _ = behavior.try_start(Action::Engage {
                     target: target_uid,
-                    cooldown_secs: cooldown,
+                    cooldown_secs: 0.0,
+                    reload_secs: 0.0,
                 });
             }
         } else {
@@ -316,7 +283,7 @@ fn update_engagement(
             if !already_walking {
                 let _ = behavior.try_start(Action::Walk {
                     target: target_pos,
-                    speed: 12.0,
+                    speed: 35.0,
                 });
             }
         }
@@ -324,6 +291,19 @@ fn update_engagement(
 }
 
 /// Tick down engage cooldowns and apply damage when ready.
+///
+/// One pass over shooters. For each engaging NPC the state machine is:
+///   1. If `reload_secs > 0`: tick the reload, skip.
+///   2. Else if magazine is empty: pull a matching ammo box from the
+///      pouch into the weapon and start a reload timer; skip.
+///   3. Else if `cooldown_secs > 0`: tick the cooldown, skip.
+///   4. Else: fire one shot — drain a round, wear the weapon, apply
+///      HP damage and armor wear to the target, spawn a tracer, reset
+///      the cooldown.
+///
+/// A broken or missing weapon drops the NPC out of `Engage`. An NPC
+/// with no matching ammo and an empty mag also drops out (later this
+/// will switch to the secondary).
 #[allow(clippy::type_complexity)]
 fn resolve_engage_actions(
     sim: Option<ResMut<SimWorld>>,
@@ -339,61 +319,100 @@ fn resolve_engage_actions(
     let items = &game_data.0.items;
     let dt = time.delta_secs();
 
-    // Snapshot positions of all alive NPCs so the shooter loop can look
-    // up its target's location and we can spawn tracers later.
+    // Snapshot positions of all alive NPCs for tracer endpoints.
     let positions: HashMap<Uid<Npc>, Vec2> = targets
         .iter()
         .map(|(dot, t)| (dot.uid, t.translation.truncate()))
         .collect();
 
-    // (shooter_dot, target_dot, dealt, absorbed, shooter_pos, target_pos)
-    let mut hits: Vec<(NpcDot, NpcDot, u32, u32, Vec2, Vec2)> = Vec::new();
-
     for (shooter_dot, shooter_transform, mut behavior) in &mut shooters {
-        // Tick the cooldown if we're engaging.
-        let (target_uid, ready) = match behavior.current_mut() {
-            Action::Engage {
-                target,
-                cooldown_secs,
-            } => {
-                *cooldown_secs -= dt;
-                let ready = *cooldown_secs <= 0.0;
-                if ready {
-                    *cooldown_secs = 0.0;
-                }
-                (*target, ready)
-            }
+        // Pull the engage state out of the action.
+        let target_uid = match behavior.current() {
+            Action::Engage { target, .. } => *target,
             _ => continue,
         };
-        if !ready {
-            continue;
-        }
 
-        let Some(&target_pos) = positions.get(&target_uid) else {
+        // Read the weapon stats once.
+        let Some(shooter_npc) = sim.0.npcs.get(&shooter_dot.uid) else {
             continue;
         };
-        let shooter_pos = shooter_transform.translation.truncate();
-        let target_dot = NpcDot { uid: target_uid };
-
-        // Look up shooter weapon, ammo, and target ballistic in one borrow.
-        let Some(shooter) = sim.0.npcs.get(&shooter_dot.uid) else {
-            continue;
-        };
-        let Some(weapon_inst) = shooter.loadout.equipped_weapon() else {
-            continue;
+        let weapon_inst = match shooter_npc.loadout.equipped_weapon() {
+            Some(w) => w,
+            None => {
+                // Broken or missing primary: drop combat.
+                let _ = behavior.try_start(Action::Idle { timer: 0.5 });
+                continue;
+            }
         };
         let Some(weapon_def) = items.get(&weapon_inst.def_id) else {
             continue;
         };
-        let (caliber, weapon_added) = match &weapon_def.data {
-            ItemData::Weapon(w) => (w.caliber.clone(), w.added_damage),
-            _ => continue,
-        };
-        let Some(ammo_idx) = find_ammo_idx(&shooter.loadout, &caliber, items) else {
+        let (caliber, magazine, fire_rate, reload_secs_def, weapon_added) =
+            match &weapon_def.data {
+                ItemData::Weapon(w) => (
+                    w.caliber.clone(),
+                    w.magazine,
+                    w.fire_rate,
+                    w.reload_secs,
+                    w.added_damage,
+                ),
+                _ => continue,
+            };
+        let mag_count = weapon_inst.count;
+        let loaded_ammo_id = weapon_inst.loaded_ammo.clone();
+
+        // Phase 1: tick reload timer if reloading.
+        let in_reload = matches!(
+            behavior.current(),
+            Action::Engage { reload_secs, .. } if *reload_secs > 0.0
+        );
+        if in_reload {
+            if let Action::Engage {
+                reload_secs: rs, ..
+            } = behavior.current_mut()
+            {
+                *rs = (*rs - dt).max(0.0);
+            }
+            continue;
+        }
+
+        // Phase 2: empty mag → start a reload.
+        if mag_count == 0 {
+            let started =
+                refill_magazine(&mut sim, &shooter_dot, items, &caliber, magazine);
+            if started {
+                if let Action::Engage {
+                    reload_secs: rs, ..
+                } = behavior.current_mut()
+                {
+                    *rs = reload_secs_def;
+                }
+            } else {
+                // No matching ammo anywhere → drop combat.
+                let _ = behavior.try_start(Action::Idle { timer: 1.0 });
+            }
+            continue;
+        }
+
+        // Phase 3: cooldown still ticking?
+        if let Action::Engage {
+            cooldown_secs: cs, ..
+        } = behavior.current_mut()
+        {
+            if *cs > 0.0 {
+                *cs = (*cs - dt).max(0.0);
+                continue;
+            }
+        }
+
+        // Phase 4: fire a shot.
+        // Resolve the loaded ammo's stats.
+        let Some(loaded_ammo_id) = loaded_ammo_id else {
+            // Mag has rounds but no recorded type: bail and let the
+            // next reload tag it.
             continue;
         };
-        let ammo_inst = &shooter.loadout.general[ammo_idx];
-        let Some(ammo_def) = items.get(&ammo_inst.def_id) else {
+        let Some(ammo_def) = items.get(&loaded_ammo_id) else {
             continue;
         };
         let (ammo_damage, penetration) = match &ammo_def.data {
@@ -402,290 +421,96 @@ fn resolve_engage_actions(
         };
         let raw_damage = ammo_damage + weapon_added;
 
-        let Some(target) = sim.0.npcs.get(&target_dot.uid) else {
+        // Look up the target and resolve the hit.
+        let Some(target_npc) = sim.0.npcs.get(&target_uid) else {
             continue;
         };
-        let target_ballistic = equipped_ballistic(&target.loadout, items);
+        let target_ballistic = equipped_ballistic(&target_npc.loadout, items);
         let (dealt, absorbed) =
             Resistances::resolve_hit(target_ballistic, penetration, raw_damage);
 
-        // Reset shooter cooldown to a fresh interval.
-        if let Action::Engage { cooldown_secs, .. } = behavior.current_mut() {
-            *cooldown_secs = match &weapon_def.data {
-                ItemData::Weapon(w) if w.fire_rate > 0.0 => 1.0 / w.fire_rate,
-                _ => 1.0,
-            };
+        let shooter_pos = shooter_transform.translation.truncate();
+        let Some(&target_pos) = positions.get(&target_uid) else {
+            continue;
+        };
+
+        // Apply mutations to shooter.
+        if let Some(shooter_mut) = sim.0.npcs.get_mut(&shooter_dot.uid)
+            && let Some(weapon) = &mut shooter_mut.loadout.primary
+        {
+            weapon.count = weapon.count.saturating_sub(1);
+            weapon.degrade(1);
         }
-
-        hits.push((
-            *shooter_dot,
-            target_dot,
-            dealt,
-            absorbed,
-            shooter_pos,
-            target_pos,
-        ));
-    }
-
-    // Spawn tracers for every shot fired this tick.
-    let tracer_color = Color::srgba(1.0, 0.92, 0.55, 0.95);
-    for (_, _, _, _, from, to) in &hits {
-        spawn_tracer(
-            &mut commands,
-            &mut meshes,
-            &mut materials,
-            tracer_color,
-            *from,
-            *to,
-        );
-    }
-
-    // Apply mutations.
-    for (shooter_dot, target_dot, dealt, absorbed, _, _) in hits {
-        if let Some(shooter) = sim.0.npcs.get_mut(&shooter_dot.uid) {
-            // Decrement ammo on the shooter.
-            let weapon_caliber = shooter
-                .loadout
-                .equipped_weapon()
-                .and_then(|w| items.get(&w.def_id))
-                .and_then(|def| match &def.data {
-                    ItemData::Weapon(w) => Some(w.caliber.clone()),
-                    _ => None,
-                });
-            if let Some(caliber) = weapon_caliber
-                && let Some(idx) = find_ammo_idx(&shooter.loadout, &caliber, items)
-            {
-                let ammo = &mut shooter.loadout.general[idx];
-                ammo.count = ammo.count.saturating_sub(1);
-                if ammo.count == 0 {
-                    shooter.loadout.general.remove(idx);
-                }
-            }
-            // Weapons take 1 durability per shot.
-            if let Some(weapon) = &mut shooter.loadout.primary {
-                weapon.degrade(1);
-            }
-        }
-
-        if let Some(target) = sim.0.npcs.get_mut(&target_dot.uid) {
-            target.health.damage(dealt);
+        // Apply mutations to target.
+        if let Some(target_mut) = sim.0.npcs.get_mut(&target_uid) {
+            target_mut.health.damage(dealt);
             if absorbed > 0
-                && let Some(armor) = &mut target.loadout.armor
+                && let Some(armor) = &mut target_mut.loadout.armor
             {
                 armor.degrade(absorbed);
             }
         }
-    }
-}
 
-/// Push `Action::Loot` for alive NPCs that are standing near a corpse
-/// and not currently engaged in combat.
-#[allow(clippy::type_complexity)]
-fn try_start_looting(
-    sim: Option<Res<SimWorld>>,
-    corpses: Query<(&NpcDot, &Transform), With<Dead>>,
-    mut alive: Query<
-        (&NpcDot, &Transform, BehaviorMut<Action>),
-        Without<Dead>,
-    >,
-) {
-    let Some(sim) = sim else { return };
+        // Spawn the tracer.
+        spawn_tracer(
+            &mut commands,
+            &mut meshes,
+            &mut materials,
+            TRACER_COLOR,
+            shooter_pos,
+            target_pos,
+        );
 
-    // Snapshot non-empty corpses with their positions.
-    let corpse_snapshot: Vec<(Uid<Npc>, Vec2)> = corpses
-        .iter()
-        .filter_map(|(dot, t)| {
-            let npc = sim.0.npcs.get(&dot.uid)?;
-            if npc.loadout.is_empty() {
-                return None;
-            }
-            Some((dot.uid, t.translation.truncate()))
-        })
-        .collect();
-    if corpse_snapshot.is_empty() {
-        return;
-    }
-
-    for (looter_dot, transform, mut behavior) in &mut alive {
-        // Don't pre-empt fighting.
-        if matches!(
-            behavior.current(),
-            Action::Engage { .. } | Action::Loot { .. } | Action::Flee { .. }
-        ) {
-            continue;
-        }
-        let pos = transform.translation.truncate();
-        let nearest = corpse_snapshot
-            .iter()
-            .filter(|(uid, _)| *uid != looter_dot.uid)
-            .min_by(|(_, a), (_, b)| {
-                pos.distance_squared(*a)
-                    .partial_cmp(&pos.distance_squared(*b))
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            });
-        let Some((corpse_uid, corpse_pos)) = nearest else {
-            continue;
-        };
-        if pos.distance(*corpse_pos) > LOOT_REACH {
-            continue;
-        }
-        let _ = behavior.try_start(Action::Loot {
-            target: *corpse_uid,
-            progress_secs: LOOT_INTERVAL_SECS,
-        });
-    }
-}
-
-/// Drive `Action::Loot`: tick the progress timer, transfer items.
-#[allow(clippy::type_complexity)]
-fn drive_loot_actions(
-    sim: Option<ResMut<SimWorld>>,
-    time: Res<Time>,
-    mut q: Query<(&NpcDot, BehaviorMut<Action>), Without<Dead>>,
-    corpses: Query<&NpcDot, With<Dead>>,
-) {
-    let Some(mut sim) = sim else { return };
-    let dt = time.delta_secs();
-
-    let corpse_uids: HashMap<Uid<Npc>, ()> =
-        corpses.iter().map(|dot| (dot.uid, ())).collect();
-
-    let mut transfers: Vec<(NpcDot, NpcDot)> = Vec::new();
-
-    for (looter_dot, mut behavior) in &mut q {
-        let target_uid = match behavior.current_mut() {
-            Action::Loot {
-                target,
-                progress_secs,
-            } => {
-                *progress_secs -= dt;
-                if *progress_secs > 0.0 {
-                    continue;
-                }
-                *progress_secs = LOOT_INTERVAL_SECS;
-                *target
-            }
-            _ => continue,
-        };
-
-        if !corpse_uids.contains_key(&target_uid) {
-            // Corpse vanished — bail out of looting.
-            let _ = behavior.try_start(Action::Idle { timer: 0.5 });
-            continue;
-        }
-        let corpse_dot = NpcDot { uid: target_uid };
-        transfers.push((*looter_dot, corpse_dot));
-    }
-
-    for (looter_dot, corpse_dot) in transfers {
-        // Pull one item from the corpse into the looter (if room).
-        // Borrow each NPC sequentially to avoid double-mut.
-        let item_taken = {
-            let Some(corpse) = sim.0.npcs.get_mut(&corpse_dot.uid) else {
-                continue;
-            };
-            // Pop in priority order: primary, secondary, helmet, armor,
-            // relics, then general items.
-            corpse
-                .loadout
-                .primary
-                .take()
-                .or_else(|| corpse.loadout.secondary.take())
-                .or_else(|| corpse.loadout.helmet.take())
-                .or_else(|| corpse.loadout.armor.take())
-                .or_else(|| corpse.loadout.relics.pop())
-                .or_else(|| corpse.loadout.general.pop())
-        };
-        let Some(item) = item_taken else { continue };
-
-        if let Some(looter) = sim.0.npcs.get_mut(&looter_dot.uid) {
-            // Use a generous capacity since archetypes might not have
-            // populated armor data; default cap = 20 for now.
-            let capacity = looter.loadout.general.len() as u8 + 1;
-            let _ = looter
-                .loadout
-                .add_to_general(item, capacity.max(20));
+        // Reset the shot cooldown.
+        if let Action::Engage {
+            cooldown_secs: cs, ..
+        } = behavior.current_mut()
+        {
+            *cs = if fire_rate > 0.0 { 1.0 / fire_rate } else { 1.0 };
         }
     }
 }
 
-/// Tag NPCs whose health hit zero as dead and replace their dot with
-/// an X-shaped mesh.
-fn handle_deaths(
-    sim: Option<Res<SimWorld>>,
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    q: Query<(Entity, &NpcDot, &MeshMaterial2d<ColorMaterial>), Without<Dead>>,
-) {
-    let Some(sim) = sim else { return };
-    let now = sim.0.time;
-
-    for (entity, npc_dot, mat_handle) in &q {
-        let Some(npc) = sim.0.npcs.get(&npc_dot.uid) else {
-            continue;
-        };
-        if npc.health.is_alive() {
-            continue;
-        }
-        commands.entity(entity).insert(Dead { died_at: now });
-
-        // Hide the original circle by recoloring it transparent.
-        if let Some(mat) = materials.get_mut(&mat_handle.0) {
-            mat.color = Color::NONE;
-        }
-
-        // Spawn two crossed bar children to form the X.
-        let bar_color = Color::srgba(0.55, 0.1, 0.1, 0.95);
-        let bar_mesh = meshes.add(Rectangle::new(10.0, 1.5));
-        let bar_mat = materials.add(ColorMaterial::from_color(bar_color));
-        commands.entity(entity).with_children(|parent| {
-            parent.spawn((
-                Mesh2d(bar_mesh.clone()),
-                MeshMaterial2d(bar_mat.clone()),
-                Transform::from_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_4)),
-            ));
-            parent.spawn((
-                Mesh2d(bar_mesh.clone()),
-                MeshMaterial2d(bar_mat.clone()),
-                Transform::from_rotation(Quat::from_rotation_z(-std::f32::consts::FRAC_PI_4)),
-            ));
-        });
+/// Pull one matching ammo box from the shooter's general pouch and
+/// refill the primary weapon up to its magazine size. Tags the weapon's
+/// `loaded_ammo` with the box's def id so subsequent shots use accurate
+/// damage and penetration values.
+///
+/// Returns `true` if any rounds were transferred.
+fn refill_magazine(
+    sim: &mut ResMut<SimWorld>,
+    shooter_dot: &NpcDot,
+    items: &HashMap<Id<Item>, ItemDef>,
+    caliber: &Id<cordon_core::item::Caliber>,
+    magazine: u32,
+) -> bool {
+    let Some(shooter) = sim.0.npcs.get_mut(&shooter_dot.uid) else {
+        return false;
+    };
+    let Some(idx) = find_ammo_idx(&shooter.loadout, caliber, items) else {
+        return false;
+    };
+    let box_def_id = shooter.loadout.general[idx].def_id.clone();
+    let current_mag = shooter
+        .loadout
+        .primary
+        .as_ref()
+        .map(|w| w.count)
+        .unwrap_or(0);
+    let space = magazine.saturating_sub(current_mag);
+    let take = space.min(shooter.loadout.general[idx].count);
+    if take == 0 {
+        return false;
     }
-}
-
-/// Despawn corpses after the persistence window or once their loadout
-/// has been fully looted.
-fn cleanup_corpses(
-    sim: Option<Res<SimWorld>>,
-    mut commands: Commands,
-    q: Query<(Entity, &Dead, &NpcDot)>,
-) {
-    let Some(sim) = sim else { return };
-    let now = sim.0.time;
-
-    for (entity, dead, npc_dot) in &q {
-        let elapsed = minutes_between(dead.died_at, now);
-        let looted = sim
-            .0
-            .npcs
-            .get(&npc_dot.uid)
-            .map(|n| n.loadout.is_empty())
-            .unwrap_or(true);
-        if looted || elapsed >= CORPSE_PERSISTENCE_MINUTES {
-            commands.entity(entity).despawn();
-        }
+    shooter.loadout.general[idx].count -= take;
+    if shooter.loadout.general[idx].count == 0 {
+        shooter.loadout.general.remove(idx);
     }
-}
-
-/// Convert a [`GameTime`] to absolute minutes since day 1, 00:00.
-fn to_minutes(t: GameTime) -> u32 {
-    (t.day.value() - 1) * 24 * 60 + t.hour as u32 * 60 + t.minute as u32
-}
-
-/// Game-minutes elapsed between two times. Saturating; never negative.
-fn minutes_between(start: GameTime, end: GameTime) -> u32 {
-    to_minutes(end).saturating_sub(to_minutes(start))
+    if let Some(weapon) = &mut shooter.loadout.primary {
+        weapon.count += take;
+        weapon.loaded_ammo = Some(box_def_id);
+    }
+    true
 }
 
 /// Spawn a tracer rectangle stretching from `from` to `to`.

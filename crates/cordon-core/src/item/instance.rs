@@ -30,8 +30,14 @@ pub enum Authenticity {
 /// Items whose [`ItemDef::durability`] is `None` are indestructible
 /// (consumables, ammo, documents) and carry `durability = None`.
 ///
-/// `count` represents stack size for items that come in multiples
-/// (a box of ammo, a pack of bandages). Defaults to 1.
+/// `count` represents stack size for items that come in multiples:
+/// rounds in a box of ammo, rounds chambered in a weapon's magazine,
+/// items in a pack. Defaults to 1.
+///
+/// `loaded_ammo` is only meaningful for weapon instances; it records
+/// which ammo def's rounds are currently in the magazine, so the
+/// combat system reads accurate damage and penetration values without
+/// having to guess.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ItemInstance {
     /// ID of the [`ItemDef`] this is an instance of.
@@ -40,16 +46,24 @@ pub struct ItemInstance {
     pub authenticity: Authenticity,
     /// Current durability remaining. `None` for indestructible items.
     pub durability: Option<u32>,
-    /// Stack size (rounds in a box of ammo, items in a pack). Default 1.
+    /// Stack size (rounds in mag/box, items in a pack). Default 1.
     pub count: u32,
+    /// For weapons: the ammo def whose rounds are in the magazine.
+    /// `None` means the magazine is empty or unloaded.
+    #[serde(default)]
+    pub loaded_ammo: Option<Id<ItemMarker>>,
 }
 
 impl ItemInstance {
     /// Create a fresh, undamaged instance from a definition.
     ///
     /// Durability starts at the def's max (or `None` if indestructible).
-    /// Ammo instances start with a full box (`count = ammo.quantity`);
-    /// other items default to `count = 1`.
+    ///
+    /// `count` semantics depend on the item type:
+    /// - **Ammo**: rounds remaining in this box (starts full).
+    /// - **Weapon**: rounds chambered in the magazine (starts at 0 — the
+    ///   loadout generator or a reload action fills it).
+    /// - Everything else: stack size (default 1).
     pub fn new(def: &ItemDef) -> Self {
         let count = match &def.data {
             ItemData::Ammo(a) => a.quantity,
@@ -60,6 +74,7 @@ impl ItemInstance {
             authenticity: Authenticity::Genuine,
             durability: def.durability,
             count,
+            loaded_ammo: None,
         }
     }
 

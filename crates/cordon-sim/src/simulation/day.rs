@@ -31,13 +31,8 @@ pub fn advance_day(
     events::roll_daily_events(world, event_defs);
     let events_started = world.active_events.len() - event_count_before;
 
-    let visitors = npcs::spawn_daily_visitors(
-        world,
-        npc_gen,
-        name_pools,
-        fallback_pool,
-        loadout_ctx,
-    );
+    let visitors =
+        npcs::spawn_daily_visitors(world, npc_gen, name_pools, fallback_pool, loadout_ctx);
     factions::tick_factions(world);
 
     let mission_results = missions::resolve_missions(world);

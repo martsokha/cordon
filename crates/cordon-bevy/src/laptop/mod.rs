@@ -47,8 +47,8 @@ impl Plugin for LaptopPlugin {
     }
 }
 
-use self::ui::map::{TooltipContent, cursor_world_pos};
 pub use self::ui::MapWorldEntity;
+use self::ui::map::{TooltipContent, cursor_world_pos};
 use self::ui::{LaptopFont, spawn_ui};
 
 #[derive(Component)]
@@ -357,10 +357,7 @@ fn spawn_map(
         );
         let spawn_pos = base_pos + scatter;
 
-        let is_military = matches!(
-            npc.faction.as_str(),
-            "garrison" | "order" | "mercenaries"
-        );
+        let is_military = matches!(npc.faction.as_str(), "garrison" | "order" | "mercenaries");
         let vision = Vision::for_npc(npc.rank(), is_military);
 
         let _npc_entity = commands.spawn((

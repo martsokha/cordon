@@ -9,7 +9,8 @@
       "accuracy": 0.55,
       "recoil": 0.25,
       "magazine": 12,
-      "range": 15.0,
+      "reload_secs": 1.8,
+      "range": 180.0,
       "suppressed": false,
       "added_damage": 0
     },
@@ -31,7 +32,8 @@
       "accuracy": 0.45,
       "recoil": 0.45,
       "magazine": 20,
-      "range": 18.0,
+      "reload_secs": 2.2,
+      "range": 220.0,
       "suppressed": false,
       "added_damage": 2
     },
@@ -53,7 +55,8 @@
       "accuracy": 0.6,
       "recoil": 0.2,
       "magazine": 15,
-      "range": 16.0,
+      "reload_secs": 2.0,
+      "range": 200.0,
       "suppressed": true,
       "added_damage": 0
     },
@@ -70,12 +73,13 @@
     "data": {
       "type": "weapon",
       "caliber": "9x19mm",
-      "fire_modes": ["Semi", "Burst", "Auto"],
+      "fire_modes": ["Semi", { "Burst": 3 }, "Auto"],
       "fire_rate": 13.0,
       "accuracy": 0.7,
       "recoil": 0.3,
       "magazine": 30,
-      "range": 22.0,
+      "reload_secs": 2.6,
+      "range": 260.0,
       "suppressed": false,
       "added_damage": 3
     },
@@ -97,7 +101,8 @@
       "accuracy": 0.6,
       "recoil": 0.45,
       "magazine": 30,
-      "range": 25.0,
+      "reload_secs": 2.8,
+      "range": 100.0,
       "suppressed": false,
       "added_damage": 0
     },
@@ -119,7 +124,8 @@
       "accuracy": 0.7,
       "recoil": 0.35,
       "magazine": 30,
-      "range": 32.0,
+      "reload_secs": 3.0,
+      "range": 130.0,
       "suppressed": false,
       "added_damage": 4
     },
@@ -141,7 +147,8 @@
       "accuracy": 0.65,
       "recoil": 0.5,
       "magazine": 45,
-      "range": 38.0,
+      "reload_secs": 5.5,
+      "range": 160.0,
       "suppressed": false,
       "added_damage": 6
     },
@@ -158,12 +165,13 @@
     "data": {
       "type": "weapon",
       "caliber": "5.56x45mm",
-      "fire_modes": ["Semi", "Burst", "Auto"],
+      "fire_modes": ["Semi", { "Burst": 3 }, "Auto"],
       "fire_rate": 12.0,
       "accuracy": 0.75,
       "recoil": 0.3,
       "magazine": 30,
-      "range": 30.0,
+      "reload_secs": 2.7,
+      "range": 120.0,
       "suppressed": false,
       "added_damage": 3
     },
@@ -180,12 +188,13 @@
     "data": {
       "type": "weapon",
       "caliber": "5.56x45mm",
-      "fire_modes": ["Semi", "Burst", "Auto"],
+      "fire_modes": ["Semi", { "Burst": 3 }, "Auto"],
       "fire_rate": 13.0,
       "accuracy": 0.8,
       "recoil": 0.25,
       "magazine": 30,
-      "range": 35.0,
+      "reload_secs": 2.6,
+      "range": 140.0,
       "suppressed": false,
       "added_damage": 5
     },
@@ -198,7 +207,7 @@
     "durability": 420
   },
   {
-    "id": "trench_gun",
+    "id": "toz34",
     "data": {
       "type": "weapon",
       "caliber": "12gauge",
@@ -207,7 +216,8 @@
       "accuracy": 0.5,
       "recoil": 0.7,
       "magazine": 6,
-      "range": 14.0,
+      "reload_secs": 4.5,
+      "range": 56.0,
       "suppressed": false,
       "added_damage": 0
     },
@@ -229,7 +239,8 @@
       "accuracy": 0.55,
       "recoil": 0.6,
       "magazine": 8,
-      "range": 18.0,
+      "reload_secs": 3.2,
+      "range": 72.0,
       "suppressed": false,
       "added_damage": 4
     },
@@ -251,7 +262,8 @@
       "accuracy": 0.95,
       "recoil": 0.5,
       "magazine": 10,
-      "range": 55.0,
+      "reload_secs": 4.0,
+      "range": 220.0,
       "suppressed": false,
       "added_damage": 8
     },

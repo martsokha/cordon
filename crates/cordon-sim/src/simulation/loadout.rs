@@ -29,7 +29,6 @@ pub fn generate_loadout<R: Rng>(
 
     // Primary weapon — drives ammo selection.
     loadout.primary = roll_item(&rank_loadout.primary, items, rng);
-
     // Secondary weapon (sidearm).
     loadout.secondary = roll_item(&rank_loadout.secondary, items, rng);
 
@@ -49,29 +48,24 @@ pub fn generate_loadout<R: Rng>(
         });
     let capacity = Loadout::general_capacity(rank, armor_data);
 
-    // Ammo for the primary weapon.
-    if let Some(weapon_inst) = &loadout.primary
-        && let Some(weapon_def) = items.get(&weapon_inst.def_id)
-        && let ItemData::Weapon(w) = &weapon_def.data
-    {
-        for _ in 0..rank_loadout.ammo_boxes {
-            if let Some(ammo) = roll_ammo_for_caliber(&w.caliber, items, rng) {
-                let _ = loadout.add_to_general(ammo, capacity);
-            }
-        }
-    }
-
-    // Ammo for the secondary weapon.
-    if let Some(weapon_inst) = &loadout.secondary
-        && let Some(weapon_def) = items.get(&weapon_inst.def_id)
-        && let ItemData::Weapon(w) = &weapon_def.data
-    {
-        for _ in 0..rank_loadout.secondary_ammo_boxes {
-            if let Some(ammo) = roll_ammo_for_caliber(&w.caliber, items, rng) {
-                let _ = loadout.add_to_general(ammo, capacity);
-            }
-        }
-    }
+    // Load the primary weapon's mag and stock spare ammo boxes.
+    fill_weapon_and_reserves(
+        &mut loadout.primary,
+        &mut loadout.general,
+        items,
+        rank_loadout.ammo_boxes,
+        capacity,
+        rng,
+    );
+    // Same for the secondary.
+    fill_weapon_and_reserves(
+        &mut loadout.secondary,
+        &mut loadout.general,
+        items,
+        rank_loadout.secondary_ammo_boxes,
+        capacity,
+        rng,
+    );
 
     // Consumables: roll `consumable_count` items from the pool.
     for _ in 0..rank_loadout.consumable_count {
@@ -81,6 +75,66 @@ pub fn generate_loadout<R: Rng>(
     }
 
     loadout
+}
+
+/// Roll an ammo type for a freshly-rolled weapon, then:
+///   1. Set the weapon's `loaded_ammo` to that type and `count` to a full mag.
+///   2. Append `reserve_boxes` extra fresh ammo boxes (any caliber-matching
+///      def, picked uniformly each time) to the general pouch.
+fn fill_weapon_and_reserves<R: Rng>(
+    weapon_slot: &mut Option<ItemInstance>,
+    general: &mut Vec<ItemInstance>,
+    items: &HashMap<Id<Item>, ItemDef>,
+    reserve_boxes: u32,
+    capacity: u8,
+    rng: &mut R,
+) {
+    let Some(weapon_inst) = weapon_slot.as_mut() else {
+        return;
+    };
+    let Some(weapon_def) = items.get(&weapon_inst.def_id) else {
+        return;
+    };
+    let (caliber, magazine) = match &weapon_def.data {
+        ItemData::Weapon(w) => (w.caliber.clone(), w.magazine),
+        _ => return,
+    };
+
+    // Pick the ammo type to load and load a full mag.
+    if let Some(loaded_def) = pick_ammo_def_for_caliber(&caliber, items, rng) {
+        weapon_inst.loaded_ammo = Some(loaded_def.id.clone());
+        weapon_inst.count = magazine;
+    }
+
+    // Spare boxes: same caliber, any type.
+    for _ in 0..reserve_boxes {
+        if let Some(def) = pick_ammo_def_for_caliber(&caliber, items, rng) {
+            let inst = ItemInstance::new(def);
+            if (general.len() as u8) >= capacity {
+                break;
+            }
+            general.push(inst);
+        }
+    }
+}
+
+/// Pick a single ammo `ItemDef` matching the given caliber, uniformly.
+fn pick_ammo_def_for_caliber<'a, R: Rng>(
+    caliber: &Id<Caliber>,
+    items: &'a HashMap<Id<Item>, ItemDef>,
+    rng: &mut R,
+) -> Option<&'a ItemDef> {
+    let candidates: Vec<&ItemDef> = items
+        .values()
+        .filter(|def| match &def.data {
+            ItemData::Ammo(a) => &a.caliber == caliber,
+            _ => false,
+        })
+        .collect();
+    if candidates.is_empty() {
+        return None;
+    }
+    Some(candidates[rng.random_range(0..candidates.len())])
 }
 
 /// Pick one item from a weighted pool, instantiate it via the catalog.
@@ -133,23 +187,3 @@ fn pick_weighted<'a, R: Rng>(pool: &'a [WeightedItem], rng: &mut R) -> Option<&'
     Some(&pool[pool.len() - 1].id)
 }
 
-/// Find any ammo box matching the given caliber. If multiple match,
-/// pick one uniformly at random.
-fn roll_ammo_for_caliber<R: Rng>(
-    caliber: &Id<Caliber>,
-    items: &HashMap<Id<Item>, ItemDef>,
-    rng: &mut R,
-) -> Option<ItemInstance> {
-    let candidates: Vec<&ItemDef> = items
-        .values()
-        .filter(|def| match &def.data {
-            ItemData::Ammo(a) => &a.caliber == caliber,
-            _ => false,
-        })
-        .collect();
-    if candidates.is_empty() {
-        return None;
-    }
-    let pick = &candidates[rng.random_range(0..candidates.len())];
-    Some(ItemInstance::new(pick))
-}

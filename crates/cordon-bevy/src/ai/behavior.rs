@@ -6,6 +6,8 @@ use cordon_core::primitive::{Id, Uid};
 use cordon_core::world::narrative::quest::Quest;
 use moonshine_behavior::prelude::*;
 
+use super::death::Dead;
+
 /// What the NPC is physically doing right now.
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
@@ -25,11 +27,13 @@ pub enum Action {
     Flee { target: Vec2 },
     /// Firing on a target NPC. `cooldown_secs` ticks down toward 0; on
     /// reaching 0 the combat system applies one shot's damage and
-    /// resets the cooldown to the weapon's interval.
+    /// resets the cooldown to the weapon's interval. While
+    /// `reload_secs > 0` the NPC is reloading and cannot fire.
     Engage {
         #[reflect(ignore)]
         target: Uid<Npc>,
         cooldown_secs: f32,
+        reload_secs: f32,
     },
     /// Looting a corpse. `progress_secs` ticks down toward 0; on
     /// reaching 0 the loot system transfers one item and resets.
@@ -48,7 +52,7 @@ impl Behavior for Action {
             Idle { .. } => Walk { .. } | Trade { .. } | Follow { .. } | Flee { .. } | Engage { .. } | Loot { .. },
             Walk { .. } => Idle { .. } | Trade { .. } | Follow { .. } | Flee { .. } | Engage { .. } | Loot { .. },
             Follow { .. } => Idle { .. } | Walk { .. } | Flee { .. } | Engage { .. },
-            Trade { .. } => Idle { .. } | Walk { .. } | Flee { .. },
+            Trade { .. } => Idle { .. } | Walk { .. } | Flee { .. } | Engage { .. },
             Flee { .. } => Idle { .. } | Walk { .. },
             Engage { .. } => Idle { .. } | Walk { .. } | Flee { .. } | Engage { .. },
             Loot { .. } => Idle { .. } | Walk { .. } | Flee { .. } | Engage { .. }
@@ -139,8 +143,13 @@ fn simple_hash(v: u32) -> u32 {
     x
 }
 
-/// Drive NPC actions based on their current state.
-pub fn drive_actions(time: Res<Time>, mut query: Query<(BehaviorMut<Action>, &mut Transform)>) {
+/// Drive NPC actions based on their current state. Dead NPCs are
+/// excluded so corpses don't keep walking, fleeing, or wandering.
+#[allow(clippy::type_complexity)]
+pub fn drive_actions(
+    time: Res<Time>,
+    mut query: Query<(BehaviorMut<Action>, &mut Transform), Without<Dead>>,
+) {
     let dt = time.delta_secs();
 
     for (mut behavior, mut transform) in &mut query {
@@ -180,8 +189,13 @@ pub fn drive_actions(time: Res<Time>, mut query: Query<(BehaviorMut<Action>, &mu
 }
 
 /// Transition NPCs between actions based on their intent and phase.
+/// Dead NPCs are excluded so corpses don't change behaviors.
+#[allow(clippy::type_complexity)]
 pub fn drive_intents(
-    mut query: Query<(BehaviorMut<Action>, &Intent, &mut IntentPhase, &Transform)>,
+    mut query: Query<
+        (BehaviorMut<Action>, &Intent, &mut IntentPhase, &Transform),
+        Without<Dead>,
+    >,
 ) {
     for (mut behavior, intent, mut phase, transform) in &mut query {
         let pos = transform.translation.truncate();

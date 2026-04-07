@@ -4,7 +4,7 @@
     "faction": "devoted",
     "ranks": {
       "novice": {
-        "primary": [{ "id": "trench_gun" }, { "id": "pmm" }],
+        "primary": [{ "id": "toz34" }, { "id": "pmm" }],
         "armor": [{ "id": "leather_jacket" }],
         "helmet": [{ "id": "balaclava" }],
         "ammo_boxes": 2,
@@ -12,7 +12,7 @@
         "consumable_count": 2
       },
       "experienced": {
-        "primary": [{ "id": "trench_gun" }, { "id": "stechkin" }, { "id": "saiga12" }],
+        "primary": [{ "id": "toz34" }, { "id": "stechkin" }, { "id": "saiga12" }],
         "secondary": [{ "id": "pmm" }],
         "armor": [{ "id": "leather_jacket" }, { "id": "reinforced_coat" }],
         "helmet": [{ "id": "balaclava" }],

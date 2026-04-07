@@ -21,9 +21,11 @@ pub const MAX_RELIC_SLOTS: u8 = 4;
 /// equipped armor.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Loadout {
-    /// Primary weapon (if equipped).
+    /// Primary weapon (if equipped). The weapon instance's `count`
+    /// holds the rounds currently in its magazine, drained as the NPC
+    /// fires and refilled from a general-pouch ammo box when reloading.
     pub primary: Option<ItemInstance>,
-    /// Secondary weapon (sidearm or backup).
+    /// Secondary weapon (sidearm or backup). `count` is loaded rounds.
     pub secondary: Option<ItemInstance>,
     /// Body armor (suit).
     pub armor: Option<ItemInstance>,
@@ -88,11 +90,7 @@ impl Loadout {
 
     /// Try to add an item to the general pouch. Returns `Err(item)` if
     /// the pouch is full at the given capacity.
-    pub fn add_to_general(
-        &mut self,
-        item: ItemInstance,
-        capacity: u8,
-    ) -> Result<(), ItemInstance> {
+    pub fn add_to_general(&mut self, item: ItemInstance, capacity: u8) -> Result<(), ItemInstance> {
         if self.general.len() as u8 >= capacity {
             Err(item)
         } else {
@@ -102,11 +100,7 @@ impl Loadout {
     }
 
     /// Try to add a relic. Returns `Err(item)` if the relic slots are full.
-    pub fn add_relic(
-        &mut self,
-        item: ItemInstance,
-        capacity: u8,
-    ) -> Result<(), ItemInstance> {
+    pub fn add_relic(&mut self, item: ItemInstance, capacity: u8) -> Result<(), ItemInstance> {
         if self.relics.len() as u8 >= capacity {
             Err(item)
         } else {

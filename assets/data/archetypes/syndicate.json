@@ -4,7 +4,7 @@
     "faction": "syndicate",
     "ranks": {
       "novice": {
-        "primary": [{ "id": "stechkin" }, { "id": "trench_gun" }],
+        "primary": [{ "id": "stechkin" }, { "id": "toz34" }],
         "secondary": [{ "id": "pmm" }],
         "armor": [{ "id": "leather_jacket" }, { "id": "reinforced_coat" }],
         "helmet": [{ "id": "balaclava" }],
