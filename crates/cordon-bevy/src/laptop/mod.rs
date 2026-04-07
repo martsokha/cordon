@@ -14,7 +14,7 @@ use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
 
 use crate::PlayingState;
-use crate::ai::behavior::Action;
+use crate::ai::behavior::{CombatTarget, FireState, MovementSpeed, MovementTarget};
 use crate::ai::combat::Vision;
 use crate::ai::squad::SquadMember;
 use crate::locale::{GameLocalization, l10n_or};
@@ -194,15 +194,20 @@ fn rank_scheme_key(scheme: &RankScheme) -> &'static str {
     }
 }
 
-fn format_npc_status(action: &Action, goal: &cordon_core::entity::squad::Goal) -> String {
-    let doing = match action {
-        Action::Idle { .. } => "Idle",
-        Action::Walk { .. } => "Walking",
-        Action::Follow { .. } => "Following",
-        Action::Trade { .. } => "Trading",
-        Action::Flee { .. } => "Fleeing",
-        Action::Engage { .. } => "Fighting",
-        Action::Loot { .. } => "Looting",
+fn format_npc_status(
+    movement: &MovementTarget,
+    combat: &CombatTarget,
+    looting: bool,
+    goal: &cordon_core::entity::squad::Goal,
+) -> String {
+    let doing = if combat.0.is_some() {
+        "Fighting"
+    } else if looting {
+        "Looting"
+    } else if movement.0.is_some() {
+        "Walking"
+    } else {
+        "Idle"
     };
     let purpose = match goal {
         cordon_core::entity::squad::Goal::Idle => "idle",
@@ -399,9 +404,6 @@ fn spawn_map(
             let _npc_entity = commands.spawn((
                 MapWorldEntity,
                 NpcDot { uid: *member_uid },
-                Action::Idle {
-                    timer: 1.0 + (slot_idx as f32 * 0.2),
-                },
                 NpcDotInfo {
                     faction_icon: faction_icon.clone(),
                     name: name_display,
@@ -413,6 +415,10 @@ fn spawn_map(
                     squad: *squad_uid,
                     slot: slot_idx as u8,
                 },
+                MovementTarget::default(),
+                MovementSpeed::default(),
+                CombatTarget::default(),
+                FireState::default(),
                 Mesh2d(npc_assets.dot_mesh.clone()),
                 MeshMaterial2d(npc_assets.default_mat.clone()),
                 Transform::from_xyz(spawn_pos.x, spawn_pos.y, 0.5),
@@ -437,7 +443,17 @@ fn update_hover(
     cameras: Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
     cam_proj: Query<&Projection, With<LaptopCamera>>,
     areas: Query<(&AreaData, &Transform, &MeshMaterial2d<ColorMaterial>), With<AreaCircle>>,
-    npcs: Query<(&NpcDotInfo, &Transform, &Action, &SquadMember), With<NpcDot>>,
+    npcs: Query<
+        (
+            &NpcDotInfo,
+            &Transform,
+            &MovementTarget,
+            &CombatTarget,
+            &SquadMember,
+            Option<&crate::ai::behavior::LootState>,
+        ),
+        With<NpcDot>,
+    >,
     mut mats: ResMut<Assets<ColorMaterial>>,
     mut tooltip: ResMut<TooltipContent>,
 ) {
@@ -457,14 +473,22 @@ fn update_hover(
     let area_hit = 50.0 * scale;
 
     // Check NPCs first (higher priority)
-    let mut closest_npc: Option<(&NpcDotInfo, &Action, &SquadMember, f32)> = None;
-    for (info, transform, action, member) in &npcs {
+    type Hit<'a> = (
+        &'a NpcDotInfo,
+        &'a MovementTarget,
+        &'a CombatTarget,
+        &'a SquadMember,
+        bool,
+        f32,
+    );
+    let mut closest_npc: Option<Hit<'_>> = None;
+    for (info, transform, movement, combat, member, loot) in &npcs {
         let dist = cursor.distance(transform.translation.truncate());
-        if dist < npc_hit && (closest_npc.is_none() || dist < closest_npc.unwrap().3) {
-            closest_npc = Some((info, action, member, dist));
+        if dist < npc_hit && (closest_npc.is_none() || dist < closest_npc.as_ref().unwrap().5) {
+            closest_npc = Some((info, movement, combat, member, loot.is_some(), dist));
         }
     }
-    if let Some((info, action, member, _)) = closest_npc {
+    if let Some((info, movement, combat, member, looting, _)) = closest_npc {
         // Look up the member's squad goal for the status string.
         let goal = sim
             .as_ref()
@@ -476,7 +500,7 @@ fn update_hover(
             name: info.name.clone(),
             faction: info.faction.clone(),
             rank: info.rank.clone(),
-            status: format_npc_status(action, &goal),
+            status: format_npc_status(movement, combat, looting, &goal),
         };
         return;
     }

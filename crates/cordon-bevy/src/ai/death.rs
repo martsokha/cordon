@@ -9,6 +9,7 @@
 use bevy::prelude::*;
 use cordon_core::primitive::GameTime;
 
+use super::AiSet;
 use crate::PlayingState;
 use crate::laptop::NpcDot;
 use crate::world::SimWorld;
@@ -58,6 +59,7 @@ impl Plugin for DeathPlugin {
             Update,
             (handle_deaths, cleanup_corpses)
                 .chain()
+                .in_set(AiSet::Death)
                 .run_if(in_state(PlayingState::Laptop)),
         );
     }

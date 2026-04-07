@@ -2,10 +2,10 @@
 //! their own general pouch.
 //!
 //! [`try_start_looting`] watches for non-fighting NPCs that pass within
-//! [`LOOT_REACH`] of a non-empty corpse and pushes [`Action::Loot`].
-//! [`drive_loot_actions`] then ticks the per-item progress timer and,
-//! whenever an interval elapses, transfers one item from the corpse to
-//! the looter (skipping if the looter's pouch is full).
+//! [`LOOT_REACH`] of a non-empty corpse and inserts a [`LootState`]
+//! component. [`drive_loot`] then ticks the per-item progress timer
+//! and, whenever an interval elapses, transfers one item from the
+//! corpse to the looter (skipping if the looter's pouch is full).
 
 use std::collections::HashMap;
 
@@ -14,9 +14,9 @@ use cordon_core::entity::npc::Npc;
 use cordon_core::item::{ItemData, Loadout};
 use cordon_core::primitive::Uid;
 use cordon_data::gamedata::GameDataResource;
-use moonshine_behavior::prelude::*;
 
-use super::behavior::Action;
+use super::AiSet;
+use super::behavior::{CombatTarget, LootState};
 use super::death::Dead;
 use crate::PlayingState;
 use crate::laptop::NpcDot;
@@ -34,20 +34,24 @@ impl Plugin for LootPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (try_start_looting, drive_loot_actions)
+            (try_start_looting, drive_loot)
                 .chain()
+                .in_set(AiSet::Loot)
                 .run_if(in_state(PlayingState::Laptop)),
         );
     }
 }
 
-/// Push `Action::Loot` for alive NPCs that are standing near a corpse
-/// and not currently engaged in combat.
+/// Insert a `LootState` for alive non-combat NPCs standing on a corpse.
 #[allow(clippy::type_complexity)]
 fn try_start_looting(
     sim: Option<Res<SimWorld>>,
+    mut commands: Commands,
     corpses: Query<(&NpcDot, &Transform), With<Dead>>,
-    mut alive: Query<(&NpcDot, &Transform, BehaviorMut<Action>), Without<Dead>>,
+    alive: Query<
+        (Entity, &NpcDot, &Transform, &CombatTarget),
+        (Without<Dead>, Without<LootState>),
+    >,
 ) {
     let Some(sim) = sim else { return };
 
@@ -66,12 +70,9 @@ fn try_start_looting(
         return;
     }
 
-    for (looter_dot, transform, mut behavior) in &mut alive {
-        // Don't pre-empt fighting or already-looting.
-        if matches!(
-            behavior.current(),
-            Action::Engage { .. } | Action::Loot { .. } | Action::Flee { .. }
-        ) {
+    for (entity, looter_dot, transform, combat_target) in &alive {
+        // Don't pre-empt fighting.
+        if combat_target.0.is_some() {
             continue;
         }
         let pos = transform.translation.truncate();
@@ -89,64 +90,63 @@ fn try_start_looting(
         if pos.distance(*corpse_pos) > LOOT_REACH {
             continue;
         }
-        let _ = behavior.try_start(Action::Loot {
-            target: *corpse_uid,
+        commands.entity(entity).insert(LootState {
+            corpse: *corpse_uid,
             progress_secs: LOOT_INTERVAL_SECS,
         });
     }
 }
 
-/// Drive `Action::Loot`: tick the progress timer, transfer items.
+/// Drive `LootState`: tick the progress timer, transfer one item per
+/// interval. Removes the component when the corpse is empty or
+/// vanishes, or when the looter starts a fight.
 #[allow(clippy::type_complexity)]
-fn drive_loot_actions(
+fn drive_loot(
     sim: Option<ResMut<SimWorld>>,
     time: Res<Time>,
     game_data: Res<GameDataResource>,
-    mut q: Query<(&NpcDot, BehaviorMut<Action>), Without<Dead>>,
+    mut commands: Commands,
+    mut looters: Query<
+        (Entity, &NpcDot, &CombatTarget, &mut LootState),
+        Without<Dead>,
+    >,
     corpses: Query<&NpcDot, With<Dead>>,
 ) {
     let Some(mut sim) = sim else { return };
     let items = &game_data.0.items;
     let dt = time.delta_secs();
 
-    let corpse_uids: HashMap<Uid<Npc>, ()> = corpses.iter().map(|dot| (dot.uid, ())).collect();
+    let corpse_uids: HashMap<Uid<Npc>, ()> =
+        corpses.iter().map(|dot| (dot.uid, ())).collect();
 
-    let mut transfers: Vec<(NpcDot, NpcDot)> = Vec::new();
+    let mut transfers: Vec<(NpcDot, Uid<Npc>, Entity)> = Vec::new();
 
-    for (looter_dot, mut behavior) in &mut q {
-        let target_uid = match behavior.current_mut() {
-            Action::Loot {
-                target,
-                progress_secs,
-            } => {
-                *progress_secs -= dt;
-                if *progress_secs > 0.0 {
-                    continue;
-                }
-                *progress_secs = LOOT_INTERVAL_SECS;
-                *target
-            }
-            _ => continue,
-        };
-
-        if !corpse_uids.contains_key(&target_uid) {
-            // Corpse vanished — bail out of looting.
-            let _ = behavior.try_start(Action::Idle { timer: 0.5 });
+    for (entity, looter_dot, combat_target, mut loot_state) in &mut looters {
+        // Combat takes priority — drop loot if we picked up a fight.
+        if combat_target.0.is_some() {
+            commands.entity(entity).remove::<LootState>();
             continue;
         }
-        let corpse_dot = NpcDot { uid: target_uid };
-        transfers.push((*looter_dot, corpse_dot));
+        // Corpse vanished — drop loot.
+        if !corpse_uids.contains_key(&loot_state.corpse) {
+            commands.entity(entity).remove::<LootState>();
+            continue;
+        }
+
+        loot_state.progress_secs -= dt;
+        if loot_state.progress_secs > 0.0 {
+            continue;
+        }
+        loot_state.progress_secs = LOOT_INTERVAL_SECS;
+        transfers.push((*looter_dot, loot_state.corpse, entity));
     }
 
-    for (looter_dot, corpse_dot) in transfers {
-        // Pull one item from the corpse into the looter (if room).
-        // Borrow each NPC sequentially to avoid double-mut.
+    for (looter_dot, corpse_uid, looter_entity) in transfers {
+        // Pop one item from the corpse in priority order.
         let item_taken = {
-            let Some(corpse) = sim.0.npcs.get_mut(&corpse_dot.uid) else {
+            let Some(corpse) = sim.0.npcs.get_mut(&corpse_uid) else {
                 continue;
             };
-            // Pop in priority order: primary, secondary, helmet, armor,
-            // relics, then general items.
             corpse
                 .loadout
                 .primary
@@ -157,11 +157,14 @@ fn drive_loot_actions(
                 .or_else(|| corpse.loadout.relics.pop())
                 .or_else(|| corpse.loadout.general.pop())
         };
-        let Some(item) = item_taken else { continue };
+        let Some(item) = item_taken else {
+            // Corpse is empty — stop looting.
+            commands.entity(looter_entity).remove::<LootState>();
+            continue;
+        };
 
         if let Some(looter) = sim.0.npcs.get_mut(&looter_dot.uid) {
-            // Compute the looter's actual general-pouch capacity from
-            // their rank and equipped armor's inventory_slots bonus.
+            // Compute capacity from rank + equipped armor.
             let armor_data = looter
                 .loadout
                 .armor

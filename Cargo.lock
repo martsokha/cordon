@@ -1989,7 +1989,6 @@ dependencies = [
  "cordon-data",
  "cordon-sim",
  "fluent_content",
- "moonshine-behavior",
  "rand 0.10.0",
  "unic-langid",
 ]
@@ -3520,47 +3519,6 @@ checksum = "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316"
 dependencies = [
  "adler2",
  "simd-adler32",
-]
-
-[[package]]
-name = "moonshine-behavior"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01924324b4d344b8784fb3fad4a3bd6c4c89bda77c74c6aa77ba78ef56e0880e"
-dependencies = [
- "bevy_app",
- "bevy_derive",
- "bevy_ecs",
- "bevy_log",
- "bevy_reflect",
- "moonshine-kind",
- "moonshine-util",
-]
-
-[[package]]
-name = "moonshine-kind"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83206bab598de2cd9e2061aa85604825aa86ee284ba4e9b6fb216c26f9e488b4"
-dependencies = [
- "bevy_ecs",
- "bevy_reflect",
- "bevy_utils",
- "disqualified",
-]
-
-[[package]]
-name = "moonshine-util"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9057c9b2627df7dfe9478bd2519ed06aa8a801dba1e39d768d731ade428fad3"
-dependencies = [
- "bevy_app",
- "bevy_ecs",
- "bevy_log",
- "bevy_platform",
- "bevy_reflect",
- "disqualified",
 ]
 
 [[package]]

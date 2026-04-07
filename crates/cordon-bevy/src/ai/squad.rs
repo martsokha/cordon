@@ -3,8 +3,8 @@
 //! squad lifecycle (leader promotion + cleanup).
 //!
 //! The squad data itself lives in [`cordon_sim::state::world::World::squads`].
-//! Per-NPC entities carry a [`SquadMember`] back-pointer so queries can
-//! find an NPC's squad in O(1) without scanning the hashmap.
+//! Per-NPC entities carry a [`SquadMember`] back-pointer plus the
+//! shared movement/combat target components.
 
 use std::collections::HashMap;
 
@@ -13,9 +13,9 @@ use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::{Goal, Squad};
 use cordon_core::primitive::Uid;
 use cordon_data::gamedata::GameDataResource;
-use moonshine_behavior::prelude::*;
 
-use super::behavior::Action;
+use super::AiSet;
+use super::behavior::{CombatTarget, MovementSpeed, MovementTarget};
 use super::combat::{AnomalyZone, Vision, is_hostile, line_blocked, weapon_range};
 use super::death::Dead;
 use crate::PlayingState;
@@ -30,10 +30,9 @@ pub struct SquadMember {
     pub slot: u8,
 }
 
-/// What the squad is currently doing. The activity is short-term:
-/// hold a position, walk somewhere in formation, or focus fire on a
-/// hostile squad. Goals are long-term reasons (`Squad::goal`).
-#[derive(Component, Debug, Clone)]
+/// Short-term squad state: holding, moving as a group, or engaged.
+/// Long-term reasons live on [`Squad::goal`].
+#[derive(Debug, Clone)]
 pub enum Activity {
     /// Standing still, waiting for the next directive from the goal.
     Hold { duration_secs: f32 },
@@ -46,14 +45,16 @@ pub enum Activity {
 
 /// How fast a squad walks in non-combat movement.
 const SQUAD_WALK_SPEED: f32 = 30.0;
+/// Slightly faster speed when closing into firing range.
+const ENGAGE_WALK_SPEED: f32 = 38.0;
 /// How long a squad holds at a patrol waypoint before moving on.
 const PATROL_HOLD_SECS: f32 = 6.0;
-/// Distance below which a squad member considers their formation slot
-/// reached. Generous so the formation system doesn't oscillate between
-/// Walk and Idle on tiny position deltas.
+/// Distance below which a squad considers a Move target reached.
 const ARRIVED_DIST: f32 = 12.0;
 
-/// Plugin registering the squad systems.
+/// Plugin registering the squad systems. Each system declares its
+/// place in the shared [`super::AiSet`] schedule so cross-plugin order
+/// is well defined.
 pub struct SquadPlugin;
 
 impl Plugin for SquadPlugin {
@@ -62,38 +63,35 @@ impl Plugin for SquadPlugin {
         app.add_systems(
             Update,
             (
-                update_squad_engagement,
-                drive_squad_formation,
-                drive_squad_goals,
-                cleanup_dead_squads,
+                cleanup_dead_squads.in_set(AiSet::Cleanup),
+                drive_squad_goals.in_set(AiSet::Goals),
+                update_squad_engagement.in_set(AiSet::Engagement),
+                drive_squad_formation.in_set(AiSet::Formation),
             )
-                .chain()
                 .run_if(in_state(PlayingState::Laptop)),
         );
     }
 }
 
-/// Per-squad activity stored as a Bevy resource. We don't put squads
-/// on entities for v1; instead this map keys by squad uid.
+/// Per-squad activity stored as a Bevy resource.
 #[derive(Resource, Default)]
 pub struct SquadActivities(pub HashMap<Uid<Squad>, Activity>);
 
-/// One snapshot of an alive NPC's spatial state, used by the
-/// engagement scanner.
+// ====================================================================
+// Engagement scanning (vision shared by squad).
+// ====================================================================
+
+/// One snapshot of an alive NPC's spatial state.
 struct NpcSnap {
     uid: Uid<Npc>,
     squad: Uid<Squad>,
     pos: Vec2,
     vision: f32,
-    weapon_range: f32,
 }
 
-/// 2D spatial hash grid mapping cell coordinates to NPC snapshot
-/// indices. Used by `update_squad_engagement` to skip far-away NPCs
-/// without iterating the whole world.
+/// 2D spatial hash grid mapping cell coordinates to snapshot indices.
 type SpatialGrid = HashMap<(i32, i32), Vec<usize>>;
 
-/// Build a grid that bins each snapshot index into its cell.
 fn build_spatial_grid(snapshot: &[NpcSnap], cell_size: f32) -> SpatialGrid {
     let mut grid: SpatialGrid = HashMap::with_capacity(snapshot.len() / 4 + 1);
     for (i, snap) in snapshot.iter().enumerate() {
@@ -106,8 +104,6 @@ fn build_spatial_grid(snapshot: &[NpcSnap], cell_size: f32) -> SpatialGrid {
     grid
 }
 
-/// Push every snapshot index from cells overlapping the disc
-/// `(center, radius)` into `out`.
 fn collect_nearby_cells(
     center: Vec2,
     radius: f32,
@@ -128,85 +124,76 @@ fn collect_nearby_cells(
     }
 }
 
-
-/// Each tick, scan for hostile-squad sightings via shared squad vision.
-/// When a squad spots a hostile, set its activity to `Engage { hostiles }`
-/// and assign each member their own nearest enemy from that squad to
-/// shoot at. When no hostile is in sight, drop back to Hold/Move.
+/// Each tick (throttled), scan for hostile-squad sightings via shared
+/// squad vision. Updates the squad's [`Activity::Engage`] *and* writes
+/// each member's [`CombatTarget`] to their nearest reachable enemy
+/// from the hostile squad. When no hostile is in sight, drops back to
+/// Hold and clears combat targets.
 #[allow(clippy::type_complexity)]
 fn update_squad_engagement(
     sim: Option<ResMut<SimWorld>>,
     game_data: Res<GameDataResource>,
+    time: Res<Time>,
+    mut throttle: Local<f32>,
     mut activities: ResMut<SquadActivities>,
     anomalies: Query<(&Transform, &AnomalyZone)>,
     members_q: Query<
         (&NpcDot, &SquadMember, &Vision, &Transform),
         Without<Dead>,
     >,
-    mut behaviors_q: Query<(&NpcDot, BehaviorMut<Action>), Without<Dead>>,
+    mut targets_q: Query<(&NpcDot, &mut CombatTarget), Without<Dead>>,
 ) {
+    // Throttle: scan ~10Hz instead of every frame. Combat firing
+    // (which reads CombatTarget) still runs every frame so reactivity
+    // is preserved.
+    const SCAN_INTERVAL_SECS: f32 = 0.1;
+    *throttle += time.delta_secs();
+    if *throttle < SCAN_INTERVAL_SECS {
+        return;
+    }
+    *throttle = 0.0;
+
     let Some(mut sim) = sim else { return };
     let factions = &game_data.0.factions;
-    let items = &game_data.0.items;
 
     let anomaly_disks: Vec<(Vec2, f32)> = anomalies
         .iter()
         .map(|(t, a)| (t.translation.truncate(), a.radius))
         .collect();
 
-    // Build a snapshot of every alive NPC: position, vision, weapon range,
-    // and squad uid.
+    // Snapshot every alive NPC.
     let mut snapshot: Vec<NpcSnap> = Vec::with_capacity(members_q.iter().count());
     for (dot, member, vision, transform) in &members_q {
-        let Some(npc) = sim.0.npcs.get(&dot.uid) else {
+        if !sim.0.npcs.contains_key(&dot.uid) {
             continue;
-        };
-        let range = weapon_range(items, &npc.loadout);
+        }
         snapshot.push(NpcSnap {
             uid: dot.uid,
             squad: member.squad,
             pos: transform.translation.truncate(),
             vision: vision.radius,
-            weapon_range: range,
         });
     }
 
-    // === Spatial grid ===
-    // Bucket every NPC into a 2D grid of `CELL_SIZE` map units. Each
-    // squad's vision scan only checks NPCs in nearby cells, instead of
-    // every NPC in the world.
+    // Spatial grid for fast nearby-NPC lookups.
     const CELL_SIZE: f32 = 200.0;
     let grid = build_spatial_grid(&snapshot, CELL_SIZE);
 
-    // For each squad, decide which hostile squad it's engaging (if any).
-    // A squad's "shared vision" is satisfied if any of its members can
-    // see (in vision + LOS) any NPC from a hostile squad.
+    // Pass A: per-squad — pick the hostile squad in vision.
     let mut squad_hostile: HashMap<Uid<Squad>, Uid<Squad>> = HashMap::new();
     for (squad_uid, squad) in &sim.0.squads {
-        // Members of this squad in the snapshot.
         let members: Vec<&NpcSnap> =
             snapshot.iter().filter(|n| n.squad == *squad_uid).collect();
         if members.is_empty() {
             continue;
         }
 
-        // Maximum vision among our members; defines the search radius.
-        let max_vision = members.iter().map(|m| m.vision).fold(0.0_f32, f32::max);
-
         // Collect candidate NPC indices from grid cells overlapping
         // any member's vision disc.
         let mut candidates: Vec<usize> = Vec::new();
         for m in &members {
-            collect_nearby_cells(
-                m.pos,
-                m.vision,
-                &grid,
-                CELL_SIZE,
-                &mut candidates,
-            );
+            collect_nearby_cells(m.pos, m.vision, &grid, CELL_SIZE, &mut candidates);
         }
-        // Deduplicate (a single NPC may appear in multiple members'
-        // searches). Sort + dedup is fastest for small Vecs.
         candidates.sort_unstable();
         candidates.dedup();
 
@@ -216,16 +203,13 @@ fn update_squad_engagement(
             if cand.squad == *squad_uid {
                 continue;
             }
-            // Hostility is per-faction; look up the candidate squad's
-            // faction via sim.
             let Some(cand_squad) = sim.0.squads.get(&cand.squad) else {
                 continue;
             };
             if !is_hostile(&squad.faction, &cand_squad.faction, factions) {
                 continue;
             }
-            // Any of our members can see them? Squared-distance check
-            // first, then LOS only if the cheap check passes.
+            // Visible to any of our members?
             let mut visible_dist_sq: Option<f32> = None;
             for m in &members {
                 let d_sq = m.pos.distance_squared(cand.pos);
@@ -240,22 +224,18 @@ fn update_squad_engagement(
                     Some(visible_dist_sq.map_or(d_sq, |d| d.min(d_sq)));
             }
             let Some(dist_sq) = visible_dist_sq else { continue };
-            let dist = dist_sq.sqrt();
 
-            // Pick the closest visible hostile *squad* (not NPC).
-            if chosen.is_none_or(|(_, d)| dist < d) {
-                chosen = Some((cand.squad, dist));
+            if chosen.is_none_or(|(_, d)| dist_sq < d) {
+                chosen = Some((cand.squad, dist_sq));
             }
         }
-        let _ = max_vision;
 
         if let Some((hostile_squad_uid, _)) = chosen {
             squad_hostile.insert(*squad_uid, hostile_squad_uid);
         }
     }
 
-    // Snapshot every squad's leader uid so we can read it during the
-    // mutable iter_mut below without re-borrowing sim.
+    // Snapshot leader uids for the facing-update pass.
     let leader_by_squad: HashMap<Uid<Squad>, Uid<Npc>> = sim
         .0
         .squads
@@ -263,9 +243,7 @@ fn update_squad_engagement(
         .map(|(uid, sq)| (*uid, sq.leader))
         .collect();
 
-    // Update activities + facing: squads with a hostile go into Engage
-    // and rotate to face the hostile leader; squads without one lose
-    // their Engage activity.
+    // Pass B: update per-squad activity + facing.
     for (squad_uid, squad) in sim.0.squads.iter_mut() {
         let activity = activities
             .0
@@ -277,8 +255,7 @@ fn update_squad_engagement(
                 if !same {
                     *activity = Activity::Engage { hostiles: *hostile };
                 }
-                // Point this squad's facing toward the leader of the
-                // hostile squad we're engaging.
+                // Point this squad's facing toward the hostile leader.
                 let our_leader_pos = snapshot
                     .iter()
                     .find(|n| n.uid == squad.leader)
@@ -295,7 +272,6 @@ fn update_squad_engagement(
                 }
             }
             None => {
-                // Drop out of Engage if we're no longer seeing anyone hostile.
                 if matches!(activity, Activity::Engage { .. }) {
                     *activity = Activity::Hold { duration_secs: 0.5 };
                 }
@@ -303,8 +279,8 @@ fn update_squad_engagement(
         }
     }
 
-    // For each member of an engaging squad, pick their own nearest
-    // enemy from the hostile squad they can reach (or get close to).
+    // Pass C: assign per-member CombatTarget for engaging squads,
+    // clear it for everyone else.
     let snapshot_by_squad: HashMap<Uid<Squad>, Vec<&NpcSnap>> = {
         let mut m: HashMap<Uid<Squad>, Vec<&NpcSnap>> = HashMap::new();
         for n in &snapshot {
@@ -313,81 +289,57 @@ fn update_squad_engagement(
         m
     };
 
-    for (npc_dot, mut behavior) in &mut behaviors_q {
-        let Some(snap) = snapshot.iter().find(|n| n.uid == npc_dot.uid) else {
+    for (npc_dot, mut combat_target) in &mut targets_q {
+        let snap = snapshot.iter().find(|n| n.uid == npc_dot.uid);
+        let Some(snap) = snap else {
+            // No snapshot entry means we couldn't read the NPC; clear
+            // any stale target so combat doesn't keep firing.
+            combat_target.0 = None;
             continue;
         };
-        let Some(activity) = activities.0.get(&snap.squad) else {
-            continue;
-        };
-        let Activity::Engage { hostiles } = activity else {
-            // Not engaging — let formation system push our walk action.
-            // If we *were* engaged, drop the Action::Engage so we can
-            // resume normal movement.
-            if matches!(behavior.current(), Action::Engage { .. }) {
-                let _ = behavior.try_start(Action::Idle { timer: 0.5 });
+        let activity = activities.0.get(&snap.squad);
+        let Some(Activity::Engage { hostiles }) = activity else {
+            // Not engaging — clear our target.
+            if combat_target.0.is_some() {
+                combat_target.0 = None;
             }
             continue;
         };
-
         // Find this NPC's nearest reachable enemy in the hostile squad.
         let Some(hostile_members) = snapshot_by_squad.get(hostiles) else {
+            combat_target.0 = None;
             continue;
         };
-        let mut best: Option<(Uid<Npc>, Vec2, f32)> = None;
+        let mut best: Option<(Uid<Npc>, f32)> = None;
         for enemy in hostile_members {
             if line_blocked(snap.pos, enemy.pos, &anomaly_disks) {
                 continue;
             }
-            let dist = snap.pos.distance(enemy.pos);
-            if best.is_none_or(|(_, _, d)| dist < d) {
-                best = Some((enemy.uid, enemy.pos, dist));
+            let dist_sq = snap.pos.distance_squared(enemy.pos);
+            if best.is_none_or(|(_, d)| dist_sq < d) {
+                best = Some((enemy.uid, dist_sq));
             }
         }
-        let Some((target_uid, target_pos, dist)) = best else {
-            continue;
-        };
-
-        if snap.weapon_range > 0.0 && dist <= snap.weapon_range {
-            // In weapon range: enter or update Engage with this target.
-            let already = matches!(
-                behavior.current(),
-                Action::Engage { target, .. } if *target == target_uid
-            );
-            if !already {
-                let _ = behavior.try_start(Action::Engage {
-                    target: target_uid,
-                    cooldown_secs: 0.0,
-                    reload_secs: 0.0,
-                });
+        match best {
+            Some((target_uid, _)) => {
+                if combat_target.0 != Some(target_uid) {
+                    combat_target.0 = Some(target_uid);
+                }
             }
-        } else {
-            // Out of range: walk toward the chosen enemy. The formation
-            // system will be overridden by this Walk push.
-            let already = matches!(
-                behavior.current(),
-                Action::Walk { target, .. } if target.distance(target_pos) < 4.0
-            );
-            if !already {
-                let _ = behavior.try_start(Action::Walk {
-                    target: target_pos,
-                    speed: 35.0,
-                });
+            None => {
+                if combat_target.0.is_some() {
+                    combat_target.0 = None;
+                }
             }
         }
     }
-
 }
 
-/// Pick the next activity for each squad based on its goal.
-///
-/// For v1:
-///   - Idle: keeps holding forever
-///   - Patrol/Scavenge: cycle through the squad's waypoints inside the area
-///   - Protect: head toward the protected squad's leader
-///
-/// Activity transitions caused by *arrival* (Move → Hold) live in
-/// [`drive_squad_formation`], which has the leader positions in scope.
+// ====================================================================
+// Goal-driven activity transitions.
+// ====================================================================
+
+/// Hold timer expired → pick the next activity from the squad's goal.
 fn drive_squad_goals(
     sim: Option<ResMut<SimWorld>>,
     time: Res<Time>,
@@ -396,43 +348,26 @@ fn drive_squad_goals(
     let Some(mut sim) = sim else { return };
     let dt = time.delta_secs();
 
-    // Snapshot leaders' goals + waypoint state so we can mutate squads
-    // and read other squads' positions in one pass.
-    let leader_uids: HashMap<Uid<Squad>, Uid<Npc>> = sim
-        .0
-        .squads
-        .iter()
-        .map(|(uid, sq)| (*uid, sq.leader))
-        .collect();
-
     for (squad_uid, squad) in sim.0.squads.iter_mut() {
         if squad.members.is_empty() {
             continue;
         }
-        let activity = activities.0.entry(*squad_uid).or_insert(Activity::Hold {
-            duration_secs: 1.0,
-        });
+        let activity = activities
+            .0
+            .entry(*squad_uid)
+            .or_insert(Activity::Hold { duration_secs: 1.0 });
 
         if let Activity::Hold { duration_secs } = activity {
             *duration_secs -= dt;
             if *duration_secs <= 0.0 {
-                *activity = next_activity_for_squad(squad, &leader_uids);
+                *activity = next_activity_for_squad(squad);
             }
         }
     }
-
-    // Note: Protect's "follow the protected squad's leader" needs the
-    // leader's *current position*, which lives on the ECS Transform.
-    // The formation system handles per-tick updates by reading positions
-    // there and re-pointing the Move target when the protect-target
-    // moves.
 }
 
 /// Compute the next activity for a squad based on its goal.
-fn next_activity_for_squad(
-    squad: &mut Squad,
-    leader_uids: &HashMap<Uid<Squad>, Uid<Npc>>,
-) -> Activity {
+fn next_activity_for_squad(squad: &mut Squad) -> Activity {
     match &squad.goal {
         Goal::Idle => Activity::Hold {
             duration_secs: 4.0,
@@ -451,11 +386,10 @@ fn next_activity_for_squad(
                 }
             }
         }
-        Goal::Protect { other } => {
-            // Without per-tick position, we can't pick a target here.
-            // Fall through to a brief hold; the formation system bumps
-            // the Move target to the protected squad's leader each tick.
-            let _ = leader_uids.get(other);
+        Goal::Protect { .. } => {
+            // The formation system overrides this each tick to track
+            // the protected squad's leader. A short Hold is fine while
+            // we wait for that update.
             Activity::Hold {
                 duration_secs: 0.5,
             }
@@ -466,24 +400,37 @@ fn next_activity_for_squad(
     }
 }
 
-/// Each tick:
-///  1. Snapshot leader positions per squad
-///  2. For Protect goals, set the Move target to the protected squad's leader
-///  3. Flip arrived Move activities to Hold
-///  4. Update each squad's facing (toward Move target, or kept stable)
-///  5. Push `Action::Walk` onto every formation member (skipped for
-///     Engage activities — combat does its own walking)
+// ====================================================================
+// Formation positioning — write MovementTarget for every member.
+// ====================================================================
+
+/// Update each member's `MovementTarget` to their formation slot
+/// (relative to the leader + squad facing). Squads in `Activity::Move`
+/// also get their facing updated and arrival flipped to Hold. Squads
+/// in `Activity::Engage` have their members move toward their assigned
+/// `CombatTarget` directly (or hold if in range).
 ///
-/// Throttled to ~10Hz: formation positions only need to refresh as
-/// fast as the eye can perceive, and the per-frame query iteration
-/// over ~1000 NPCs was a hot path at large populations.
+/// Throttled to 10Hz: positions only need to refresh as fast as the
+/// eye can perceive, and at large populations every-frame iteration
+/// over ~1000 NPCs was a hot path.
 #[allow(clippy::type_complexity)]
 fn drive_squad_formation(
     sim: Option<ResMut<SimWorld>>,
+    game_data: Res<GameDataResource>,
     time: Res<Time>,
     mut throttle: Local<f32>,
     mut activities: ResMut<SquadActivities>,
-    mut members_q: Query<(&NpcDot, &SquadMember, &Transform, BehaviorMut<Action>), Without<Dead>>,
+    mut members_q: Query<
+        (
+            &NpcDot,
+            &SquadMember,
+            &Transform,
+            &CombatTarget,
+            &mut MovementTarget,
+            &mut MovementSpeed,
+        ),
+        Without<Dead>,
+    >,
     leaders_q: Query<(&NpcDot, &Transform), Without<Dead>>,
 ) {
     const FORMATION_INTERVAL_SECS: f32 = 0.1;
@@ -494,42 +441,39 @@ fn drive_squad_formation(
     *throttle = 0.0;
 
     let Some(mut sim) = sim else { return };
+    let items = &game_data.0.items;
 
-    // Build leader_uid → Vec2 lookup once.
+    // Snapshot leader positions per squad uid.
     let leader_pos: HashMap<Uid<Npc>, Vec2> = leaders_q
         .iter()
         .map(|(dot, t)| (dot.uid, t.translation.truncate()))
         .collect();
-
-    // Snapshot squad leader positions for cross-squad reads.
     let mut squad_leader_pos: HashMap<Uid<Squad>, Vec2> = HashMap::new();
     for (squad_uid, squad) in &sim.0.squads {
         if let Some(p) = leader_pos.get(&squad.leader).copied() {
             squad_leader_pos.insert(*squad_uid, p);
         }
     }
+    // Snapshot all NPC positions for combat-target lookups.
+    let npc_pos: HashMap<Uid<Npc>, Vec2> = leader_pos.clone();
 
-    // Pass A: update activities + facing per squad.
+    // Pass A: per-squad — update facing, flip arrived Move → Hold,
+    // override Activity for Goal::Protect.
     for (squad_uid, squad) in sim.0.squads.iter_mut() {
         let Some(p) = squad_leader_pos.get(squad_uid).copied() else {
             continue;
         };
 
-        // Goal::Protect overrides the activity each tick to track the
-        // protected squad's leader.
+        // Goal::Protect overrides activity each tick.
         if let Goal::Protect { other } = &squad.goal
             && let Some(other_pos) = squad_leader_pos.get(other).copied()
         {
-            // Stay slightly off the protected leader so the formation
-            // doesn't overlap them.
-            let offset_target = other_pos;
             activities
                 .0
-                .insert(*squad_uid, Activity::Move { target: offset_target });
+                .insert(*squad_uid, Activity::Move { target: other_pos });
         }
 
-        // Flip arrived Move activities to Hold (only if we're not in
-        // an Engage that overrides movement).
+        // Arrived Move → Hold.
         if let Some(activity) = activities.0.get_mut(squad_uid)
             && let Activity::Move { target } = activity
             && p.distance(*target) < ARRIVED_DIST
@@ -539,8 +483,7 @@ fn drive_squad_formation(
             };
         }
 
-        // Update facing — even when holding, point toward the most
-        // relevant direction we know about.
+        // Update facing.
         let new_facing = match activities.0.get(squad_uid) {
             Some(Activity::Move { target }) => (*target - p).normalize_or_zero(),
             _ => Vec2::new(squad.facing[0], squad.facing[1]),
@@ -548,23 +491,57 @@ fn drive_squad_formation(
         if new_facing.length_squared() > 0.001 {
             squad.facing = [new_facing.x, new_facing.y];
         } else if squad.facing == [0.0, 0.0] {
-            // Brand new squad with no movement yet — point north.
             squad.facing = [0.0, 1.0];
         }
     }
 
-    // Pass B: dispatch Walk targets to each member based on their slot.
-    // Skipped for squads in Engage (combat owns those members' walks).
-    for (_npc_dot, member, transform, mut behavior) in &mut members_q {
+    // Pass B: write each member's MovementTarget.
+    for (npc_dot, member, transform, combat_target, mut move_target, mut speed) in
+        &mut members_q
+    {
         let Some(squad) = sim.0.squads.get(&member.squad) else {
             continue;
         };
         let Some(activity) = activities.0.get(&member.squad) else {
             continue;
         };
+        let pos = transform.translation.truncate();
+
+        // === Engaging? Move toward our personal combat target. ===
         if matches!(activity, Activity::Engage { .. }) {
+            // If we have a target, walk toward it (combat will check
+            // weapon range and stop us firing/move us into range).
+            if let Some(target_uid) = combat_target.0
+                && let Some(target_pos) = npc_pos.get(&target_uid).copied()
+            {
+                let dist = pos.distance(target_pos);
+                let range = sim
+                    .0
+                    .npcs
+                    .get(&npc_dot.uid)
+                    .map(|n| weapon_range(items, &n.loadout))
+                    .unwrap_or(0.0);
+                if range > 0.0 && dist <= range {
+                    // In range — stop walking so combat can fire.
+                    if move_target.0.is_some() {
+                        move_target.0 = None;
+                    }
+                } else {
+                    // Out of range — close in.
+                    set_movement_target(
+                        &mut move_target,
+                        &mut speed,
+                        target_pos,
+                        ENGAGE_WALK_SPEED,
+                    );
+                }
+            } else if move_target.0.is_some() {
+                move_target.0 = None;
+            }
             continue;
         }
+
+        // === Not engaging: walk to formation slot. ===
         let Some(leader_p) = squad_leader_pos.get(&member.squad).copied() else {
             continue;
         };
@@ -572,48 +549,51 @@ fn drive_squad_formation(
         if facing.length_squared() < 0.001 {
             continue;
         }
-
-        // Where should this squad's centroid be standing right now?
         let centroid = match activity {
             Activity::Hold { .. } => leader_p,
             Activity::Move { target } => *target,
             Activity::Engage { .. } => leader_p,
         };
-
-        // Compute the slot offset for this member's slot in the
-        // current formation.
         let offsets = squad.formation.slot_offsets(squad.members.len());
         let slot = (member.slot as usize).min(offsets.len().saturating_sub(1));
         let local = Vec2::new(offsets[slot][0], offsets[slot][1]);
-
-        // Rotate the local offset by the squad's facing.
         let perp = Vec2::new(-facing.y, facing.x);
         let world_offset = perp * local.x + facing * local.y;
         let target = centroid + world_offset;
 
-        // If we're far from the target, push a Walk; otherwise sit idle.
-        let pos = transform.translation.truncate();
         let dist = pos.distance(target);
         if dist > ARRIVED_DIST {
-            // Avoid spamming new Walks every tick if we're already
-            // walking to roughly the same place.
-            let should_push = match behavior.current() {
-                Action::Walk { target: t, .. } => t.distance(target) > ARRIVED_DIST,
-                Action::Engage { .. } | Action::Loot { .. } | Action::Flee { .. } => false,
-                _ => true,
-            };
-            if should_push {
-                let _ = behavior.try_start(Action::Walk {
-                    target,
-                    speed: SQUAD_WALK_SPEED,
-                });
-            }
-        } else if matches!(behavior.current(), Action::Walk { .. }) {
-            // Reached our spot — relax to idle so we don't keep walking.
-            let _ = behavior.try_start(Action::Idle { timer: 0.5 });
+            set_movement_target(&mut move_target, &mut speed, target, SQUAD_WALK_SPEED);
+        } else if move_target.0.is_some() {
+            move_target.0 = None;
         }
     }
 }
+
+/// Set a member's [`MovementTarget`] only if it differs meaningfully
+/// from the current value (avoids dirtying change-detection on every
+/// tick when nothing actually moved).
+fn set_movement_target(
+    move_target: &mut MovementTarget,
+    speed: &mut MovementSpeed,
+    new_target: Vec2,
+    new_speed: f32,
+) {
+    let same = move_target
+        .0
+        .map(|t| t.distance(new_target) < 1.0)
+        .unwrap_or(false);
+    if !same {
+        move_target.0 = Some(new_target);
+    }
+    if (speed.0 - new_speed).abs() > 0.5 {
+        speed.0 = new_speed;
+    }
+}
+
+// ====================================================================
+// Squad lifecycle: leader promotion + empty-squad despawn.
+// ====================================================================
 
 /// Promote a new leader if the current one died, and despawn empty squads.
 fn cleanup_dead_squads(
@@ -623,23 +603,17 @@ fn cleanup_dead_squads(
     let Some(mut sim) = sim else { return };
     let mut to_remove: Vec<Uid<Squad>> = Vec::new();
 
-    // Split-borrow the world's two maps so we can iterate squads
-    // mutably while reading npcs immutably.
     let world = &mut sim.0;
     let npcs = &world.npcs;
     let squads = &mut world.squads;
 
     for (uid, squad) in squads.iter_mut() {
-        // Drop members that no longer exist (despawned by cleanup_corpses).
         squad.members.retain(|m| npcs.contains_key(m));
         if squad.members.is_empty() {
             to_remove.push(*uid);
             continue;
         }
-
-        // Leader still alive?
         if !npcs.contains_key(&squad.leader) {
-            // Promote highest-rank survivor.
             let new_leader = squad
                 .members
                 .iter()

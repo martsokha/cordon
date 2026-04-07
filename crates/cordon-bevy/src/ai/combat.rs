@@ -1,16 +1,10 @@
-//! Combat: vision, engagement, weapon firing, damage application, tracers.
+//! Combat: vision, weapon firing, damage application, tracers.
 //!
-//! Each NPC has a [`Vision`] radius. [`update_engagement`] scans for
-//! hostile NPCs in vision; if a hostile is in weapon range with clear
-//! line-of-sight, it pushes [`Action::Engage`]. Otherwise it pushes
-//! [`Action::Walk`] toward the target. Damage is resolved each tick by
-//! [`resolve_engage_actions`] using the loadout's equipped weapon and
-//! the magazine's loaded ammo type.
-//!
-//! Anomaly disks block line-of-sight via [`AnomalyZone`].
-//!
-//! Death and looting are handled by sibling modules: [`super::death`]
-//! tags corpses with `Dead`, and [`super::loot`] drives the loot action.
+//! Engagement *decisions* (which target, when to advance) live in
+//! [`super::squad`]. This module owns the per-NPC firing loop:
+//! reading the [`CombatTarget`] component the squad system wrote,
+//! ticking the [`FireState`] cooldowns, applying damage when ready,
+//! and spawning tracers.
 
 use std::collections::HashMap;
 
@@ -20,9 +14,9 @@ use cordon_core::entity::npc::Npc;
 use cordon_core::item::{Item, ItemData, ItemDef, Loadout};
 use cordon_core::primitive::{Id, Rank, Resistances, Uid};
 use cordon_data::gamedata::GameDataResource;
-use moonshine_behavior::prelude::*;
 
-use super::behavior::Action;
+use super::AiSet;
+use super::behavior::{CombatTarget, FireState};
 use super::death::Dead;
 use crate::PlayingState;
 use crate::laptop::{MapWorldEntity, NpcDot};
@@ -171,10 +165,7 @@ fn find_ammo_idx(
     })
 }
 
-/// Shared mesh + material for tracer entities. The mesh is a unit-
-/// length rectangle (width = TRACER_WIDTH, length = 1) and each tracer
-/// scales its `Transform.scale.x` to its actual length, so all tracers
-/// share one draw call.
+/// Shared mesh + material for tracer entities.
 #[derive(Resource, Clone)]
 pub struct TracerAssets {
     pub mesh: Handle<Mesh>,
@@ -192,10 +183,6 @@ fn init_tracer_assets(
 }
 
 /// Plugin registering combat systems (firing, damage, tracers).
-///
-/// Engagement decisions (which target, when to fire, when to advance)
-/// live in [`super::squad`]. This plugin only handles the per-NPC
-/// shot-resolution loop.
 pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
@@ -203,70 +190,78 @@ impl Plugin for CombatPlugin {
         app.add_systems(Startup, init_tracer_assets);
         app.add_systems(
             Update,
-            (resolve_engage_actions, fade_tracers)
-                .chain()
+            (
+                resolve_combat.in_set(AiSet::Combat),
+                fade_tracers.in_set(AiSet::Cleanup),
+            )
                 .run_if(in_state(PlayingState::Laptop)),
         );
     }
 }
 
-/// Tick down engage cooldowns and apply damage when ready.
+/// Tick down per-NPC fire cooldowns and apply damage when ready.
 ///
-/// One pass over shooters. For each engaging NPC the state machine is:
-///   1. If `reload_secs > 0`: tick the reload, skip.
-///   2. Else if magazine is empty: pull a matching ammo box from the
-///      pouch into the weapon and start a reload timer; skip.
-///   3. Else if `cooldown_secs > 0`: tick the cooldown, skip.
-///   4. Else: fire one shot — drain a round, wear the weapon, apply
-///      HP damage and armor wear to the target, spawn a tracer, reset
-///      the cooldown.
-///
-/// A broken or missing weapon drops the NPC out of `Engage`. An NPC
-/// with no matching ammo and an empty mag also drops out (later this
-/// will switch to the secondary).
+/// Runs after the squad layer has decided who each member is firing
+/// at (via [`CombatTarget`]). For every NPC with a target:
+///   1. If the target died/vanished, clear the target and skip.
+///   2. If the target is out of weapon range, skip (squad will move us).
+///   3. Tick `reload_secs`. If still reloading, skip.
+///   4. If the magazine is empty, start a reload (refill from pouch).
+///   5. Tick `cooldown_secs`. If still ticking, skip.
+///   6. Otherwise: fire one shot, drain a round, wear the weapon,
+///      apply HP damage and armor wear to the target, spawn a tracer,
+///      reset the cooldown.
 #[allow(clippy::type_complexity)]
-fn resolve_engage_actions(
+fn resolve_combat(
     sim: Option<ResMut<SimWorld>>,
     time: Res<Time>,
     game_data: Res<GameDataResource>,
     tracer_assets: Res<TracerAssets>,
     mut commands: Commands,
-    mut shooters: Query<(&NpcDot, &Transform, BehaviorMut<Action>), Without<Dead>>,
+    mut shooters: Query<
+        (&NpcDot, &Transform, &mut CombatTarget, &mut FireState),
+        Without<Dead>,
+    >,
     targets: Query<(&NpcDot, &Transform), Without<Dead>>,
 ) {
     let Some(mut sim) = sim else { return };
     let items = &game_data.0.items;
     let dt = time.delta_secs();
 
-    // Snapshot positions of all alive NPCs for tracer endpoints.
+    // Snapshot positions of all alive NPCs for target lookups.
     let positions: HashMap<Uid<Npc>, Vec2> = targets
         .iter()
         .map(|(dot, t)| (dot.uid, t.translation.truncate()))
         .collect();
 
-    for (shooter_dot, shooter_transform, mut behavior) in &mut shooters {
-        // Pull the engage state out of the action.
-        let target_uid = match behavior.current() {
-            Action::Engage { target, .. } => *target,
-            _ => continue,
+    for (shooter_dot, shooter_transform, mut combat_target, mut fire_state) in &mut shooters {
+        // Step 0: do we even have a target?
+        let Some(target_uid) = combat_target.0 else {
+            continue;
         };
 
-        // Read the weapon stats once.
+        // Step 1: target still alive?
+        let Some(target_pos) = positions.get(&target_uid).copied() else {
+            // Target despawned — drop combat.
+            combat_target.0 = None;
+            *fire_state = FireState::default();
+            continue;
+        };
+
+        // Step 2: read weapon stats and current magazine.
         let Some(shooter_npc) = sim.0.npcs.get(&shooter_dot.uid) else {
             continue;
         };
-        let weapon_inst = match shooter_npc.loadout.equipped_weapon() {
-            Some(w) => w,
-            None => {
-                // Broken or missing primary: drop combat.
-                let _ = behavior.try_start(Action::Idle { timer: 0.5 });
-                continue;
-            }
+        let Some(weapon_inst) = shooter_npc.loadout.equipped_weapon() else {
+            // Broken or missing primary: drop combat.
+            combat_target.0 = None;
+            *fire_state = FireState::default();
+            continue;
         };
         let Some(weapon_def) = items.get(&weapon_inst.def_id) else {
             continue;
         };
-        let (caliber, magazine, fire_rate, reload_secs_def, weapon_added) =
+        let (caliber, magazine, fire_rate, reload_secs_def, weapon_added, range) =
             match &weapon_def.data {
                 ItemData::Weapon(w) => (
                     w.caliber.clone(),
@@ -274,60 +269,48 @@ fn resolve_engage_actions(
                     w.fire_rate,
                     w.reload_secs,
                     w.added_damage,
+                    w.range.value(),
                 ),
                 _ => continue,
             };
         let mag_count = weapon_inst.count;
         let loaded_ammo_id = weapon_inst.loaded_ammo.clone();
 
-        // Phase 1: tick reload timer if reloading.
-        let in_reload = matches!(
-            behavior.current(),
-            Action::Engage { reload_secs, .. } if *reload_secs > 0.0
-        );
-        if in_reload {
-            if let Action::Engage {
-                reload_secs: rs, ..
-            } = behavior.current_mut()
-            {
-                *rs = (*rs - dt).max(0.0);
-            }
+        // Step 3: out of range? Don't fire (squad layer is moving us).
+        let shooter_pos = shooter_transform.translation.truncate();
+        if shooter_pos.distance(target_pos) > range {
             continue;
         }
 
-        // Phase 2: empty mag → start a reload.
+        // Step 4: ticking reload?
+        if fire_state.reload_secs > 0.0 {
+            fire_state.reload_secs = (fire_state.reload_secs - dt).max(0.0);
+            continue;
+        }
+
+        // Step 5: empty mag → start a reload.
         if mag_count == 0 {
             let started =
                 refill_magazine(&mut sim, &shooter_dot, items, &caliber, magazine);
             if started {
-                if let Action::Engage {
-                    reload_secs: rs, ..
-                } = behavior.current_mut()
-                {
-                    *rs = reload_secs_def;
-                }
+                fire_state.reload_secs = reload_secs_def;
             } else {
-                // No matching ammo anywhere → drop combat.
-                let _ = behavior.try_start(Action::Idle { timer: 1.0 });
+                // No matching ammo → drop combat.
+                combat_target.0 = None;
+                *fire_state = FireState::default();
             }
             continue;
         }
 
-        // Phase 3: cooldown still ticking?
-        if let Action::Engage {
-            cooldown_secs: cs, ..
-        } = behavior.current_mut()
-        {
-            if *cs > 0.0 {
-                *cs = (*cs - dt).max(0.0);
-                continue;
-            }
+        // Step 6: ticking shot cooldown?
+        if fire_state.cooldown_secs > 0.0 {
+            fire_state.cooldown_secs = (fire_state.cooldown_secs - dt).max(0.0);
+            continue;
         }
 
-        // Phase 4: fire a shot.
-        // Resolve the loaded ammo's stats.
+        // Step 7: fire one shot.
         let Some(loaded_ammo_id) = loaded_ammo_id else {
-            // Mag has rounds but no recorded type: bail and let the
+            // Mag has rounds but no recorded type — bail and let the
             // next reload tag it.
             continue;
         };
@@ -340,27 +323,24 @@ fn resolve_engage_actions(
         };
         let raw_damage = ammo_damage + weapon_added;
 
-        // Look up the target and resolve the hit.
-        let Some(target_npc) = sim.0.npcs.get(&target_uid) else {
-            continue;
-        };
-        let target_ballistic = equipped_ballistic(&target_npc.loadout, items);
+        // Resolve the hit against the target's armor.
+        let target_ballistic = sim
+            .0
+            .npcs
+            .get(&target_uid)
+            .map(|npc| equipped_ballistic(&npc.loadout, items))
+            .unwrap_or(0);
         let (dealt, absorbed) =
             Resistances::resolve_hit(target_ballistic, penetration, raw_damage);
 
-        let shooter_pos = shooter_transform.translation.truncate();
-        let Some(&target_pos) = positions.get(&target_uid) else {
-            continue;
-        };
-
-        // Apply mutations to shooter.
+        // Apply mutations to shooter (drain a round, wear the weapon).
         if let Some(shooter_mut) = sim.0.npcs.get_mut(&shooter_dot.uid)
             && let Some(weapon) = &mut shooter_mut.loadout.primary
         {
             weapon.count = weapon.count.saturating_sub(1);
             weapon.degrade(1);
         }
-        // Apply mutations to target.
+        // Apply mutations to target (HP damage, armor wear).
         if let Some(target_mut) = sim.0.npcs.get_mut(&target_uid) {
             target_mut.health.damage(dealt);
             if absorbed > 0
@@ -370,25 +350,16 @@ fn resolve_engage_actions(
             }
         }
 
-        // Spawn the tracer.
+        // Visual: spawn the tracer.
         spawn_tracer(&mut commands, &tracer_assets, shooter_pos, target_pos);
 
         // Reset the shot cooldown.
-        if let Action::Engage {
-            cooldown_secs: cs, ..
-        } = behavior.current_mut()
-        {
-            *cs = if fire_rate > 0.0 { 1.0 / fire_rate } else { 1.0 };
-        }
+        fire_state.cooldown_secs = if fire_rate > 0.0 { 1.0 / fire_rate } else { 1.0 };
     }
 }
 
 /// Pull one matching ammo box from the shooter's general pouch and
-/// refill the primary weapon up to its magazine size. Tags the weapon's
-/// `loaded_ammo` with the box's def id so subsequent shots use accurate
-/// damage and penetration values.
-///
-/// Returns `true` if any rounds were transferred.
+/// refill the primary weapon up to its magazine size.
 fn refill_magazine(
     sim: &mut ResMut<SimWorld>,
     shooter_dot: &NpcDot,
@@ -426,10 +397,6 @@ fn refill_magazine(
 }
 
 /// Spawn a tracer rectangle stretching from `from` to `to`.
-///
-/// Uses the shared unit-length mesh from [`TracerAssets`], scaling its
-/// `Transform.scale.x` to the actual segment length so the renderer
-/// can batch every tracer in one draw call.
 fn spawn_tracer(commands: &mut Commands, assets: &TracerAssets, from: Vec2, to: Vec2) {
     let delta = to - from;
     let length = delta.length();
@@ -453,9 +420,7 @@ fn spawn_tracer(commands: &mut Commands, assets: &TracerAssets, from: Vec2, to: 
     ));
 }
 
-/// Despawn expired tracers. (Fade is dropped — at 180ms lifetime the
-/// alpha animation isn't visually meaningful and required per-tracer
-/// materials, defeating render batching.)
+/// Despawn expired tracers.
 fn fade_tracers(
     time: Res<Time>,
     mut commands: Commands,

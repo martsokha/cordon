@@ -1,120 +1,90 @@
-//! NPC behavior: per-NPC `Action` state machine.
+//! Per-NPC physical state and the systems that drive it.
 //!
-//! Squads decide *what* a member should be doing through their goal +
-//! activity (see [`super::squad`]); this module just provides the
-//! per-NPC physical state (walk, idle, fire, loot) and a tiny driver
-//! that advances Walk/Idle/Flee transforms each tick.
+//! Movement and combat targets are stored as plain ECS components
+//! ([`MovementTarget`], [`CombatTarget`]) updated by the squad and
+//! combat layers. Per-NPC drivers (`move_npcs`, `tick_idle_timers`)
+//! read those components and advance the world. There is no state
+//! machine — interruptions are just "set the new target, drop the
+//! old one", which is naturally race-free under explicit system
+//! ordering.
 
 use bevy::prelude::*;
 use cordon_core::entity::npc::Npc;
 use cordon_core::primitive::Uid;
-use moonshine_behavior::prelude::*;
 
 use super::death::Dead;
-
-/// What the NPC is physically doing right now.
-#[derive(Component, Debug, Clone, Reflect)]
-#[reflect(Component)]
-pub enum Action {
-    /// Standing around, waiting.
-    Idle { timer: f32 },
-    /// Moving toward a point.
-    Walk { target: Vec2, speed: f32 },
-    /// Following another NPC.
-    Follow {
-        #[reflect(ignore)]
-        target: Uid<Npc>,
-    },
-    /// At the counter, engaged in trade. Timer counts down.
-    Trade { timer: f32 },
-    /// Running from danger.
-    Flee { target: Vec2 },
-    /// Firing on a target NPC. `cooldown_secs` ticks down toward 0; on
-    /// reaching 0 the combat system applies one shot's damage and
-    /// resets the cooldown to the weapon's interval. While
-    /// `reload_secs > 0` the NPC is reloading and cannot fire.
-    Engage {
-        #[reflect(ignore)]
-        target: Uid<Npc>,
-        cooldown_secs: f32,
-        reload_secs: f32,
-    },
-    /// Looting a corpse. `progress_secs` ticks down toward 0; on
-    /// reaching 0 the loot system transfers one item and resets.
-    Loot {
-        #[reflect(ignore)]
-        target: Uid<Npc>,
-        progress_secs: f32,
-    },
-}
-
-impl Behavior for Action {
-    fn filter_next(&self, next: &Self) -> bool {
-        use Action::*;
-        match_next! {
-            self => next,
-            Idle { .. } => Walk { .. } | Trade { .. } | Follow { .. } | Flee { .. } | Engage { .. } | Loot { .. },
-            Walk { .. } => Idle { .. } | Trade { .. } | Follow { .. } | Flee { .. } | Engage { .. } | Loot { .. },
-            Follow { .. } => Idle { .. } | Walk { .. } | Flee { .. } | Engage { .. },
-            Trade { .. } => Idle { .. } | Walk { .. } | Flee { .. } | Engage { .. },
-            Flee { .. } => Idle { .. } | Walk { .. },
-            Engage { .. } => Idle { .. } | Walk { .. } | Flee { .. } | Engage { .. },
-            Loot { .. } => Idle { .. } | Walk { .. } | Flee { .. } | Engage { .. }
-        }
-    }
-}
 
 /// Half-extent of the playable map AABB. NPC positions are clamped to
 /// `±MAP_BOUND` so they can't walk off the world during combat or
 /// formation moves.
 pub const MAP_BOUND: f32 = 1500.0;
 
-/// Drive NPC actions based on their current state. Dead NPCs are
-/// excluded so corpses don't keep walking, fleeing, or wandering.
+/// The point this NPC is currently walking toward, in world space.
+/// `None` means the NPC is standing still.
+#[derive(Component, Default, Debug, Clone, Copy)]
+pub struct MovementTarget(pub Option<Vec2>);
+
+/// How fast this NPC walks toward [`MovementTarget`], in map units per
+/// second. Updated by the system that sets the target.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct MovementSpeed(pub f32);
+
+impl Default for MovementSpeed {
+    fn default() -> Self {
+        Self(30.0)
+    }
+}
+
+/// The hostile NPC this entity is firing on. `None` means the NPC is
+/// not currently engaged in combat. The squad engagement scanner sets
+/// this; the combat firing system reads it.
+#[derive(Component, Default, Debug, Clone, Copy)]
+pub struct CombatTarget(pub Option<Uid<Npc>>);
+
+/// Per-NPC firing state: cooldown until next shot and reload progress.
+/// Both timers tick toward zero in [`super::combat::resolve_combat`].
+/// While `reload_secs > 0`, no shots fire.
+#[derive(Component, Default, Debug, Clone, Copy)]
+pub struct FireState {
+    pub cooldown_secs: f32,
+    pub reload_secs: f32,
+}
+
+/// Per-NPC looting progress. Present only while the NPC is actively
+/// looting a specific corpse. Removed when the corpse is empty or the
+/// NPC walks away.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct LootState {
+    pub corpse: Uid<Npc>,
+    pub progress_secs: f32,
+}
+
+/// Walk every NPC with a [`MovementTarget`] toward that point.
+///
+/// Filters on `MovementTarget` so NPCs that aren't moving don't even
+/// touch their transform — Bevy's change detection skips them and the
+/// downstream transform-propagation system has less work.
 #[allow(clippy::type_complexity)]
-pub fn drive_actions(
+pub fn move_npcs(
     time: Res<Time>,
-    mut query: Query<(BehaviorMut<Action>, &mut Transform), Without<Dead>>,
+    mut q: Query<
+        (&MovementTarget, &MovementSpeed, &mut Transform),
+        Without<Dead>,
+    >,
 ) {
     let dt = time.delta_secs();
-
-    for (mut behavior, mut transform) in &mut query {
+    for (target, speed, mut transform) in &mut q {
+        let Some(target) = target.0 else { continue };
         let pos = transform.translation.truncate();
-
-        match behavior.current_mut() {
-            Action::Idle { timer } => {
-                // Tick the timer; do not wander. Wander would push the
-                // NPC out of its formation slot, causing the squad
-                // system to push another Walk and visually flicker.
-                *timer -= dt;
-            }
-            Action::Walk { target, speed } => {
-                let dir = (*target - pos).normalize_or_zero();
-                transform.translation.x += dir.x * *speed * dt;
-                transform.translation.y += dir.y * *speed * dt;
-            }
-            Action::Follow { .. } => {}
-            Action::Trade { timer } => {
-                *timer -= dt;
-            }
-            Action::Flee { target } => {
-                let dir = (*target - pos).normalize_or_zero();
-                let speed = 20.0;
-                transform.translation.x += dir.x * speed * dt;
-                transform.translation.y += dir.y * speed * dt;
-            }
-            Action::Engage { .. } => {
-                // Engage logic (cooldown, damage) lives in the combat system.
-            }
-            Action::Loot { .. } => {
-                // Loot logic lives in the loot system.
-            }
+        let delta = target - pos;
+        let dist = delta.length();
+        if dist < 0.5 {
+            continue;
         }
-
-        // Keep NPCs inside the playable map. Walking NPCs will keep
-        // pushing against the boundary harmlessly until their action
-        // changes; the squad system shouldn't pick targets outside
-        // bounds in the first place.
+        let dir = delta / dist;
+        let step = (speed.0 * dt).min(dist);
+        transform.translation.x += dir.x * step;
+        transform.translation.y += dir.y * step;
         transform.translation.x = transform.translation.x.clamp(-MAP_BOUND, MAP_BOUND);
         transform.translation.y = transform.translation.y.clamp(-MAP_BOUND, MAP_BOUND);
     }
