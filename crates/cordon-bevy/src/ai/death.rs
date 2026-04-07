@@ -8,10 +8,10 @@
 
 use bevy::prelude::*;
 use cordon_core::primitive::GameTime;
+use cordon_sim::components::{Hp, LoadoutComp, NpcMarker};
 
 use super::AiSet;
 use crate::PlayingState;
-use crate::laptop::NpcDot;
 use crate::world::SimWorld;
 
 /// Marker for a corpse with its time of death.
@@ -20,19 +20,12 @@ pub struct Dead {
     pub died_at: GameTime,
 }
 
-/// How long corpses persist before despawn (7 in-game days).
 pub const CORPSE_PERSISTENCE_MINUTES: u32 = 7 * 24 * 60;
 
-/// Length of one bar of the dead-NPC X marker, in map units.
 const X_BAR_LENGTH: f32 = 10.0;
-/// Thickness of one bar of the X marker, in map units.
 const X_BAR_THICKNESS: f32 = 1.5;
-/// Mid-grey colour for the X marker.
 const X_BAR_COLOR: Color = Color::srgba(0.55, 0.55, 0.55, 0.9);
 
-/// Shared mesh + material handles for the X marker bars, populated at
-/// startup so every corpse can clone them instead of allocating new
-/// asset handles.
 #[derive(Resource, Clone)]
 pub struct DeathAssets {
     pub bar_mesh: Handle<Mesh>,
@@ -49,7 +42,6 @@ fn init_death_assets(
     commands.insert_resource(DeathAssets { bar_mesh, bar_mat });
 }
 
-/// Plugin registering the death/cleanup systems.
 pub struct DeathPlugin;
 
 impl Plugin for DeathPlugin {
@@ -65,34 +57,26 @@ impl Plugin for DeathPlugin {
     }
 }
 
-/// Tag NPCs whose health hit zero as dead and replace their dot with
-/// a standalone X mark (no background circle).
+/// Tag NPCs whose HP hit zero as dead, replace their dot with an X.
 fn handle_deaths(
     sim: Option<Res<SimWorld>>,
     death_assets: Res<DeathAssets>,
     mut commands: Commands,
-    q: Query<(Entity, &NpcDot), Without<Dead>>,
+    q: Query<(Entity, &Hp), (With<NpcMarker>, Without<Dead>)>,
 ) {
     let Some(sim) = sim else { return };
     let now = sim.0.time;
 
-    for (entity, npc_dot) in &q {
-        let Some(npc) = sim.0.npcs.get(&npc_dot.uid) else {
-            continue;
-        };
-        if npc.health.is_alive() {
+    for (entity, hp) in &q {
+        if hp.is_alive() {
             continue;
         }
         commands
             .entity(entity)
             .insert(Dead { died_at: now })
-            // Remove the round dot mesh entirely; the X bars below stand alone.
             .remove::<Mesh2d>()
             .remove::<MeshMaterial2d<ColorMaterial>>();
 
-        // Two crossed bar children form the X marker. The mesh and
-        // material handles are shared (see DeathAssets) so the renderer
-        // can batch every X across the map.
         let bar_mesh = death_assets.bar_mesh.clone();
         let bar_mat = death_assets.bar_mat.clone();
         commands.entity(entity).with_children(|parent| {
@@ -115,31 +99,24 @@ fn handle_deaths(
 fn cleanup_corpses(
     sim: Option<Res<SimWorld>>,
     mut commands: Commands,
-    q: Query<(Entity, &Dead, &NpcDot)>,
+    q: Query<(Entity, &Dead, &LoadoutComp)>,
 ) {
     let Some(sim) = sim else { return };
     let now = sim.0.time;
 
-    for (entity, dead, npc_dot) in &q {
+    for (entity, dead, loadout) in &q {
         let elapsed = minutes_between(dead.died_at, now);
-        let looted = sim
-            .0
-            .npcs
-            .get(&npc_dot.uid)
-            .map(|n| n.loadout.is_empty())
-            .unwrap_or(true);
+        let looted = loadout.0.is_empty();
         if looted || elapsed >= CORPSE_PERSISTENCE_MINUTES {
             commands.entity(entity).despawn();
         }
     }
 }
 
-/// Convert a [`GameTime`] to absolute minutes since day 1, 00:00.
 fn to_minutes(t: GameTime) -> u32 {
     (t.day.value() - 1) * 24 * 60 + t.hour as u32 * 60 + t.minute as u32
 }
 
-/// Game-minutes elapsed between two times. Saturating; never negative.
 fn minutes_between(start: GameTime, end: GameTime) -> u32 {
     to_minutes(end).saturating_sub(to_minutes(start))
 }

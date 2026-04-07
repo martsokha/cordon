@@ -10,6 +10,7 @@ mod world;
 use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataPlugin;
+use cordon_sim::plugin::CordonSimPlugin;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum AppState {
@@ -50,6 +51,7 @@ fn main() {
         })
         .add_plugins(locale::LocalePlugin)
         .add_plugins(world::WorldPlugin)
+        .add_plugins(CordonSimPlugin)
         .add_plugins(ai::AiPlugin)
         .add_plugins(bunker::BunkerPlugin)
         .add_plugins(laptop::LaptopPlugin)

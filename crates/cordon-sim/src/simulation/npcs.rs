@@ -177,28 +177,22 @@ pub fn resolve_name_pool<'a>(
     name_pools.get(faction).unwrap_or(fallback)
 }
 
-/// Replenish the Zone's NPC population toward the generator's target.
+/// Roll fresh NPCs and squads to top up `deficit` members.
 ///
-/// Counts current alive NPCs, computes the deficit, then spawns squads
-/// (each with 1..=5 members) until the deficit is filled. At init time
-/// the world is empty so the first call spawns the full target.
-///
-/// `name_pools` maps faction IDs to their name pools, `loadout_ctx`
-/// carries the archetype + item catalog. `area_ids` is used to pick
-/// the patrol/scavenge target area when resolving a template's goal.
-pub fn spawn_daily_visitors(
+/// Caller is responsible for counting the alive population (e.g. via
+/// a Bevy query) and computing the deficit. This function only does
+/// the rolling and returns the produced data; the caller spawns
+/// entities from the returned [`DailySpawn`].
+pub fn roll_population_top_up(
     world: &mut World,
     generator: &impl NpcGenerator,
     name_pools: &HashMap<Id<Faction>, NamePool>,
     fallback_pool: &NamePool,
     loadout_ctx: &LoadoutContext<'_>,
     area_ids: &[Id<Area>],
+    deficit: u32,
 ) -> DailySpawn {
-    let day = world.time.day.value();
-    let target = generator.target_population(day);
-    let current = world.npcs.len() as u32;
-    let mut deficit = target.saturating_sub(current);
-
+    let mut deficit = deficit;
     let mut spawn = DailySpawn {
         npcs: Vec::new(),
         squads: Vec::new(),

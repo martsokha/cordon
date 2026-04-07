@@ -2022,7 +2022,9 @@ dependencies = [
 name = "cordon-sim"
 version = "0.1.0"
 dependencies = [
+ "bevy",
  "cordon-core",
+ "cordon-data",
  "rand 0.10.0",
 ]
 

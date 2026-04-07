@@ -1,4 +1,4 @@
-//! Base state: bunker, camp, upgrades, and storage.
+//! Bunker upgrade definitions.
 //!
 //! The player operates from two connected locations:
 //! - **Bunker**: the interior where trading happens. Storage, counter,
@@ -7,12 +7,13 @@
 //!   outdoor structures, and camp-wide upgrades live here.
 //!
 //! Upgrades are either purchasable, faction-gated, or quest rewards.
-//! All upgrades are data-driven and reference a location.
+//! Runtime state for which upgrades are *installed* lives on
+//! [`PlayerState`](super::player::PlayerState); this module only owns
+//! the static def types.
 
 use serde::{Deserialize, Serialize};
 
 use super::faction::Faction;
-use crate::item::Stash;
 use crate::primitive::{Credits, Id, IdMarker, Relation};
 
 /// Marker for upgrade IDs.
@@ -66,47 +67,4 @@ pub struct UpgradeDef {
     pub requires: Vec<Id<Upgrade>>,
     /// How this upgrade becomes available.
     pub source: UpgradeSource,
-}
-
-/// The player's base state: bunker interior + camp exterior.
-///
-/// Tracks which upgrades are installed and the contents of storage.
-/// All upgrade effects are derived from the set of installed upgrade
-/// IDs — the sim checks `has_upgrade("radio_3")` rather than reading
-/// a level number.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BaseState {
-    /// All installed upgrade IDs (both bunker and camp).
-    pub upgrades: Vec<Id<Upgrade>>,
-    /// Main storage (bunker interior).
-    pub storage: Stash,
-    /// Hidden storage (survives raids, invisible during inspections).
-    pub hidden_storage: Stash,
-}
-
-impl BaseState {
-    /// Create a new empty base with default storage capacities.
-    pub fn new() -> Self {
-        Self {
-            upgrades: Vec::new(),
-            storage: Stash::new(20),
-            hidden_storage: Stash::new(0),
-        }
-    }
-
-    /// Check if an upgrade is installed (bunker or camp).
-    pub fn has_upgrade(&self, upgrade_id: &Id<Upgrade>) -> bool {
-        self.upgrades.iter().any(|u| u == upgrade_id)
-    }
-
-    /// Whether the base has a generator (prevents power outages).
-    pub fn has_power(&self) -> bool {
-        self.has_upgrade(&Id::<Upgrade>::new("generator"))
-    }
-}
-
-impl Default for BaseState {
-    fn default() -> Self {
-        Self::new()
-    }
 }

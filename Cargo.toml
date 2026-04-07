@@ -28,9 +28,8 @@ cordon-data = { path = "./crates/cordon-data" }
 cordon-sim = { path = "./crates/cordon-sim" }
 
 # Game engine
-bevy = { version = "0.18", features = [] }
+bevy = { version = "0.18", features = ["debug"] }
 bevy_fluent = { version = "0.14" }
-moonshine-behavior = { version = "0.4" }
 
 # (De)serialization
 serde = { version = "1.0", features = ["derive"] }

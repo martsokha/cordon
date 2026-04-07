@@ -1,17 +1,18 @@
-//! Simulation world as a Bevy resource.
+//! Simulation world wiring.
 //!
-//! Creates the [`World`](cordon_sim::state::world::World) on entering
-//! InGame state, runs the first morning phase to generate initial NPCs,
-//! and provides the world state for other systems to read.
+//! Creates the [`SimWorld`] resource on entering the Playing state and
+//! ticks game time. Population spawning lives in the
+//! [`cordon_sim::plugin::CordonSimPlugin`] which is added by `main.rs`;
+//! every NPC and squad is a Bevy entity, not a HashMap entry.
 
 use bevy::prelude::*;
-use cordon_core::entity::name::NamePool;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::simulation::day;
-use cordon_sim::simulation::npcs::{DefaultNpcGenerator, LoadoutContext};
 use cordon_sim::state::world::World;
 
 use crate::AppState;
+
+pub use cordon_sim::spawn::SimWorld;
 
 pub struct WorldPlugin;
 
@@ -29,7 +30,11 @@ impl Plugin for WorldPlugin {
 #[derive(Resource)]
 struct TimeAccumulator(f32);
 
-fn tick_game_time(time: Res<Time>, mut acc: ResMut<TimeAccumulator>, mut sim: ResMut<SimWorld>) {
+fn tick_game_time(
+    time: Res<Time>,
+    mut acc: ResMut<TimeAccumulator>,
+    mut sim: ResMut<SimWorld>,
+) {
     acc.0 += time.delta_secs() * GAME_MINUTES_PER_SECOND;
     let minutes = acc.0 as u32;
     if minutes > 0 {
@@ -38,58 +43,19 @@ fn tick_game_time(time: Res<Time>, mut acc: ResMut<TimeAccumulator>, mut sim: Re
     }
 }
 
-/// Bevy resource wrapping the simulation world.
-#[derive(Resource)]
-pub struct SimWorld(pub World);
-
 pub fn init_world(mut commands: Commands, game_data: Res<GameDataResource>) {
     let data = &game_data.0;
-
     let faction_ids = data.faction_ids();
     let area_ids = data.area_ids();
 
     let seed = rand::random::<u64>();
     let mut world = World::new(seed, faction_ids, &area_ids);
 
-    let faction_pools = data.faction_name_pools();
-    let fallback = NamePool {
-        id: "fallback".into(),
-        format: cordon_core::entity::name::NameFormat::Alias,
-        names: vec![],
-        surnames: vec![],
-        aliases: vec!["alias-ghost".to_string()],
-    };
+    // Run the day-tick logic once for events; population spawn now
+    // happens in the cordon-sim spawn system, automatically each frame.
+    let event_defs: Vec<_> = data.events.values().cloned().collect();
+    let _ = day::advance_day(&mut world, &event_defs);
 
-    let npc_gen = DefaultNpcGenerator;
-    let loadout_ctx = LoadoutContext {
-        archetypes: &data.archetypes,
-        items: &data.items,
-        areas: &data.areas,
-    };
-    let result = day::advance_day(
-        &mut world,
-        &data.events.values().cloned().collect::<Vec<_>>(),
-        &npc_gen,
-        &faction_pools,
-        &fallback,
-        &loadout_ctx,
-        &area_ids,
-    );
-
-    info!(
-        "Day 1: {} npcs in {} squads, {} events",
-        result.spawn.npcs.len(),
-        result.spawn.squads.len(),
-        result.events_started
-    );
-    for npc in &result.spawn.npcs {
-        let uid = npc.id;
-        world.npcs.insert(uid, npc.clone());
-    }
-    for squad in &result.spawn.squads {
-        let uid = squad.id;
-        world.squads.insert(uid, squad.clone());
-    }
-
+    info!("World initialised; population will be spawned by cordon-sim");
     commands.insert_resource(SimWorld(world));
 }

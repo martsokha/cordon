@@ -1,6 +1,15 @@
-//! NPC attributes, roles, and employment.
+//! NPC spawn template + supporting types.
 //!
-//! [`Npc`] is a runtime entity with both visible and hidden attributes.
+//! [`Npc`] is the **spawn-time / save-game** representation of an NPC.
+//! At runtime, NPCs are Bevy entities composed of components defined
+//! in `cordon-sim::components`. The `Npc` struct only exists to be
+//! consumed by `cordon-sim::components::NpcBundle::from_npc` when
+//! spawning a fresh entity (and as the persistent shape for save/load
+//! once that exists).
+//!
+//! Methods on `Npc` are spawn-time helpers — they don't drive the
+//! running game. Runtime systems read components directly from the
+//! ECS, not from this struct.
 
 use serde::{Deserialize, Serialize};
 

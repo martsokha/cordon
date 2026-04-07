@@ -8,17 +8,19 @@ use bevy::prelude::*;
 use bevy_fluent::prelude::*;
 use cordon_core::entity::faction::RankScheme;
 use cordon_core::entity::name::{NameFormat, NpcName};
-use cordon_core::entity::npc::Npc;
-use cordon_core::primitive::{HazardType, Tier, Uid};
+use cordon_core::primitive::{HazardType, Tier};
 use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
+
+use cordon_sim::components::{
+    FactionId, Name as NpcNameComp, NpcMarker, SquadFormation, SquadHomePosition, SquadMembership,
+    Xp,
+};
 
 use crate::PlayingState;
 use crate::ai::behavior::{CombatTarget, FireState, MovementSpeed, MovementTarget};
 use crate::ai::combat::Vision;
-use crate::ai::squad::SquadMember;
 use crate::locale::{GameLocalization, l10n_or};
-use crate::world::SimWorld;
 
 pub struct LaptopPlugin;
 
@@ -38,6 +40,7 @@ impl Plugin for LaptopPlugin {
         app.add_systems(
             Update,
             (
+                attach_npc_visuals.after(cordon_sim::plugin::SimSet::Spawn),
                 update_hover,
                 handle_npc_click,
                 update_npc_selection,
@@ -105,11 +108,6 @@ struct AreaTooltipInfo {
     loot_tier: Tier,
 }
 
-#[derive(Component, Clone, Copy)]
-pub struct NpcDot {
-    pub uid: Uid<Npc>,
-}
-
 #[derive(Component, Clone)]
 struct NpcDotInfo {
     faction_icon: String,
@@ -119,7 +117,7 @@ struct NpcDotInfo {
 }
 
 #[derive(Resource, Default)]
-struct SelectedNpc(Option<Uid<Npc>>);
+struct SelectedNpc(Option<Entity>);
 
 const COLOR_AREA: Color = Color::srgba(1.0, 1.0, 1.0, 0.08);
 const COLOR_AREA_BORDER: Color = Color::srgba(1.0, 1.0, 1.0, 0.25);
@@ -295,11 +293,9 @@ fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
 #[allow(clippy::too_many_arguments)]
 fn spawn_map(
     game_data: Res<GameDataResource>,
-    sim_world: Res<SimWorld>,
     laptop_font: Res<LaptopFont>,
-    asset_server: Res<AssetServer>,
+    _asset_server: Res<AssetServer>,
     l10n: Option<Res<GameLocalization>>,
-    npc_assets: Res<NpcAssets>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -341,104 +337,13 @@ fn spawn_map(
         Transform::from_xyz(0.0, 0.0, 1.0),
     ));
 
-    let area_positions: Vec<Vec2> = data
-        .areas
-        .values()
-        .map(|a| Vec2::new(a.location.x, a.location.y))
-        .collect();
-
-    for (i, (squad_uid, squad)) in sim_world.0.squads.iter().enumerate() {
-        // Pick a deterministic spawn area for the whole squad.
-        let area_idx = (i + squad_uid.value() as usize) % area_positions.len().max(1);
-        let squad_base = if area_positions.is_empty() {
-            Vec2::ZERO
-        } else {
-            area_positions[area_idx]
-        };
-        // Slight per-squad jitter so squads don't all stack at the area
-        // center. Members are placed by formation offsets relative to
-        // this point.
-        let hash = (squad_uid.value() as f32).sin() * 43_758.547;
-        let scatter = Vec2::new(
-            hash.fract() * 30.0 - 15.0,
-            (hash * 1.3).fract() * 30.0 - 15.0,
-        );
-        let squad_origin = squad_base + scatter;
-
-        let formation_offsets = squad.formation.slot_offsets(squad.members.len());
-
-        for (slot_idx, member_uid) in squad.members.iter().enumerate() {
-            let Some(npc) = sim_world.0.npcs.get(member_uid) else {
-                continue;
-            };
-            let faction_icon = faction_icon_str(Some(npc.faction.as_str())).to_string();
-            let faction_name = l10n_or(
-                l10n,
-                &format!("faction-{}", npc.faction.as_str()),
-                npc.faction.as_str(),
-            );
-            let name_display = resolve_npc_name(l10n, &npc.name);
-            let rank_title = data
-                .faction(&npc.faction)
-                .map(|fdef| {
-                    let key = format!(
-                        "rank-{}-{}",
-                        rank_scheme_key(&fdef.rank_scheme),
-                        npc.rank().key()
-                    );
-                    l10n_or(l10n, &key, &key)
-                })
-                .unwrap_or_else(|| format!("Rank {}", npc.rank().key()));
-
-            // Initial position: squad origin plus the member's slot offset.
-            let slot_offset = formation_offsets
-                .get(slot_idx)
-                .copied()
-                .unwrap_or([0.0, 0.0]);
-            let spawn_pos = squad_origin + Vec2::new(slot_offset[0], slot_offset[1]);
-
-            let is_military =
-                matches!(npc.faction.as_str(), "garrison" | "order" | "mercenaries");
-            let vision = Vision::for_npc(npc.rank(), is_military);
-
-            let _npc_entity = commands.spawn((
-                MapWorldEntity,
-                NpcDot { uid: *member_uid },
-                NpcDotInfo {
-                    faction_icon: faction_icon.clone(),
-                    name: name_display,
-                    faction: faction_name,
-                    rank: rank_title,
-                },
-                vision,
-                SquadMember {
-                    squad: *squad_uid,
-                    slot: slot_idx as u8,
-                },
-                MovementTarget::default(),
-                MovementSpeed::default(),
-                CombatTarget::default(),
-                FireState::default(),
-                Mesh2d(npc_assets.dot_mesh.clone()),
-                MeshMaterial2d(npc_assets.default_mat.clone()),
-                Transform::from_xyz(spawn_pos.x, spawn_pos.y, 0.5),
-            ));
-        }
-    }
-
-    info!(
-        "Laptop map: {} areas, {} npcs in {} squads",
-        data.areas.len(),
-        sim_world.0.npcs.len(),
-        sim_world.0.squads.len()
-    );
+    info!("Laptop map: {} areas (NPCs spawned by cordon-sim)", data.areas.len());
 
     commands.insert_resource(MapSpawned);
 }
 
 #[allow(clippy::type_complexity)]
 fn update_hover(
-    sim: Option<Res<SimWorld>>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
     cam_proj: Query<&Projection, With<LaptopCamera>>,
@@ -449,11 +354,12 @@ fn update_hover(
             &Transform,
             &MovementTarget,
             &CombatTarget,
-            &SquadMember,
+            &SquadMembership,
             Option<&crate::ai::behavior::LootState>,
         ),
-        With<NpcDot>,
+        With<NpcMarker>,
     >,
+    squad_goals: Query<&cordon_sim::components::SquadGoal>,
     mut mats: ResMut<Assets<ColorMaterial>>,
     mut tooltip: ResMut<TooltipContent>,
 ) {
@@ -477,7 +383,7 @@ fn update_hover(
         &'a NpcDotInfo,
         &'a MovementTarget,
         &'a CombatTarget,
-        &'a SquadMember,
+        &'a SquadMembership,
         bool,
         f32,
     );
@@ -490,10 +396,9 @@ fn update_hover(
     }
     if let Some((info, movement, combat, member, looting, _)) = closest_npc {
         // Look up the member's squad goal for the status string.
-        let goal = sim
-            .as_ref()
-            .and_then(|s| s.0.squads.get(&member.squad))
-            .map(|sq| sq.goal.clone())
+        let goal = squad_goals
+            .get(member.squad)
+            .map(|g| g.0.clone())
             .unwrap_or(cordon_core::entity::squad::Goal::Idle);
         *tooltip = TooltipContent::Npc {
             faction_icon: info.faction_icon.clone(),
@@ -543,7 +448,7 @@ fn handle_npc_click(
     mouse: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
-    dots: Query<(&NpcDot, &Transform)>,
+    dots: Query<(Entity, &Transform), With<NpcMarker>>,
     mut selected: ResMut<SelectedNpc>,
 ) {
     if !mouse.just_pressed(MouseButton::Left) {
@@ -554,18 +459,18 @@ fn handle_npc_click(
     };
 
     let hit_radius = 20.0;
-    let mut closest: Option<(Uid<Npc>, f32)> = None;
-    for (dot, transform) in &dots {
+    let mut closest: Option<(Entity, f32)> = None;
+    for (entity, transform) in &dots {
         let pos = transform.translation.truncate();
         let dist = pos.distance(cursor_world);
         if dist <= hit_radius && (closest.is_none() || dist < closest.unwrap().1) {
-            closest = Some((dot.uid, dist));
+            closest = Some((entity, dist));
         }
     }
 
     match closest {
-        Some((uid, _)) if selected.0 == Some(uid) => selected.0 = None,
-        Some((uid, _)) => selected.0 = Some(uid),
+        Some((entity, _)) if selected.0 == Some(entity) => selected.0 = None,
+        Some((entity, _)) => selected.0 = Some(entity),
         None => selected.0 = None,
     }
 }
@@ -573,23 +478,25 @@ fn handle_npc_click(
 fn update_npc_selection(
     selected: Res<SelectedNpc>,
     npc_assets: Res<NpcAssets>,
-    mut dots: Query<(&NpcDot, &SquadMember, &mut MeshMaterial2d<ColorMaterial>)>,
+    mut dots: Query<
+        (Entity, &SquadMembership, &mut MeshMaterial2d<ColorMaterial>),
+        With<NpcMarker>,
+    >,
 ) {
     if !selected.is_changed() {
         return;
     }
 
-    // Find the selected NPC's squad uid (by scanning the dots query
-    // since SimWorld doesn't index npcs by squad).
-    let selected_squad = selected.0.and_then(|uid| {
+    // Find the selected NPC's squad entity.
+    let selected_squad = selected.0.and_then(|entity| {
         dots.iter()
-            .find(|(d, _, _)| d.uid == uid)
+            .find(|(e, _, _)| *e == entity)
             .map(|(_, m, _)| m.squad)
     });
 
-    for (dot, member, mut mat_handle) in &mut dots {
+    for (entity, member, mut mat_handle) in &mut dots {
         let new_mat = match (selected.0, selected_squad) {
-            (Some(uid), _) if uid == dot.uid => npc_assets.selected_mat.clone(),
+            (Some(sel), _) if sel == entity => npc_assets.selected_mat.clone(),
             (_, Some(sq)) if member.squad == sq => npc_assets.squad_mat.clone(),
             _ => npc_assets.default_mat.clone(),
         };
@@ -608,5 +515,81 @@ fn deselect_or_exit(
         } else {
             *next_state = NextState::Pending(PlayingState::Bunker);
         }
+    }
+}
+
+/// Attach laptop-side visuals to freshly-spawned NPC entities. Runs
+/// after `spawn_population` every frame, but only does real work for
+/// entities that were just given a `SquadMembership`.
+#[allow(clippy::type_complexity)]
+fn attach_npc_visuals(
+    game_data: Res<GameDataResource>,
+    npc_assets: Res<NpcAssets>,
+    l10n: Option<Res<GameLocalization>>,
+    squads: Query<(
+        &SquadHomePosition,
+        &SquadFormation,
+        &cordon_sim::components::SquadMembers,
+    )>,
+    new_npcs: Query<
+        (Entity, &FactionId, &Xp, &NpcNameComp, &SquadMembership),
+        (With<NpcMarker>, Added<SquadMembership>),
+    >,
+    mut commands: Commands,
+) {
+    if new_npcs.iter().next().is_none() {
+        return;
+    }
+    let data = &game_data.0;
+    let empty_l10n = Localization::default();
+    let l10n = l10n.as_ref().map(|r| &r.0).unwrap_or(&empty_l10n);
+
+    for (entity, faction, xp, name, membership) in &new_npcs {
+        let faction_str = faction.0.as_str();
+        let faction_icon = faction_icon_str(Some(faction_str)).to_string();
+        let faction_name = l10n_or(l10n, &format!("faction-{}", faction_str), faction_str);
+        let name_display = resolve_npc_name(l10n, &name.0);
+        let rank = xp.rank();
+        let rank_title = data
+            .faction(&faction.0)
+            .map(|fdef| {
+                let key = format!("rank-{}-{}", rank_scheme_key(&fdef.rank_scheme), rank.key());
+                l10n_or(l10n, &key, &key)
+            })
+            .unwrap_or_else(|| format!("Rank {}", rank.key()));
+
+        // Squad's home position + this member's slot offset, computed
+        // from the *actual* squad size (not a hardcoded 5).
+        let (home, slot_offset) = match squads.get(membership.squad) {
+            Ok((home, formation, members)) => {
+                let count = members.0.len().max(1);
+                let offsets = formation.0.slot_offsets(count);
+                let slot = (membership.slot as usize).min(offsets.len() - 1);
+                (home.0, Vec2::new(offsets[slot][0], offsets[slot][1]))
+            }
+            Err(_) => (Vec2::ZERO, Vec2::ZERO),
+        };
+        let spawn_pos = home + slot_offset;
+
+        let is_military = matches!(faction_str, "garrison" | "order" | "mercenaries");
+        let vision = Vision::for_npc(rank, is_military);
+
+        commands.entity(entity).insert((
+            MapWorldEntity,
+            NpcDotInfo {
+                faction_icon,
+                name: name_display,
+                faction: faction_name,
+                rank: rank_title,
+            },
+            vision,
+            MovementTarget::default(),
+            MovementSpeed::default(),
+            CombatTarget::default(),
+            FireState::default(),
+            Mesh2d(npc_assets.dot_mesh.clone()),
+            MeshMaterial2d(npc_assets.default_mat.clone()),
+            Transform::from_xyz(spawn_pos.x, spawn_pos.y, 0.5),
+        ));
     }
 }

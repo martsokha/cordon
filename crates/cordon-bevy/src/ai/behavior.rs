@@ -9,8 +9,6 @@
 //! ordering.
 
 use bevy::prelude::*;
-use cordon_core::entity::npc::Npc;
-use cordon_core::primitive::Uid;
 
 use super::death::Dead;
 
@@ -39,7 +37,7 @@ impl Default for MovementSpeed {
 /// not currently engaged in combat. The squad engagement scanner sets
 /// this; the combat firing system reads it.
 #[derive(Component, Default, Debug, Clone, Copy)]
-pub struct CombatTarget(pub Option<Uid<Npc>>);
+pub struct CombatTarget(pub Option<Entity>);
 
 /// Per-NPC firing state: cooldown until next shot and reload progress.
 /// Both timers tick toward zero in [`super::combat::resolve_combat`].
@@ -55,7 +53,7 @@ pub struct FireState {
 /// NPC walks away.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct LootState {
-    pub corpse: Uid<Npc>,
+    pub corpse: Entity,
     pub progress_secs: f32,
 }
 

@@ -1,10 +1,10 @@
 //! Squads — coordinated groups of NPCs with a shared goal.
 //!
-//! A [`Squad`] is the unit of coordination above the individual NPC.
-//! Every NPC belongs to exactly one squad, even if it's a squad of one
-//! (a "lone wolf"). The squad owns the [`Goal`] (long-term reason for
-//! existing — patrol, scavenge, etc.) and decides which member is the
-//! [`leader`](Squad::leader). Member NPCs are referenced by [`Uid<Npc>`].
+//! [`Squad`] is the **spawn-time / save-game** representation. At
+//! runtime, squads are Bevy entities composed of components defined
+//! in `cordon-sim::components` (`SquadFaction`, `SquadGoal`,
+//! `SquadFormation`, `SquadFacing`, `SquadWaypoints`, `SquadLeader`,
+//! `SquadMembers`, `SquadActivity`).
 //!
 //! Vision and engagement are shared at squad granularity: when any
 //! member spots a hostile, the whole squad knows; when the squad
