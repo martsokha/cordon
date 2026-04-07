@@ -45,10 +45,7 @@ impl Plugin for CombatVisualsPlugin {
         app.add_systems(Startup, init_tracer_assets);
         app.add_systems(
             Update,
-            (
-                spawn_tracers_for_shots.after(SimSet::Combat),
-                fade_tracers,
-            )
+            (spawn_tracers_for_shots.after(SimSet::Combat), fade_tracers)
                 .run_if(in_state(PlayingState::Laptop)),
         );
     }

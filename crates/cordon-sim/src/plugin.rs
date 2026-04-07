@@ -101,13 +101,13 @@ pub mod prelude {
         AnomalyZone, CombatTarget, Dead, FireState, LootState, MAP_BOUND, MovementSpeed,
         MovementTarget, Vision,
     };
+    pub use crate::commands::{Owned, SquadCommand};
     pub use crate::components::{
         Employment, FactionId, Hp, LoadoutComp, Loyalty, NpcBundle, NpcId, NpcMarker, NpcNameComp,
         Perks, PersonalityComp, SquadActivity, SquadBundle, SquadFacing, SquadFaction,
         SquadFormation, SquadGoal, SquadHomePosition, SquadId, SquadLeader, SquadMarker,
         SquadMembers, SquadMembership, SquadWaypoints, Trust, Wealth, Xp,
     };
-    pub use crate::commands::{Owned, SquadCommand};
     pub use crate::events::{
         CorpseRemoved, DayRolled, ItemLooted, NpcDied, ShotFired, SquadSpawned,
     };

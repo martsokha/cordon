@@ -119,10 +119,10 @@ fn update_squad_engagement(
         })
         .collect();
 
-    let squad_faction: HashMap<Entity, &cordon_core::primitive::Id<cordon_core::entity::faction::Faction>> = squads_q
-        .iter()
-        .map(|(e, f, _)| (e, &f.0))
-        .collect();
+    let squad_faction: HashMap<
+        Entity,
+        &cordon_core::primitive::Id<cordon_core::entity::faction::Faction>,
+    > = squads_q.iter().map(|(e, f, _)| (e, &f.0)).collect();
     let squad_leader: HashMap<Entity, Entity> = squads_q
         .iter()
         .map(|(e, _, leader)| (e, leader.0))
@@ -138,8 +138,10 @@ fn update_squad_engagement(
             Some(f) => *f,
             None => continue,
         };
-        let members: Vec<&NpcSnap> =
-            snapshot.iter().filter(|n| n.squad == squad_entity).collect();
+        let members: Vec<&NpcSnap> = snapshot
+            .iter()
+            .filter(|n| n.squad == squad_entity)
+            .collect();
         if members.is_empty() {
             continue;
         }
@@ -176,7 +178,9 @@ fn update_squad_engagement(
                 }
                 visible_dist_sq = Some(visible_dist_sq.map_or(d_sq, |d| d.min(d_sq)));
             }
-            let Some(dist_sq) = visible_dist_sq else { continue };
+            let Some(dist_sq) = visible_dist_sq else {
+                continue;
+            };
 
             if chosen.is_none_or(|(_, d)| dist_sq < d) {
                 chosen = Some((cand.squad, dist_sq));
@@ -192,11 +196,15 @@ fn update_squad_engagement(
     for (squad_entity, mut activity, mut facing, leader) in squad_state_q.iter_mut() {
         match squad_hostile.get(&squad_entity) {
             Some(hostile) => {
-                let same = matches!(*activity, SquadActivity::Engage { hostiles } if hostiles == *hostile);
+                let same =
+                    matches!(*activity, SquadActivity::Engage { hostiles } if hostiles == *hostile);
                 if !same {
                     *activity = SquadActivity::Engage { hostiles: *hostile };
                 }
-                let our_pos = snapshot.iter().find(|n| n.entity == leader.0).map(|n| n.pos);
+                let our_pos = snapshot
+                    .iter()
+                    .find(|n| n.entity == leader.0)
+                    .map(|n| n.pos);
                 let hostile_leader = squad_leader.get(hostile).copied();
                 let hostile_pos = hostile_leader
                     .and_then(|h| snapshot.iter().find(|n| n.entity == h))
@@ -294,14 +302,10 @@ fn drive_squad_goals(
 
 fn next_activity_for_goal(goal: &Goal, waypoints: &mut SquadWaypoints) -> SquadActivity {
     match goal {
-        Goal::Idle => SquadActivity::Hold {
-            duration_secs: 4.0,
-        },
+        Goal::Idle => SquadActivity::Hold { duration_secs: 4.0 },
         Goal::Patrol { .. } | Goal::Scavenge { .. } => {
             if waypoints.points.is_empty() {
-                SquadActivity::Hold {
-                    duration_secs: 4.0,
-                }
+                SquadActivity::Hold { duration_secs: 4.0 }
             } else {
                 let idx = (waypoints.next as usize) % waypoints.points.len();
                 let target = waypoints.points[idx];
@@ -309,12 +313,8 @@ fn next_activity_for_goal(goal: &Goal, waypoints: &mut SquadWaypoints) -> SquadA
                 SquadActivity::Move { target }
             }
         }
-        Goal::Protect { .. } => SquadActivity::Hold {
-            duration_secs: 0.5,
-        },
-        _ => SquadActivity::Hold {
-            duration_secs: 4.0,
-        },
+        Goal::Protect { .. } => SquadActivity::Hold { duration_secs: 0.5 },
+        _ => SquadActivity::Hold { duration_secs: 4.0 },
     }
 }
 
@@ -406,11 +406,19 @@ fn drive_squad_formation(
 
     let squad_info: HashMap<
         Entity,
-        (SquadActivity, Vec2, cordon_core::entity::squad::Formation, usize),
+        (
+            SquadActivity,
+            Vec2,
+            cordon_core::entity::squad::Formation,
+            usize,
+        ),
     > = squad_state_q
         .iter()
         .map(|(e, _, _, members, formation, activity, facing)| {
-            (e, (activity.clone(), facing.0, formation.0, members.0.len()))
+            (
+                e,
+                (activity.clone(), facing.0, formation.0, members.0.len()),
+            )
         })
         .collect();
 

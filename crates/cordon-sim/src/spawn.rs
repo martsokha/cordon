@@ -127,8 +127,7 @@ pub fn spawn_population(
     );
 
     // Pass 1: spawn NPC entities, mapping their uid → entity.
-    let mut uid_to_entity: HashMap<Uid<NpcData>, Entity> =
-        HashMap::with_capacity(spawn.npcs.len());
+    let mut uid_to_entity: HashMap<Uid<NpcData>, Entity> = HashMap::with_capacity(spawn.npcs.len());
     for npc in spawn.npcs {
         let uid = npc.id;
         let entity = commands.spawn(NpcBundle::from_npc(npc)).id();

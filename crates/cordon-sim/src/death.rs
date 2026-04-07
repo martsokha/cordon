@@ -26,7 +26,9 @@ impl Plugin for DeathPlugin {
         app.add_message::<CorpseRemoved>();
         app.add_systems(
             Update,
-            (handle_deaths, cleanup_corpses).chain().in_set(SimSet::Death),
+            (handle_deaths, cleanup_corpses)
+                .chain()
+                .in_set(SimSet::Death),
         );
     }
 }

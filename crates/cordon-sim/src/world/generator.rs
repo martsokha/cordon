@@ -229,8 +229,7 @@ pub fn roll_population_top_up<R: Rng>(
 
         for (slot_idx, rank) in template.ranks.iter().enumerate() {
             let npc_uid = uids.alloc::<Npc>();
-            let mut npc =
-                generator.generate_with_rank(npc_uid, faction.clone(), *rank, pool, rng);
+            let mut npc = generator.generate_with_rank(npc_uid, faction.clone(), *rank, pool, rng);
             // Roll a loadout for this member from the per-rank pool.
             npc.loadout = generate_loadout(arch, npc.rank(), loadout_ctx.items, rng);
 
@@ -319,11 +318,7 @@ fn resolve_goal<R: Rng>(kind: SquadGoalKind, area_ids: &[Id<Area>], rng: &mut R)
 
 /// Roll 3 random waypoints inside the goal's area, scattered around
 /// the area centre at varying angles. Empty for non-area goals.
-fn waypoints_for_goal<R: Rng>(
-    goal: &Goal,
-    ctx: &LoadoutContext<'_>,
-    rng: &mut R,
-) -> Vec<[f32; 2]> {
+fn waypoints_for_goal<R: Rng>(goal: &Goal, ctx: &LoadoutContext<'_>, rng: &mut R) -> Vec<[f32; 2]> {
     let area_id = match goal {
         Goal::Patrol { area } | Goal::Scavenge { area } => area,
         _ => return Vec::new(),

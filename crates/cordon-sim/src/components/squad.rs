@@ -90,12 +90,7 @@ pub struct SquadBundle {
 }
 
 impl SquadBundle {
-    pub fn from_squad(
-        squad: Squad,
-        leader: Entity,
-        members: Vec<Entity>,
-        home: Vec2,
-    ) -> Self {
+    pub fn from_squad(squad: Squad, leader: Entity, members: Vec<Entity>, home: Vec2) -> Self {
         Self {
             marker: SquadMarker,
             id: SquadId(squad.id),

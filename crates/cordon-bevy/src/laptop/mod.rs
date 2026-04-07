@@ -11,7 +11,6 @@ use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::primitive::{HazardType, Tier};
 use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
-
 use cordon_sim::behavior::{CombatTarget, FireState, MovementSpeed, MovementTarget, Vision};
 use cordon_sim::components::{
     FactionId, NpcMarker, NpcNameComp, SquadFormation, SquadHomePosition, SquadMembership, Xp,
@@ -316,7 +315,10 @@ fn spawn_map(
         Transform::from_xyz(0.0, 0.0, 1.0),
     ));
 
-    info!("Laptop map: {} areas (NPCs spawned by cordon-sim)", data.areas.len());
+    info!(
+        "Laptop map: {} areas (NPCs spawned by cordon-sim)",
+        data.areas.len()
+    );
 
     commands.insert_resource(MapSpawned);
 }

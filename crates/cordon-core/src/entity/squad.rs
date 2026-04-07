@@ -13,8 +13,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::npc::Npc;
 use super::faction::Faction;
+use super::npc::Npc;
 use crate::primitive::{Id, IdMarker, Uid};
 
 /// A coordinated group of NPCs sharing a goal and (when fighting) a
@@ -122,12 +122,8 @@ impl Formation {
             }
             Formation::Loose => {
                 // Cheap deterministic scatter from a small fixed table.
-                const SCATTER: [[f32; 2]; 4] = [
-                    [-12.0, -8.0],
-                    [10.0, -10.0],
-                    [-9.0, 11.0],
-                    [13.0, 6.0],
-                ];
+                const SCATTER: [[f32; 2]; 4] =
+                    [[-12.0, -8.0], [10.0, -10.0], [-9.0, 11.0], [13.0, 6.0]];
                 for i in 1..n {
                     out.push(SCATTER[(i - 1) % 4]);
                 }

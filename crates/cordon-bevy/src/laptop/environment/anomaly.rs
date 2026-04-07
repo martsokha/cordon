@@ -6,7 +6,6 @@ use bevy::shader::ShaderRef;
 use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dPlugin};
 use cordon_core::primitive::{HazardType, Tier};
 use cordon_data::gamedata::GameDataResource;
-
 use cordon_sim::behavior::AnomalyZone;
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]

@@ -40,10 +40,7 @@ pub enum SquadCommand {
     /// Carry items to a destination point.
     Deliver { squad: Entity, to: Vec2 },
     /// Switch the marching formation.
-    SetFormation {
-        squad: Entity,
-        formation: Formation,
-    },
+    SetFormation { squad: Entity, formation: Formation },
 }
 
 pub struct CommandsPlugin;

@@ -5,9 +5,9 @@
 
 use std::collections::HashMap;
 
-use cordon_core::world::area::Area;
 use cordon_core::entity::player::PlayerState;
 use cordon_core::primitive::{Id, Relation};
+use cordon_core::world::area::Area;
 use cordon_core::world::event::{ActiveEvent, Event};
 
 use crate::world::sectors::AreaState;

@@ -186,4 +186,3 @@ fn pick_weighted<'a, R: Rng>(pool: &'a [WeightedItem], rng: &mut R) -> Option<&'
     }
     Some(&pool[pool.len() - 1].id)
 }
-

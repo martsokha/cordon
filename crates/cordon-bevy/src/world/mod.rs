@@ -32,11 +32,7 @@ impl Plugin for WorldPlugin {
 #[derive(Resource)]
 struct TimeAccumulator(f32);
 
-fn tick_game_time(
-    time: Res<Time>,
-    mut acc: ResMut<TimeAccumulator>,
-    mut clock: ResMut<GameClock>,
-) {
+fn tick_game_time(time: Res<Time>, mut acc: ResMut<TimeAccumulator>, mut clock: ResMut<GameClock>) {
     acc.0 += time.delta_secs() * GAME_MINUTES_PER_SECOND;
     let minutes = acc.0 as u32;
     if minutes > 0 {

@@ -20,9 +20,7 @@ impl Plugin for LootPlugin {
         app.add_message::<ItemLooted>();
         app.add_systems(
             Update,
-            (try_start_looting, drive_loot)
-                .chain()
-                .in_set(SimSet::Loot),
+            (try_start_looting, drive_loot).chain().in_set(SimSet::Loot),
         );
     }
 }
@@ -55,14 +53,15 @@ fn try_start_looting(
             continue;
         }
         let pos = transform.translation.truncate();
-        let nearest = corpse_snapshot
-            .iter()
-            .filter(|(e, _)| *e != entity)
-            .min_by(|(_, a), (_, b)| {
-                pos.distance_squared(*a)
-                    .partial_cmp(&pos.distance_squared(*b))
-                    .unwrap_or(std::cmp::Ordering::Equal)
-            });
+        let nearest =
+            corpse_snapshot
+                .iter()
+                .filter(|(e, _)| *e != entity)
+                .min_by(|(_, a), (_, b)| {
+                    pos.distance_squared(*a)
+                        .partial_cmp(&pos.distance_squared(*b))
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                });
         let Some((corpse_entity, corpse_pos)) = nearest else {
             continue;
         };

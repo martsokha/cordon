@@ -2,12 +2,12 @@
 
 use bevy::prelude::*;
 use cordon_core::primitive::Tier;
+use cordon_sim::resources::GameClock;
 
 use super::LaptopTab;
 use crate::PlayingState;
 use crate::laptop::LaptopCamera;
 use crate::laptop::input::CameraTarget;
-use cordon_sim::resources::GameClock;
 
 #[derive(Component)]
 pub struct ZoomLabel;

@@ -264,8 +264,7 @@ fn resolve_combat(
         };
         let raw_damage = ammo_damage + weapon_added;
 
-        let (dealt, absorbed) =
-            Resistances::resolve_hit(target_ballistic, penetration, raw_damage);
+        let (dealt, absorbed) = Resistances::resolve_hit(target_ballistic, penetration, raw_damage);
 
         if let Some(weapon) = &mut loadout.0.primary {
             weapon.count = weapon.count.saturating_sub(1);
@@ -278,7 +277,11 @@ fn resolve_combat(
             to: target_pos,
         });
 
-        fire_state.cooldown_secs = if fire_rate > 0.0 { 1.0 / fire_rate } else { 1.0 };
+        fire_state.cooldown_secs = if fire_rate > 0.0 {
+            1.0 / fire_rate
+        } else {
+            1.0
+        };
         hits.push(HitIntent {
             target: target_entity,
             dealt,
@@ -299,7 +302,6 @@ fn resolve_combat(
             }
         }
     }
-
 }
 
 /// Pull one matching ammo box from the loadout's general pouch and
