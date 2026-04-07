@@ -160,7 +160,9 @@ fn spawn_one(commands: &mut Commands, area: &AreaDef, def: &ItemDef, rng: &mut W
         RelicMarker,
         RelicItem(instance),
         RelicHome(area.id.clone()),
-        Transform::from_xyz(x, y, 0.4),
+        // z=10 keeps relics above the cloud layer at z=5 so they
+        // aren't obscured by passing cloud shadows.
+        Transform::from_xyz(x, y, 10.0),
     ));
 }
 

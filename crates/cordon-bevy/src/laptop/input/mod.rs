@@ -43,7 +43,7 @@ impl Default for CameraTarget {
     }
 }
 
-pub const ZOOM_MIN: f32 = 0.6;
+pub const ZOOM_MIN: f32 = 0.85;
 pub const ZOOM_MAX: f32 = 1.8;
 
 const SMOOTHNESS: f32 = 0.3;

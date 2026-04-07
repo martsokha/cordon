@@ -5,10 +5,11 @@
   "buys": ["relic", "consumable", "document"],
   "sells": ["relic", "consumable"],
   "namepool": "slavic",
+  "color": "#7A3F8C",
   "relations": [
-    ["garrison", -50],
-    ["syndicate", 10],
-    ["institute", -30],
-    ["drifters", 10]
+    ["garrison", -70],
+    ["syndicate", -70],
+    ["institute", -70],
+    ["drifters", -70]
   ]
 }
