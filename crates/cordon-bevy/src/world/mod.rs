@@ -7,12 +7,12 @@
 
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::simulation::day;
-use cordon_sim::state::world::World;
+use cordon_sim::world::day;
+use cordon_sim::world::state::World;
 
 use crate::AppState;
 
-pub use cordon_sim::spawn::SimWorld;
+pub use cordon_sim::resources::SimWorld;
 
 pub struct WorldPlugin;
 

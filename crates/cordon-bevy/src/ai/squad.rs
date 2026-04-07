@@ -15,7 +15,7 @@ use cordon_sim::components::{
     LoadoutComp, NpcMarker, SquadActivity, SquadFacing, SquadFaction, SquadFormation, SquadGoal,
     SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
 };
-use cordon_sim::spawn::SquadIdIndex;
+use cordon_sim::resources::SquadIdIndex;
 
 use super::AiSet;
 use super::behavior::{CombatTarget, MovementSpeed, MovementTarget};

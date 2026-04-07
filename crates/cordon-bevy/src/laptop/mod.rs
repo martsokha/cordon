@@ -13,8 +13,7 @@ use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
 
 use cordon_sim::components::{
-    FactionId, Name as NpcNameComp, NpcMarker, SquadFormation, SquadHomePosition, SquadMembership,
-    Xp,
+    FactionId, NpcMarker, NpcNameComp, SquadFormation, SquadHomePosition, SquadMembership, Xp,
 };
 
 use crate::PlayingState;

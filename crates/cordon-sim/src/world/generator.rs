@@ -10,8 +10,8 @@ use cordon_core::primitive::{Credits, Experience, Health, Id, Rank, Uid};
 use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
-use crate::simulation::loadout::generate_loadout;
-use crate::state::world::World;
+use crate::world::loadout::generate_loadout;
+use crate::world::state::World;
 
 /// Read-only references the loadout generator needs at NPC spawn time.
 pub struct LoadoutContext<'a> {

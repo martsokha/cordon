@@ -1,7 +1,7 @@
 use cordon_core::primitive::{Id, Relation};
 use cordon_core::world::event::Event;
 
-use crate::state::world::World;
+use crate::world::state::World;
 
 /// Well-known event def IDs (must match config).
 const EVENT_FACTION_WAR: &str = "faction_war";

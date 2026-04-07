@@ -9,7 +9,7 @@ use cordon_core::primitive::Id;
 use cordon_core::world::event::{ActiveEvent, EventCategory, EventDef};
 use rand::{Rng, RngExt};
 
-use crate::state::world::World;
+use crate::world::state::World;
 
 /// Roll for daily events using loaded event definitions.
 ///

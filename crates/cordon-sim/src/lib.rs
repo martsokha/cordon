@@ -8,11 +8,13 @@ pub mod components;
 /// Bevy plugin entry point.
 pub mod plugin;
 
-/// Day cycle, event scheduling, mission resolution, NPC spawning, faction dynamics.
-pub mod simulation;
+/// Top-level Bevy resources owned by cordon-sim.
+pub mod resources;
 
 /// NPC and squad spawning systems.
 pub mod spawn;
 
-/// Mutable world state: market, sectors, and the top-level world struct.
-pub mod state;
+/// World state, day cycle, event scheduling, faction dynamics, NPC
+/// generation. Being progressively dissolved into ECS resources +
+/// systems.
+pub mod world;

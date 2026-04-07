@@ -16,8 +16,8 @@
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataResource;
 
+use crate::resources::{SimWorld, SquadIdIndex};
 use crate::spawn;
-use crate::spawn::SimWorld;
 
 /// Ordered system set for cordon-sim's Bevy systems. Downstream
 /// crates use this for explicit ordering of their own systems
@@ -33,7 +33,7 @@ pub struct CordonSimPlugin;
 
 impl Plugin for CordonSimPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<spawn::SquadIdIndex>();
+        app.init_resource::<SquadIdIndex>();
         app.configure_sets(
             Update,
             SimSet::Spawn
@@ -48,10 +48,10 @@ impl Plugin for CordonSimPlugin {
 pub mod prelude {
     pub use super::{CordonSimPlugin, SimSet};
     pub use crate::components::{
-        Employment, FactionId, Hp, LoadoutComp, Loyalty, Name, NpcBundle, NpcId, NpcMarker,
+        Employment, FactionId, Hp, LoadoutComp, Loyalty, NpcBundle, NpcId, NpcMarker, NpcNameComp,
         PersonalityComp, Perks, SquadActivity, SquadBundle, SquadFacing, SquadFaction,
         SquadFormation, SquadGoal, SquadHomePosition, SquadId, SquadLeader, SquadMarker,
         SquadMembers, SquadMembership, SquadWaypoints, Trust, Wealth, Xp,
     };
-    pub use crate::spawn::{SimWorld, SquadIdIndex};
+    pub use crate::resources::{SimWorld, SquadIdIndex};
 }

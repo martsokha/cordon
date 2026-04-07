@@ -10,8 +10,8 @@ use cordon_core::world::narrative::quest::{ActiveQuest, CompletedQuest};
 use rand::rngs::StdRng;
 use rand::{RngExt, SeedableRng};
 
-use crate::state::market::MarketState;
-use crate::state::sectors::AreaState;
+use crate::world::market::MarketState;
+use crate::world::sectors::AreaState;
 
 /// Per-subsystem RNGs derived from the master seed.
 ///

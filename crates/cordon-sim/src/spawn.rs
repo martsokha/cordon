@@ -3,7 +3,7 @@
 //! [`spawn_population`] reads the live alive-NPC count from a Bevy
 //! query, computes the deficit toward the generator's target
 //! population, rolls fresh NPCs and squads via
-//! [`crate::simulation::npcs::roll_population_top_up`], and spawns
+//! [`crate::world::generator::roll_population_top_up`], and spawns
 //! them as ECS entities.
 //!
 //! Squad members reference each other via `Entity` so the AI hot path
@@ -14,26 +14,15 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use cordon_core::entity::name::NamePool;
 use cordon_core::entity::npc::Npc as NpcData;
-use cordon_core::entity::squad::Squad as SquadData;
 use cordon_core::primitive::Uid;
 use cordon_data::gamedata::GameDataResource;
 use rand::{Rng, RngExt};
 
-use crate::components::{NpcBundle, NpcId, SquadBundle, SquadMarker, SquadMembership};
-use crate::simulation::npcs::{
+use crate::components::{NpcBundle, NpcId, SquadBundle, SquadMembership};
+use crate::resources::{SimWorld, SquadIdIndex};
+use crate::world::generator::{
     DefaultNpcGenerator, LoadoutContext, NpcGenerator, roll_population_top_up,
 };
-use crate::state::world::World;
-
-/// Maps stable squad uids to their current ECS entity. Maintained by
-/// [`spawn_population`] and used by AI systems for the rare uid → entity
-/// lookups (e.g. resolving `Goal::Protect { other }`).
-#[derive(Resource, Default, Debug, Clone)]
-pub struct SquadIdIndex(pub HashMap<Uid<SquadData>, Entity>);
-
-/// Resource wrapping the simulation [`World`].
-#[derive(Resource)]
-pub struct SimWorld(pub World);
 
 /// Per-day spawn schedule: a list of `(day_progress, chunk_size)`
 /// pairs picked at the start of each in-game day. Each entry fires
@@ -251,17 +240,3 @@ fn pick_home_position<R: Rng>(centres: &[Vec2], rng: &mut R) -> Vec2 {
     base + Vec2::new(jx, jy)
 }
 
-/// Convenience: build an `Entity` index by `Uid<Npc>` from a query.
-/// Useful for systems that need to look up an NPC by uid (rare).
-pub fn build_uid_to_entity_index(
-    q: Query<(Entity, &NpcId), With<NpcId>>,
-) -> HashMap<Uid<NpcData>, Entity> {
-    q.iter().map(|(e, id)| (id.0, e)).collect()
-}
-
-/// True when the squad marker exists in the ECS — used by setup code
-/// to gate "have we run init yet" checks.
-#[allow(dead_code)]
-pub fn any_squad_exists(q: Query<(), With<SquadMarker>>) -> bool {
-    q.iter().next().is_some()
-}
