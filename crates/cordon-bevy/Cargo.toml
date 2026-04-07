@@ -28,7 +28,10 @@ cordon-sim = { workspace = true }
 
 # Game engine
 bevy = { workspace = true }
-bevy_fluent = { workspace = true }
+bevy-inspector-egui = { workspace = true }
 rand = { workspace = true }
-unic-langid = "0.9"
-fluent_content = "0.0.5"
+
+# Localization
+bevy_fluent = { workspace = true }
+fluent_content = { workspace = true }
+unic-langid = { workspace = true }
