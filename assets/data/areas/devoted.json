@@ -1,0 +1,32 @@
+[
+  {
+    "id": "shrine",
+    "location": { "x": -870.0, "y": -900.0 },
+    "radius": 70.0,
+    "kind": {
+      "type": "settlement",
+      "faction": "devoted",
+      "role": "outpost"
+    }
+  },
+  {
+    "id": "monastery",
+    "location": { "x": -1080.0, "y": -1080.0 },
+    "radius": 90.0,
+    "kind": {
+      "type": "settlement",
+      "faction": "devoted",
+      "role": "outpost"
+    }
+  },
+  {
+    "id": "pilgrim_camp",
+    "location": { "x": -870.0, "y": -1170.0 },
+    "radius": 75.0,
+    "kind": {
+      "type": "settlement",
+      "faction": "devoted",
+      "role": "market"
+    }
+  }
+]

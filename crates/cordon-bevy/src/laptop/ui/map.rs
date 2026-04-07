@@ -43,14 +43,13 @@ pub enum TooltipContent {
     Area {
         faction_icon: String,
         name: String,
-        creatures: String,
-        creatures_tier: Tier,
-        radiation: String,
-        radiation_tier: Tier,
+        kind_label: String,
+        role: Option<String>,
+        creatures: Option<(String, Tier)>,
+        radiation: Option<(String, Tier)>,
         hazard_image: Option<String>,
         hazard_count: u8,
-        loot: String,
-        loot_tier: Tier,
+        loot: Option<(String, Tier)>,
     },
     Npc {
         faction_icon: String,
@@ -328,28 +327,42 @@ fn update_tooltip(
         TooltipContent::Area {
             faction_icon,
             name,
+            kind_label,
+            role,
             creatures,
-            creatures_tier,
             radiation,
-            radiation_tier,
             hazard_image,
             hazard_count: count,
             loot,
-            loot_tier,
         } => {
             header_text = format!("{faction_icon} {name}");
             hazard_path = hazard_image.clone();
             hazard_count = *count;
             relic_handle = None;
             icon_size = 14.0;
-            spans = vec![
-                ("Creatures: ".into(), COLOR_LABEL),
-                (creatures.clone(), tier_color(creatures_tier)),
-                ("\nRadiation: ".into(), COLOR_LABEL),
-                (radiation.clone(), tier_color(radiation_tier)),
-                ("\nLoot: ".into(), COLOR_LABEL),
-                (loot.clone(), tier_color(loot_tier)),
-            ];
+            // First line is always the archetype label, optionally
+            // followed by the role for Settlements ("Settlement —
+            // Market"). Stat rows are added only when the archetype
+            // carries that field.
+            let kind_line = match role {
+                Some(r) => format!("{kind_label} — {r}"),
+                None => kind_label.clone(),
+            };
+            let mut s: Vec<(String, Color)> =
+                vec![(kind_line, Color::srgba(0.7, 0.7, 0.7, 1.0))];
+            if let Some((label, tier)) = creatures {
+                s.push(("\nCreatures: ".into(), COLOR_LABEL));
+                s.push((label.clone(), tier_color(tier)));
+            }
+            if let Some((label, tier)) = radiation {
+                s.push(("\nRadiation: ".into(), COLOR_LABEL));
+                s.push((label.clone(), tier_color(tier)));
+            }
+            if let Some((label, tier)) = loot {
+                s.push(("\nLoot: ".into(), COLOR_LABEL));
+                s.push((label.clone(), tier_color(tier)));
+            }
+            spans = s;
         }
         TooltipContent::Npc {
             faction_icon,

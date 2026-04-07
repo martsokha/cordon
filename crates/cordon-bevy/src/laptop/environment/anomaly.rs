@@ -64,7 +64,7 @@ pub fn spawn(
     anomaly_mats: &mut ResMut<Assets<AnomalyMaterial>>,
 ) {
     for area in game_data.0.areas.values() {
-        if let Some(hazard) = &area.danger.hazard {
+        if let Some(hazard) = area.kind.hazard() {
             let x = area.location.x;
             let y = area.location.y;
             let r = area.radius.value() * 1.2;

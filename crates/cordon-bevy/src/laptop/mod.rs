@@ -11,7 +11,7 @@ use bevy_fluent::prelude::*;
 use cordon_core::entity::faction::RankScheme;
 use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::primitive::{HazardType, Tier};
-use cordon_core::world::area::AreaDef;
+use cordon_core::world::area::{AreaDef, AreaKind, SettlementRole};
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::behavior::{CombatTarget, FireState, MovementSpeed, MovementTarget, Vision};
 use cordon_sim::components::{
@@ -183,14 +183,15 @@ struct AreaData(AreaTooltipInfo);
 struct AreaTooltipInfo {
     faction_icon: String,
     name: String,
-    creatures: String,
-    creatures_tier: Tier,
-    radiation: String,
-    radiation_tier: Tier,
+    /// Pre-localized archetype label (e.g. "Settlement", "Anomaly Field").
+    kind_label: String,
+    /// For Settlements: the role label ("Outpost"/"Market"). None otherwise.
+    role: Option<String>,
+    creatures: Option<(String, Tier)>,
+    radiation: Option<(String, Tier)>,
     hazard_image: Option<String>,
     hazard_count: u8,
-    loot: String,
-    loot_tier: Tier,
+    loot: Option<(String, Tier)>,
 }
 
 #[derive(Component, Clone)]
@@ -218,7 +219,7 @@ fn faction_icon_str(faction: Option<&str>) -> &'static str {
         Some("institute") => "[I]",
         Some("devoted") => "[D]",
         Some("drifters") => "[d]",
-        _ => "[ ]",
+        _ => "[?]",
     }
 }
 
@@ -307,50 +308,71 @@ fn resolve_npc_name(l10n: &Localization, name: &NpcName) -> String {
 }
 
 fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
+    let tier_label = |t: Tier| -> (String, Tier) {
+        (
+            l10n_or(l10n, tier_key(&t), &format!("{:?}", t)),
+            t,
+        )
+    };
+    let hazard_image = |h: &cordon_core::world::area::Hazard| -> String {
+        match h.kind {
+            HazardType::Chemical => "icons/hazards/chemical.png".to_string(),
+            HazardType::Thermal => "icons/hazards/thermal.png".to_string(),
+            HazardType::Electric => "icons/hazards/electric.png".to_string(),
+            HazardType::Gravitational => "icons/hazards/gravitational.png".to_string(),
+        }
+    };
+    let hazard_count = |t: Tier| -> u8 {
+        match t {
+            Tier::VeryLow => 1,
+            Tier::Low => 2,
+            Tier::Medium => 3,
+            Tier::High => 4,
+            Tier::VeryHigh => 5,
+        }
+    };
+
+    let kind_key = match &area.kind {
+        AreaKind::Settlement { .. } => "areakind-settlement",
+        AreaKind::Wasteland { .. } => "areakind-wasteland",
+        AreaKind::MutantLair { .. } => "areakind-mutant-lair",
+        AreaKind::AnomalyField { .. } => "areakind-anomaly-field",
+        AreaKind::Anchor { .. } => "areakind-anchor",
+    };
+
+    let role = match &area.kind {
+        AreaKind::Settlement { role, .. } => Some({
+            let key = match role {
+                SettlementRole::Outpost => "settlement-role-outpost",
+                SettlementRole::Market => "settlement-role-market",
+            };
+            l10n_or(l10n, key, key)
+        }),
+        _ => None,
+    };
+
+    let creatures = area.kind.creatures().map(tier_label);
+    let radiation = area.kind.radiation().map(tier_label);
+    let loot = area.kind.loot().map(tier_label);
+    let (hazard_image, hazard_count_v) = match area.kind.hazard() {
+        Some(h) => (Some(hazard_image(&h)), hazard_count(h.intensity)),
+        None => (None, 0),
+    };
+
     AreaTooltipInfo {
-        faction_icon: faction_icon_str(area.default_faction.as_ref().map(|f| f.as_str()))
-            .to_string(),
+        faction_icon: faction_icon_str(area.kind.faction().map(|f| f.as_str())).to_string(),
         name: l10n_or(
             l10n,
             &format!("area-{}", area.id.as_str()),
             area.id.as_str(),
         ),
-        creatures: l10n_or(
-            l10n,
-            tier_key(&area.danger.creatures),
-            &format!("{:?}", area.danger.creatures),
-        ),
-        creatures_tier: area.danger.creatures,
-        radiation: l10n_or(
-            l10n,
-            tier_key(&area.danger.radiation),
-            &format!("{:?}", area.danger.radiation),
-        ),
-        radiation_tier: area.danger.radiation,
-        hazard_image: area.danger.hazard.as_ref().map(|h| match h.kind {
-            HazardType::Chemical => "icons/hazards/chemical.png".to_string(),
-            HazardType::Thermal => "icons/hazards/thermal.png".to_string(),
-            HazardType::Electric => "icons/hazards/electric.png".to_string(),
-            HazardType::Gravitational => "icons/hazards/gravitational.png".to_string(),
-        }),
-        hazard_count: area
-            .danger
-            .hazard
-            .as_ref()
-            .map(|h| match h.intensity {
-                Tier::VeryLow => 1,
-                Tier::Low => 2,
-                Tier::Medium => 3,
-                Tier::High => 4,
-                Tier::VeryHigh => 5,
-            })
-            .unwrap_or(0),
-        loot: l10n_or(
-            l10n,
-            tier_key(&area.loot_tier),
-            &format!("{:?}", area.loot_tier),
-        ),
-        loot_tier: area.loot_tier,
+        kind_label: l10n_or(l10n, kind_key, kind_key),
+        role,
+        creatures,
+        radiation,
+        hazard_image,
+        hazard_count: hazard_count_v,
+        loot,
     }
 }
 
@@ -599,14 +621,13 @@ fn update_hover(
             *tooltip = TooltipContent::Area {
                 faction_icon: i.faction_icon.clone(),
                 name: i.name.clone(),
+                kind_label: i.kind_label.clone(),
+                role: i.role.clone(),
                 creatures: i.creatures.clone(),
-                creatures_tier: i.creatures_tier,
                 radiation: i.radiation.clone(),
-                radiation_tier: i.radiation_tier,
                 hazard_image: i.hazard_image.clone(),
                 hazard_count: i.hazard_count,
                 loot: i.loot.clone(),
-                loot_tier: i.loot_tier,
             };
             hovered_area = true;
         } else if let Some(m) = mats.get_mut(&mat_handle.0) {

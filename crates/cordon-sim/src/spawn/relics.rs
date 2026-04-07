@@ -95,7 +95,7 @@ fn spawn_relics_on_day_rollover(
     }
 
     for area in data.areas.values() {
-        let Some(hazard) = area.danger.hazard else {
+        let Some(hazard) = area.kind.hazard() else {
             continue;
         };
         let cap = cap_for_intensity(hazard.intensity);
