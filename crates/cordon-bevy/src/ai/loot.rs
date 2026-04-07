@@ -23,7 +23,7 @@ use crate::laptop::NpcDot;
 use crate::world::SimWorld;
 
 /// Distance under which an alive NPC will start looting an adjacent corpse.
-const LOOT_REACH: f32 = 40.0;
+const LOOT_REACH: f32 = 12.0;
 /// How long a single loot transfer takes (seconds per item).
 const LOOT_INTERVAL_SECS: f32 = 0.4;
 

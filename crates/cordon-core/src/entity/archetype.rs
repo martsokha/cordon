@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use super::faction::Faction;
+use super::squad::Formation;
 use crate::item::Item;
 use crate::primitive::{Id, IdMarker, Rank};
 
@@ -29,6 +30,10 @@ pub struct ArchetypeDef {
     pub faction: Id<Faction>,
     /// One loadout recipe per rank.
     pub ranks: HashMap<Rank, RankLoadout>,
+    /// Squad templates the spawner can pick from when generating this
+    /// faction's NPCs. If empty, only solo NPCs (squads of one) spawn.
+    #[serde(default)]
+    pub squads: Vec<SquadTemplate>,
 }
 
 impl ArchetypeDef {
@@ -58,6 +63,36 @@ pub struct WeightedItem {
 
 fn one() -> u32 {
     1
+}
+
+/// A squad template the spawner can roll when generating NPCs.
+///
+/// Each entry specifies a roster shape (member count + per-slot rank)
+/// plus the squad's default goal and formation. The leader is always
+/// slot 0 in `ranks`. Member loadouts come from the per-rank pools.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SquadTemplate {
+    /// One rank per member, length 1..=5. Slot 0 is the leader.
+    pub ranks: Vec<Rank>,
+    /// Default goal at spawn time. The spawner translates Patrol/
+    /// Scavenge into a concrete area pick.
+    pub goal: SquadGoalKind,
+    /// Default formation when not in combat.
+    pub formation: Formation,
+    /// Selection weight relative to other templates in the same archetype.
+    #[serde(default = "one")]
+    pub weight: u32,
+}
+
+/// Coarse goal kind picked from the JSON. The spawner resolves it to
+/// a concrete [`Goal`](super::squad::Goal) by picking an area or target
+/// at spawn time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SquadGoalKind {
+    Idle,
+    Patrol,
+    Scavenge,
 }
 
 /// The loadout recipe for one (faction, rank) cell.

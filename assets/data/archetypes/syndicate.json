@@ -53,6 +53,12 @@
         "consumables": [{ "id": "medkit" }, { "id": "antirad" }],
         "consumable_count": 4
       }
-    }
+    },
+    "squads": [
+      { "ranks": ["experienced", "novice", "novice"], "goal": "patrol", "formation": "column", "weight": 3 },
+      { "ranks": ["veteran", "experienced", "novice"], "goal": "patrol", "formation": "line", "weight": 3 },
+      { "ranks": ["experienced"], "goal": "scavenge", "formation": "loose", "weight": 2 },
+      { "ranks": ["master", "veteran", "experienced", "novice"], "goal": "patrol", "formation": "wedge", "weight": 1 }
+    ]
   }
 ]

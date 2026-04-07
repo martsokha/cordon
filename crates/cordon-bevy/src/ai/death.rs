@@ -29,11 +29,31 @@ const X_BAR_THICKNESS: f32 = 1.5;
 /// Mid-grey colour for the X marker.
 const X_BAR_COLOR: Color = Color::srgba(0.55, 0.55, 0.55, 0.9);
 
+/// Shared mesh + material handles for the X marker bars, populated at
+/// startup so every corpse can clone them instead of allocating new
+/// asset handles.
+#[derive(Resource, Clone)]
+pub struct DeathAssets {
+    pub bar_mesh: Handle<Mesh>,
+    pub bar_mat: Handle<ColorMaterial>,
+}
+
+fn init_death_assets(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let bar_mesh = meshes.add(Rectangle::new(X_BAR_LENGTH, X_BAR_THICKNESS));
+    let bar_mat = materials.add(ColorMaterial::from_color(X_BAR_COLOR));
+    commands.insert_resource(DeathAssets { bar_mesh, bar_mat });
+}
+
 /// Plugin registering the death/cleanup systems.
 pub struct DeathPlugin;
 
 impl Plugin for DeathPlugin {
     fn build(&self, app: &mut App) {
+        app.add_systems(Startup, init_death_assets);
         app.add_systems(
             Update,
             (handle_deaths, cleanup_corpses)
@@ -47,9 +67,8 @@ impl Plugin for DeathPlugin {
 /// a standalone X mark (no background circle).
 fn handle_deaths(
     sim: Option<Res<SimWorld>>,
+    death_assets: Res<DeathAssets>,
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     q: Query<(Entity, &NpcDot), Without<Dead>>,
 ) {
     let Some(sim) = sim else { return };
@@ -69,9 +88,11 @@ fn handle_deaths(
             .remove::<Mesh2d>()
             .remove::<MeshMaterial2d<ColorMaterial>>();
 
-        // Two crossed bar children form the X marker.
-        let bar_mesh = meshes.add(Rectangle::new(X_BAR_LENGTH, X_BAR_THICKNESS));
-        let bar_mat = materials.add(ColorMaterial::from_color(X_BAR_COLOR));
+        // Two crossed bar children form the X marker. The mesh and
+        // material handles are shared (see DeathAssets) so the renderer
+        // can batch every X across the map.
+        let bar_mesh = death_assets.bar_mesh.clone();
+        let bar_mat = death_assets.bar_mat.clone();
         commands.entity(entity).with_children(|parent| {
             parent.spawn((
                 Mesh2d(bar_mesh.clone()),

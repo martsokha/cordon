@@ -25,7 +25,7 @@ use moonshine_behavior::prelude::*;
 use super::behavior::Action;
 use super::death::Dead;
 use crate::PlayingState;
-use crate::laptop::{MapWorldEntity, NpcDot, NpcFaction};
+use crate::laptop::{MapWorldEntity, NpcDot};
 use crate::world::SimWorld;
 
 /// Vision radius (in map units) for spotting hostiles.
@@ -117,7 +117,7 @@ pub fn line_blocked(from: Vec2, to: Vec2, anomalies: &[(Vec2, f32)]) -> bool {
 }
 
 /// Effective firing range of the equipped weapon, in map units. 0 if unarmed.
-fn weapon_range(items: &HashMap<Id<Item>, ItemDef>, loadout: &Loadout) -> f32 {
+pub fn weapon_range(items: &HashMap<Id<Item>, ItemDef>, loadout: &Loadout) -> f32 {
     let Some(inst) = loadout.equipped_weapon() else {
         return 0.0;
     };
@@ -171,122 +171,42 @@ fn find_ammo_idx(
     })
 }
 
-/// Plugin registering combat systems (vision, engagement, firing, tracers).
+/// Shared mesh + material for tracer entities. The mesh is a unit-
+/// length rectangle (width = TRACER_WIDTH, length = 1) and each tracer
+/// scales its `Transform.scale.x` to its actual length, so all tracers
+/// share one draw call.
+#[derive(Resource, Clone)]
+pub struct TracerAssets {
+    pub mesh: Handle<Mesh>,
+    pub material: Handle<ColorMaterial>,
+}
+
+fn init_tracer_assets(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let mesh = meshes.add(Rectangle::new(1.0, TRACER_WIDTH));
+    let material = materials.add(ColorMaterial::from_color(TRACER_COLOR));
+    commands.insert_resource(TracerAssets { mesh, material });
+}
+
+/// Plugin registering combat systems (firing, damage, tracers).
+///
+/// Engagement decisions (which target, when to fire, when to advance)
+/// live in [`super::squad`]. This plugin only handles the per-NPC
+/// shot-resolution loop.
 pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
+        app.add_systems(Startup, init_tracer_assets);
         app.add_systems(
             Update,
-            (update_engagement, resolve_engage_actions, fade_tracers)
+            (resolve_engage_actions, fade_tracers)
                 .chain()
                 .run_if(in_state(PlayingState::Laptop)),
         );
-    }
-}
-
-/// Per-frame engagement decision for every alive NPC.
-#[allow(clippy::type_complexity)]
-fn update_engagement(
-    sim: Option<Res<SimWorld>>,
-    game_data: Res<GameDataResource>,
-    anomalies: Query<(&Transform, &AnomalyZone)>,
-    others: Query<(Entity, &NpcDot, &NpcFaction, &Transform), Without<Dead>>,
-    mut q: Query<
-        (
-            Entity,
-            &NpcDot,
-            &NpcFaction,
-            &Vision,
-            &Transform,
-            BehaviorMut<Action>,
-        ),
-        Without<Dead>,
-    >,
-) {
-    let Some(sim) = sim else { return };
-    let factions = &game_data.0.factions;
-    let items = &game_data.0.items;
-    let anomaly_disks: Vec<(Vec2, f32)> = anomalies
-        .iter()
-        .map(|(t, a)| (t.translation.truncate(), a.radius))
-        .collect();
-
-    // Snapshot positions of all alive NPCs so we can scan without
-    // overlapping borrows on the main query.
-    let snapshot: Vec<(Entity, Uid<Npc>, Id<Faction>, Vec2)> = others
-        .iter()
-        .map(|(e, dot, f, t)| (e, dot.uid, f.0.clone(), t.translation.truncate()))
-        .collect();
-
-    for (entity, npc_dot, faction, vision, transform, mut behavior) in &mut q {
-        let pos = transform.translation.truncate();
-
-        let Some(npc) = sim.0.npcs.get(&npc_dot.uid) else {
-            continue;
-        };
-        if !npc.health.is_alive() {
-            continue;
-        }
-        let range = weapon_range(items, &npc.loadout);
-        if range <= 0.0 {
-            // Unarmed: can't engage.
-            continue;
-        }
-
-        // Find the nearest hostile in vision and with clear LOS.
-        let mut best: Option<(Uid<Npc>, Vec2, f32)> = None;
-        for (other_entity, other_uid, other_faction, other_pos) in &snapshot {
-            if *other_entity == entity {
-                continue;
-            }
-            if !is_hostile(&faction.0, other_faction, factions) {
-                continue;
-            }
-            let dist = pos.distance(*other_pos);
-            if dist > vision.radius {
-                continue;
-            }
-            if line_blocked(pos, *other_pos, &anomaly_disks) {
-                continue;
-            }
-            if best.is_none_or(|(_, _, d)| dist < d) {
-                best = Some((*other_uid, *other_pos, dist));
-            }
-        }
-
-        let Some((target_uid, target_pos, dist)) = best else {
-            // No hostile in sight: drop out of Engage if we were in it.
-            if matches!(behavior.current(), Action::Engage { .. }) {
-                let _ = behavior.try_start(Action::Idle { timer: 0.5 });
-            }
-            continue;
-        };
-
-        if dist <= range {
-            // In range: enter or stay in Engage. The cooldown starts at
-            // 0 so the first shot fires this same tick.
-            let already_engaging = matches!(
-                behavior.current(),
-                Action::Engage { target, .. } if *target == target_uid
-            );
-            if !already_engaging {
-                let _ = behavior.try_start(Action::Engage {
-                    target: target_uid,
-                    cooldown_secs: 0.0,
-                    reload_secs: 0.0,
-                });
-            }
-        } else {
-            // Out of range: walk toward the target.
-            let already_walking = matches!(behavior.current(), Action::Walk { .. });
-            if !already_walking {
-                let _ = behavior.try_start(Action::Walk {
-                    target: target_pos,
-                    speed: 35.0,
-                });
-            }
-        }
     }
 }
 
@@ -309,9 +229,8 @@ fn resolve_engage_actions(
     sim: Option<ResMut<SimWorld>>,
     time: Res<Time>,
     game_data: Res<GameDataResource>,
+    tracer_assets: Res<TracerAssets>,
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     mut shooters: Query<(&NpcDot, &Transform, BehaviorMut<Action>), Without<Dead>>,
     targets: Query<(&NpcDot, &Transform), Without<Dead>>,
 ) {
@@ -452,14 +371,7 @@ fn resolve_engage_actions(
         }
 
         // Spawn the tracer.
-        spawn_tracer(
-            &mut commands,
-            &mut meshes,
-            &mut materials,
-            TRACER_COLOR,
-            shooter_pos,
-            target_pos,
-        );
+        spawn_tracer(&mut commands, &tracer_assets, shooter_pos, target_pos);
 
         // Reset the shot cooldown.
         if let Action::Engage {
@@ -514,14 +426,11 @@ fn refill_magazine(
 }
 
 /// Spawn a tracer rectangle stretching from `from` to `to`.
-fn spawn_tracer(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
-    color: Color,
-    from: Vec2,
-    to: Vec2,
-) {
+///
+/// Uses the shared unit-length mesh from [`TracerAssets`], scaling its
+/// `Transform.scale.x` to the actual segment length so the renderer
+/// can batch every tracer in one draw call.
+fn spawn_tracer(commands: &mut Commands, assets: &TracerAssets, from: Vec2, to: Vec2) {
     let delta = to - from;
     let length = delta.length();
     if length < 0.5 {
@@ -534,34 +443,29 @@ fn spawn_tracer(
         Tracer {
             life_secs: TRACER_LIFE_SECS,
         },
-        Mesh2d(meshes.add(Rectangle::new(length, TRACER_WIDTH))),
-        MeshMaterial2d(materials.add(ColorMaterial::from_color(color))),
+        Mesh2d(assets.mesh.clone()),
+        MeshMaterial2d(assets.material.clone()),
         Transform {
             translation: Vec3::new(mid.x, mid.y, 0.6),
             rotation: Quat::from_rotation_z(angle),
-            ..default()
+            scale: Vec3::new(length, 1.0, 1.0),
         },
     ));
 }
 
-/// Fade tracers each tick and despawn expired ones.
+/// Despawn expired tracers. (Fade is dropped — at 180ms lifetime the
+/// alpha animation isn't visually meaningful and required per-tracer
+/// materials, defeating render batching.)
 fn fade_tracers(
     time: Res<Time>,
     mut commands: Commands,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    mut q: Query<(Entity, &mut Tracer, &MeshMaterial2d<ColorMaterial>)>,
+    mut q: Query<(Entity, &mut Tracer)>,
 ) {
     let dt = time.delta_secs();
-    for (entity, mut tracer, mat_handle) in &mut q {
+    for (entity, mut tracer) in &mut q {
         tracer.life_secs -= dt;
         if tracer.life_secs <= 0.0 {
             commands.entity(entity).despawn();
-            continue;
-        }
-        let alpha = (tracer.life_secs / TRACER_LIFE_SECS).clamp(0.0, 1.0);
-        if let Some(mat) = materials.get_mut(&mat_handle.0) {
-            let c = mat.color.to_srgba();
-            mat.color = Color::srgba(c.red, c.green, c.blue, alpha);
         }
     }
 }

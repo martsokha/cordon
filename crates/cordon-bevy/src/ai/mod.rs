@@ -4,6 +4,7 @@ pub mod behavior;
 pub mod combat;
 pub mod death;
 pub mod loot;
+pub mod squad;
 
 use bevy::prelude::*;
 use moonshine_behavior::prelude::*;
@@ -20,14 +21,11 @@ impl Plugin for AiPlugin {
             combat::CombatPlugin,
             death::DeathPlugin,
             loot::LootPlugin,
+            squad::SquadPlugin,
         ));
         app.add_systems(
             Update,
-            (
-                transition::<Action>,
-                behavior::drive_actions,
-                behavior::drive_intents,
-            )
+            (transition::<Action>, behavior::drive_actions)
                 .chain()
                 .run_if(in_state(AppState::Playing)),
         );

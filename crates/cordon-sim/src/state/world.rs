@@ -4,6 +4,7 @@ use cordon_core::entity::bunker::BaseState;
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::player::PlayerState;
+use cordon_core::entity::squad::Squad;
 use cordon_core::primitive::{GameTime, Id, Uid};
 use cordon_core::world::area::Area;
 use cordon_core::world::event::ActiveEvent;
@@ -81,6 +82,8 @@ pub struct World {
     pub areas: HashMap<Id<Area>, AreaState>,
     /// All NPCs in the world keyed by runtime UID.
     pub npcs: HashMap<Uid<Npc>, Npc>,
+    /// All squads in the world keyed by runtime UID.
+    pub squads: HashMap<Uid<Squad>, Squad>,
     pub active_events: Vec<ActiveEvent>,
     pub active_missions: Vec<ActiveMission>,
     /// Quests currently in progress.
@@ -114,6 +117,7 @@ impl World {
             bunker: BaseState::new(),
             areas,
             npcs: HashMap::new(),
+            squads: HashMap::new(),
             active_events: Vec::new(),
             active_missions: Vec::new(),
             active_quests: Vec::new(),

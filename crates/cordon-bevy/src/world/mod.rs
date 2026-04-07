@@ -64,6 +64,7 @@ pub fn init_world(mut commands: Commands, game_data: Res<GameDataResource>) {
     let loadout_ctx = LoadoutContext {
         archetypes: &data.archetypes,
         items: &data.items,
+        areas: &data.areas,
     };
     let result = day::advance_day(
         &mut world,
@@ -72,16 +73,22 @@ pub fn init_world(mut commands: Commands, game_data: Res<GameDataResource>) {
         &faction_pools,
         &fallback,
         &loadout_ctx,
+        &area_ids,
     );
 
     info!(
-        "Day 1: {} visitors, {} events",
-        result.visitors.len(),
+        "Day 1: {} npcs in {} squads, {} events",
+        result.spawn.npcs.len(),
+        result.spawn.squads.len(),
         result.events_started
     );
-    for npc in &result.visitors {
+    for npc in &result.spawn.npcs {
         let uid = npc.id;
         world.npcs.insert(uid, npc.clone());
+    }
+    for squad in &result.spawn.squads {
+        let uid = squad.id;
+        world.squads.insert(uid, squad.clone());
     }
 
     commands.insert_resource(SimWorld(world));

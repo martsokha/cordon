@@ -18,3 +18,6 @@ pub mod perk;
 
 /// Player state, rank, squads, and faction standings.
 pub mod player;
+
+/// Squads — coordinated NPC groups with shared goals and combat targeting.
+pub mod squad;

@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
-use cordon_core::entity::archetype::{Archetype, ArchetypeDef};
+use cordon_core::entity::archetype::{Archetype, ArchetypeDef, SquadGoalKind, SquadTemplate};
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::{NameFormat, NamePool, NpcName};
 use cordon_core::entity::npc::{Npc, Personality};
+use cordon_core::entity::squad::{Goal, Squad};
 use cordon_core::item::{Item, ItemDef, Loadout};
 use cordon_core::primitive::{Credits, Experience, Health, Id, Rank, Uid};
+use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
 use crate::simulation::loadout::generate_loadout;
@@ -15,6 +17,14 @@ use crate::state::world::World;
 pub struct LoadoutContext<'a> {
     pub archetypes: &'a HashMap<Id<Archetype>, ArchetypeDef>,
     pub items: &'a HashMap<Id<Item>, ItemDef>,
+    pub areas: &'a HashMap<Id<Area>, AreaDef>,
+}
+
+/// One day's worth of fresh NPCs and squads, ready for the game layer
+/// to insert into the world and spawn ECS entities for.
+pub struct DailySpawn {
+    pub npcs: Vec<Npc>,
+    pub squads: Vec<Squad>,
 }
 
 /// Generates NPC attributes. Each method produces one aspect of an NPC.
@@ -112,16 +122,18 @@ pub trait NpcGenerator {
         })
     }
 
-    /// Build a complete NPC from generated parts.
-    fn generate<R: Rng>(
+    /// Build a complete NPC from generated parts. The caller passes in
+    /// the desired rank explicitly so squad spawning can produce
+    /// rank-correct members from a template.
+    fn generate_with_rank<R: Rng>(
         &self,
         id: Uid<Npc>,
         faction: Id<Faction>,
+        rank: Rank,
         name_pool: &NamePool,
         rng: &mut R,
     ) -> Npc {
-        let xp = self.generate_xp(rng);
-        let rank = xp.npc_rank();
+        let xp = Experience::new(rank.xp_threshold());
         let personality = self.generate_personality(rng);
         let wealth = self.generate_wealth(rank, rng);
 
@@ -143,6 +155,12 @@ pub trait NpcGenerator {
             daily_pay: self.daily_pay(rank),
         }
     }
+
+    /// Target alive-NPC population in the Zone. Spawning replenishes
+    /// toward this number rather than dumping a fixed batch each day.
+    fn target_population(&self, _day: u32) -> u32 {
+        1000
+    }
 }
 
 /// Default NPC generator with standard random distributions.
@@ -159,39 +177,169 @@ pub fn resolve_name_pool<'a>(
     name_pools.get(faction).unwrap_or(fallback)
 }
 
-/// Generate the day's visitors.
+/// Replenish the Zone's NPC population toward the generator's target.
 ///
-/// `name_pools` maps faction IDs directly to their name pools
-/// (pre-resolved from GameData at startup). `loadout_ctx` carries the
-/// archetype + item catalog used to roll each NPC's gear.
+/// Counts current alive NPCs, computes the deficit, then spawns squads
+/// (each with 1..=5 members) until the deficit is filled. At init time
+/// the world is empty so the first call spawns the full target.
+///
+/// `name_pools` maps faction IDs to their name pools, `loadout_ctx`
+/// carries the archetype + item catalog. `area_ids` is used to pick
+/// the patrol/scavenge target area when resolving a template's goal.
 pub fn spawn_daily_visitors(
     world: &mut World,
     generator: &impl NpcGenerator,
     name_pools: &HashMap<Id<Faction>, NamePool>,
     fallback_pool: &NamePool,
     loadout_ctx: &LoadoutContext<'_>,
-) -> Vec<Npc> {
+    area_ids: &[Id<Area>],
+) -> DailySpawn {
     let day = world.time.day.value();
-    let count = generator.visitor_count(day, &mut world.rng.npcs);
+    let target = generator.target_population(day);
+    let current = world.npcs.len() as u32;
+    let mut deficit = target.saturating_sub(current);
 
-    let mut visitors = Vec::new();
-    for _ in 0..count {
-        let id = world.alloc_uid();
+    let mut spawn = DailySpawn {
+        npcs: Vec::new(),
+        squads: Vec::new(),
+    };
+
+    // Spawn squads until the deficit is filled. Each squad consumes
+    // `template.ranks.len()` from the deficit. A safety counter caps
+    // attempts so a misconfigured archetype catalog can't spin forever.
+    let mut attempts_remaining = (deficit as usize) * 4 + 16;
+    while deficit > 0 && attempts_remaining > 0 {
+        attempts_remaining -= 1;
         let faction = world.random_faction();
-        let pool = resolve_name_pool(&faction, name_pools, fallback_pool);
-        let mut npc = generator.generate(id, faction.clone(), pool, &mut world.rng.npcs);
-
-        // Roll a loadout from this faction's archetype, if one exists.
-        if let Some(arch) = loadout_ctx
+        let arch = loadout_ctx
             .archetypes
-            .get(&Id::<Archetype>::new(faction.as_str()))
-        {
+            .get(&Id::<Archetype>::new(faction.as_str()));
+        let Some(arch) = arch else { continue };
+
+        // Pick a squad template from this faction's pool.
+        let Some(template) = pick_squad_template(&arch.squads, &mut world.rng.npcs) else {
+            continue;
+        };
+
+        // Roll the members listed in the template.
+        let pool = resolve_name_pool(&faction, name_pools, fallback_pool);
+        let mut member_uids: Vec<Uid<Npc>> = Vec::with_capacity(template.ranks.len());
+        let mut leader_uid: Option<Uid<Npc>> = None;
+        let mut highest_rank = Rank::Novice;
+
+        for (slot_idx, rank) in template.ranks.iter().enumerate() {
+            let npc_uid = world.alloc_uid::<Npc>();
+            let mut npc =
+                generator.generate_with_rank(npc_uid, faction.clone(), *rank, pool, &mut world.rng.npcs);
+            // Roll a loadout for this member from the per-rank pool.
             npc.loadout =
                 generate_loadout(arch, npc.rank(), loadout_ctx.items, &mut world.rng.npcs);
+
+            member_uids.push(npc_uid);
+            if slot_idx == 0 || *rank > highest_rank {
+                leader_uid = Some(npc_uid);
+                highest_rank = *rank;
+            }
+            spawn.npcs.push(npc);
         }
 
-        visitors.push(npc);
+        let Some(leader) = leader_uid else { continue };
+
+        // Resolve the template's coarse goal kind into a concrete Goal.
+        let goal = resolve_goal(template.goal, area_ids, &mut world.rng.npcs);
+
+        // For Patrol/Scavenge goals, scatter 3 waypoints inside the
+        // target area so multiple squads patrolling the same area don't
+        // converge on a single point.
+        let waypoints = waypoints_for_goal(&goal, loadout_ctx, &mut world.rng.npcs);
+
+        let squad_uid = world.alloc_uid::<Squad>();
+        let member_count = template.ranks.len() as u32;
+        let squad = Squad {
+            id: squad_uid,
+            faction: faction.clone(),
+            members: member_uids,
+            leader,
+            goal,
+            formation: template.formation,
+            facing: [0.0, 1.0],
+            waypoints,
+            next_waypoint: 0,
+        };
+        spawn.squads.push(squad);
+        deficit = deficit.saturating_sub(member_count);
     }
 
-    visitors
+    spawn
+}
+
+/// Roll one squad template from a weighted pool. Returns `None` if the
+/// pool is empty.
+fn pick_squad_template<'a, R: Rng>(
+    pool: &'a [SquadTemplate],
+    rng: &mut R,
+) -> Option<&'a SquadTemplate> {
+    if pool.is_empty() {
+        return None;
+    }
+    let total: u32 = pool.iter().map(|t| t.weight.max(1)).sum();
+    if total == 0 {
+        return Some(&pool[0]);
+    }
+    let mut roll = rng.random_range(0..total);
+    for entry in pool {
+        let w = entry.weight.max(1);
+        if roll < w {
+            return Some(entry);
+        }
+        roll -= w;
+    }
+    pool.last()
+}
+
+/// Translate a template's goal kind into a concrete [`Goal`] by picking
+/// a target area when needed.
+fn resolve_goal<R: Rng>(kind: SquadGoalKind, area_ids: &[Id<Area>], rng: &mut R) -> Goal {
+    fn pick_area<R: Rng>(area_ids: &[Id<Area>], rng: &mut R) -> Option<Id<Area>> {
+        if area_ids.is_empty() {
+            None
+        } else {
+            Some(area_ids[rng.random_range(0..area_ids.len())].clone())
+        }
+    }
+    match kind {
+        SquadGoalKind::Idle => Goal::Idle,
+        SquadGoalKind::Patrol => pick_area(area_ids, rng)
+            .map(|area| Goal::Patrol { area })
+            .unwrap_or(Goal::Idle),
+        SquadGoalKind::Scavenge => pick_area(area_ids, rng)
+            .map(|area| Goal::Scavenge { area })
+            .unwrap_or(Goal::Idle),
+    }
+}
+
+/// Roll 3 random waypoints inside the goal's area, scattered around
+/// the area centre at varying angles. Empty for non-area goals.
+fn waypoints_for_goal<R: Rng>(
+    goal: &Goal,
+    ctx: &LoadoutContext<'_>,
+    rng: &mut R,
+) -> Vec<[f32; 2]> {
+    let area_id = match goal {
+        Goal::Patrol { area } | Goal::Scavenge { area } => area,
+        _ => return Vec::new(),
+    };
+    let Some(area) = ctx.areas.get(area_id) else {
+        return Vec::new();
+    };
+    let cx = area.location.x;
+    let cy = area.location.y;
+    let r = area.radius.value() * 0.7; // Stay inside the visible disk.
+    (0..3)
+        .map(|_| {
+            let angle = rng.random_range(0.0_f32..std::f32::consts::TAU);
+            let dist = rng.random_range(r * 0.3..r);
+            [cx + angle.cos() * dist, cy + angle.sin() * dist]
+        })
+        .collect()
 }
