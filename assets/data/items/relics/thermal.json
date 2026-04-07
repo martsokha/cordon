@@ -1,0 +1,182 @@
+[
+  {
+    "id": "cinder_pebble",
+    "data": {
+      "type": "relic",
+      "origin": "thermal",
+      "passive": [
+        { "target": "ThermalResistance", "value": 20.0 }
+      ]
+    },
+    "base_price": 350,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.1 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "ash_node",
+    "data": {
+      "type": "relic",
+      "origin": "thermal",
+      "passive": [
+        { "target": "ThermalResistance", "value": 25.0 }
+      ]
+    },
+    "base_price": 400,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.1 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "heat_shard",
+    "data": {
+      "type": "relic",
+      "origin": "thermal",
+      "passive": [
+        { "target": "ThermalResistance", "value": 30.0 }
+      ]
+    },
+    "base_price": 450,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "drifters", "price_multiplier": 1.05 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "blaze_core",
+    "data": {
+      "type": "relic",
+      "origin": "thermal",
+      "passive": [
+        { "target": "ThermalResistance", "value": 40.0 },
+        { "target": "MaxStamina", "value": 5.0 }
+      ]
+    },
+    "base_price": 900,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "drifters", "price_multiplier": 0.95 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "furnace_eye",
+    "data": {
+      "type": "relic",
+      "origin": "thermal",
+      "passive": [
+        { "target": "ThermalResistance", "value": 45.0 },
+        { "target": "ChemicalResistance", "value": -10.0 }
+      ]
+    },
+    "base_price": 1000,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.05 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "meltstone",
+    "data": {
+      "type": "relic",
+      "origin": "thermal",
+      "passive": [
+        { "target": "ThermalResistance", "value": 50.0 },
+        { "target": "ElectricResistance", "value": 10.0 }
+      ]
+    },
+    "base_price": 1100,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "devoted", "price_multiplier": 0.9 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "sun_fragment",
+    "data": {
+      "type": "relic",
+      "origin": "thermal",
+      "passive": [
+        { "target": "ThermalResistance", "value": 60.0 },
+        { "target": "MaxHealth", "value": 10.0 }
+      ],
+      "triggered": [
+        {
+          "trigger": "on_hit",
+          "effect": {
+            "target": "Health",
+            "value": 6.0,
+            "duration": { "secs": 3 }
+          }
+        }
+      ]
+    },
+    "base_price": 2100,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "devoted", "price_multiplier": 0.85 }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "infernal_seed",
+    "data": {
+      "type": "relic",
+      "origin": "thermal",
+      "passive": [
+        { "target": "ThermalResistance", "value": 70.0 },
+        { "target": "ChemicalResistance", "value": -15.0 }
+      ],
+      "triggered": [
+        {
+          "trigger": { "periodic": 6 },
+          "effect": {
+            "target": "Health",
+            "value": 3.0,
+            "duration": { "secs": 2 }
+          }
+        }
+      ]
+    },
+    "base_price": 2400,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.0 }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "white_ember",
+    "data": {
+      "type": "relic",
+      "origin": "thermal",
+      "passive": [
+        { "target": "ThermalResistance", "value": 80.0 },
+        { "target": "MaxStamina", "value": 15.0 }
+      ],
+      "triggered": [
+        {
+          "trigger": { "on_hp_low": 0.25 },
+          "effect": {
+            "target": "Health",
+            "value": 10.0,
+            "duration": { "secs": 4 }
+          }
+        }
+      ]
+    },
+    "base_price": 2700,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "devoted", "price_multiplier": 0.85 }
+    ],
+    "rarity": "rare"
+  }
+]

@@ -52,6 +52,10 @@ pub enum TooltipContent {
     },
     Relic {
         name: String,
+        /// Pre-resolved relic icon handle. Preloaded into
+        /// `RelicIconAssets` on laptop entry so the hover system
+        /// doesn't touch `asset_server` on every tick.
+        icon: Handle<Image>,
         origin: String,
         rarity: String,
         /// Pre-formatted lines like `"Ballistic: +20"` / `"Health: +2 max"`.
@@ -283,17 +287,31 @@ fn update_tooltip(
         }
     }
 
-    // Extract data before mutating
+    // Extract data before mutating. Two icon-source shapes supported:
+    //
+    // - `hazard_path`: an asset-server path string, used by the area
+    //   tooltip for its hazard pips. Resolved to a handle here each
+    //   tick since there are only a handful of hazard images and
+    //   the load is cached internally.
+    // - `relic_handle`: a pre-resolved [`Handle<Image>`] handed in
+    //   by the hover system from `RelicIconAssets` so the hot path
+    //   doesn't touch the asset server or allocate a path string.
     let header_text;
-    let hazard_img: Option<String>;
-    let hazard_n: u8;
+    let hazard_path: Option<String>;
+    let hazard_count: u8;
+    let relic_handle: Option<Handle<Image>>;
+    // Per-icon size in px. Hazard icons are a row of small 14px
+    // pips; relic splashes are a single larger image.
+    let icon_size: f32;
     let spans: Vec<(String, Color)>;
 
     match &*tooltip {
         TooltipContent::Hidden => {
             header_text = String::new();
-            hazard_img = None;
-            hazard_n = 0;
+            hazard_path = None;
+            hazard_count = 0;
+            relic_handle = None;
+            icon_size = 14.0;
             spans = vec![];
         }
         TooltipContent::Area {
@@ -304,13 +322,15 @@ fn update_tooltip(
             radiation,
             radiation_tier,
             hazard_image,
-            hazard_count,
+            hazard_count: count,
             loot,
             loot_tier,
         } => {
             header_text = format!("{faction_icon} {name}");
-            hazard_img = hazard_image.clone();
-            hazard_n = *hazard_count;
+            hazard_path = hazard_image.clone();
+            hazard_count = *count;
+            relic_handle = None;
+            icon_size = 14.0;
             spans = vec![
                 ("Creatures: ".into(), COLOR_LABEL),
                 (creatures.clone(), tier_color(creatures_tier)),
@@ -328,8 +348,10 @@ fn update_tooltip(
             status,
         } => {
             header_text = format!("{faction_icon} {name}");
-            hazard_img = None;
-            hazard_n = 0;
+            hazard_path = None;
+            hazard_count = 0;
+            relic_handle = None;
+            icon_size = 14.0;
             spans = vec![
                 ("Faction: ".into(), COLOR_LABEL),
                 (faction.clone(), Color::srgb(0.7, 0.7, 0.7)),
@@ -341,14 +363,17 @@ fn update_tooltip(
         }
         TooltipContent::Relic {
             name,
+            icon,
             origin,
             rarity,
             passives,
             triggered_count,
         } => {
-            header_text = format!("* {name}");
-            hazard_img = None;
-            hazard_n = 0;
+            header_text = name.clone();
+            hazard_path = None;
+            hazard_count = 0;
+            relic_handle = Some(icon.clone());
+            icon_size = 32.0;
             let mut s: Vec<(String, Color)> = vec![
                 ("Origin: ".into(), COLOR_LABEL),
                 (origin.clone(), Color::srgb(0.3, 0.9, 1.0)),
@@ -378,7 +403,9 @@ fn update_tooltip(
         text.0 = header_text.clone();
     }
 
-    // Update hazard icons
+    // Update icon row: either N hazard pips (area tooltip) or a
+    // single larger relic icon (relic tooltip). At most one source
+    // is populated per frame.
     if let Ok((icons_entity, icon_children)) = icons_q.single() {
         if let Some(children) = icon_children {
             for child in children.iter() {
@@ -386,9 +413,18 @@ fn update_tooltip(
             }
         }
         commands.entity(icons_entity).detach_all_children();
-        if let Some(path) = &hazard_img {
-            let img: Handle<Image> = asset_server.load(path.clone());
-            for _ in 0..hazard_n {
+
+        let (image_handle, count): (Option<Handle<Image>>, u8) = if let Some(handle) = relic_handle
+        {
+            (Some(handle), 1)
+        } else if let Some(path) = &hazard_path {
+            (Some(asset_server.load(path.clone())), hazard_count)
+        } else {
+            (None, 0)
+        };
+
+        if let Some(img) = image_handle {
+            for _ in 0..count {
                 let icon = commands
                     .spawn((
                         ImageNode {
@@ -396,8 +432,8 @@ fn update_tooltip(
                             ..default()
                         },
                         Node {
-                            width: Val::Px(14.0),
-                            height: Val::Px(14.0),
+                            width: Val::Px(icon_size),
+                            height: Val::Px(icon_size),
                             ..default()
                         },
                     ))

@@ -4,6 +4,8 @@ mod environment;
 mod input;
 mod ui;
 
+use std::collections::HashMap;
+
 use bevy::prelude::*;
 use bevy_fluent::prelude::*;
 use cordon_core::entity::faction::RankScheme;
@@ -32,7 +34,10 @@ impl Plugin for LaptopPlugin {
         app.add_systems(Startup, (setup_camera, init_npc_assets, init_relic_assets));
         app.add_systems(
             OnEnter(PlayingState::Laptop),
-            spawn_map.run_if(not(resource_exists::<MapSpawned>)),
+            (
+                spawn_map.run_if(not(resource_exists::<MapSpawned>)),
+                preload_relic_icons.run_if(not(resource_exists::<RelicIconAssets>)),
+            ),
         );
         app.add_systems(
             Update,
@@ -85,6 +90,24 @@ pub struct RelicAssets {
     pub material: Handle<ColorMaterial>,
 }
 
+/// Preloaded relic icon `Handle<Image>`s, keyed by item id. Filled
+/// once on laptop entry by [`preload_relic_icons`] so the hover
+/// system can hand the renderer a resolved handle without calling
+/// `asset_server.load()` or formatting a path string on every tick.
+#[derive(Resource, Default)]
+pub struct RelicIconAssets {
+    handles: HashMap<cordon_core::primitive::Id<cordon_core::item::Item>, Handle<Image>>,
+}
+
+impl RelicIconAssets {
+    pub fn get(
+        &self,
+        id: &cordon_core::primitive::Id<cordon_core::item::Item>,
+    ) -> Option<Handle<Image>> {
+        self.handles.get(id).cloned()
+    }
+}
+
 const COLOR_RELIC: Color = Color::srgb(0.3, 0.9, 1.0);
 
 fn init_relic_assets(
@@ -95,6 +118,28 @@ fn init_relic_assets(
     let mesh = meshes.add(Circle::new(4.0));
     let material = materials.add(ColorMaterial::from_color(COLOR_RELIC));
     commands.insert_resource(RelicAssets { mesh, material });
+}
+
+/// Walk every relic `ItemDef` in the catalog and preload its icon
+/// into a `Handle<Image>`, stored by item id in [`RelicIconAssets`].
+///
+/// Runs once on [`PlayingState::Laptop`] entry because that's the
+/// first time both (a) the laptop UI is visible and (b) game data
+/// is guaranteed loaded. 36 small PNGs is negligible to hold
+/// resident.
+fn preload_relic_icons(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    game_data: Res<GameDataResource>,
+) {
+    let mut handles = HashMap::new();
+    for (id, def) in &game_data.0.items {
+        if matches!(def.data, cordon_core::item::ItemData::Relic(_)) {
+            let path = format!("icons/relics/{}.png", id.as_str());
+            handles.insert(id.clone(), asset_server.load(path));
+        }
+    }
+    commands.insert_resource(RelicIconAssets { handles });
 }
 
 /// Attach map visuals to newly-spawned relic entities. The tooltip
@@ -315,6 +360,7 @@ fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
 /// localization updates apply immediately without rebuilding dots.
 fn build_relic_tooltip(
     l10n: &Localization,
+    icons: &RelicIconAssets,
     def: &cordon_core::item::ItemDef,
     data: &cordon_core::item::RelicData,
 ) -> TooltipContent {
@@ -357,8 +403,14 @@ fn build_relic_tooltip(
         })
         .collect();
 
+    // Look up the preloaded handle. A missing icon (def id not in
+    // the preload map) falls back to a default `Handle<Image>`,
+    // which renders as Bevy's missing-asset placeholder.
+    let icon = icons.get(&def.id).unwrap_or_default();
+
     TooltipContent::Relic {
         name,
+        icon,
         origin,
         rarity,
         passives,
@@ -425,6 +477,7 @@ fn update_hover(
     cameras: Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
     cam_proj: Query<&Projection, With<LaptopCamera>>,
     game_data: Res<GameDataResource>,
+    relic_icons: Option<Res<RelicIconAssets>>,
     l10n: Option<Res<GameLocalization>>,
     areas: Query<(
         &AreaCircle,
@@ -481,10 +534,11 @@ fn update_hover(
     if let Some((item, _)) = closest_relic
         && let Some(def) = game_data.0.items.get(&item.0.def_id)
         && let cordon_core::item::ItemData::Relic(relic_data) = &def.data
+        && let Some(icons) = relic_icons.as_deref()
     {
         let empty_l10n = Localization::default();
         let l10n = l10n.as_ref().map(|r| &r.0).unwrap_or(&empty_l10n);
-        *tooltip = build_relic_tooltip(l10n, def, relic_data);
+        *tooltip = build_relic_tooltip(l10n, icons, def, relic_data);
         // Clear any area highlighting that might be lingering.
         for (_, _, _, mat_handle) in &areas {
             if let Some(m) = mats.get_mut(&mat_handle.0) {
