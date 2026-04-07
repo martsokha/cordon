@@ -26,7 +26,7 @@ use moonshine_behavior::prelude::*;
 
 use super::behavior::Action;
 use crate::PlayingState;
-use crate::laptop::{NpcDot, NpcFaction};
+use crate::laptop::{MapWorldEntity, NpcDot, NpcFaction};
 use crate::world::SimWorld;
 
 /// Vision radius (in map units) for spotting hostiles.
@@ -58,6 +58,18 @@ pub struct AnomalyZone {
 pub struct Dead {
     pub died_at: GameTime,
 }
+
+/// A short-lived line drawn from shooter to target on each shot.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct Tracer {
+    /// Seconds remaining before despawn.
+    pub life_secs: f32,
+}
+
+/// How long a tracer stays on screen, in seconds.
+const TRACER_LIFE_SECS: f32 = 0.18;
+/// Tracer width in map units.
+const TRACER_WIDTH: f32 = 0.7;
 
 /// How long corpses persist before despawn (7 in-game days).
 pub const CORPSE_PERSISTENCE_MINUTES: u32 = 7 * 24 * 60;
@@ -192,6 +204,7 @@ impl Plugin for CombatPlugin {
             (
                 update_engagement,
                 resolve_engage_actions,
+                fade_tracers,
                 try_start_looting,
                 drive_loot_actions,
                 handle_deaths,
@@ -316,22 +329,27 @@ fn resolve_engage_actions(
     sim: Option<ResMut<SimWorld>>,
     time: Res<Time>,
     game_data: Res<GameDataResource>,
-    mut shooters: Query<(&NpcDot, BehaviorMut<Action>), Without<Dead>>,
-    targets: Query<&NpcDot, Without<Dead>>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut shooters: Query<(&NpcDot, &Transform, BehaviorMut<Action>), Without<Dead>>,
+    targets: Query<(&NpcDot, &Transform), Without<Dead>>,
 ) {
     let Some(mut sim) = sim else { return };
     let items = &game_data.0.items;
     let dt = time.delta_secs();
 
-    // Build a uid -> entity index for the alive targets so we can
-    // confirm the targeted NPC still exists and is still alive.
-    let alive_targets: HashMap<Uid<Npc>, ()> =
-        targets.iter().map(|dot| (dot.uid, ())).collect();
+    // Snapshot positions of all alive NPCs so the shooter loop can look
+    // up its target's location and we can spawn tracers later.
+    let positions: HashMap<Uid<Npc>, Vec2> = targets
+        .iter()
+        .map(|(dot, t)| (dot.uid, t.translation.truncate()))
+        .collect();
 
-    // Two-pass: first determine all hits, then apply mutations.
-    let mut hits: Vec<(NpcDot, NpcDot, u32, u32)> = Vec::new();
+    // (shooter_dot, target_dot, dealt, absorbed, shooter_pos, target_pos)
+    let mut hits: Vec<(NpcDot, NpcDot, u32, u32, Vec2, Vec2)> = Vec::new();
 
-    for (shooter_dot, mut behavior) in &mut shooters {
+    for (shooter_dot, shooter_transform, mut behavior) in &mut shooters {
         // Tick the cooldown if we're engaging.
         let (target_uid, ready) = match behavior.current_mut() {
             Action::Engage {
@@ -351,9 +369,10 @@ fn resolve_engage_actions(
             continue;
         }
 
-        if !alive_targets.contains_key(&target_uid) {
+        let Some(&target_pos) = positions.get(&target_uid) else {
             continue;
-        }
+        };
+        let shooter_pos = shooter_transform.translation.truncate();
         let target_dot = NpcDot { uid: target_uid };
 
         // Look up shooter weapon, ammo, and target ballistic in one borrow.
@@ -398,11 +417,31 @@ fn resolve_engage_actions(
             };
         }
 
-        hits.push((*shooter_dot, target_dot, dealt, absorbed));
+        hits.push((
+            *shooter_dot,
+            target_dot,
+            dealt,
+            absorbed,
+            shooter_pos,
+            target_pos,
+        ));
+    }
+
+    // Spawn tracers for every shot fired this tick.
+    let tracer_color = Color::srgba(1.0, 0.92, 0.55, 0.95);
+    for (_, _, _, _, from, to) in &hits {
+        spawn_tracer(
+            &mut commands,
+            &mut meshes,
+            &mut materials,
+            tracer_color,
+            *from,
+            *to,
+        );
     }
 
     // Apply mutations.
-    for (shooter_dot, target_dot, dealt, absorbed) in hits {
+    for (shooter_dot, target_dot, dealt, absorbed, _, _) in hits {
         if let Some(shooter) = sim.0.npcs.get_mut(&shooter_dot.uid) {
             // Decrement ammo on the shooter.
             let weapon_caliber = shooter
@@ -647,4 +686,57 @@ fn to_minutes(t: GameTime) -> u32 {
 /// Game-minutes elapsed between two times. Saturating; never negative.
 fn minutes_between(start: GameTime, end: GameTime) -> u32 {
     to_minutes(end).saturating_sub(to_minutes(start))
+}
+
+/// Spawn a tracer rectangle stretching from `from` to `to`.
+fn spawn_tracer(
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<ColorMaterial>>,
+    color: Color,
+    from: Vec2,
+    to: Vec2,
+) {
+    let delta = to - from;
+    let length = delta.length();
+    if length < 0.5 {
+        return;
+    }
+    let mid = (from + to) * 0.5;
+    let angle = delta.y.atan2(delta.x);
+    commands.spawn((
+        MapWorldEntity,
+        Tracer {
+            life_secs: TRACER_LIFE_SECS,
+        },
+        Mesh2d(meshes.add(Rectangle::new(length, TRACER_WIDTH))),
+        MeshMaterial2d(materials.add(ColorMaterial::from_color(color))),
+        Transform {
+            translation: Vec3::new(mid.x, mid.y, 0.6),
+            rotation: Quat::from_rotation_z(angle),
+            ..default()
+        },
+    ));
+}
+
+/// Fade tracers each tick and despawn expired ones.
+fn fade_tracers(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut q: Query<(Entity, &mut Tracer, &MeshMaterial2d<ColorMaterial>)>,
+) {
+    let dt = time.delta_secs();
+    for (entity, mut tracer, mat_handle) in &mut q {
+        tracer.life_secs -= dt;
+        if tracer.life_secs <= 0.0 {
+            commands.entity(entity).despawn();
+            continue;
+        }
+        let alpha = (tracer.life_secs / TRACER_LIFE_SECS).clamp(0.0, 1.0);
+        if let Some(mat) = materials.get_mut(&mat_handle.0) {
+            let c = mat.color.to_srgba();
+            mat.color = Color::srgba(c.red, c.green, c.blue, alpha);
+        }
+    }
 }

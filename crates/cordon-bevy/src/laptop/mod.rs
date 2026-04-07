@@ -48,7 +48,8 @@ impl Plugin for LaptopPlugin {
 }
 
 use self::ui::map::{TooltipContent, cursor_world_pos};
-use self::ui::{LaptopFont, MapWorldEntity, spawn_ui};
+pub use self::ui::MapWorldEntity;
+use self::ui::{LaptopFont, spawn_ui};
 
 #[derive(Component)]
 struct Bunker;
