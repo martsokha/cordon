@@ -5,10 +5,11 @@
   "buys": ["weapon", "ammo", "armor"],
   "sells": ["weapon", "ammo"],
   "namepool": "slavic",
+  "color": "#6B8C4D",
   "relations": [
     ["syndicate", -60],
     ["institute", 40],
-    ["devoted", -50],
+    ["devoted", -70],
     ["drifters", -30]
   ]
 }

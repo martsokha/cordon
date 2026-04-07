@@ -5,10 +5,11 @@
   "buys": ["relic", "document", "tech"],
   "sells": ["tech", "attachment", "consumable"],
   "namepool": "western",
+  "color": "#3B8C9E",
   "relations": [
     ["garrison", 40],
     ["syndicate", -30],
-    ["devoted", -30],
+    ["devoted", -70],
     ["drifters", -10]
   ]
 }

@@ -5,10 +5,11 @@
   "buys": ["consumable", "weapon", "ammo"],
   "sells": ["consumable", "throwable", "document"],
   "namepool": "aliases",
+  "color": "#9E7B4F",
   "relations": [
     ["garrison", -30],
     ["syndicate", 30],
     ["institute", -10],
-    ["devoted", 10]
+    ["devoted", -70]
   ]
 }

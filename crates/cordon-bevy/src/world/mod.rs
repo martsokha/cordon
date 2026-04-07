@@ -10,8 +10,11 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 use cordon_core::entity::player::PlayerState;
+use cordon_core::world::area::AreaKind;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::resources::{AreaState, AreaStates, EventLog, FactionIndex, GameClock, Player};
+use cordon_sim::resources::{
+    AreaState, AreaStates, EventLog, FactionIndex, FactionSettlements, GameClock, Player,
+};
 
 use crate::AppState;
 
@@ -47,14 +50,29 @@ pub fn init_world(mut commands: Commands, game_data: Res<GameDataResource>) {
 
     let faction_ids = data.faction_ids();
 
-    let mut areas: HashMap<_, _> = HashMap::new();
+    let mut areas: HashMap<_, _> = HashMap::with_capacity(data.areas.len());
     for id in data.area_ids() {
         areas.insert(id.clone(), AreaState::new(id.clone()));
+    }
+
+    // Pre-collect each faction's Settlement centres so the spawn
+    // system doesn't have to walk every area every wave. Built once
+    // here because settlements are static config — they don't change
+    // at runtime.
+    let mut settlements: HashMap<_, Vec<Vec2>> = HashMap::with_capacity(faction_ids.len());
+    for area in data.areas.values() {
+        if let AreaKind::Settlement { faction, .. } = &area.kind {
+            settlements
+                .entry(faction.clone())
+                .or_default()
+                .push(Vec2::new(area.location.x, area.location.y));
+        }
     }
 
     commands.insert_resource(GameClock::default());
     commands.insert_resource(Player(PlayerState::new(&faction_ids)));
     commands.insert_resource(FactionIndex(faction_ids));
+    commands.insert_resource(FactionSettlements(settlements));
     commands.insert_resource(AreaStates(areas));
     commands.insert_resource(EventLog::default());
 

@@ -5,10 +5,11 @@
   "buys": ["weapon", "relic", "tech"],
   "sells": ["weapon", "consumable", "attachment"],
   "namepool": "aliases",
+  "color": "#A8442A",
   "relations": [
     ["garrison", -60],
     ["institute", -30],
-    ["devoted", 10],
+    ["devoted", -70],
     ["drifters", 30]
   ]
 }

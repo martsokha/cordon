@@ -22,12 +22,11 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NamePool;
 use cordon_core::entity::npc::Npc as NpcData;
 use cordon_core::primitive::{Id, Uid};
-use cordon_core::world::area::AreaKind;
 use cordon_data::gamedata::GameDataResource;
 use rand::{Rng, RngExt};
 
 use crate::components::{NpcBundle, NpcMarker, SquadBundle, SquadMembership};
-use crate::resources::{FactionIndex, GameClock, SquadIdIndex, UidAllocator};
+use crate::resources::{FactionIndex, FactionSettlements, GameClock, SquadIdIndex, UidAllocator};
 use crate::spawn::generator::{
     DefaultNpcGenerator, LoadoutContext, NpcGenerator, roll_population_top_up,
 };
@@ -63,6 +62,7 @@ pub fn spawn_population(
     clock: Res<GameClock>,
     mut uids: ResMut<UidAllocator>,
     factions: Res<FactionIndex>,
+    settlements: Res<FactionSettlements>,
     game_data: Res<GameDataResource>,
     mut squad_index: ResMut<SquadIdIndex>,
     mut rng: Single<&mut WyRand, With<GlobalRng>>,
@@ -141,20 +141,10 @@ pub fn spawn_population(
         uid_to_entity.insert(uid, entity);
     }
 
-    // Pre-collect each faction's settlement centres so squads spawn
-    // inside their own controlled areas. Squads only ever spawn at
-    // Settlement-archetype areas — not at AnomalyFields, Wastelands,
-    // Anchors, or MutantLairs — so spawning happens at the bases the
-    // faction holds, not random points on the map.
-    let mut faction_settlements: HashMap<Id<Faction>, Vec<Vec2>> = HashMap::new();
-    for area in data.areas.values() {
-        if let AreaKind::Settlement { faction, .. } = &area.kind {
-            faction_settlements
-                .entry(faction.clone())
-                .or_default()
-                .push(Vec2::new(area.location.x, area.location.y));
-        }
-    }
+    // Settlement centres per faction come from the pre-built
+    // [`FactionSettlements`] resource (built once at world init in
+    // the bevy layer) so we don't walk all areas every spawn wave.
+    let faction_settlements = &settlements.0;
 
     // Pass 2: spawn squads, resolving member uids → entities, and tag
     // each member with a SquadMembership component pointing back at
@@ -173,7 +163,7 @@ pub fn spawn_population(
             None => member_entities[0],
         };
 
-        let home = pick_faction_home(&faction_settlements, &squad.faction, &mut **rng);
+        let home = pick_faction_home(faction_settlements, &squad.faction, &mut **rng);
 
         let squad_uid = squad.id;
         let squad_entity = commands

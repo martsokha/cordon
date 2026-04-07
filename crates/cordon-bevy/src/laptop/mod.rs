@@ -2,6 +2,7 @@
 
 mod environment;
 mod input;
+mod palette;
 mod ui;
 
 use std::collections::HashMap;
@@ -18,6 +19,7 @@ use cordon_sim::components::{
     FactionId, NpcMarker, NpcNameComp, SquadFormation, SquadHomePosition, SquadMembership, Xp,
 };
 
+pub use self::palette::FactionPalette;
 use crate::PlayingState;
 use crate::locale::{GameLocalization, l10n_or};
 
@@ -32,6 +34,17 @@ impl Plugin for LaptopPlugin {
         ));
         app.insert_resource(SelectedNpc::default());
         app.add_systems(Startup, (setup_camera, init_npc_assets, init_relic_assets));
+
+        // Build the faction palette as soon as game data is ready,
+        // not on laptop entry — visuals must be ready to paint NPCs
+        // that spawn while the player is still in the bunker.
+        app.add_systems(
+            OnEnter(crate::AppState::Playing),
+            palette::build_faction_palette.run_if(not(resource_exists::<FactionPalette>)),
+        );
+
+        // First-time bootstrap of the static map geometry. Areas and
+        // the bunker dot only need to be spawned once per session.
         app.add_systems(
             OnEnter(PlayingState::Laptop),
             (
@@ -39,11 +52,26 @@ impl Plugin for LaptopPlugin {
                 preload_relic_icons.run_if(not(resource_exists::<RelicIconAssets>)),
             ),
         );
+
+        // Visual attachment must keep up with the sim regardless of
+        // which view the player is currently looking at — `Added<T>`
+        // only fires for one frame, so if these systems were gated
+        // on `Laptop` state, NPCs and relics spawned in the bunker
+        // would never receive their map visuals.
         app.add_systems(
             Update,
             (
                 attach_npc_visuals.after(cordon_sim::plugin::SimSet::Spawn),
                 attach_relic_visuals.after(cordon_sim::plugin::SimSet::Spawn),
+            )
+                .run_if(in_state(crate::AppState::Playing)),
+        );
+
+        // Interaction systems are only meaningful when the player is
+        // looking at the map.
+        app.add_systems(
+            Update,
+            (
                 update_hover,
                 handle_npc_click,
                 update_npc_selection,
@@ -54,14 +82,12 @@ impl Plugin for LaptopPlugin {
     }
 }
 
-/// Shared mesh + material handles for NPC dots so the renderer can
-/// batch all 1000 sprites into a single draw call instead of one per
-/// NPC. The three materials cover the three colour states: default,
-/// selected, and squadmate of selected.
+/// Shared mesh + selection material handles for NPC dots. The
+/// per-faction default tints live in [`FactionPalette`]; this struct
+/// only carries the shared mesh and the two selection-state overlays.
 #[derive(Resource, Clone)]
 pub struct NpcAssets {
     pub dot_mesh: Handle<Mesh>,
-    pub default_mat: Handle<ColorMaterial>,
     pub selected_mat: Handle<ColorMaterial>,
     pub squad_mat: Handle<ColorMaterial>,
 }
@@ -72,12 +98,10 @@ fn init_npc_assets(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let dot_mesh = meshes.add(Circle::new(6.0));
-    let default_mat = materials.add(ColorMaterial::from_color(COLOR_NPC));
     let selected_mat = materials.add(ColorMaterial::from_color(COLOR_NPC_SELECTED));
     let squad_mat = materials.add(ColorMaterial::from_color(COLOR_NPC_SQUAD));
     commands.insert_resource(NpcAssets {
         dot_mesh,
-        default_mat,
         selected_mat,
         squad_mat,
     });
@@ -208,7 +232,6 @@ struct SelectedNpc(Option<Entity>);
 const COLOR_AREA: Color = Color::srgba(1.0, 1.0, 1.0, 0.08);
 const COLOR_AREA_BORDER: Color = Color::srgba(1.0, 1.0, 1.0, 0.25);
 const COLOR_AREA_HOVER: Color = Color::srgba(1.0, 1.0, 1.0, 0.15);
-const COLOR_NPC: Color = Color::srgb(0.7, 0.7, 0.7);
 const COLOR_NPC_SELECTED: Color = Color::srgb(1.0, 0.9, 0.3);
 const COLOR_NPC_SQUAD: Color = Color::srgb(0.7, 0.6, 0.25);
 
@@ -308,12 +331,8 @@ fn resolve_npc_name(l10n: &Localization, name: &NpcName) -> String {
 }
 
 fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
-    let tier_label = |t: Tier| -> (String, Tier) {
-        (
-            l10n_or(l10n, tier_key(&t), &format!("{:?}", t)),
-            t,
-        )
-    };
+    let tier_label =
+        |t: Tier| -> (String, Tier) { (l10n_or(l10n, tier_key(&t), &format!("{:?}", t)), t) };
     let hazard_image = |h: &cordon_core::world::area::Hazard| -> String {
         match h.kind {
             HazardType::Chemical => "icons/hazards/chemical.png".to_string(),
@@ -442,6 +461,7 @@ fn build_relic_tooltip(
 
 fn spawn_map(
     game_data: Res<GameDataResource>,
+    palette: Res<FactionPalette>,
     laptop_font: Res<LaptopFont>,
     _asset_server: Res<AssetServer>,
     l10n: Option<Res<GameLocalization>>,
@@ -455,25 +475,39 @@ fn spawn_map(
 
     spawn_ui(&mut commands, &laptop_font.0);
 
+    // Shared materials reused across the area loop. Without this each
+    // of the ~16 non-Settlement disks (and all 40 borders) would
+    // allocate its own identical material handle.
+    let neutral_area_mat = materials.add(ColorMaterial::from_color(COLOR_AREA));
+    let border_mat = materials.add(ColorMaterial::from_color(COLOR_AREA_BORDER));
+
     for area in data.areas.values() {
         let x = area.location.x;
         let y = area.location.y;
         let radius = area.radius.value();
         let info = build_area_info(l10n, area);
 
+        // Settlement disks pick up their faction tint; everything else
+        // (Wasteland, AnomalyField, Anchor, MutantLair) keeps the
+        // neutral white wash.
+        let area_material = match area.kind.faction() {
+            Some(f) => palette.area(f),
+            None => neutral_area_mat.clone(),
+        };
+
         let _area_entity = commands.spawn((
             MapWorldEntity,
             AreaCircle { radius },
             AreaData(info),
             Mesh2d(meshes.add(Circle::new(radius))),
-            MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_AREA))),
+            MeshMaterial2d(area_material),
             Transform::from_xyz(x, y, 0.01),
         ));
 
         commands.spawn((
             MapWorldEntity,
             Mesh2d(meshes.add(Annulus::new(radius - 2.0, radius))),
-            MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_AREA_BORDER))),
+            MeshMaterial2d(border_mat.clone()),
             Transform::from_xyz(x, y, 0.1),
         ));
     }
@@ -483,7 +517,8 @@ fn spawn_map(
         Bunker,
         Mesh2d(meshes.add(Circle::new(10.0))),
         MeshMaterial2d(materials.add(ColorMaterial::from_color(Color::WHITE))),
-        Transform::from_xyz(0.0, 0.0, 1.0),
+        // Above the cloud layer (z=5) so the bunker stays visible.
+        Transform::from_xyz(0.0, 0.0, 10.0),
     ));
 
     info!(
@@ -675,8 +710,14 @@ fn handle_npc_click(
 fn update_npc_selection(
     selected: Res<SelectedNpc>,
     npc_assets: Res<NpcAssets>,
+    palette: Res<FactionPalette>,
     mut dots: Query<
-        (Entity, &SquadMembership, &mut MeshMaterial2d<ColorMaterial>),
+        (
+            Entity,
+            &SquadMembership,
+            &FactionId,
+            &mut MeshMaterial2d<ColorMaterial>,
+        ),
         With<NpcMarker>,
     >,
 ) {
@@ -687,15 +728,17 @@ fn update_npc_selection(
     // Find the selected NPC's squad entity.
     let selected_squad = selected.0.and_then(|entity| {
         dots.iter()
-            .find(|(e, _, _)| *e == entity)
-            .map(|(_, m, _)| m.squad)
+            .find(|(e, _, _, _)| *e == entity)
+            .map(|(_, m, _, _)| m.squad)
     });
 
-    for (entity, member, mut mat_handle) in &mut dots {
+    for (entity, member, faction, mut mat_handle) in &mut dots {
         let new_mat = match (selected.0, selected_squad) {
             (Some(sel), _) if sel == entity => npc_assets.selected_mat.clone(),
             (_, Some(sq)) if member.squad == sq => npc_assets.squad_mat.clone(),
-            _ => npc_assets.default_mat.clone(),
+            // Default state: faction-tinted dot (not the legacy grey
+            // shared default).
+            _ => palette.dot(&faction.0),
         };
         mat_handle.0 = new_mat;
     }
@@ -721,6 +764,7 @@ fn deselect_or_exit(
 fn attach_npc_visuals(
     game_data: Res<GameDataResource>,
     npc_assets: Res<NpcAssets>,
+    palette: Res<FactionPalette>,
     l10n: Option<Res<GameLocalization>>,
     squads: Query<(
         &SquadHomePosition,
@@ -784,8 +828,10 @@ fn attach_npc_visuals(
             CombatTarget::default(),
             FireState::default(),
             Mesh2d(npc_assets.dot_mesh.clone()),
-            MeshMaterial2d(npc_assets.default_mat.clone()),
-            Transform::from_xyz(spawn_pos.x, spawn_pos.y, 0.5),
+            MeshMaterial2d(palette.dot(&faction.0)),
+            // z=10 keeps NPC dots (and the corpse X children that
+            // ride the same transform) above the cloud layer at z=5.
+            Transform::from_xyz(spawn_pos.x, spawn_pos.y, 10.0),
         ));
     }
 }

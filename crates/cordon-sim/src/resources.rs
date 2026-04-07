@@ -64,6 +64,13 @@ pub struct Player(pub PlayerState);
 #[derive(Resource, Debug, Clone, Default)]
 pub struct FactionIndex(pub Vec<Id<Faction>>);
 
+/// Pre-collected centres of every Settlement-archetype area, indexed
+/// by controlling faction. Built once at world init so the spawn
+/// system doesn't have to walk every area every wave to figure out
+/// where a faction's bases are.
+#[derive(Resource, Debug, Clone, Default)]
+pub struct FactionSettlements(pub HashMap<Id<Faction>, Vec<bevy::math::Vec2>>);
+
 /// Live area states keyed by area id. Tracks faction control, danger,
 /// creature activity.
 #[derive(Resource, Default)]

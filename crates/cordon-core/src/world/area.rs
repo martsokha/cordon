@@ -52,17 +52,11 @@ pub enum AreaKind {
         role: SettlementRole,
     },
     /// Unaffiliated open ground with light loot scatter.
-    Wasteland {
-        radiation: Tier,
-        loot: Tier,
-    },
+    Wasteland { radiation: Tier, loot: Tier },
     /// Mutant-held area. Aggressive creatures, minor loot from
     /// what they've dragged in. (Reserved for the upcoming
     /// mutants faction — no current data uses this variant.)
-    MutantLair {
-        creatures: Tier,
-        loot: Tier,
-    },
+    MutantLair { creatures: Tier, loot: Tier },
     /// Open hazard zone — chemical pools, electric storms, etc.
     /// Spawns relics whose origin matches the hazard kind.
     AnomalyField {
@@ -87,7 +81,9 @@ impl AreaKind {
     /// Hazard for archetypes that have one (AnomalyField, Anchor).
     pub fn hazard(&self) -> Option<Hazard> {
         match self {
-            AreaKind::AnomalyField { hazard, .. } | AreaKind::Anchor { hazard, .. } => Some(*hazard),
+            AreaKind::AnomalyField { hazard, .. } | AreaKind::Anchor { hazard, .. } => {
+                Some(*hazard)
+            }
             _ => None,
         }
     }

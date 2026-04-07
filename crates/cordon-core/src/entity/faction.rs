@@ -56,6 +56,11 @@ pub struct FactionDef {
     pub sells: Vec<ItemCategory>,
     /// Name pool ID used to generate NPC names for this faction.
     pub namepool: Id<NamePoolMarker>,
+    /// Display color for this faction as a hex string (e.g.
+    /// `"#6B8C4D"`). Used to tint settlement disks, NPC dots, and
+    /// corpse markers on the map so a faction's footprint is
+    /// recognizable at a glance. Parsed once at game-data load.
+    pub color: String,
     /// Base relations with other factions.
     pub relations: Vec<(Id<Faction>, Relation)>,
 }

@@ -348,8 +348,7 @@ fn update_tooltip(
                 Some(r) => format!("{kind_label} — {r}"),
                 None => kind_label.clone(),
             };
-            let mut s: Vec<(String, Color)> =
-                vec![(kind_line, Color::srgba(0.7, 0.7, 0.7, 1.0))];
+            let mut s: Vec<(String, Color)> = vec![(kind_line, Color::srgba(0.7, 0.7, 0.7, 1.0))];
             if let Some((label, tier)) = creatures {
                 s.push(("\nCreatures: ".into(), COLOR_LABEL));
                 s.push((label.clone(), tier_color(tier)));
