@@ -157,8 +157,27 @@ pub(super) fn drive_squad_formation(
                         ENGAGE_WALK_SPEED,
                     );
                 }
-            } else if move_target.0.is_some() {
-                move_target.0 = None;
+            } else {
+                // Squad is engaged but this member has no specific
+                // target — either they have no LOS to any hostile or
+                // their assigned target was just despawned. Regroup
+                // on the leader so they reposition into formation
+                // and have a chance to regain LOS, instead of
+                // standing frozen in place.
+                if let Some(leader_p) = squad_leader_pos.get(&member.squad).copied() {
+                    if pos.distance(leader_p) > ARRIVED_DIST {
+                        set_movement_target(
+                            &mut move_target,
+                            &mut speed,
+                            leader_p,
+                            ENGAGE_WALK_SPEED,
+                        );
+                    } else if move_target.0.is_some() {
+                        move_target.0 = None;
+                    }
+                } else if move_target.0.is_some() {
+                    move_target.0 = None;
+                }
             }
             continue;
         }

@@ -178,6 +178,7 @@ pub(super) fn update_squad_engagement(
             None => continue,
         };
         let activity = activity_by_squad.get(&member.squad);
+        // Squad isn't engaged: drop any stale per-member target.
         let Some(SquadActivity::Engage { hostiles }) = activity else {
             if let Ok(mut ct) = combat_targets_q.get_mut(entity)
                 && ct.0.is_some()
@@ -187,35 +188,40 @@ pub(super) fn update_squad_engagement(
             continue;
         };
 
+        // Hostile squad has no alive members in snapshot — they all
+        // died this tick. Drop the per-member target; the next scan
+        // will pick a fresh hostile or clear engagement entirely.
         let Some(hostile_members) = snapshot_by_squad.get(hostiles) else {
             if let Ok(mut ct) = combat_targets_q.get_mut(entity) {
                 ct.0 = None;
             }
             continue;
         };
-        let mut best: Option<(Entity, f32)> = None;
+
+        // Pick the closest hostile member with clear LOS from this
+        // member's position. If none have LOS, fall back to the
+        // closest hostile member regardless — formation will move
+        // this member toward them so they can regain LOS, instead
+        // of leaving them stranded with no target.
+        let mut best_los: Option<(Entity, f32)> = None;
+        let mut best_any: Option<(Entity, f32)> = None;
         for enemy in hostile_members {
+            let dist_sq = snap.pos.distance_squared(enemy.pos);
+            if best_any.is_none_or(|(_, d)| dist_sq < d) {
+                best_any = Some((enemy.entity, dist_sq));
+            }
             if line_blocked(snap.pos, enemy.pos, &anomaly_disks) {
                 continue;
             }
-            let dist_sq = snap.pos.distance_squared(enemy.pos);
-            if best.is_none_or(|(_, d)| dist_sq < d) {
-                best = Some((enemy.entity, dist_sq));
+            if best_los.is_none_or(|(_, d)| dist_sq < d) {
+                best_los = Some((enemy.entity, dist_sq));
             }
         }
-        if let Ok(mut ct) = combat_targets_q.get_mut(entity) {
-            match best {
-                Some((target, _)) => {
-                    if ct.0 != Some(target) {
-                        ct.0 = Some(target);
-                    }
-                }
-                None => {
-                    if ct.0.is_some() {
-                        ct.0 = None;
-                    }
-                }
-            }
+        let chosen_target = best_los.or(best_any).map(|(e, _)| e);
+        if let Ok(mut ct) = combat_targets_q.get_mut(entity)
+            && ct.0 != chosen_target
+        {
+            ct.0 = chosen_target;
         }
     }
 }
