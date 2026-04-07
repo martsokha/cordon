@@ -14,7 +14,7 @@ use crate::behavior::Dead;
 use crate::components::{Hp, LoadoutComp, NpcMarker};
 use crate::events::{CorpseRemoved, NpcDied};
 use crate::plugin::SimSet;
-use crate::resources::SimWorld;
+use crate::resources::GameClock;
 
 pub const CORPSE_PERSISTENCE_MINUTES: u32 = 7 * 24 * 60;
 
@@ -33,12 +33,12 @@ impl Plugin for DeathPlugin {
 
 /// Tag NPCs whose HP hit zero as dead and emit [`NpcDied`].
 fn handle_deaths(
-    sim: Res<SimWorld>,
+    clock: Res<GameClock>,
     mut commands: Commands,
     mut died: MessageWriter<NpcDied>,
     q: Query<(Entity, &Hp), (With<NpcMarker>, Without<Dead>)>,
 ) {
-    let now = sim.0.time;
+    let now = clock.0;
     for (entity, hp) in &q {
         if hp.is_alive() {
             continue;
@@ -54,12 +54,12 @@ fn handle_deaths(
 /// Despawn corpses after the persistence window or once their loadout
 /// has been fully looted.
 fn cleanup_corpses(
-    sim: Res<SimWorld>,
+    clock: Res<GameClock>,
     mut commands: Commands,
     mut removed: MessageWriter<CorpseRemoved>,
     q: Query<(Entity, &Dead, &LoadoutComp)>,
 ) {
-    let now = sim.0.time;
+    let now = clock.0;
     for (entity, dead, loadout) in &q {
         let elapsed = minutes_between(dead.died_at, now);
         let looted = loadout.0.is_empty();

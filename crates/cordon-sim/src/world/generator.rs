@@ -10,8 +10,8 @@ use cordon_core::primitive::{Credits, Experience, Health, Id, Rank, Uid};
 use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
+use crate::resources::{FactionIndex, UidAllocator};
 use crate::world::loadout::generate_loadout;
-use crate::world::state::World;
 
 /// Read-only references the loadout generator needs at NPC spawn time.
 pub struct LoadoutContext<'a> {
@@ -183,8 +183,10 @@ pub fn resolve_name_pool<'a>(
 /// a Bevy query) and computing the deficit. This function only does
 /// the rolling and returns the produced data; the caller spawns
 /// entities from the returned [`DailySpawn`].
-pub fn roll_population_top_up(
-    world: &mut World,
+pub fn roll_population_top_up<R: Rng>(
+    rng: &mut R,
+    uids: &mut UidAllocator,
+    factions: &FactionIndex,
     generator: &impl NpcGenerator,
     name_pools: &HashMap<Id<Faction>, NamePool>,
     fallback_pool: &NamePool,
@@ -198,20 +200,24 @@ pub fn roll_population_top_up(
         squads: Vec::new(),
     };
 
+    if factions.0.is_empty() {
+        return spawn;
+    }
+
     // Spawn squads until the deficit is filled. Each squad consumes
     // `template.ranks.len()` from the deficit. A safety counter caps
     // attempts so a misconfigured archetype catalog can't spin forever.
     let mut attempts_remaining = (deficit as usize) * 4 + 16;
     while deficit > 0 && attempts_remaining > 0 {
         attempts_remaining -= 1;
-        let faction = world.random_faction();
+        let faction = factions.0[rng.random_range(0..factions.0.len())].clone();
         let arch = loadout_ctx
             .archetypes
             .get(&Id::<Archetype>::new(faction.as_str()));
         let Some(arch) = arch else { continue };
 
         // Pick a squad template from this faction's pool.
-        let Some(template) = pick_squad_template(&arch.squads, &mut world.rng.npcs) else {
+        let Some(template) = pick_squad_template(&arch.squads, rng) else {
             continue;
         };
 
@@ -222,12 +228,11 @@ pub fn roll_population_top_up(
         let mut highest_rank = Rank::Novice;
 
         for (slot_idx, rank) in template.ranks.iter().enumerate() {
-            let npc_uid = world.alloc_uid::<Npc>();
+            let npc_uid = uids.alloc::<Npc>();
             let mut npc =
-                generator.generate_with_rank(npc_uid, faction.clone(), *rank, pool, &mut world.rng.npcs);
+                generator.generate_with_rank(npc_uid, faction.clone(), *rank, pool, rng);
             // Roll a loadout for this member from the per-rank pool.
-            npc.loadout =
-                generate_loadout(arch, npc.rank(), loadout_ctx.items, &mut world.rng.npcs);
+            npc.loadout = generate_loadout(arch, npc.rank(), loadout_ctx.items, rng);
 
             member_uids.push(npc_uid);
             if slot_idx == 0 || *rank > highest_rank {
@@ -240,14 +245,14 @@ pub fn roll_population_top_up(
         let Some(leader) = leader_uid else { continue };
 
         // Resolve the template's coarse goal kind into a concrete Goal.
-        let goal = resolve_goal(template.goal, area_ids, &mut world.rng.npcs);
+        let goal = resolve_goal(template.goal, area_ids, rng);
 
         // For Patrol/Scavenge goals, scatter 3 waypoints inside the
         // target area so multiple squads patrolling the same area don't
         // converge on a single point.
-        let waypoints = waypoints_for_goal(&goal, loadout_ctx, &mut world.rng.npcs);
+        let waypoints = waypoints_for_goal(&goal, loadout_ctx, rng);
 
-        let squad_uid = world.alloc_uid::<Squad>();
+        let squad_uid = uids.alloc::<Squad>();
         let member_count = template.ranks.len() as u32;
         let squad = Squad {
             id: squad_uid,

@@ -7,7 +7,7 @@ use super::LaptopTab;
 use crate::PlayingState;
 use crate::laptop::LaptopCamera;
 use crate::laptop::input::CameraTarget;
-use crate::world::SimWorld;
+use cordon_sim::resources::GameClock;
 
 #[derive(Component)]
 pub struct ZoomLabel;
@@ -38,7 +38,6 @@ pub enum TooltipContent {
         creatures_tier: Tier,
         radiation: String,
         radiation_tier: Tier,
-        hazard_icon: String,
         hazard_image: Option<String>,
         hazard_count: u8,
         loot: String,
@@ -296,7 +295,6 @@ fn update_tooltip(
             creatures_tier,
             radiation,
             radiation_tier,
-            hazard_icon: _,
             hazard_image,
             hazard_count,
             loot,
@@ -347,7 +345,7 @@ fn update_tooltip(
                 commands.entity(child).despawn();
             }
         }
-        commands.entity(icons_entity).clear_children();
+        commands.entity(icons_entity).detach_all_children();
         if let Some(path) = &hazard_img {
             let img: Handle<Image> = asset_server.load(path.clone());
             for _ in 0..hazard_n {
@@ -379,7 +377,7 @@ fn update_tooltip(
             ..default()
         })
         .insert(TextColor(COLOR_LABEL));
-    commands.entity(root_entity).clear_children();
+    commands.entity(root_entity).detach_all_children();
 
     for (text, color) in &spans {
         let span = commands
@@ -412,11 +410,11 @@ fn update_zoom_label(
 
 #[allow(clippy::type_complexity)]
 fn update_time_label(
-    sim: Option<Res<SimWorld>>,
+    clock: Option<Res<GameClock>>,
     mut label_q: Query<&mut Text, (With<TimeLabel>, Without<TooltipRoot>, Without<ZoomLabel>)>,
 ) {
-    let Some(sim) = sim else { return };
-    let t = &sim.0.time;
+    let Some(clock) = clock else { return };
+    let t = &clock.0;
     for mut text in &mut label_q {
         text.0 = format!("Day {}  {}", t.day.value(), t.time_str());
     }

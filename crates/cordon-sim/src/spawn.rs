@@ -19,7 +19,7 @@ use cordon_data::gamedata::GameDataResource;
 use rand::{Rng, RngExt};
 
 use crate::components::{NpcBundle, NpcId, SquadBundle, SquadMembership};
-use crate::resources::{SimWorld, SquadIdIndex};
+use crate::resources::{FactionIndex, GameClock, SquadIdIndex, UidAllocator};
 use crate::world::generator::{
     DefaultNpcGenerator, LoadoutContext, NpcGenerator, roll_population_top_up,
 };
@@ -51,16 +51,19 @@ pub struct SpawnSchedule {
 pub fn spawn_population(
     mut commands: Commands,
     mut schedule: Local<SpawnSchedule>,
-    mut sim: ResMut<SimWorld>,
+    clock: Res<GameClock>,
+    mut uids: ResMut<UidAllocator>,
+    factions: Res<FactionIndex>,
     game_data: Res<GameDataResource>,
     mut squad_index: ResMut<SquadIdIndex>,
     alive_npcs: Query<(), With<NpcId>>,
 ) {
+    let mut rng = rand::rng();
     let data = &game_data.0;
 
     let generator = DefaultNpcGenerator;
-    let day = sim.0.time.day.value();
-    let day_progress = sim.0.time.day_progress();
+    let day = clock.0.day.value();
+    let day_progress = clock.0.day_progress();
 
     // Plan a fresh wave schedule on day rollover (or on first run).
     if schedule.day != Some(day) {
@@ -68,7 +71,7 @@ pub fn spawn_population(
         let target = generator.target_population(day);
         let deficit = target.saturating_sub(current);
         schedule.day = Some(day);
-        schedule.waves = plan_daily_waves(deficit, day_progress, &mut sim.0.rng.npcs);
+        schedule.waves = plan_daily_waves(deficit, day_progress, &mut rng);
     }
 
     // Drain any waves whose scheduled in-day progress has been reached.
@@ -110,7 +113,9 @@ pub fn spawn_population(
     };
 
     let spawn = roll_population_top_up(
-        &mut sim.0,
+        &mut rng,
+        &mut uids,
+        &factions,
         &generator,
         &faction_pools,
         &fallback,
@@ -129,7 +134,7 @@ pub fn spawn_population(
     }
 
     // Pre-collect the area centres so we can pick a home position per
-    // squad without re-borrowing `sim`.
+    // squad without re-borrowing rng.
     let area_centres: Vec<Vec2> = data
         .areas
         .values()
@@ -140,7 +145,6 @@ pub fn spawn_population(
     // each member with a SquadMembership component pointing back at
     // the squad entity.
     for squad in spawn.squads {
-        // Map uids to entities, dropping any that didn't spawn.
         let member_entities: Vec<Entity> = squad
             .members
             .iter()
@@ -154,8 +158,7 @@ pub fn spawn_population(
             None => member_entities[0],
         };
 
-        // Pick a home position: random area centre + small jitter.
-        let home = pick_home_position(&area_centres, &mut sim.0.rng.npcs);
+        let home = pick_home_position(&area_centres, &mut rng);
 
         let squad_uid = squad.id;
         let squad_entity = commands
@@ -168,7 +171,6 @@ pub fn spawn_population(
             .id();
         squad_index.0.insert(squad_uid, squad_entity);
 
-        // Stamp SquadMembership on each member, pointing at the squad.
         for (slot_idx, member_entity) in member_entities.iter().enumerate() {
             commands.entity(*member_entity).insert(SquadMembership {
                 squad: squad_entity,
@@ -193,17 +195,13 @@ fn plan_daily_waves<R: Rng>(deficit: u32, now_progress: f32, rng: &mut R) -> Vec
     let n_waves: u32 = rng.random_range(3..=5);
     let n = n_waves.min(deficit).max(1);
 
-    // Split deficit evenly with the remainder spread over the first
-    // few waves so totals match exactly.
     let base = deficit / n;
     let extra = deficit % n;
     let mut waves: Vec<(f32, u32)> = Vec::with_capacity(n as usize);
 
-    // First wave fires now (clamped to today only).
     let first_size = base + if extra > 0 { 1 } else { 0 };
     waves.push((now_progress, first_size));
 
-    // Remaining waves get random daytime offsets after `now_progress`.
     // 06:00 = 0.25, 21:00 = 0.875.
     const DAY_START: f32 = 0.25;
     const DAY_END: f32 = 0.875;
@@ -214,8 +212,6 @@ fn plan_daily_waves<R: Rng>(deficit: u32, now_progress: f32, rng: &mut R) -> Vec
             continue;
         }
         let t = if lower >= DAY_END {
-            // Already past daytime: schedule for end-of-day so the
-            // remainder still fires before rollover.
             (now_progress + 0.001 * i as f32).min(0.9999)
         } else {
             rng.random_range(lower..DAY_END)
@@ -239,4 +235,3 @@ fn pick_home_position<R: Rng>(centres: &[Vec2], rng: &mut R) -> Vec2 {
     let jy = rng.random_range(-30.0_f32..30.0);
     base + Vec2::new(jx, jy)
 }
-

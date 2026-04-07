@@ -11,6 +11,9 @@ pub mod combat;
 /// ECS components for NPCs and squads.
 pub mod components;
 
+/// Day rollover detection and per-day systems.
+pub mod day;
+
 /// Death and corpse lifecycle.
 pub mod death;
 

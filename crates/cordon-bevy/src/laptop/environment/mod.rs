@@ -13,8 +13,6 @@ use crate::PlayingState;
 #[derive(Resource)]
 struct EnvironmentSpawned;
 
-pub use self::crt::CrtEnabled;
-
 pub struct EnvironmentPlugin;
 
 impl Plugin for EnvironmentPlugin {

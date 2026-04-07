@@ -1,24 +1,69 @@
 //! Top-level Bevy resources owned by `cordon-sim`.
 //!
-//! These will be split further as the `World` struct is dissolved into
-//! per-concern resources, but for now [`SimWorld`] is the single
-//! container Bevy systems reach into for game time, RNG, and the
-//! mutable world state that hasn't moved into ECS yet.
+//! Each concern is its own resource so systems declare exactly what
+//! they touch and Bevy can run them in parallel where possible.
 
 use std::collections::HashMap;
 
 use bevy::prelude::*;
+use cordon_core::entity::faction::Faction;
+use cordon_core::entity::player::PlayerState;
 use cordon_core::entity::squad::Squad;
-use cordon_core::primitive::Uid;
+use cordon_core::primitive::{GameTime, Id, Uid};
+use cordon_core::world::area::Area;
+use cordon_core::world::event::ActiveEvent;
 
-use crate::world::state::World;
-
-/// Resource wrapping the simulation [`World`].
-#[derive(Resource)]
-pub struct SimWorld(pub World);
+use crate::world::sectors::AreaState;
 
 /// Maps stable squad uids to their current ECS entity. Maintained by
 /// the spawn system and used by AI systems for the rare uid → entity
 /// lookups (e.g. resolving `Goal::Protect { other }`).
 #[derive(Resource, Default, Debug, Clone)]
 pub struct SquadIdIndex(pub HashMap<Uid<Squad>, Entity>);
+
+/// In-game clock. Advanced by `cordon_bevy::world::tick_game_time`.
+#[derive(Resource, Debug, Clone, Copy, Default)]
+pub struct GameClock(pub GameTime);
+
+/// Player state: credits, XP, faction standings, hired NPCs, bunker
+/// upgrades and storage. Mutated by faction reactions to events and
+/// (later) by player commands.
+#[derive(Resource, Debug, Clone)]
+pub struct Player(pub PlayerState);
+
+/// All faction IDs from config, used for random faction selection
+/// during NPC generation. Built once at world init from
+/// `GameDataResource`.
+#[derive(Resource, Debug, Clone, Default)]
+pub struct FactionIndex(pub Vec<Id<Faction>>);
+
+/// Live area states keyed by area id. Tracks faction control, danger,
+/// creature activity.
+#[derive(Resource, Default)]
+pub struct AreaStates(pub HashMap<Id<Area>, AreaState>);
+
+/// All currently-active environmental/economic/faction/personal
+/// events. Rolled daily; expired entries pruned at the day rollover.
+#[derive(Resource, Debug, Clone, Default)]
+pub struct EventLog(pub Vec<ActiveEvent>);
+
+/// Monotonic Uid allocator. Each call to [`UidAllocator::alloc`]
+/// returns a fresh `Uid<T>` typed for the caller's marker.
+#[derive(Resource, Debug, Clone)]
+pub struct UidAllocator {
+    next: u32,
+}
+
+impl Default for UidAllocator {
+    fn default() -> Self {
+        Self { next: 1 }
+    }
+}
+
+impl UidAllocator {
+    pub fn alloc<T: 'static>(&mut self) -> Uid<T> {
+        let uid = Uid::new(self.next);
+        self.next += 1;
+        uid
+    }
+}

@@ -99,7 +99,6 @@ struct AreaTooltipInfo {
     creatures_tier: Tier,
     radiation: String,
     radiation_tier: Tier,
-    hazard_icon: String,
     hazard_image: Option<String>,
     hazard_count: u8,
     loot: String,
@@ -123,16 +122,6 @@ const COLOR_AREA_HOVER: Color = Color::srgba(1.0, 1.0, 1.0, 0.15);
 const COLOR_NPC: Color = Color::srgb(0.7, 0.7, 0.7);
 const COLOR_NPC_SELECTED: Color = Color::srgb(1.0, 0.9, 0.3);
 const COLOR_NPC_SQUAD: Color = Color::srgb(0.7, 0.6, 0.25);
-
-/// All laptop 2D entities render on layer 1 (not the main camera).
-fn hazard_icon(h: &HazardType) -> &'static str {
-    match h {
-        HazardType::Chemical => "X",
-        HazardType::Thermal => "*",
-        HazardType::Electric => "~",
-        HazardType::Gravitational => "O",
-    }
-}
 
 fn faction_icon_str(faction: Option<&str>) -> &'static str {
     match faction {
@@ -233,13 +222,6 @@ fn resolve_npc_name(l10n: &Localization, name: &NpcName) -> String {
 }
 
 fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
-    let hazard_icon_str = area
-        .danger
-        .hazard
-        .as_ref()
-        .map(|h| hazard_icon(&h.kind).to_string())
-        .unwrap_or_default();
-
     AreaTooltipInfo {
         faction_icon: faction_icon_str(area.default_faction.as_ref().map(|f| f.as_str()))
             .to_string(),
@@ -260,7 +242,6 @@ fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
             &format!("{:?}", area.danger.radiation),
         ),
         radiation_tier: area.danger.radiation,
-        hazard_icon: hazard_icon_str,
         hazard_image: area.danger.hazard.as_ref().map(|h| match h.kind {
             HazardType::Chemical => "icons/hazards/chemical.png".to_string(),
             HazardType::Thermal => "icons/hazards/thermal.png".to_string(),
@@ -424,7 +405,6 @@ fn update_hover(
                 creatures_tier: i.creatures_tier,
                 radiation: i.radiation.clone(),
                 radiation_tier: i.radiation_tier,
-                hazard_icon: i.hazard_icon.clone(),
                 hazard_image: i.hazard_image.clone(),
                 hazard_count: i.hazard_count,
                 loot: i.loot.clone(),
