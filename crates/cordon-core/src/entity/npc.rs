@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use super::faction::Faction;
 use super::name::NpcName;
 use super::perk::Perk;
-use crate::item::Inventory;
-use crate::primitive::{Credits, Experience, Health, Id, IdMarker, Uid};
+use crate::item::Loadout;
+use crate::primitive::{Credits, Experience, Health, Id, IdMarker, Rank, Uid};
 
 /// Marker for NPC template IDs (used in quest consequences).
 pub struct NpcTemplate;
@@ -60,15 +60,15 @@ pub struct Npc {
     pub name: NpcName,
     /// Faction ID this NPC belongs to.
     pub faction: Id<Faction>,
-    /// Accumulated experience. Rank tier is derived from this.
-    /// NPC XP thresholds: tier 1 = 0, tier 2 = 100, tier 3 = 500,
-    /// tier 4 = 2000, tier 5 = 10000.
+    /// Accumulated experience. [`Rank`] is derived from this.
     pub xp: Experience,
 
-    /// Items the NPC is carrying.
-    pub inventory: Inventory,
+    /// Equipped weapons, armor, and carried items.
+    pub loadout: Loadout,
     /// Health. Drops from combat, radiation, hazards.
     pub health: Health,
+    /// Maximum HP cap. Default 100; relics may modify it later.
+    pub max_hp: u32,
 
     /// How much this NPC trusts the player (-1.0 to 1.0).
     pub trust: f32,
@@ -90,8 +90,8 @@ pub struct Npc {
 }
 
 impl Npc {
-    /// Current rank tier (1–5), derived from XP.
-    pub fn rank(&self) -> u8 {
+    /// Current rank, derived from XP.
+    pub fn rank(&self) -> Rank {
         self.xp.npc_rank()
     }
 

@@ -1,3 +1,6 @@
+/// NPC loadout archetypes (per faction × rank).
+pub mod archetype;
+
 /// Bunker state, upgrades, and storage management.
 pub mod bunker;
 

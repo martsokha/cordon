@@ -2,10 +2,12 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::Rank;
+
 /// Accumulated experience points.
 ///
 /// Used for both the player (determines [`PlayerRank`](crate::entity::player::PlayerRank))
-/// and NPCs (determines rank tier). XP only goes up — it never decays.
+/// and NPCs (determines [`Rank`]). XP only goes up — it never decays.
 ///
 /// NPCs gain XP from successful missions (runners) and survived raids
 /// (guards). The player gains XP from trades, completed quests, surviving
@@ -15,8 +17,6 @@ use serde::{Deserialize, Serialize};
 pub struct Experience(u32);
 
 impl Experience {
-    /// Define NPC rank thresholds.
-    const NPC_RANK_THRESHOLDS: [u32; 5] = [0, 1000, 2500, 5000, 10000];
     /// Zero experience.
     pub const ZERO: Self = Self(0);
 
@@ -40,19 +40,9 @@ impl Experience {
         self.0 >= threshold
     }
 
-    /// Derive NPC rank tier (1–5) from this experience value.
-    pub fn npc_rank(self) -> u8 {
-        if self.0 >= Self::NPC_RANK_THRESHOLDS[4] {
-            5
-        } else if self.0 >= Self::NPC_RANK_THRESHOLDS[3] {
-            4
-        } else if self.0 >= Self::NPC_RANK_THRESHOLDS[2] {
-            3
-        } else if self.0 >= Self::NPC_RANK_THRESHOLDS[1] {
-            2
-        } else {
-            1
-        }
+    /// Derive NPC rank from this experience value.
+    pub fn npc_rank(self) -> Rank {
+        Rank::from_xp(self)
     }
 }
 

@@ -8,7 +8,7 @@ use bevy::prelude::*;
 use cordon_core::entity::name::NamePool;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::simulation::day;
-use cordon_sim::simulation::npcs::DefaultNpcGenerator;
+use cordon_sim::simulation::npcs::{DefaultNpcGenerator, LoadoutContext};
 use cordon_sim::state::world::World;
 
 use crate::AppState;
@@ -61,12 +61,17 @@ pub fn init_world(mut commands: Commands, game_data: Res<GameDataResource>) {
     };
 
     let npc_gen = DefaultNpcGenerator;
+    let loadout_ctx = LoadoutContext {
+        archetypes: &data.archetypes,
+        items: &data.items,
+    };
     let result = day::advance_day(
         &mut world,
         &data.events.values().cloned().collect::<Vec<_>>(),
         &npc_gen,
         &faction_pools,
         &fallback,
+        &loadout_ctx,
     );
 
     info!(

@@ -16,17 +16,20 @@ pub enum ArmorSlot {
 
 /// Data for armor items.
 ///
-/// Armor occupies its own equipment slot (not inventory slots).
-/// All protection values are absolute — compared directly against
-/// the corresponding threat value.
+/// Armor occupies its own equipment slot in a [`Loadout`](crate::item::Loadout).
+/// All protection values are absolute — compared directly against the
+/// corresponding threat value via [`Resistances::resolve_hit`].
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArmorData {
     /// Which slot this armor occupies.
     pub slot: ArmorSlot,
     /// Protection ratings against all damage types.
     pub resistances: Resistances,
-    /// Extra inventory slots granted while wearing this armor.
-    pub bonus_slots: u8,
-    /// How quickly the armor degrades with damage (higher = faster wear).
-    pub durability: f32,
+    /// Extra general inventory slots granted while wearing this armor
+    /// (cargo pouches, harness loops).
+    pub inventory_slots: u8,
+    /// Number of relic slots this armor exposes. Capped at 4. Helmets
+    /// always have 0; suits vary by design.
+    #[serde(default)]
+    pub relic_slots: u8,
 }

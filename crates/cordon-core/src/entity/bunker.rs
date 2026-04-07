@@ -12,7 +12,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::faction::Faction;
-use crate::item::Inventory;
+use crate::item::Stash;
 use crate::primitive::{Credits, Id, IdMarker, Relation};
 
 /// Marker for upgrade IDs.
@@ -79,9 +79,9 @@ pub struct BaseState {
     /// All installed upgrade IDs (both bunker and camp).
     pub upgrades: Vec<Id<Upgrade>>,
     /// Main storage (bunker interior).
-    pub storage: Inventory,
+    pub storage: Stash,
     /// Hidden storage (survives raids, invisible during inspections).
-    pub hidden_storage: Inventory,
+    pub hidden_storage: Stash,
 }
 
 impl BaseState {
@@ -89,8 +89,8 @@ impl BaseState {
     pub fn new() -> Self {
         Self {
             upgrades: Vec::new(),
-            storage: Inventory::new(20),
-            hidden_storage: Inventory::new(0),
+            storage: Stash::new(20),
+            hidden_storage: Stash::new(0),
         }
     }
 

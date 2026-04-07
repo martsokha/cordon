@@ -31,8 +31,12 @@ pub struct WeaponData {
     pub recoil: f32,
     /// Magazine capacity in rounds.
     pub magazine: u32,
-    /// Effective range in meters.
-    pub effective_range: Distance,
+    /// Effective firing range in map units.
+    pub range: Distance,
     /// Whether this weapon is suppressed (affects runner stealth missions).
     pub suppressed: bool,
+    /// Bonus damage on top of the ammo's base damage (long barrel,
+    /// custom load, hand-tuned action). Defaults to 0.
+    #[serde(default)]
+    pub added_damage: u32,
 }

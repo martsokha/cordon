@@ -1,23 +1,24 @@
-//! Slot-based inventory for NPCs and the bunker.
+//! Slot-based bulk storage for the bunker and hidden caches.
 
 use serde::{Deserialize, Serialize};
 
 use super::instance::ItemInstance;
 
-/// A slot-based inventory. Each item occupies one slot.
+/// A slot-based storage container with a fixed capacity.
 ///
-/// Used for NPC gear, bunker storage, and hidden storage.
-/// The capacity is fixed at creation time.
+/// Used for bunker storage and hidden caches — bulk holding without
+/// any equipment-slot semantics. NPCs use [`Loadout`](super::Loadout)
+/// instead, which has typed equipment slots.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Inventory {
-    /// Maximum number of items this inventory can hold.
+pub struct Stash {
+    /// Maximum number of items this stash can hold.
     capacity: u8,
     /// Items currently stored.
     items: Vec<ItemInstance>,
 }
 
-impl Inventory {
-    /// Create a new empty inventory with the given capacity.
+impl Stash {
+    /// Create a new empty stash with the given capacity.
     pub fn new(capacity: u8) -> Self {
         Self {
             capacity,
@@ -25,7 +26,7 @@ impl Inventory {
         }
     }
 
-    /// Maximum number of items this inventory can hold.
+    /// Maximum number of items this stash can hold.
     pub fn capacity(&self) -> u8 {
         self.capacity
     }
@@ -35,12 +36,12 @@ impl Inventory {
         self.items.len() as u8
     }
 
-    /// Whether the inventory is empty.
+    /// Whether the stash is empty.
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()
     }
 
-    /// Whether the inventory is full.
+    /// Whether the stash is full.
     pub fn is_full(&self) -> bool {
         self.len() >= self.capacity
     }
@@ -79,8 +80,7 @@ impl Inventory {
         &mut self.items
     }
 
-    /// Set a new capacity. Does not remove items if the new capacity
-    /// is smaller than the current item count.
+    /// Set a new capacity. Does not remove items if shrinking.
     pub fn set_capacity(&mut self, capacity: u8) {
         self.capacity = capacity;
     }

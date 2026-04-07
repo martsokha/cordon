@@ -48,12 +48,25 @@ impl Resistances {
         }
     }
 
-    /// How much of a threat is absorbed. Returns 0.0–1.0.
-    /// If protection >= threat, returns 1.0 (fully absorbed).
-    pub fn absorb(protection: u32, threat: u32) -> f32 {
-        if threat == 0 {
-            return 1.0;
+    /// Resolve a hit against this much protection.
+    ///
+    /// Returns `(dealt, absorbed)` HP, both summing to `damage`. The
+    /// model is multiplicative: a round whose penetration matches the
+    /// protection deals roughly full damage; a round whose penetration
+    /// is half the protection deals roughly half. Any hit always chips
+    /// at least 1 HP, regardless of how outclassed the round is.
+    pub fn resolve_hit(protection: u32, penetration: u32, damage: u32) -> (u32, u32) {
+        if damage == 0 {
+            return (0, 0);
         }
-        (protection as f32 / threat as f32).min(1.0)
+        let ratio = if protection == 0 {
+            1.0
+        } else {
+            (penetration as f32 / protection as f32).min(1.0)
+        };
+        let dealt = ((damage as f32) * ratio).round() as u32;
+        let dealt = dealt.max(1).min(damage);
+        let absorbed = damage - dealt;
+        (dealt, absorbed)
     }
 }

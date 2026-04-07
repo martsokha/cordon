@@ -103,17 +103,17 @@ pub fn resolve_missions(world: &mut World) -> Vec<MissionResult> {
             mission_id: mission.plan.id,
             outcome,
             loot: Vec::new(), // TODO: roll loot from loot tables
-            runner_condition_delta: match outcome {
-                MissionOutcome::Success | MissionOutcome::Jackpot => 0.0,
-                MissionOutcome::PartialSuccess => -0.1,
-                MissionOutcome::Failure => -0.3,
-                MissionOutcome::RunnerLost => -1.0,
+            runner_damage: match outcome {
+                MissionOutcome::Success | MissionOutcome::Jackpot => 0,
+                MissionOutcome::PartialSuccess => 10,
+                MissionOutcome::Failure => 35,
+                MissionOutcome::RunnerLost => 100,
             },
-            gear_condition_delta: match outcome {
-                MissionOutcome::Success | MissionOutcome::Jackpot => -0.02,
-                MissionOutcome::PartialSuccess => -0.05,
-                MissionOutcome::Failure => -0.15,
-                MissionOutcome::RunnerLost => -1.0,
+            gear_damage: match outcome {
+                MissionOutcome::Success | MissionOutcome::Jackpot => 2,
+                MissionOutcome::PartialSuccess => 8,
+                MissionOutcome::Failure => 25,
+                MissionOutcome::RunnerLost => 100,
             },
             perks_revealed,
         });

@@ -22,6 +22,7 @@ use bevy::asset::io::Reader;
 use bevy::asset::{AssetLoader, LoadContext, LoadedFolder};
 use bevy::prelude::*;
 use bevy::state::state::FreelyMutableState;
+use cordon_core::entity::archetype::ArchetypeDef;
 use cordon_core::entity::bunker::UpgradeDef;
 use cordon_core::entity::faction::FactionDef;
 use cordon_core::entity::name::NamePool;
@@ -72,6 +73,7 @@ impl AssetLoader for RawJsonLoader {
 #[derive(Resource)]
 struct LoadingFolders {
     areas: Handle<LoadedFolder>,
+    archetypes: Handle<LoadedFolder>,
     events: Handle<LoadedFolder>,
     factions: Handle<LoadedFolder>,
     items: Handle<LoadedFolder>,
@@ -84,6 +86,7 @@ struct LoadingFolders {
 impl LoadingFolders {
     fn all_loaded(&self, server: &AssetServer) -> bool {
         server.is_loaded_with_dependencies(&self.areas)
+            && server.is_loaded_with_dependencies(&self.archetypes)
             && server.is_loaded_with_dependencies(&self.events)
             && server.is_loaded_with_dependencies(&self.factions)
             && server.is_loaded_with_dependencies(&self.items)
@@ -130,6 +133,7 @@ struct ReadyState<S: FreelyMutableState>(S);
 fn start_loading(mut commands: Commands, server: Res<AssetServer>) {
     commands.insert_resource(LoadingFolders {
         areas: server.load_folder("data/areas"),
+        archetypes: server.load_folder("data/archetypes"),
         events: server.load_folder("data/events"),
         factions: server.load_folder("data/factions"),
         items: server.load_folder("data/items"),
@@ -154,6 +158,9 @@ fn assemble_game_data<S: FreelyMutableState>(
     }
 
     let areas = parse_folder(&loading.areas, &folders, &raw, |d: &AreaDef| d.id.clone());
+    let archetypes = parse_folder(&loading.archetypes, &folders, &raw, |d: &ArchetypeDef| {
+        d.id.clone()
+    });
     let events = parse_folder(&loading.events, &folders, &raw, |d: &EventDef| d.id.clone());
     let factions = parse_folder(&loading.factions, &folders, &raw, |d: &FactionDef| {
         d.id.clone()
@@ -169,8 +176,9 @@ fn assemble_game_data<S: FreelyMutableState>(
     });
 
     info!(
-        "Game data loaded: {} areas, {} events, {} factions, {} items, {} namepools, {} perks, {} quests, {} upgrades",
+        "Game data loaded: {} areas, {} archetypes, {} events, {} factions, {} items, {} namepools, {} perks, {} quests, {} upgrades",
         areas.len(),
+        archetypes.len(),
         events.len(),
         factions.len(),
         items.len(),
@@ -182,6 +190,7 @@ fn assemble_game_data<S: FreelyMutableState>(
 
     commands.insert_resource(GameDataResource(GameData {
         areas,
+        archetypes,
         events,
         factions,
         items,

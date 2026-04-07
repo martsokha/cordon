@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use cordon_core::entity::archetype::{Archetype, ArchetypeDef};
 use cordon_core::entity::bunker::{Upgrade, UpgradeDef};
 use cordon_core::entity::faction::{Faction, FactionDef};
 use cordon_core::entity::name::{NamePool, NamePoolMarker};
@@ -41,6 +42,8 @@ pub struct GameData {
     pub name_pools: HashMap<Id<NamePoolMarker>, NamePool>,
     /// Loot tables keyed by area ID.
     pub loot_tables: LootTables,
+    /// NPC loadout archetypes keyed by faction ID (one per faction).
+    pub archetypes: HashMap<Id<Archetype>, ArchetypeDef>,
 }
 
 impl GameData {
@@ -62,6 +65,12 @@ impl GameData {
     /// Look up a perk definition by ID.
     pub fn perk(&self, id: &Id<Perk>) -> Option<&PerkDef> {
         self.perks.get(id)
+    }
+
+    /// Look up the loadout archetype for a faction.
+    pub fn archetype_for_faction(&self, faction: &Id<Faction>) -> Option<&ArchetypeDef> {
+        // Archetype IDs mirror faction IDs, so we look up by the same string.
+        self.archetypes.get(&Id::<Archetype>::new(faction.as_str()))
     }
 
     /// Get all faction IDs.

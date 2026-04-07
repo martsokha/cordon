@@ -86,12 +86,10 @@ pub struct MissionResult {
     pub outcome: MissionOutcome,
     /// Items the runner brought back (empty on failure/lost).
     pub loot: Vec<ItemInstance>,
-    /// Change to the runner's condition (negative = damage).
-    /// Applied via [`Condition::degrade()`](crate::primitive::Condition::degrade).
-    pub runner_condition_delta: f32,
-    /// Change to the runner's gear condition (negative = wear).
-    /// Applied via [`Condition::degrade()`](crate::primitive::Condition::degrade).
-    pub gear_condition_delta: f32,
+    /// HP damage taken by the runner during the mission (0 = unscathed).
+    pub runner_damage: u32,
+    /// Durability damage taken by the runner's gear during the mission.
+    pub gear_damage: u32,
     /// Perk IDs that were revealed by this mission's events.
     pub perks_revealed: Vec<Id<Perk>>,
 }

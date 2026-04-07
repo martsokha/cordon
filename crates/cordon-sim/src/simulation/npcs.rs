@@ -1,11 +1,21 @@
+use std::collections::HashMap;
+
+use cordon_core::entity::archetype::{Archetype, ArchetypeDef};
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::{NameFormat, NamePool, NpcName};
 use cordon_core::entity::npc::{Npc, Personality};
-use cordon_core::item::Inventory;
-use cordon_core::primitive::{Credits, Experience, Id, Uid};
+use cordon_core::item::{Item, ItemDef, Loadout};
+use cordon_core::primitive::{Credits, Experience, Health, Id, Rank, Uid};
 use rand::{Rng, RngExt};
 
+use crate::simulation::loadout::generate_loadout;
 use crate::state::world::World;
+
+/// Read-only references the loadout generator needs at NPC spawn time.
+pub struct LoadoutContext<'a> {
+    pub archetypes: &'a HashMap<Id<Archetype>, ArchetypeDef>,
+    pub items: &'a HashMap<Id<Item>, ItemDef>,
+}
 
 /// Generates NPC attributes. Each method produces one aspect of an NPC.
 ///
@@ -78,33 +88,28 @@ pub trait NpcGenerator {
         options[rng.random_range(0..options.len())]
     }
 
-    /// Generate wealth based on rank tier.
-    fn generate_wealth<R: Rng>(&self, rank: u8, rng: &mut R) -> Credits {
+    /// Generate wealth based on rank.
+    fn generate_wealth<R: Rng>(&self, rank: Rank, rng: &mut R) -> Credits {
         let base: u32 = match rank {
-            1 => 200,
-            2 => 800,
-            3 => 2000,
-            4 => 5000,
-            _ => 15000,
+            Rank::Novice => 200,
+            Rank::Experienced => 800,
+            Rank::Veteran => 2000,
+            Rank::Master => 5000,
+            Rank::Legend => 15000,
         };
         let jitter = rng.random_range(0.5_f32..1.5);
         Credits::new((base as f32 * jitter) as u32)
     }
 
     /// Base daily pay for an employed NPC of a given rank.
-    fn daily_pay(&self, rank: u8) -> Credits {
-        match rank {
-            1 => Credits::new(100),
-            2 => Credits::new(150),
-            3 => Credits::new(250),
-            4 => Credits::new(400),
-            _ => Credits::new(700),
-        }
-    }
-
-    /// Inventory slot count based on rank.
-    fn inventory_slots(&self, rank: u8) -> u8 {
-        8 + rank * 2
+    fn daily_pay(&self, rank: Rank) -> Credits {
+        Credits::new(match rank {
+            Rank::Novice => 100,
+            Rank::Experienced => 150,
+            Rank::Veteran => 250,
+            Rank::Master => 400,
+            Rank::Legend => 700,
+        })
     }
 
     /// Build a complete NPC from generated parts.
@@ -125,8 +130,9 @@ pub trait NpcGenerator {
             name: self.generate_name(name_pool, rng),
             faction,
             xp,
-            inventory: Inventory::new(self.inventory_slots(rank)),
-            health: cordon_core::primitive::Health::FULL,
+            loadout: Loadout::new(),
+            health: Health::FULL,
+            max_hp: 100,
             trust: 0.0,
             wealth,
             personality,
@@ -156,12 +162,14 @@ pub fn resolve_name_pool<'a>(
 /// Generate the day's visitors.
 ///
 /// `name_pools` maps faction IDs directly to their name pools
-/// (pre-resolved from GameData at startup).
+/// (pre-resolved from GameData at startup). `loadout_ctx` carries the
+/// archetype + item catalog used to roll each NPC's gear.
 pub fn spawn_daily_visitors(
     world: &mut World,
     generator: &impl NpcGenerator,
-    name_pools: &std::collections::HashMap<Id<Faction>, NamePool>,
+    name_pools: &HashMap<Id<Faction>, NamePool>,
     fallback_pool: &NamePool,
+    loadout_ctx: &LoadoutContext<'_>,
 ) -> Vec<Npc> {
     let day = world.time.day.value();
     let count = generator.visitor_count(day, &mut world.rng.npcs);
@@ -171,7 +179,16 @@ pub fn spawn_daily_visitors(
         let id = world.alloc_uid();
         let faction = world.random_faction();
         let pool = resolve_name_pool(&faction, name_pools, fallback_pool);
-        let npc = generator.generate(id, faction, pool, &mut world.rng.npcs);
+        let mut npc = generator.generate(id, faction.clone(), pool, &mut world.rng.npcs);
+
+        // Roll a loadout from this faction's archetype, if one exists.
+        if let Some(arch) = loadout_ctx
+            .archetypes
+            .get(&Id::<Archetype>::new(faction.as_str()))
+        {
+            npc.loadout = generate_loadout(arch, npc.rank(), loadout_ctx.items, &mut world.rng.npcs);
+        }
+
         visitors.push(npc);
     }
 

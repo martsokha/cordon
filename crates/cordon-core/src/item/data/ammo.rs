@@ -14,13 +14,12 @@ use crate::primitive::Id;
 pub struct AmmoData {
     /// Caliber ID this ammo belongs to (e.g., `"9x18mm"`).
     pub caliber: Id<Caliber>,
-    /// Base damage per round.
-    pub damage: f32,
+    /// Base damage per round in HP.
+    pub damage: u32,
     /// Armor penetration value. Compared against armor's protection
-    /// value — if penetration exceeds armor, full damage goes through.
-    /// If lower, damage is reduced proportionally.
+    /// value via [`Resistances::resolve_hit`](crate::primitive::Resistances::resolve_hit).
     /// Typical range: 5 (pistol) to 40 (AP rifle).
     pub penetration: u32,
-    /// Number of rounds per box.
+    /// Number of rounds per fresh box.
     pub quantity: u32,
 }

@@ -324,10 +324,14 @@ fn spawn_map(
         let rank_title = data
             .faction(&npc.faction)
             .map(|fdef| {
-                let key = format!("rank-{}-{}", rank_scheme_key(&fdef.rank_scheme), npc.rank());
+                let key = format!(
+                    "rank-{}-{}",
+                    rank_scheme_key(&fdef.rank_scheme),
+                    npc.rank().key()
+                );
                 l10n_or(l10n, &key, &key)
             })
-            .unwrap_or_else(|| format!("Rank {}", npc.rank()));
+            .unwrap_or_else(|| format!("Rank {}", npc.rank().key()));
 
         let intent = pick_intent(
             npc,

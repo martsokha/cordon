@@ -49,9 +49,11 @@ pub struct ItemDef {
     pub suppliers: Vec<Supplier>,
     /// How rare this item is. Affects loot tables and NPC behavior.
     pub rarity: Rarity,
-    /// How fast this item's condition degrades with use (1.0 = normal rate).
-    /// Lower = more durable. Applies to weapons, armor, and anything that wears.
-    pub durability: f32,
+    /// Maximum durability budget for items that wear (weapons, armor).
+    /// Each absorbed hit or fired shot drains 1 point. At 0 the item
+    /// breaks. `None` means indestructible (consumables, ammo, documents).
+    #[serde(default)]
+    pub durability: Option<u32>,
 }
 
 impl ItemDef {

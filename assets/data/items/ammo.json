@@ -4,7 +4,7 @@
     "data": {
       "type": "ammo",
       "caliber": "9x18mm",
-      "damage": 20.0,
+      "damage": 20,
       "penetration": 3,
       "quantity": 16
     },
@@ -14,16 +14,15 @@
       { "faction": "syndicate", "price_multiplier": 1.0 },
       { "faction": "garrison", "price_multiplier": 1.1 }
     ],
-    "rarity": "common",
-    "durability": 1.0
+    "rarity": "common"
   },
   {
     "id": "9x18mm_ap",
     "data": {
       "type": "ammo",
       "caliber": "9x18mm",
-      "damage": 18.0,
-      "penetration": 5,
+      "damage": 18,
+      "penetration": 6,
       "quantity": 16
     },
     "base_price": 80,
@@ -31,15 +30,14 @@
       { "faction": "garrison", "price_multiplier": 1.0 },
       { "faction": "mercenaries", "price_multiplier": 1.1 }
     ],
-    "rarity": "uncommon",
-    "durability": 1.0
+    "rarity": "uncommon"
   },
   {
     "id": "9x19mm",
     "data": {
       "type": "ammo",
       "caliber": "9x19mm",
-      "damage": 25.0,
+      "damage": 25,
       "penetration": 5,
       "quantity": 16
     },
@@ -49,16 +47,15 @@
       { "faction": "garrison", "price_multiplier": 1.0 },
       { "faction": "syndicate", "price_multiplier": 1.1 }
     ],
-    "rarity": "common",
-    "durability": 1.0
+    "rarity": "common"
   },
   {
     "id": "9x19mm_ap",
     "data": {
       "type": "ammo",
       "caliber": "9x19mm",
-      "damage": 22.0,
-      "penetration": 8,
+      "damage": 22,
+      "penetration": 9,
       "quantity": 16
     },
     "base_price": 110,
@@ -66,15 +63,14 @@
       { "faction": "mercenaries", "price_multiplier": 0.95 },
       { "faction": "garrison", "price_multiplier": 1.1 }
     ],
-    "rarity": "uncommon",
-    "durability": 1.0
+    "rarity": "uncommon"
   },
   {
     "id": "5.45x39mm",
     "data": {
       "type": "ammo",
       "caliber": "5.45x39mm",
-      "damage": 35.0,
+      "damage": 35,
       "penetration": 12,
       "quantity": 30
     },
@@ -84,16 +80,15 @@
       { "faction": "order", "price_multiplier": 1.0 },
       { "faction": "mercenaries", "price_multiplier": 1.1 }
     ],
-    "rarity": "common",
-    "durability": 1.0
+    "rarity": "common"
   },
   {
     "id": "5.45x39mm_ap",
     "data": {
       "type": "ammo",
       "caliber": "5.45x39mm",
-      "damage": 30.0,
-      "penetration": 18,
+      "damage": 30,
+      "penetration": 22,
       "quantity": 30
     },
     "base_price": 250,
@@ -101,15 +96,14 @@
       { "faction": "garrison", "price_multiplier": 1.0 },
       { "faction": "order", "price_multiplier": 1.1 }
     ],
-    "rarity": "uncommon",
-    "durability": 1.0
+    "rarity": "uncommon"
   },
   {
     "id": "5.56x45mm",
     "data": {
       "type": "ammo",
       "caliber": "5.56x45mm",
-      "damage": 38.0,
+      "damage": 38,
       "penetration": 14,
       "quantity": 30
     },
@@ -118,16 +112,15 @@
       { "faction": "mercenaries", "price_multiplier": 0.85 },
       { "faction": "institute", "price_multiplier": 1.0 }
     ],
-    "rarity": "uncommon",
-    "durability": 1.0
+    "rarity": "uncommon"
   },
   {
     "id": "5.56x45mm_ap",
     "data": {
       "type": "ammo",
       "caliber": "5.56x45mm",
-      "damage": 33.0,
-      "penetration": 21,
+      "damage": 33,
+      "penetration": 24,
       "quantity": 30
     },
     "base_price": 350,
@@ -135,7 +128,70 @@
       { "faction": "mercenaries", "price_multiplier": 0.9 },
       { "faction": "institute", "price_multiplier": 1.1 }
     ],
-    "rarity": "rare",
-    "durability": 1.0
+    "rarity": "rare"
+  },
+  {
+    "id": "12gauge_buck",
+    "data": {
+      "type": "ammo",
+      "caliber": "12gauge",
+      "damage": 55,
+      "penetration": 4,
+      "quantity": 8
+    },
+    "base_price": 90,
+    "suppliers": [
+      { "faction": "drifters", "price_multiplier": 0.85 },
+      { "faction": "syndicate", "price_multiplier": 1.0 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "12gauge_slug",
+    "data": {
+      "type": "ammo",
+      "caliber": "12gauge",
+      "damage": 70,
+      "penetration": 16,
+      "quantity": 8
+    },
+    "base_price": 160,
+    "suppliers": [
+      { "faction": "syndicate", "price_multiplier": 0.95 },
+      { "faction": "mercenaries", "price_multiplier": 1.1 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "7.62x54r",
+    "data": {
+      "type": "ammo",
+      "caliber": "7.62x54r",
+      "damage": 60,
+      "penetration": 20,
+      "quantity": 10
+    },
+    "base_price": 280,
+    "suppliers": [
+      { "faction": "garrison", "price_multiplier": 0.9 },
+      { "faction": "order", "price_multiplier": 1.0 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "7.62x54r_ap",
+    "data": {
+      "type": "ammo",
+      "caliber": "7.62x54r",
+      "damage": 55,
+      "penetration": 32,
+      "quantity": 10
+    },
+    "base_price": 480,
+    "suppliers": [
+      { "faction": "order", "price_multiplier": 0.95 },
+      { "faction": "garrison", "price_multiplier": 1.1 }
+    ],
+    "rarity": "rare"
   }
 ]

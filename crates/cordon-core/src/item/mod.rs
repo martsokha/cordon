@@ -10,7 +10,8 @@ mod data;
 mod def;
 mod effect;
 mod instance;
-mod inventory;
+mod loadout;
+mod stash;
 
 pub use self::category::ItemCategory;
 pub use self::data::{
@@ -20,4 +21,5 @@ pub use self::data::{
 pub use self::def::{Item, ItemDef, Supplier};
 pub use self::effect::{Effect, EffectTarget};
 pub use self::instance::{Authenticity, ItemInstance};
-pub use self::inventory::Inventory;
+pub use self::loadout::{Loadout, BASE_GENERAL_SLOTS, MAX_RELIC_SLOTS};
+pub use self::stash::Stash;
