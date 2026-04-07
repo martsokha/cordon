@@ -6,6 +6,7 @@
   "sells": ["relic", "consumable"],
   "namepool": "slavic",
   "color": "#7A3F8C",
+  "spawn_weight": 15,
   "relations": [
     ["garrison", -70],
     ["syndicate", -70],

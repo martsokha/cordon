@@ -6,6 +6,7 @@
   "sells": ["tech", "attachment", "consumable"],
   "namepool": "western",
   "color": "#3B8C9E",
+  "spawn_weight": 5,
   "relations": [
     ["garrison", 40],
     ["syndicate", -30],

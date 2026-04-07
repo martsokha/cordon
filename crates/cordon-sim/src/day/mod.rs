@@ -71,10 +71,13 @@ fn roll_today_events(
     mut rng: Single<&mut WyRand, With<GlobalRng>>,
 ) {
     let event_defs: Vec<_> = game_data.0.events.values().cloned().collect();
+    // Events don't care about spawn weights — strip them down to just
+    // the ids for `roll_daily_events`.
+    let faction_ids: Vec<_> = factions.0.iter().map(|(id, _)| id.clone()).collect();
     roll_daily_events(
         &mut events.0,
         &event_defs,
-        &factions.0,
+        &faction_ids,
         clock.0.day,
         &mut **rng,
     );

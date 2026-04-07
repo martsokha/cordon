@@ -49,6 +49,16 @@ pub fn init_world(mut commands: Commands, game_data: Res<GameDataResource>) {
     let data = &game_data.0;
 
     let faction_ids = data.faction_ids();
+    // Pair each faction with its spawn weight from config so the
+    // spawn system can do a weighted pick without re-reading the
+    // FactionDef catalog every wave.
+    let faction_weights: Vec<(_, u32)> = faction_ids
+        .iter()
+        .map(|id| {
+            let weight = data.factions.get(id).map(|f| f.spawn_weight).unwrap_or(1);
+            (id.clone(), weight)
+        })
+        .collect();
 
     let mut areas: HashMap<_, _> = HashMap::with_capacity(data.areas.len());
     for id in data.area_ids() {
@@ -71,7 +81,7 @@ pub fn init_world(mut commands: Commands, game_data: Res<GameDataResource>) {
 
     commands.insert_resource(GameClock::default());
     commands.insert_resource(Player(PlayerState::new(&faction_ids)));
-    commands.insert_resource(FactionIndex(faction_ids));
+    commands.insert_resource(FactionIndex(faction_weights));
     commands.insert_resource(FactionSettlements(settlements));
     commands.insert_resource(AreaStates(areas));
     commands.insert_resource(EventLog::default());

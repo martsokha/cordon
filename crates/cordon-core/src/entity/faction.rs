@@ -61,6 +61,11 @@ pub struct FactionDef {
     /// corpse markers on the map so a faction's footprint is
     /// recognizable at a glance. Parsed once at game-data load.
     pub color: String,
+    /// Relative weight used when the daily spawner picks which
+    /// faction a fresh squad belongs to. Higher weights spawn more
+    /// often. Treat the values as relative — if garrison=25 and
+    /// institute=5, garrison spawns five times as often.
+    pub spawn_weight: u32,
     /// Base relations with other factions.
     pub relations: Vec<(Id<Faction>, Relation)>,
 }

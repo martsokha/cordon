@@ -206,10 +206,11 @@ pub fn roll_population_top_up<R: Rng>(
     // Spawn squads until the deficit is filled. Each squad consumes
     // `template.ranks.len()` from the deficit. A safety counter caps
     // attempts so a misconfigured archetype catalog can't spin forever.
+    let total_weight: u32 = factions.0.iter().map(|(_, w)| (*w).max(1)).sum();
     let mut attempts_remaining = (deficit as usize) * 4 + 16;
     while deficit > 0 && attempts_remaining > 0 {
         attempts_remaining -= 1;
-        let faction = factions.0[rng.random_range(0..factions.0.len())].clone();
+        let faction = pick_weighted_faction(&factions.0, total_weight, rng);
         let arch = loadout_ctx
             .archetypes
             .get(&Id::<Archetype>::new(faction.as_str()));
@@ -335,4 +336,29 @@ fn waypoints_for_goal<R: Rng>(goal: &Goal, ctx: &LoadoutContext<'_>, rng: &mut R
             [cx + angle.cos() * dist, cy + angle.sin() * dist]
         })
         .collect()
+}
+
+/// Weighted pick over `(faction_id, weight)` pairs. Each weight is
+/// floored at 1 so a misconfigured `spawn_weight: 0` doesn't drop a
+/// faction out of rotation entirely. `total_weight` is precomputed
+/// by the caller so the loop doesn't re-sum on every roll.
+fn pick_weighted_faction<R: Rng>(
+    factions: &[(Id<Faction>, u32)],
+    total_weight: u32,
+    rng: &mut R,
+) -> Id<Faction> {
+    if total_weight == 0 {
+        // Fallback shouldn't be reachable since the caller's empty
+        // check runs first, but stay defensive.
+        return factions[0].0.clone();
+    }
+    let mut roll = rng.random_range(0..total_weight);
+    for (id, weight) in factions {
+        let w = (*weight).max(1);
+        if roll < w {
+            return id.clone();
+        }
+        roll -= w;
+    }
+    factions[factions.len() - 1].0.clone()
 }

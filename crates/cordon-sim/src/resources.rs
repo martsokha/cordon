@@ -58,11 +58,12 @@ pub struct GameClock(pub GameTime);
 #[derive(Resource, Debug, Clone)]
 pub struct Player(pub PlayerState);
 
-/// All faction IDs from config, used for random faction selection
-/// during NPC generation. Built once at world init from
-/// `GameDataResource`.
+/// All faction IDs from config paired with their spawn weight, used
+/// for weighted faction selection during NPC generation. Built once
+/// at world init from `GameDataResource`. The [`FactionDef`] field
+/// `spawn_weight` controls how often each faction is rolled.
 #[derive(Resource, Debug, Clone, Default)]
-pub struct FactionIndex(pub Vec<Id<Faction>>);
+pub struct FactionIndex(pub Vec<(Id<Faction>, u32)>);
 
 /// Pre-collected centres of every Settlement-archetype area, indexed
 /// by controlling faction. Built once at world init so the spawn

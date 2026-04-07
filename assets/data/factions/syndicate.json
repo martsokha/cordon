@@ -6,6 +6,7 @@
   "sells": ["weapon", "consumable", "attachment"],
   "namepool": "aliases",
   "color": "#A8442A",
+  "spawn_weight": 25,
   "relations": [
     ["garrison", -60],
     ["institute", -30],
