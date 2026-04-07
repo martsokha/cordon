@@ -23,6 +23,21 @@ pub enum Action {
     Trade { timer: f32 },
     /// Running from danger.
     Flee { target: Vec2 },
+    /// Firing on a target NPC. `cooldown_secs` ticks down toward 0; on
+    /// reaching 0 the combat system applies one shot's damage and
+    /// resets the cooldown to the weapon's interval.
+    Engage {
+        #[reflect(ignore)]
+        target: Uid<Npc>,
+        cooldown_secs: f32,
+    },
+    /// Looting a corpse. `progress_secs` ticks down toward 0; on
+    /// reaching 0 the loot system transfers one item and resets.
+    Loot {
+        #[reflect(ignore)]
+        target: Uid<Npc>,
+        progress_secs: f32,
+    },
 }
 
 impl Behavior for Action {
@@ -30,11 +45,13 @@ impl Behavior for Action {
         use Action::*;
         match_next! {
             self => next,
-            Idle { .. } => Walk { .. } | Trade { .. } | Follow { .. } | Flee { .. },
-            Walk { .. } => Idle { .. } | Trade { .. } | Follow { .. } | Flee { .. },
-            Follow { .. } => Idle { .. } | Walk { .. } | Flee { .. },
+            Idle { .. } => Walk { .. } | Trade { .. } | Follow { .. } | Flee { .. } | Engage { .. } | Loot { .. },
+            Walk { .. } => Idle { .. } | Trade { .. } | Follow { .. } | Flee { .. } | Engage { .. } | Loot { .. },
+            Follow { .. } => Idle { .. } | Walk { .. } | Flee { .. } | Engage { .. },
             Trade { .. } => Idle { .. } | Walk { .. } | Flee { .. },
-            Flee { .. } => Idle { .. } | Walk { .. }
+            Flee { .. } => Idle { .. } | Walk { .. },
+            Engage { .. } => Idle { .. } | Walk { .. } | Flee { .. } | Engage { .. },
+            Loot { .. } => Idle { .. } | Walk { .. } | Flee { .. } | Engage { .. }
         }
     }
 }
@@ -151,6 +168,12 @@ pub fn drive_actions(time: Res<Time>, mut query: Query<(BehaviorMut<Action>, &mu
                 let speed = 20.0;
                 transform.translation.x += dir.x * speed * dt;
                 transform.translation.y += dir.y * speed * dt;
+            }
+            Action::Engage { .. } => {
+                // Engage logic (cooldown, damage) lives in the combat system.
+            }
+            Action::Loot { .. } => {
+                // Loot logic lives in the combat system.
             }
         }
     }

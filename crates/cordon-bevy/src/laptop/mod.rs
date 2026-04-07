@@ -15,6 +15,7 @@ use cordon_data::gamedata::GameDataResource;
 
 use crate::PlayingState;
 use crate::ai::behavior::{Action, Intent, IntentPhase, pick_intent};
+use crate::ai::combat::Vision;
 use crate::locale::{GameLocalization, l10n_or};
 use crate::world::SimWorld;
 
@@ -73,9 +74,9 @@ struct AreaTooltipInfo {
     loot_tier: Tier,
 }
 
-#[derive(Component)]
-struct NpcDot {
-    uid: Uid<Npc>,
+#[derive(Component, Clone, Copy)]
+pub struct NpcDot {
+    pub uid: Uid<Npc>,
 }
 
 #[derive(Component, Clone)]
@@ -87,7 +88,7 @@ struct NpcDotInfo {
 }
 
 #[derive(Component, Clone)]
-struct NpcFaction(Id<Faction>);
+pub struct NpcFaction(pub Id<Faction>);
 
 #[derive(Resource, Default)]
 struct SelectedNpc(Option<Uid<Npc>>);
@@ -172,6 +173,8 @@ fn format_npc_status(action: &Action, intent: &Intent) -> String {
         Action::Follow { .. } => "Following",
         Action::Trade { .. } => "Trading",
         Action::Flee { .. } => "Fleeing",
+        Action::Engage { .. } => "Fighting",
+        Action::Loot { .. } => "Looting",
     };
     let goal = match intent {
         Intent::Visit => "visiting",
@@ -353,6 +356,12 @@ fn spawn_map(
         );
         let spawn_pos = base_pos + scatter;
 
+        let is_military = matches!(
+            npc.faction.as_str(),
+            "garrison" | "order" | "mercenaries"
+        );
+        let vision = Vision::for_npc(npc.rank(), is_military);
+
         let _npc_entity = commands.spawn((
             MapWorldEntity,
             NpcDot { uid: *uid },
@@ -368,6 +377,7 @@ fn spawn_map(
                 rank: rank_title,
             },
             NpcFaction(npc.faction.clone()),
+            vision,
             Mesh2d(meshes.add(Circle::new(dot_size))),
             MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_NPC))),
             Transform::from_xyz(spawn_pos.x, spawn_pos.y, 0.5),

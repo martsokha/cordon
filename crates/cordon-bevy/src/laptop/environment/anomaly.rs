@@ -7,6 +7,8 @@ use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dPlugin};
 use cordon_core::primitive::{HazardType, Tier};
 use cordon_data::gamedata::GameDataResource;
 
+use crate::ai::combat::AnomalyZone;
+
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct AnomalyMaterial {
     #[uniform(0)]
@@ -68,6 +70,7 @@ pub fn spawn(
             let y = area.location.y;
             let r = area.radius.value() * 1.2;
             commands.spawn((
+                AnomalyZone { radius: r },
                 Mesh2d(meshes.add(Circle::new(r))),
                 MeshMaterial2d(anomaly_mats.add(AnomalyMaterial {
                     hazard_type: hazard_type_to_float(&hazard.kind),
