@@ -40,9 +40,17 @@ pub const SCAN_INTERVAL_SECS: f32 = 0.1;
 pub const ENGAGEMENT_CELL_SIZE: f32 = 200.0;
 
 /// How long corpses stay in the world (in-game minutes) before
-/// despawning. At the default 1 week, corpses naturally clean up
-/// without the player needing to loot them.
+/// despawning. The soft cleanup — looted corpses despawn earlier,
+/// and the hard cap below is also enforced for sessions that don't
+/// produce enough kills to age corpses out.
 pub const CORPSE_PERSISTENCE_MINUTES: u32 = 7 * 24 * 60;
+
+/// Hard ceiling on dead NPC corpses kept in the world. When
+/// exceeded, the oldest corpses (by `died_at`) are despawned even
+/// if they haven't aged past [`CORPSE_PERSISTENCE_MINUTES`]. Keeps
+/// entity counts bounded over long sessions where the time-based
+/// cleanup hasn't fired yet.
+pub const MAX_DEAD_NPCS: usize = 200;
 
 /// Squad-lifecycle cleanup throttle.
 pub const CLEANUP_INTERVAL_SECS: f32 = 1.0;

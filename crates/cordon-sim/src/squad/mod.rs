@@ -11,7 +11,7 @@
 //! - [`engagement`] — vision-shared hostile selection + per-member targets
 //! - [`goals`]      — Hold timer expiry → next goal-driven activity
 //! - [`formation`]  — formation slot positioning + Protect follow + arrival
-//! - [`lifecycle`]  — drop dead members, promote leaders, despawn dead squads
+//! - [`lifecycle`]  — drop despawned members, promote leaders, despawn empty squads
 //! - [`commands`]   — player → sim command boundary (the only mutation path)
 
 mod commands;
