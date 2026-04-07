@@ -21,6 +21,7 @@ use crate::death::DeathPlugin;
 use crate::loot::LootPlugin;
 use crate::resources::{GameClock, SquadIdIndex, UidAllocator};
 use crate::spawn;
+use crate::spawn::relics::RelicSpawnPlugin;
 use crate::squad::SquadPlugin;
 
 /// Ordered system set for cordon-sim. The whole chain runs only when
@@ -88,6 +89,7 @@ impl Plugin for CordonSimPlugin {
             CombatPlugin,
             DeathPlugin,
             LootPlugin,
+            RelicSpawnPlugin,
         ));
     }
 }
@@ -96,14 +98,15 @@ impl Plugin for CordonSimPlugin {
 pub mod prelude {
     pub use super::{CordonSimPlugin, SimSet};
     pub use crate::behavior::{
-        AnomalyZone, CombatTarget, Dead, FireState, LootState, MAP_BOUND, MovementSpeed,
-        MovementTarget, Vision,
+        AnomalyZone, CombatTarget, Dead, FireState, LootState, MovementSpeed, MovementTarget,
+        Vision,
     };
     pub use crate::components::{
-        Employment, FactionId, Hp, HungerPool, LoadoutComp, Loyalty, NpcBundle, NpcMarker,
-        NpcNameComp, Perks, PersonalityComp, SquadActivity, SquadBundle, SquadFacing,
-        SquadFaction, SquadFormation, SquadGoal, SquadHomePosition, SquadLeader, SquadMarker,
-        SquadMembers, SquadMembership, SquadWaypoints, StaminaPool, Trust, Wealth, Xp,
+        BaseMaxes, Employment, FactionId, Hp, HungerPool, LoadoutComp, Loyalty, NpcBundle,
+        NpcMarker, NpcNameComp, Perks, PersonalityComp, RelicHome, RelicItem, RelicMarker,
+        SquadActivity, SquadBundle, SquadFacing, SquadFaction, SquadFormation, SquadGoal,
+        SquadHomePosition, SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
+        StaminaPool, Trust, Wealth, Xp,
     };
     pub use crate::events::{
         CorpseRemoved, DayRolled, ItemLooted, NpcDied, ShotFired, SquadSpawned,

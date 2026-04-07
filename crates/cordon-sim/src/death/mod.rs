@@ -15,8 +15,7 @@ use crate::components::{Hp, LoadoutComp, NpcMarker};
 use crate::events::{CorpseRemoved, NpcDied};
 use crate::plugin::SimSet;
 use crate::resources::GameClock;
-
-pub const CORPSE_PERSISTENCE_MINUTES: u32 = 7 * 24 * 60;
+use crate::tuning::CORPSE_PERSISTENCE_MINUTES;
 
 pub struct DeathPlugin;
 

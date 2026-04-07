@@ -29,7 +29,7 @@ impl Plugin for LaptopPlugin {
             environment::EnvironmentPlugin,
         ));
         app.insert_resource(SelectedNpc::default());
-        app.add_systems(Startup, (setup_camera, init_npc_assets));
+        app.add_systems(Startup, (setup_camera, init_npc_assets, init_relic_assets));
         app.add_systems(
             OnEnter(PlayingState::Laptop),
             spawn_map.run_if(not(resource_exists::<MapSpawned>)),
@@ -38,6 +38,7 @@ impl Plugin for LaptopPlugin {
             Update,
             (
                 attach_npc_visuals.after(cordon_sim::plugin::SimSet::Spawn),
+                attach_relic_visuals.after(cordon_sim::plugin::SimSet::Spawn),
                 update_hover,
                 handle_npc_click,
                 update_npc_selection,
@@ -77,6 +78,45 @@ fn init_npc_assets(
     });
 }
 
+/// Shared mesh + material handles for world relics.
+#[derive(Resource, Clone)]
+pub struct RelicAssets {
+    pub mesh: Handle<Mesh>,
+    pub material: Handle<ColorMaterial>,
+}
+
+const COLOR_RELIC: Color = Color::srgb(0.3, 0.9, 1.0);
+
+fn init_relic_assets(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    let mesh = meshes.add(Circle::new(4.0));
+    let material = materials.add(ColorMaterial::from_color(COLOR_RELIC));
+    commands.insert_resource(RelicAssets { mesh, material });
+}
+
+/// Attach map visuals to newly-spawned relic entities. The tooltip
+/// payload is built on-demand by the hover system from the relic's
+/// catalog def, so no per-entity info component is needed here.
+fn attach_relic_visuals(
+    assets: Res<RelicAssets>,
+    new_relics: Query<Entity, Added<cordon_sim::components::RelicMarker>>,
+    mut commands: Commands,
+) {
+    if new_relics.iter().next().is_none() {
+        return;
+    }
+    for entity in &new_relics {
+        commands.entity(entity).insert((
+            MapWorldEntity,
+            Mesh2d(assets.mesh.clone()),
+            MeshMaterial2d(assets.material.clone()),
+        ));
+    }
+}
+
 pub use self::ui::MapWorldEntity;
 use self::ui::map::{TooltipContent, cursor_world_pos};
 use self::ui::{LaptopFont, spawn_ui};
@@ -85,7 +125,11 @@ use self::ui::{LaptopFont, spawn_ui};
 struct Bunker;
 
 #[derive(Component)]
-struct AreaCircle;
+struct AreaCircle {
+    /// Visual radius in world units — used by hover detection so the
+    /// clickable zone matches the rendered disk exactly.
+    radius: f32,
+}
 
 #[derive(Component)]
 struct AreaData(AreaTooltipInfo);
@@ -265,6 +309,63 @@ fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
     }
 }
 
+/// Build a relic tooltip payload from its catalog def + relic data.
+/// Called inline by the hover system — resolving strings on-demand
+/// avoids duplicating them on every spawned relic entity, and means
+/// localization updates apply immediately without rebuilding dots.
+fn build_relic_tooltip(
+    l10n: &Localization,
+    def: &cordon_core::item::ItemDef,
+    data: &cordon_core::item::RelicData,
+) -> TooltipContent {
+    use cordon_core::item::{PassiveModifier, StatTarget};
+    use cordon_core::primitive::{HazardType, Rarity};
+
+    let name = l10n_or(l10n, &format!("item-{}", def.id.as_str()), def.id.as_str());
+    let origin_key = match data.origin {
+        HazardType::Chemical => "hazard-chemical",
+        HazardType::Thermal => "hazard-thermal",
+        HazardType::Electric => "hazard-electric",
+        HazardType::Gravitational => "hazard-gravitational",
+    };
+    let origin = l10n_or(l10n, origin_key, origin_key);
+    let rarity_key = match def.rarity {
+        Rarity::Common => "rarity-common",
+        Rarity::Uncommon => "rarity-uncommon",
+        Rarity::Rare => "rarity-rare",
+    };
+    let rarity = l10n_or(l10n, rarity_key, rarity_key);
+
+    let passives: Vec<String> = data
+        .passive
+        .iter()
+        .map(|PassiveModifier { target, value }| {
+            let (stat_key, fallback) = match target {
+                StatTarget::MaxHealth => ("stat-max-health", "Max HP"),
+                StatTarget::MaxStamina => ("stat-max-stamina", "Max Stamina"),
+                StatTarget::MaxHunger => ("stat-max-hunger", "Max Hunger"),
+                StatTarget::BallisticResistance => ("hazard-ballistic", "Ballistic"),
+                StatTarget::RadiationResistance => ("hazard-radiation", "Radiation"),
+                StatTarget::ChemicalResistance => ("hazard-chemical", "Chemical"),
+                StatTarget::ThermalResistance => ("hazard-thermal", "Thermal"),
+                StatTarget::ElectricResistance => ("hazard-electric", "Electric"),
+                StatTarget::GravitationalResistance => ("hazard-gravitational", "Gravitational"),
+            };
+            let label = l10n_or(l10n, stat_key, fallback);
+            let sign = if *value >= 0.0 { "+" } else { "" };
+            format!("{label}: {sign}{value:.0}")
+        })
+        .collect();
+
+    TooltipContent::Relic {
+        name,
+        origin,
+        rarity,
+        passives,
+        triggered_count: data.triggered.len(),
+    }
+}
+
 fn spawn_map(
     game_data: Res<GameDataResource>,
     laptop_font: Res<LaptopFont>,
@@ -288,7 +389,7 @@ fn spawn_map(
 
         let _area_entity = commands.spawn((
             MapWorldEntity,
-            AreaCircle,
+            AreaCircle { radius },
             AreaData(info),
             Mesh2d(meshes.add(Circle::new(radius))),
             MeshMaterial2d(materials.add(ColorMaterial::from_color(COLOR_AREA))),
@@ -323,7 +424,14 @@ fn update_hover(
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
     cam_proj: Query<&Projection, With<LaptopCamera>>,
-    areas: Query<(&AreaData, &Transform, &MeshMaterial2d<ColorMaterial>), With<AreaCircle>>,
+    game_data: Res<GameDataResource>,
+    l10n: Option<Res<GameLocalization>>,
+    areas: Query<(
+        &AreaCircle,
+        &AreaData,
+        &Transform,
+        &MeshMaterial2d<ColorMaterial>,
+    )>,
     npcs: Query<
         (
             &NpcDotInfo,
@@ -334,6 +442,10 @@ fn update_hover(
             Option<&cordon_sim::behavior::LootState>,
         ),
         With<NpcMarker>,
+    >,
+    relics: Query<
+        (&cordon_sim::components::RelicItem, &Transform),
+        With<cordon_sim::components::RelicMarker>,
     >,
     squad_goals: Query<&cordon_sim::components::SquadGoal>,
     mut mats: ResMut<Assets<ColorMaterial>>,
@@ -352,9 +464,37 @@ fn update_hover(
         })
         .unwrap_or(1.0);
     let npc_hit = 20.0 * scale;
-    let area_hit = 50.0 * scale;
+    let relic_hit = 12.0 * scale;
 
-    // Check NPCs first (higher priority)
+    // Priority: relic > NPC > area. Relics are tiny dots inside
+    // dense anomaly zones, so if the cursor is close enough to touch
+    // one it's almost certainly what the player is aiming at — even
+    // if a passing NPC overlaps the same pixel.
+    let mut closest_relic: Option<(&cordon_sim::components::RelicItem, f32)> = None;
+    for (item, transform) in &relics {
+        let dist = cursor.distance(transform.translation.truncate());
+        if dist < relic_hit && (closest_relic.is_none() || dist < closest_relic.as_ref().unwrap().1)
+        {
+            closest_relic = Some((item, dist));
+        }
+    }
+    if let Some((item, _)) = closest_relic
+        && let Some(def) = game_data.0.items.get(&item.0.def_id)
+        && let cordon_core::item::ItemData::Relic(relic_data) = &def.data
+    {
+        let empty_l10n = Localization::default();
+        let l10n = l10n.as_ref().map(|r| &r.0).unwrap_or(&empty_l10n);
+        *tooltip = build_relic_tooltip(l10n, def, relic_data);
+        // Clear any area highlighting that might be lingering.
+        for (_, _, _, mat_handle) in &areas {
+            if let Some(m) = mats.get_mut(&mat_handle.0) {
+                m.color = COLOR_AREA;
+            }
+        }
+        return;
+    }
+
+    // NPCs next — second priority above areas.
     type Hit<'a> = (
         &'a NpcDotInfo,
         &'a MovementTarget,
@@ -371,7 +511,6 @@ fn update_hover(
         }
     }
     if let Some((info, movement, combat, member, looting, _)) = closest_npc {
-        // Look up the member's squad goal for the status string.
         let goal = squad_goals
             .get(member.squad)
             .map(|g| g.0.clone())
@@ -383,14 +522,22 @@ fn update_hover(
             rank: info.rank.clone(),
             status: format_npc_status(movement, combat, looting, &goal),
         };
+        // Clear any stale area highlighting — same reason as above.
+        for (_, _, _, mat_handle) in &areas {
+            if let Some(m) = mats.get_mut(&mat_handle.0) {
+                m.color = COLOR_AREA;
+            }
+        }
         return;
     }
 
-    // Reset all area colors, then highlight hovered
+    // Reset all area colors, then highlight hovered. Each area's
+    // hit radius matches its rendered disk, so the clickable zone
+    // lines up with what the player sees.
     let mut hovered_area = false;
-    for (data, transform, mat_handle) in &areas {
+    for (circle, data, transform, mat_handle) in &areas {
         let dist = cursor.distance(transform.translation.truncate());
-        if dist < area_hit && !hovered_area {
+        if dist < circle.radius && !hovered_area {
             if let Some(m) = mats.get_mut(&mat_handle.0) {
                 m.color = COLOR_AREA_HOVER;
             }

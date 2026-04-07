@@ -11,6 +11,7 @@
 
 pub mod generator;
 pub mod loadout;
+pub mod relics;
 
 use std::collections::HashMap;
 
@@ -28,6 +29,7 @@ use crate::resources::{FactionIndex, GameClock, SquadIdIndex, UidAllocator};
 use crate::spawn::generator::{
     DefaultNpcGenerator, LoadoutContext, NpcGenerator, roll_population_top_up,
 };
+use crate::tuning::{SPAWN_DAY_END, SPAWN_DAY_START};
 
 /// Per-day spawn schedule: a list of `(day_progress, chunk_size)`
 /// pairs picked at the start of each in-game day. Each entry fires
@@ -206,19 +208,16 @@ fn plan_daily_waves<R: Rng>(deficit: u32, now_progress: f32, rng: &mut R) -> Vec
     let first_size = base + if extra > 0 { 1 } else { 0 };
     waves.push((now_progress, first_size));
 
-    // 06:00 = 0.25, 21:00 = 0.875.
-    const DAY_START: f32 = 0.25;
-    const DAY_END: f32 = 0.875;
-    let lower = now_progress.clamp(DAY_START, DAY_END);
+    let lower = now_progress.clamp(SPAWN_DAY_START, SPAWN_DAY_END);
     for i in 1..n {
         let chunk = base + if i < extra { 1 } else { 0 };
         if chunk == 0 {
             continue;
         }
-        let t = if lower >= DAY_END {
+        let t = if lower >= SPAWN_DAY_END {
             (now_progress + 0.001 * i as f32).min(0.9999)
         } else {
-            rng.random_range(lower..DAY_END)
+            rng.random_range(lower..SPAWN_DAY_END)
         };
         waves.push((t, chunk));
     }

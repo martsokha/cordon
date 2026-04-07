@@ -11,17 +11,19 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataResource;
 
-use super::scan::{NpcSnap, build_spatial_grid, collect_nearby_cells};
+use super::scan::{NpcSnap, SpatialGrid};
 use crate::behavior::{AnomalyZone, CombatTarget, Dead, Vision};
 use crate::combat::{is_hostile, line_blocked};
 use crate::components::{
     NpcMarker, SquadActivity, SquadFacing, SquadFaction, SquadLeader, SquadMarker, SquadMembership,
 };
+use crate::tuning::{ENGAGEMENT_CELL_SIZE, SCAN_INTERVAL_SECS};
 
 pub(super) fn update_squad_engagement(
     game_data: Res<GameDataResource>,
     time: Res<Time>,
     mut throttle: Local<f32>,
+    mut grid: Local<SpatialGrid>,
     anomalies: Query<(&Transform, &AnomalyZone)>,
     members_q: Query<
         (Entity, &SquadMembership, &Vision, &Transform),
@@ -31,7 +33,6 @@ pub(super) fn update_squad_engagement(
     mut squad_state_q: Query<(Entity, &mut SquadActivity, &mut SquadFacing, &SquadLeader)>,
     mut combat_targets_q: Query<&mut CombatTarget, Without<Dead>>,
 ) {
-    const SCAN_INTERVAL_SECS: f32 = 0.1;
     *throttle += time.delta_secs();
     if *throttle < SCAN_INTERVAL_SECS {
         return;
@@ -63,8 +64,7 @@ pub(super) fn update_squad_engagement(
         .map(|(e, _, leader)| (e, leader.0))
         .collect();
 
-    const CELL_SIZE: f32 = 200.0;
-    let grid = build_spatial_grid(&snapshot, CELL_SIZE);
+    grid.rebuild(&snapshot, ENGAGEMENT_CELL_SIZE);
 
     // Pass A: per-squad — pick the hostile squad in vision.
     let mut squad_hostile: HashMap<Entity, Entity> = HashMap::new();
@@ -83,7 +83,7 @@ pub(super) fn update_squad_engagement(
 
         let mut candidates: Vec<usize> = Vec::new();
         for m in &members {
-            collect_nearby_cells(m.pos, m.vision, &grid, CELL_SIZE, &mut candidates);
+            grid.collect_nearby(m.pos, m.vision, ENGAGEMENT_CELL_SIZE, &mut candidates);
         }
         candidates.sort_unstable();
         candidates.dedup();

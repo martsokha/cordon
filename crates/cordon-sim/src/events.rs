@@ -55,3 +55,12 @@ pub struct SquadSpawned {
 pub struct DayRolled {
     pub new_day: Day,
 }
+
+/// A squad member picked up a relic lying in the world. The relic
+/// entity has already been despawned; the item is now in the
+/// picker's loadout.
+#[derive(Message, Debug, Clone)]
+pub struct RelicPickedUp {
+    pub picker: Entity,
+    pub item: Id<Item>,
+}

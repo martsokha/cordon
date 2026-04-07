@@ -9,9 +9,7 @@ use crate::behavior::{CombatTarget, Dead, LootState};
 use crate::components::{LoadoutComp, NpcMarker, Xp};
 use crate::events::ItemLooted;
 use crate::plugin::SimSet;
-
-const LOOT_REACH: f32 = 12.0;
-const LOOT_INTERVAL_SECS: f32 = 0.4;
+use crate::tuning::{LOOT_INTERVAL_SECS, LOOT_REACH};
 
 pub struct LootPlugin;
 

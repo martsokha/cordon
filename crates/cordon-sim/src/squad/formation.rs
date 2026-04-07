@@ -15,7 +15,6 @@ use bevy::prelude::*;
 use cordon_core::entity::squad::Goal;
 use cordon_data::gamedata::GameDataResource;
 
-use super::{ARRIVED_DIST, ENGAGE_WALK_SPEED, PATROL_HOLD_SECS, SQUAD_WALK_SPEED};
 use crate::behavior::{CombatTarget, Dead, MovementSpeed, MovementTarget};
 use crate::combat::weapon_range;
 use crate::components::{
@@ -23,12 +22,28 @@ use crate::components::{
     SquadMarker, SquadMembers, SquadMembership,
 };
 use crate::resources::SquadIdIndex;
+use crate::tuning::{
+    ARRIVED_DIST, ENGAGE_WALK_SPEED, FORMATION_INTERVAL_SECS, PATROL_HOLD_SECS,
+    PROTECT_FOLLOW_DIST, SQUAD_WALK_SPEED,
+};
 
 pub(super) fn drive_squad_formation(
     game_data: Res<GameDataResource>,
     time: Res<Time>,
     squad_index: Res<SquadIdIndex>,
     mut throttle: Local<f32>,
+    mut squad_leader_pos: Local<HashMap<Entity, Vec2>>,
+    mut squad_info: Local<
+        HashMap<
+            Entity,
+            (
+                SquadActivity,
+                Vec2,
+                cordon_core::entity::squad::Formation,
+                usize,
+            ),
+        >,
+    >,
     mut squad_state_q: Query<(
         Entity,
         &SquadGoal,
@@ -53,7 +68,6 @@ pub(super) fn drive_squad_formation(
     >,
     targets_q: Query<&Transform, (With<NpcMarker>, Without<Dead>)>,
 ) {
-    const FORMATION_INTERVAL_SECS: f32 = 0.1;
     *throttle += time.delta_secs();
     if *throttle < FORMATION_INTERVAL_SECS {
         return;
@@ -62,7 +76,7 @@ pub(super) fn drive_squad_formation(
 
     let items = &game_data.0.items;
 
-    let mut squad_leader_pos: HashMap<Entity, Vec2> = HashMap::new();
+    squad_leader_pos.clear();
     for (squad_entity, _, leader, _, _, _, _) in squad_state_q.iter() {
         if let Ok(t) = leaders_q.get(leader.0) {
             squad_leader_pos.insert(squad_entity, t.translation.truncate());
@@ -82,7 +96,6 @@ pub(super) fn drive_squad_formation(
             && let Ok(other_t) = leaders_q.get(other_leader.0)
         {
             let target = other_t.translation.truncate();
-            const PROTECT_FOLLOW_DIST: f32 = 40.0;
             if p.distance(target) > PROTECT_FOLLOW_DIST {
                 *activity = SquadActivity::Move { target };
             } else if matches!(*activity, SquadActivity::Move { .. }) {
@@ -109,23 +122,13 @@ pub(super) fn drive_squad_formation(
         }
     }
 
-    let squad_info: HashMap<
-        Entity,
-        (
-            SquadActivity,
-            Vec2,
-            cordon_core::entity::squad::Formation,
-            usize,
-        ),
-    > = squad_state_q
-        .iter()
-        .map(|(e, _, _, members, formation, activity, facing)| {
-            (
-                e,
-                (activity.clone(), facing.0, formation.0, members.0.len()),
-            )
-        })
-        .collect();
+    squad_info.clear();
+    for (e, _, _, members, formation, activity, facing) in squad_state_q.iter() {
+        squad_info.insert(
+            e,
+            (activity.clone(), facing.0, formation.0, members.0.len()),
+        );
+    }
 
     for (member, transform, combat_target, loadout, mut move_target, mut speed) in &mut members_q {
         let Some((activity, facing_v, formation, member_count)) =

@@ -50,6 +50,15 @@ pub enum TooltipContent {
         rank: String,
         status: String,
     },
+    Relic {
+        name: String,
+        origin: String,
+        rarity: String,
+        /// Pre-formatted lines like `"Ballistic: +20"` / `"Health: +2 max"`.
+        passives: Vec<String>,
+        /// Number of reactive effects (OnHit / OnHpLow / Periodic).
+        triggered_count: usize,
+    },
 }
 
 /// Marker for UI elements that should only show on the Map tab.
@@ -329,6 +338,38 @@ fn update_tooltip(
                 ("\nStatus: ".into(), COLOR_LABEL),
                 (status.clone(), COLOR_LABEL),
             ];
+        }
+        TooltipContent::Relic {
+            name,
+            origin,
+            rarity,
+            passives,
+            triggered_count,
+        } => {
+            header_text = format!("* {name}");
+            hazard_img = None;
+            hazard_n = 0;
+            let mut s: Vec<(String, Color)> = vec![
+                ("Origin: ".into(), COLOR_LABEL),
+                (origin.clone(), Color::srgb(0.3, 0.9, 1.0)),
+                ("\nRarity: ".into(), COLOR_LABEL),
+                (rarity.clone(), Color::srgb(0.8, 0.8, 0.6)),
+            ];
+            for line in passives {
+                s.push(("\n".into(), COLOR_LABEL));
+                s.push((line.clone(), Color::srgb(0.6, 0.9, 0.6)));
+            }
+            if *triggered_count > 0 {
+                s.push(("\n+ ".into(), COLOR_LABEL));
+                s.push((
+                    format!(
+                        "{triggered_count} reactive effect{}",
+                        if *triggered_count == 1 { "" } else { "s" }
+                    ),
+                    Color::srgb(0.9, 0.7, 0.3),
+                ));
+            }
+            spans = s;
         }
     }
 

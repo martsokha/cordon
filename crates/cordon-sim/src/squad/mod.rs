@@ -26,11 +26,6 @@ pub use commands::{Owned, SquadCommand};
 
 use crate::plugin::SimSet;
 
-const SQUAD_WALK_SPEED: f32 = 30.0;
-const ENGAGE_WALK_SPEED: f32 = 38.0;
-const PATROL_HOLD_SECS: f32 = 6.0;
-const ARRIVED_DIST: f32 = 12.0;
-
 pub struct SquadPlugin;
 
 impl Plugin for SquadPlugin {

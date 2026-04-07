@@ -1,0 +1,174 @@
+[
+  {
+    "id": "bubble",
+    "data": {
+      "type": "relic",
+      "origin": "chemical",
+      "passive": [
+        { "target": "ChemicalResistance", "value": 30.0 }
+      ]
+    },
+    "base_price": 400,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.1 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "slime",
+    "data": {
+      "type": "relic",
+      "origin": "chemical",
+      "passive": [
+        { "target": "ChemicalResistance", "value": 50.0 },
+        { "target": "MaxHealth", "value": 2.0 }
+      ],
+      "triggered": [
+        {
+          "trigger": { "on_hp_low": 0.3 },
+          "effect": {
+            "target": "Health",
+            "value": 3.0,
+            "duration": { "secs": 5 }
+          }
+        }
+      ]
+    },
+    "base_price": 1200,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "devoted", "price_multiplier": 0.9 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "flame",
+    "data": {
+      "type": "relic",
+      "origin": "thermal",
+      "passive": [
+        { "target": "ThermalResistance", "value": 30.0 },
+        { "target": "ChemicalResistance", "value": -10.0 }
+      ]
+    },
+    "base_price": 450,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.1 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "moonlight",
+    "data": {
+      "type": "relic",
+      "origin": "thermal",
+      "passive": [
+        { "target": "ThermalResistance", "value": 50.0 }
+      ],
+      "triggered": [
+        {
+          "trigger": { "periodic": 10 },
+          "effect": {
+            "target": "RadiationLevel",
+            "value": -1.0,
+            "duration": { "secs": 5 }
+          }
+        }
+      ]
+    },
+    "base_price": 1800,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "devoted", "price_multiplier": 0.9 }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "battery",
+    "data": {
+      "type": "relic",
+      "origin": "electric",
+      "passive": [
+        { "target": "ElectricResistance", "value": 30.0 }
+      ]
+    },
+    "base_price": 400,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.1 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "lightning_coil",
+    "data": {
+      "type": "relic",
+      "origin": "electric",
+      "passive": [
+        { "target": "ElectricResistance", "value": 40.0 }
+      ],
+      "triggered": [
+        {
+          "trigger": "on_hit",
+          "effect": {
+            "target": "Health",
+            "value": 10.0,
+            "duration": "instant"
+          }
+        }
+      ]
+    },
+    "base_price": 1400,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.0 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "slug",
+    "data": {
+      "type": "relic",
+      "origin": "gravitational",
+      "passive": [
+        { "target": "GravitationalResistance", "value": 30.0 },
+        { "target": "MaxHealth", "value": 10.0 },
+        { "target": "BallisticResistance", "value": -5.0 }
+      ]
+    },
+    "base_price": 500,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "devoted", "price_multiplier": 0.9 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "soul",
+    "data": {
+      "type": "relic",
+      "origin": "gravitational",
+      "passive": [
+        { "target": "GravitationalResistance", "value": 50.0 }
+      ],
+      "triggered": [
+        {
+          "trigger": { "periodic": 2 },
+          "effect": {
+            "target": "Health",
+            "value": 1.0,
+            "duration": { "secs": 1 }
+          }
+        }
+      ]
+    },
+    "base_price": 2000,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "devoted", "price_multiplier": 0.85 }
+    ],
+    "rarity": "rare"
+  }
+]

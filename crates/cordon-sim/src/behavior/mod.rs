@@ -6,14 +6,13 @@
 //! is naturally race-free under explicit system ordering.
 
 use bevy::prelude::*;
+use cordon_core::item::{ItemData, PassiveModifier, StatTarget};
 use cordon_core::primitive::{GameTime, Rank};
+use cordon_data::gamedata::GameDataResource;
 
+use crate::components::{BaseMaxes, Hp, HungerPool, LoadoutComp, NpcMarker, StaminaPool};
 use crate::plugin::SimSet;
-
-/// Half-extent of the playable map AABB. NPC positions are clamped to
-/// `±MAP_BOUND` so they can't walk off the world during combat or
-/// formation moves.
-pub const MAP_BOUND: f32 = 1500.0;
+use crate::tuning::MAP_BOUND;
 
 /// The point this NPC is currently walking toward, in world space.
 /// `None` means the NPC is standing still.
@@ -114,11 +113,91 @@ pub fn move_npcs(
     }
 }
 
-/// Plugin registering the movement system in [`SimSet::Movement`].
+/// Recompute each NPC's pool maximums from their `BaseMaxes` plus
+/// any relic passive modifiers targeting `MaxHealth` / `MaxStamina`
+/// / `MaxHunger`.
+///
+/// Runs on `Changed<LoadoutComp>` so we only pay the cost for NPCs
+/// whose equipment just mutated. Keeping the base in a separate
+/// component means drops (future work) reverse cleanly — the system
+/// just recomputes from base + whatever's left equipped.
+///
+/// If a pool's effective max shrinks below its current, the current
+/// clamps down (`Pool::set_max` handles that). If the max grows, we
+/// restore the delta so picking up a `+10 MaxHP` relic feels like
+/// "you gained 10 HP right now," not "you earned 10 HP worth of
+/// headroom."
+pub fn sync_pool_maxes(
+    game_data: Res<GameDataResource>,
+    mut changed: Query<
+        (
+            &LoadoutComp,
+            &BaseMaxes,
+            &mut Hp,
+            &mut StaminaPool,
+            &mut HungerPool,
+        ),
+        (With<NpcMarker>, Changed<LoadoutComp>),
+    >,
+) {
+    let items = &game_data.0.items;
+    for (loadout, base, mut hp, mut stamina, mut hunger) in &mut changed {
+        // Sum each stat's contribution across all equipped relics.
+        let mut dmax_hp: i32 = 0;
+        let mut dmax_stamina: i32 = 0;
+        let mut dmax_hunger: i32 = 0;
+        for inst in &loadout.0.relics {
+            let Some(def) = items.get(&inst.def_id) else {
+                continue;
+            };
+            let ItemData::Relic(relic) = &def.data else {
+                continue;
+            };
+            for PassiveModifier { target, value } in &relic.passive {
+                let v = value.round() as i32;
+                match target {
+                    StatTarget::MaxHealth => dmax_hp += v,
+                    StatTarget::MaxStamina => dmax_stamina += v,
+                    StatTarget::MaxHunger => dmax_hunger += v,
+                    _ => {}
+                }
+            }
+        }
+
+        apply_effective_max(&mut hp, base.hp, dmax_hp);
+        apply_effective_max(&mut stamina, base.stamina, dmax_stamina);
+        apply_effective_max(&mut hunger, base.hunger, dmax_hunger);
+    }
+}
+
+/// Update a pool's max to `base + delta` (clamped to non-negative).
+/// If the max grew, `restore` the delta so the pickup feels
+/// rewarding. If it shrank, `set_max` clamps current down.
+fn apply_effective_max<K: cordon_core::primitive::PoolKind>(
+    pool: &mut cordon_core::primitive::Pool<K>,
+    base: u32,
+    delta: i32,
+) {
+    let new_max = (base as i64 + delta as i64).max(0) as u32;
+    let old_max = pool.max();
+    if new_max == old_max {
+        return;
+    }
+    pool.set_max(new_max);
+    if new_max > old_max {
+        pool.restore(new_max - old_max);
+    }
+}
+
+/// Plugin registering per-NPC systems: movement, pool-max sync, etc.
 pub struct BehaviorPlugin;
 
 impl Plugin for BehaviorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, move_npcs.in_set(SimSet::Movement));
+        // Runs in Cleanup: early enough that the rest of the frame
+        // sees the updated max, late enough that the pickup from the
+        // previous frame has already landed in the loadout.
+        app.add_systems(Update, sync_pool_maxes.in_set(SimSet::Cleanup));
     }
 }

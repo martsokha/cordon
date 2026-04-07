@@ -82,7 +82,10 @@ pub fn weapon_range(items: &HashMap<Id<Item>, ItemDef>, loadout: &Loadout) -> f3
     }
 }
 
-/// Combined ballistic resistance from equipped (non-broken) suit + helmet.
+/// Combined ballistic resistance from equipped (non-broken) suit,
+/// helmet, and relic passives. The relic closure resolves each
+/// `ItemInstance` in the loadout's relic slots to its `RelicData`
+/// via the item catalog; unknown ids are skipped.
 fn equipped_ballistic(loadout: &Loadout, items: &HashMap<Id<Item>, ItemDef>) -> u32 {
     let armor = loadout
         .armor
@@ -102,7 +105,12 @@ fn equipped_ballistic(loadout: &Loadout, items: &HashMap<Id<Item>, ItemDef>) -> 
             ItemData::Armor(a) => Some(a),
             _ => None,
         });
-    let resistances: Resistances = loadout.equipped_resistances(armor, helmet);
+    let resistances: Resistances = loadout.equipped_resistances(armor, helmet, |inst| {
+        items.get(&inst.def_id).and_then(|def| match &def.data {
+            ItemData::Relic(r) => Some(r),
+            _ => None,
+        })
+    });
     resistances.ballistic
 }
 

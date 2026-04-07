@@ -2,7 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::data::{ArmorData, ArmorSlot};
+use super::data::{ArmorData, ArmorSlot, RelicData};
+use super::effect::{PassiveModifier, StatTarget};
 use super::instance::ItemInstance;
 use crate::primitive::{Rank, Resistances};
 
@@ -62,25 +63,47 @@ impl Loadout {
             .unwrap_or(0)
     }
 
-    /// Combined ballistic/hazard resistances from equipped armor + helmet.
-    /// Broken pieces (durability == 0) provide no protection.
-    pub fn equipped_resistances(
-        &self,
+    /// Combined ballistic/hazard resistances from equipped armor,
+    /// helmet, and relics.
+    ///
+    /// Broken armor pieces (durability == 0) provide no protection.
+    /// `resolve_relic` is called for each relic in
+    /// [`self.relics`](Self::relics); returning `None` (e.g. the relic
+    /// def isn't found in the catalog) skips that relic. Relic passive
+    /// modifiers targeting `*Resistance` stats are folded in; other
+    /// passive targets (e.g. `MaxHealth`) are ignored here.
+    ///
+    /// Relic contributions can be negative: the slug relic has
+    /// `BallisticResistance: -5` as a deliberate drawback. The
+    /// intermediate sum is signed so a drawback actually subtracts
+    /// before the final clamp to `u32`.
+    pub fn equipped_resistances<'a, F>(
+        &'a self,
         armor_def: Option<&ArmorData>,
         helmet_def: Option<&ArmorData>,
-    ) -> Resistances {
-        let mut total = Resistances::NONE;
+        resolve_relic: F,
+    ) -> Resistances
+    where
+        F: FnMut(&'a ItemInstance) -> Option<&'a RelicData>,
+    {
+        let mut base = Resistances::NONE;
         if let (Some(inst), Some(def)) = (&self.armor, armor_def)
             && !inst.is_broken()
         {
-            total = total.combine(def.resistances);
+            base = base.combine(def.resistances);
         }
         if let (Some(inst), Some(def)) = (&self.helmet, helmet_def)
             && !inst.is_broken()
         {
-            total = total.combine(def.resistances);
+            base = base.combine(def.resistances);
         }
-        total
+
+        let relic_passives = self
+            .relics
+            .iter()
+            .filter_map(resolve_relic)
+            .map(|r| r.passive.as_slice());
+        base.apply_passive_modifiers(relic_passives)
     }
 
     /// The currently equipped primary weapon, if any (and not broken).
@@ -129,5 +152,144 @@ impl Loadout {
             && self.helmet.is_none()
             && self.relics.is_empty()
             && self.general.is_empty()
+    }
+}
+
+/// Extend [`Resistances`] with a fold over [`PassiveModifier`] sources.
+///
+/// Lives in the item module so `cordon_core::primitive` doesn't need
+/// to depend on item-level types. The method is still written as
+/// `impl Resistances` so call sites read as
+/// `base.apply_passive_modifiers(...)`.
+impl Resistances {
+    /// Fold an iterator of passive modifier slices into `self`,
+    /// returning the updated resistances.
+    ///
+    /// Intermediate accumulation is signed (`i64`) so negative
+    /// modifiers (a relic with a drawback like `-5 Ballistic`)
+    /// cancel positive contributions before the final clamp back
+    /// to `u32`. Non-resistance targets (e.g. `MaxHealth`) are
+    /// silently skipped — they're handled by separate systems.
+    ///
+    /// Takes an iterator so the hot path in `equipped_resistances`
+    /// can compose it directly from `self.relics.iter()` without
+    /// any intermediate Vec allocation.
+    pub fn apply_passive_modifiers<'a, I>(self, passives: I) -> Self
+    where
+        I: IntoIterator<Item = &'a [PassiveModifier]>,
+    {
+        let mut acc: [i64; 6] = [
+            self.ballistic as i64,
+            self.radiation as i64,
+            self.chemical as i64,
+            self.thermal as i64,
+            self.electric as i64,
+            self.gravitational as i64,
+        ];
+
+        for slice in passives {
+            for modifier in slice {
+                let value = modifier.value.round() as i64;
+                match modifier.target {
+                    StatTarget::BallisticResistance => acc[0] += value,
+                    StatTarget::RadiationResistance => acc[1] += value,
+                    StatTarget::ChemicalResistance => acc[2] += value,
+                    StatTarget::ThermalResistance => acc[3] += value,
+                    StatTarget::ElectricResistance => acc[4] += value,
+                    StatTarget::GravitationalResistance => acc[5] += value,
+                    StatTarget::MaxHealth | StatTarget::MaxStamina | StatTarget::MaxHunger => {}
+                }
+            }
+        }
+
+        let clamp = |n: i64| n.max(0) as u32;
+        Resistances {
+            ballistic: clamp(acc[0]),
+            radiation: clamp(acc[1]),
+            chemical: clamp(acc[2]),
+            thermal: clamp(acc[3]),
+            electric: clamp(acc[4]),
+            gravitational: clamp(acc[5]),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn modifier(target: StatTarget, value: f32) -> PassiveModifier {
+        PassiveModifier { target, value }
+    }
+
+    fn fold_one(base: Resistances, relic: &[PassiveModifier]) -> Resistances {
+        base.apply_passive_modifiers(std::iter::once(relic))
+    }
+
+    fn fold_many<'a>(
+        base: Resistances,
+        relics: impl IntoIterator<Item = &'a [PassiveModifier]>,
+    ) -> Resistances {
+        base.apply_passive_modifiers(relics)
+    }
+
+    #[test]
+    fn positive_relic_passives_accumulate() {
+        let base = Resistances {
+            ballistic: 10,
+            ..Resistances::NONE
+        };
+        let relic: &[PassiveModifier] = &[modifier(StatTarget::BallisticResistance, 20.0)];
+        let result = fold_one(base, relic);
+        assert_eq!(result.ballistic, 30);
+    }
+
+    #[test]
+    fn negative_relic_passives_subtract() {
+        // The slug relic has -5 ballistic as a drawback.
+        let base = Resistances {
+            ballistic: 20,
+            ..Resistances::NONE
+        };
+        let relic: &[PassiveModifier] = &[
+            modifier(StatTarget::GravitationalResistance, 30.0),
+            modifier(StatTarget::BallisticResistance, -5.0),
+        ];
+        let result = fold_one(base, relic);
+        assert_eq!(result.ballistic, 15, "drawback should subtract");
+        assert_eq!(result.gravitational, 30);
+    }
+
+    #[test]
+    fn negative_relic_passives_clamp_at_zero() {
+        // Overkill drawback should floor at 0, not wrap.
+        let base = Resistances {
+            ballistic: 3,
+            ..Resistances::NONE
+        };
+        let relic: &[PassiveModifier] = &[modifier(StatTarget::BallisticResistance, -50.0)];
+        let result = fold_one(base, relic);
+        assert_eq!(result.ballistic, 0);
+    }
+
+    #[test]
+    fn multiple_relics_cancel_correctly() {
+        // Two relics: +20 and -10 should net +10.
+        let base = Resistances::NONE;
+        let relic_a: &[PassiveModifier] = &[modifier(StatTarget::ThermalResistance, 20.0)];
+        let relic_b: &[PassiveModifier] = &[modifier(StatTarget::ThermalResistance, -10.0)];
+        let result = fold_many(base, [relic_a, relic_b]);
+        assert_eq!(result.thermal, 10);
+    }
+
+    #[test]
+    fn max_health_passive_ignored_by_resistance_fold() {
+        let base = Resistances::NONE;
+        let relic: &[PassiveModifier] = &[
+            modifier(StatTarget::MaxHealth, 10.0),
+            modifier(StatTarget::BallisticResistance, 5.0),
+        ];
+        let result = fold_one(base, relic);
+        assert_eq!(result.ballistic, 5);
     }
 }

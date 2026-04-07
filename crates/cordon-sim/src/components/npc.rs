@@ -10,9 +10,7 @@ use cordon_core::entity::name::NpcName;
 use cordon_core::entity::npc::{Npc, Personality, Role};
 use cordon_core::entity::perk::Perk;
 use cordon_core::item::Loadout;
-use cordon_core::primitive::{
-    Credits, Experience, Health, Hunger, Id, Pool, Rank, Stamina, Uid,
-};
+use cordon_core::primitive::{Credits, Experience, Health, Hunger, Id, Pool, Rank, Stamina, Uid};
 
 /// Health pool component (current + max HP).
 pub type Hp = Pool<Health>;
@@ -22,6 +20,31 @@ pub type StaminaPool = Pool<Stamina>;
 
 /// Hunger pool component. At max = fully satiated, at 0 = starving.
 pub type HungerPool = Pool<Hunger>;
+
+/// Baseline pool caps before any equipment bonuses.
+///
+/// `Hp`, `StaminaPool`, and `HungerPool` hold the *effective* current
+/// / max; this component stores the underlying base so the
+/// `sync_pool_maxes` system can recompute the effective max each
+/// time the loadout changes (equip +10 max HP relic → effective 110,
+/// drop it → effective 100). Using a snapshot of the base decouples
+/// the bookkeeping from the equipment change order.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct BaseMaxes {
+    pub hp: u32,
+    pub stamina: u32,
+    pub hunger: u32,
+}
+
+impl Default for BaseMaxes {
+    fn default() -> Self {
+        Self {
+            hp: 100,
+            stamina: 100,
+            hunger: 100,
+        }
+    }
+}
 
 /// Marker that this entity is an NPC. Use as a query filter.
 #[derive(Component, Debug, Clone, Copy)]
@@ -82,6 +105,7 @@ pub struct NpcBundle {
     pub hp: Hp,
     pub stamina: StaminaPool,
     pub hunger: HungerPool,
+    pub base_maxes: BaseMaxes,
     pub loadout: LoadoutComp,
     pub wealth: Wealth,
     pub trust: Trust,
@@ -94,6 +118,7 @@ pub struct NpcBundle {
 impl NpcBundle {
     /// Construct an [`NpcBundle`] from a freshly-rolled [`Npc`].
     pub fn from_npc(npc: Npc) -> Self {
+        let hp_max = npc.health.max();
         Self {
             marker: NpcMarker,
             id: npc.id,
@@ -103,6 +128,11 @@ impl NpcBundle {
             hp: npc.health,
             stamina: StaminaPool::full(),
             hunger: HungerPool::full(),
+            base_maxes: BaseMaxes {
+                hp: hp_max,
+                stamina: 100,
+                hunger: 100,
+            },
             loadout: LoadoutComp(npc.loadout),
             wealth: Wealth(npc.wealth),
             trust: Trust(npc.trust),

@@ -12,10 +12,21 @@ pub enum Rarity {
     Common,
     /// Standard military gear, basic relics. Regular trade goods.
     Uncommon,
-    /// Specialized equipment, mid-tier relics. Not always in stock.
+    /// Specialized equipment, high-tier relics. Not always in stock.
     Rare,
-    /// Elite weapons, deep-Zone relics. Factions take notice.
-    VeryRare,
-    /// Endgame relics, one-of-a-kind finds. Wars start over these.
-    Legendary,
+}
+
+impl Rarity {
+    /// Relative weight when rolling on a rarity-weighted table.
+    ///
+    /// Roughly "half as likely per step": common is 5× uncommon and
+    /// ~2.5× rare. Used by the relic spawner and any other
+    /// rarity-weighted draw.
+    pub fn weight(self) -> u32 {
+        match self {
+            Rarity::Common => 10,
+            Rarity::Uncommon => 5,
+            Rarity::Rare => 2,
+        }
+    }
 }

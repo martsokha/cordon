@@ -39,3 +39,7 @@ pub mod spawn;
 /// Squad behavior: engagement, formation, goals, lifecycle, and the
 /// player command boundary.
 pub mod squad;
+
+/// Gameplay tuning knobs — distances, timings, thresholds,
+/// probabilities. One place to tune the sim from.
+pub mod tuning;
