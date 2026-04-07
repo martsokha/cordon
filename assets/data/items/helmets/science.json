@@ -1,0 +1,60 @@
+[
+  {
+    "id": "respirator",
+    "data": {
+      "type": "armor",
+      "slot": "helmet",
+      "resistances": {
+        "ballistic": 0,
+        "radiation": 3,
+        "chemical": 5,
+        "thermal": 0,
+        "electric": 0,
+        "gravitational": 0
+      },
+      "inventory_slots": 0,
+      "relic_slots": 0
+    },
+    "base_price": 1500,
+    "suppliers": [
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "institute",
+        "price_multiplier": 1.0
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "cbrn_mask",
+    "data": {
+      "type": "armor",
+      "slot": "helmet",
+      "resistances": {
+        "ballistic": 2,
+        "radiation": 6,
+        "chemical": 8,
+        "thermal": 3,
+        "electric": 2,
+        "gravitational": 0
+      },
+      "inventory_slots": 0,
+      "relic_slots": 0
+    },
+    "base_price": 6000,
+    "suppliers": [
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.85
+      },
+      {
+        "faction": "institute",
+        "price_multiplier": 0.95
+      }
+    ],
+    "rarity": "uncommon"
+  }
+]

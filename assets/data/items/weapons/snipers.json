@@ -1,0 +1,28 @@
+[
+  {
+    "id": "svd",
+    "data": {
+      "type": "weapon",
+      "caliber": "7.62x54r",
+      "fire_modes": [
+        "Semi"
+      ],
+      "fire_rate": 1.5,
+      "accuracy": 0.95,
+      "recoil": 0.5,
+      "magazine": 10,
+      "reload_secs": 4.0,
+      "range": 220.0,
+      "suppressed": false,
+      "added_damage": 8
+    },
+    "base_price": 18000,
+    "suppliers": [
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.9
+      }
+    ],
+    "rarity": "rare"
+  }
+]

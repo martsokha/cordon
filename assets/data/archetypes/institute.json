@@ -6,7 +6,7 @@
       "novice": {
         "primary": [{ "id": "mp5" }, { "id": "stechkin" }],
         "secondary": [{ "id": "pmm" }],
-        "armor": [{ "id": "hazard_suit" }, { "id": "tactical_vest" }],
+        "armor": [{ "id": "cbrn_suit" }, { "id": "tactical_vest" }],
         "helmet": [{ "id": "respirator" }, { "id": "tactical_helmet" }],
         "ammo_boxes": 2,
         "secondary_ammo_boxes": 1,
@@ -16,7 +16,7 @@
       "experienced": {
         "primary": [{ "id": "m4_carbine", "weight": 2 }, { "id": "mp5" }],
         "secondary": [{ "id": "pb_pistol" }],
-        "armor": [{ "id": "hazard_suit" }, { "id": "tactical_vest" }],
+        "armor": [{ "id": "cbrn_suit" }, { "id": "tactical_vest" }],
         "helmet": [{ "id": "cbrn_mask" }, { "id": "tactical_helmet" }],
         "ammo_boxes": 3,
         "secondary_ammo_boxes": 1,
@@ -26,7 +26,7 @@
       "veteran": {
         "primary": [{ "id": "m4_carbine" }, { "id": "hk416" }],
         "secondary": [{ "id": "pb_pistol" }],
-        "armor": [{ "id": "hazard_suit" }, { "id": "combat_armor" }],
+        "armor": [{ "id": "cbrn_suit" }, { "id": "combat_armor" }],
         "helmet": [{ "id": "cbrn_mask" }],
         "ammo_boxes": 3,
         "secondary_ammo_boxes": 1,

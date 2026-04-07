@@ -1,0 +1,36 @@
+[
+  {
+    "id": "mp5",
+    "data": {
+      "type": "weapon",
+      "caliber": "9x19mm",
+      "fire_modes": [
+        "Semi",
+        {
+          "Burst": 3
+        },
+        "Auto"
+      ],
+      "fire_rate": 13.0,
+      "accuracy": 0.7,
+      "recoil": 0.3,
+      "magazine": 30,
+      "reload_secs": 2.6,
+      "range": 260.0,
+      "suppressed": false,
+      "added_damage": 3
+    },
+    "base_price": 5500,
+    "suppliers": [
+      {
+        "faction": "syndicate",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "garrison",
+        "price_multiplier": 1.1
+      }
+    ],
+    "rarity": "uncommon"
+  }
+]
