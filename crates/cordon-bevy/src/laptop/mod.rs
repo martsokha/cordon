@@ -812,10 +812,7 @@ fn update_npc_selection(
     selected: Res<SelectedNpc>,
     npc_assets: Res<NpcAssets>,
     mut commands: Commands,
-    dots: Query<
-        (Entity, &SquadMembership, Option<&Children>),
-        With<NpcMarker>,
-    >,
+    dots: Query<(Entity, &SquadMembership, Option<&Children>), With<NpcMarker>>,
     rings: Query<Entity, With<SelectionRing>>,
 ) {
     if !selected.is_changed() {

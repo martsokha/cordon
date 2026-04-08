@@ -251,10 +251,7 @@ fn ensure_fullscreen_plane(
     // `Plane3d::new` takes *half-size*, so we halve those.
     commands.spawn((
         CctvFullscreenPlane,
-        Mesh3d(meshes.add(Plane3d::new(
-            Vec3::Z,
-            Vec2::new(0.147, 0.083),
-        ))),
+        Mesh3d(meshes.add(Plane3d::new(Vec3::Z, Vec2::new(0.147, 0.083)))),
         MeshMaterial3d(mat),
         Transform::default(),
         Visibility::Hidden,

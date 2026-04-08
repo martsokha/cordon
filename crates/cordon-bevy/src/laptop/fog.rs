@@ -129,14 +129,7 @@ fn apply_fog(
     fog_enabled: Res<FogEnabled>,
     state: Res<State<PlayingState>>,
     active_tab: Res<LaptopTab>,
-    members: Query<
-        (
-            &Transform,
-            &SquadMembership,
-            &cordon_sim::behavior::Vision,
-        ),
-        With<NpcMarker>,
-    >,
+    members: Query<(&Transform, &SquadMembership, &cordon_sim::behavior::Vision), With<NpcMarker>>,
     mut area_q: Query<
         (Entity, &Transform, &AreaCircle, &mut Visibility),
         (Without<NpcMarker>, Without<RelicMarker>, Without<Bunker>),
@@ -169,8 +162,7 @@ fn apply_fog(
     // is actually looking at the map. On other tabs/states the
     // normal MapOnlyUi / tab-switch visibility plumbing owns these
     // entities and we'd fight with it.
-    let map_visible =
-        *state.get() == PlayingState::Laptop && *active_tab == LaptopTab::Map;
+    let map_visible = *state.get() == PlayingState::Laptop && *active_tab == LaptopTab::Map;
     if !map_visible {
         return;
     }
@@ -191,9 +183,7 @@ fn apply_fog(
         if !fog_on {
             return true;
         }
-        reveals
-            .iter()
-            .any(|(c, r)| c.distance_squared(p) <= r * r)
+        reveals.iter().any(|(c, r)| c.distance_squared(p) <= r * r)
     };
     // Used only for the "first time a player squad sees this area"
     // latch — *always* respects fog.on, so toggling the fog cheat

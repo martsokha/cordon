@@ -338,13 +338,29 @@ fn follow_cursor(
         .and_then(|w| w.cursor_position())
         .unwrap_or_default();
     let visible = !matches!(*tooltip, TooltipContent::Hidden);
+    let target_vis = if visible {
+        Visibility::Visible
+    } else {
+        Visibility::Hidden
+    };
     for (mut node, mut vis) in &mut panel_q {
+        // Visibility change-guarded to avoid dirtying the UI
+        // layout pipeline every frame.
+        if *vis != target_vis {
+            *vis = target_vis;
+        }
         if visible {
-            *vis = Visibility::Visible;
-            node.left = Val::Px(cursor.x + 16.0);
-            node.top = Val::Px(cursor.y + 16.0);
-        } else {
-            *vis = Visibility::Hidden;
+            // The Node has to update when the cursor moves, but
+            // change-guarding the assignment keeps the layout pass
+            // idle when the cursor is stationary.
+            let new_left = Val::Px(cursor.x + 16.0);
+            let new_top = Val::Px(cursor.y + 16.0);
+            if node.left != new_left {
+                node.left = new_left;
+            }
+            if node.top != new_top {
+                node.top = new_top;
+            }
         }
     }
 }
@@ -586,8 +602,13 @@ fn update_zoom_label(
     use crate::laptop::input::{ZOOM_MAX, ZOOM_MIN};
     let t = (target.zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN);
     let level = ((1.0 - t) * 3.0 + 1.0).clamp(1.0, 4.0);
+    let new_text = format!("x{level:.1}");
     for mut text in &mut label_q {
-        text.0 = format!("x{level:.1}");
+        // Change-guard so the text-layout pipeline doesn't rebuild
+        // every frame while the zoom is stationary.
+        if text.0 != new_text {
+            text.0 = new_text.clone();
+        }
     }
 }
 
@@ -605,8 +626,11 @@ fn update_time_label(
 ) {
     let Some(clock) = clock else { return };
     let t = &clock.0;
+    let new_text = format!("Day {}  {}", t.day.value(), t.time_str());
     for mut text in &mut label_q {
-        text.0 = format!("Day {}  {}", t.day.value(), t.time_str());
+        if text.0 != new_text {
+            text.0 = new_text.clone();
+        }
     }
 }
 
@@ -624,8 +648,11 @@ fn update_money_label(
 ) {
     let Some(player) = player else { return };
     let credits = player.0.credits.value();
+    let new_text = format!("{credits} ¢");
     for mut text in &mut label_q {
-        text.0 = format!("{credits} ¢");
+        if text.0 != new_text {
+            text.0 = new_text.clone();
+        }
     }
 }
 
@@ -732,7 +759,16 @@ fn update_squad_roster_state(
                 (base, selected.0 == Some(npc))
             }
         };
-        bg.0 = if is_selected { ROSTER_BOX_SELECTED } else { base };
+        let target = if is_selected {
+            ROSTER_BOX_SELECTED
+        } else {
+            base
+        };
+        // Change-guard the write so a stable roster doesn't dirty
+        // the UI's change-detection cascade every frame.
+        if bg.0 != target {
+            bg.0 = target;
+        }
     }
 }
 
