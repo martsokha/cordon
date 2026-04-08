@@ -120,6 +120,12 @@ fn spawn_map(
         let base_color = COLOR_AREA;
         let area_material = materials.add(ColorMaterial::from_color(base_color));
 
+        // Area disks and borders live *above* the fog overlay
+        // (z > 4.5) so that once discovered they render cleanly
+        // on top of the mist without the shader darkening them.
+        // The fog only hides/darkens terrain, not markers —
+        // markers are gated by the `Visibility` component that
+        // `apply_fog` toggles on the `RevealedAreas` latch.
         let area_entity = commands
             .spawn((
                 MapWorldEntity,
@@ -127,7 +133,7 @@ fn spawn_map(
                 AreaData(info),
                 Mesh2d(meshes.add(Circle::new(radius))),
                 MeshMaterial2d(area_material),
-                Transform::from_xyz(x, y, 0.01),
+                Transform::from_xyz(x, y, 8.0),
             ))
             .id();
 
@@ -139,11 +145,9 @@ fn spawn_map(
                 MapWorldEntity,
                 Mesh2d(meshes.add(Annulus::new(radius - 2.0, radius))),
                 MeshMaterial2d(border_mat.clone()),
-                // Child transform: local offset from the disk,
-                // which already sits at (x, y, 0.01). The border
-                // just needs a tiny z bump so it draws above the
-                // fill.
-                Transform::from_xyz(0.0, 0.0, 0.09),
+                // Child transform: local offset from the disk so
+                // the border draws just above the fill.
+                Transform::from_xyz(0.0, 0.0, 0.08),
             ))
             .id();
         commands.entity(area_entity).add_child(border);

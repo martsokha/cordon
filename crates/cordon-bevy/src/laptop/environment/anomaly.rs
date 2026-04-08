@@ -85,7 +85,10 @@ pub fn spawn(
                     _padding1: 0.0,
                     _padding2: 0.0,
                 })),
-                Transform::from_xyz(x, y, 3.0),
+                // Above the fog overlay (z=4.5) and clouds
+                // (z=5.0) so the shader effects render on top
+                // of the mist instead of being darkened by it.
+                Transform::from_xyz(x, y, 8.5),
             ));
         }
     }

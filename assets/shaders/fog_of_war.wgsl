@@ -2,22 +2,27 @@
 // above terrain) and renders three states:
 //
 //   - Inside any reveal circle               → fully transparent
-//   - Inside any discovered area disk        → grey memory wash
-//   - Outside both                           → swirly dark cloud
+//   - Scouted texel in scout_mask            → grey memory wash
+//   - Neither                                → swirly dark cloud
 //
-// Reveal circles and discovered disks are passed in as fixed-size
-// `array<vec4, N>` uniforms. The first `counts.x` / `counts.y`
-// elements are valid; the rest are leftover slots and ignored.
+// The reveal circles are passed in as a fixed-size uniform array
+// (`counts.x` live entries). Long-term memory lives in a 256×256
+// `R8Unorm` texture covering the 5000×5000 playable map — each
+// texel is 0 (unscouted) or 1 (scouted), bilinear-filtered so
+// the boundary between the two reads as a smooth gradient. The
+// mask is monotonic: texels only go from 0 → 1, never back.
 
 #import bevy_sprite::mesh2d_vertex_output::VertexOutput
-#import bevy_sprite::mesh2d_view_bindings::globals
 
 const MAX_REVEALS: u32 = 32u;
-const MAX_DISCOVERED: u32 = 256u;
+// Matches `MAP_EXTENT` on the Rust side. Used to convert
+// fragment world-space coordinates into mask UVs.
+const MAP_EXTENT: f32 = 2500.0;
 
 @group(2) @binding(0) var<uniform> counts: vec4<f32>;
 @group(2) @binding(1) var<uniform> reveals: array<vec4<f32>, MAX_REVEALS>;
-@group(2) @binding(2) var<uniform> discovered: array<vec4<f32>, MAX_DISCOVERED>;
+@group(2) @binding(2) var scout_mask: texture_2d<f32>;
+@group(2) @binding(3) var scout_mask_sampler: sampler;
 
 // Cheap hash → noise → fbm stack, same shape as terrain/clouds.
 fn hash2(p: vec2<f32>) -> f32 {
@@ -36,18 +41,6 @@ fn noise(p: vec2<f32>) -> f32 {
     let c = hash2(i + vec2<f32>(0.0, 1.0));
     let d = hash2(i + vec2<f32>(1.0, 1.0));
     return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
-}
-
-fn fbm(p: vec2<f32>, octaves: i32) -> f32 {
-    var value = 0.0;
-    var amplitude = 0.5;
-    var pos = p;
-    for (var i = 0; i < octaves; i++) {
-        value += amplitude * noise(pos);
-        pos *= 2.0;
-        amplitude *= 0.5;
-    }
-    return value;
 }
 
 // Soft inside-circle test: returns 1.0 well inside, falling to 0.0
@@ -88,8 +81,6 @@ fn disk_visibility_wobbly(
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let world = in.world_position.xy;
-    let t = globals.time;
-    let edge = max(abs(world.x), abs(world.y));
 
     // ---- Currently-in-sight test. Walk the active reveal slots
     // and union their soft inside-tests. Reveal disks use the
@@ -108,66 +99,82 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
         );
     }
 
-    // ---- Memory test. Discovered area disks behave the same way,
-    // with a slightly wider feather since they're typically larger
-    // and a hard rim would look weird against the surrounding fog.
-    var memory = 0.0;
-    let n_disc = u32(counts.y);
-    for (var i = 0u; i < MAX_DISCOVERED; i++) {
-        if i >= n_disc {
-            break;
+    // ---- Memory test. Sample the persistent scout mask at the
+    // fragment's world-space position. The mask covers
+    // `[-MAP_EXTENT, MAP_EXTENT]` in both axes; remap to
+    // `[0, 1]` UV space and sample.
+    //
+    // Naive bilinear sampling gives visible step edges along
+    // the texture grid because four-of-a-kind texel neighbours
+    // (all 0 or all 255) leave the bilinear falloff to fire
+    // exactly at axis-aligned texel boundaries. To hide the
+    // grid without upping the resolution we jitter the UV by
+    // sub-texel world-space noise and take several samples,
+    // then average. The eye blurs the jittered samples into a
+    // smooth curve — same trick shadow maps and volumetric
+    // fogs use.
+    let mask_uv = (world / (MAP_EXTENT * 2.0)) + vec2<f32>(0.5);
+    // 16-tap 4×4 grid blur across a ~3-texel radius. Sampling
+    // on a fixed axis-aligned grid with no per-pixel rotation
+    // avoids "hair" streaks from hash-based jitter, while a
+    // wider kernel + more samples fully dissolves the grid
+    // stepping into a smooth gradient. Fullscreen 16-tap is
+    // still cheap for a once-per-frame overlay.
+    let step = 1.0 / 1024.0;
+    var sampled = 0.0;
+    for (var iy = -2; iy < 2; iy++) {
+        for (var ix = -2; ix < 2; ix++) {
+            let offset = vec2<f32>(
+                (f32(ix) + 0.5) * step,
+                (f32(iy) + 0.5) * step,
+            );
+            sampled = sampled
+                + textureSample(scout_mask, scout_mask_sampler, mask_uv + offset).r;
         }
-        let d = discovered[i];
-        memory = max(memory, disk_visibility(world, d.xy, d.z, 40.0));
     }
+    let raw_memory = sampled * (1.0 / 16.0);
+    // Wide smoothstep so the transition band spans multiple
+    // output pixels — the scouted region fades in gradually
+    // at the leading edge instead of reading as a sharp wave.
+    let memory = smoothstep(0.05, 0.75, raw_memory);
 
-    // ---- Animated swirly cloud for unexplored regions. Two slow
-    // fbm layers offset by time give a subtle drifting "fog of
-    // war" texture without flickering. We only need this where
-    // the fog is opaque, so the noise is cheap relative to the
-    // terrain shader (3+2 octaves).
-    let drift_a = vec2<f32>(t * 0.020, t * -0.015);
-    let drift_b = vec2<f32>(t * -0.012, t * 0.018);
-    let swirl_a = fbm(world * 0.0025 + drift_a, 3);
-    let swirl_b = fbm(world * 0.006 + drift_b + 31.0, 2);
-    let swirl = swirl_a * 0.65 + swirl_b * 0.35;
+    // Three qualitatively distinct states, differentiated by
+    // both colour and alpha so the player can tell them apart
+    // at a glance:
+    //
+    //   - Never seen:       dark desaturated grey at 0.85
+    //                       alpha → terrain mostly occluded
+    //                       by a dark wash, a hint of the
+    //                       Zone shape bleeds through at 15%.
+    //   - Memory (scouted): light desaturated grey at 0.30
+    //                       alpha → terrain clearly visible,
+    //                       subtle neutral tint signalling
+    //                       "seen before, not currently live."
+    //   - In sight:         fully transparent → the terrain
+    //                       shows through unmodified.
+    //
+    // Bevy's `AlphaMode2d::Blend` is standard src-over, so the
+    // output `(color, alpha)` lands on top of the terrain as
+    //   terrain * (1 - alpha) + color * alpha
+    // which means `color * alpha` is the additive contribution
+    // and `1 - alpha` is how much terrain leaks through.
+    let fog_color = vec3<f32>(0.02, 0.02, 0.03);
+    let memory_color = vec3<f32>(0.02, 0.02, 0.03);
+    let fog_alpha = 0.55;
+    let memory_alpha = 0.32;
 
-    // Pure-black fog palette — matches the laptop background
-    // `Color::BLACK` rectangle underneath the terrain, so the
-    // fog mesh and the background merge seamlessly past the
-    // terrain edge. Only the brightest swirl crests lift above
-    // pure black at all, giving a faint drifting texture.
-    let dark = vec3<f32>(0.0, 0.0, 0.0);
-    let mid = vec3<f32>(0.004, 0.004, 0.004);
-    let highlight = vec3<f32>(0.012, 0.012, 0.012);
-    var fog_color = mix(dark, mid, swirl);
-    fog_color = mix(fog_color, highlight, smoothstep(0.55, 0.85, swirl) * 0.4);
+    // Lerp fog → memory based on how scouted this texel is.
+    // Using `memory` as the mix factor means the colour and
+    // alpha transition together, so the boundary between
+    // "never seen" and "scouted" is a single continuous
+    // gradient rather than two separate factors crossing over.
+    var color = mix(fog_color, memory_color, memory);
+    var alpha = mix(fog_alpha, memory_alpha, memory);
 
-    // Memory wash: a dim desaturated grey for "I've been here, but
-    // can't see it now". Neutral grey, no colour tint, and kept
-    // low so memorized corridors read as a subtle hint rather
-    // than a bright trail.
-    let memory_color = vec3<f32>(0.045, 0.045, 0.045);
+    // Live visibility cuts straight through both states. In
+    // fully-lit pixels, `visible = 1` drives alpha to 0 and
+    // the colour is irrelevant.
+    alpha = alpha * (1.0 - visible);
 
-    // Compose the three states. `visible` cuts straight through
-    // the fog and the memory wash. `memory` only kicks in where
-    // the area was *ever* seen but isn't currently in sight, so
-    // we subtract `visible` from it.
-    let mem_factor = clamp(memory - visible, 0.0, 1.0);
-    let fog_factor = clamp(1.0 - max(visible, memory), 0.0, 1.0);
-
-    // Final colour is a layered blend, alpha is the union of the
-    // two opaque states. The visible cut-through gets pure 0.
-    var color = fog_color * fog_factor + memory_color * mem_factor;
-    let alpha = fog_factor * 0.92 + mem_factor * 0.55;
-
-    // Edge-band darken: in the outer band before the terrain's
-    // 2500 hard edge, crush the fog colour toward pure black so
-    // the boundary fades into a solid black frame matching the
-    // laptop background rectangle underneath. Alpha stays fully
-    // opaque — we never let the terrain underneath show through.
-    let edge_band = smoothstep(1900.0, 2500.0, edge);
-    color *= 1.0 - edge_band;
-
-    return vec4<f32>(color, alpha);
+    return vec4<f32>(color, clamp(alpha, 0.0, 1.0));
 }

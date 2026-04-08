@@ -9,7 +9,7 @@
 use bevy::prelude::*;
 use cordon_sim::components::{NpcMarker, RelicMarker, SquadMembership};
 
-use super::{DiscoveredDisks, FogEnabled, FogReveals, PlayerSquads, RevealedAreas};
+use super::{FogEnabled, FogReveals, PlayerSquads, RevealedAreas};
 use crate::PlayingState;
 use crate::laptop::environment::anomaly::AnomalyVisual;
 use crate::laptop::map::{AreaCircle, Bunker};
@@ -45,7 +45,6 @@ pub(super) fn apply_fog(
     player_squads: Res<PlayerSquads>,
     mut revealed_areas: ResMut<RevealedAreas>,
     mut fog_reveals: ResMut<FogReveals>,
-    mut discovered_disks: ResMut<DiscoveredDisks>,
     fog_enabled: Res<FogEnabled>,
     state: Res<State<PlayingState>>,
     active_tab: Res<LaptopTab>,
@@ -128,18 +127,12 @@ pub(super) fn apply_fog(
     // Areas have two states for the *mesh*:
     //
     //   - Never seen: hidden under the fog overlay entirely.
-    //   - Ever seen: mesh + border stay visible *forever*. Whether
-    //     the player can actually see it through the fog is
-    //     decided by the fog shader sitting on top — areas that
-    //     are currently in sight get a clear cut-through; areas
-    //     that have been seen but aren't currently lit appear as
-    //     darkened-but-still-rendered shapes through the fog.
-    //
-    // We deliberately do NOT push area disks into the discovered
-    // set for the fog shader — the memory wash should follow the
-    // breadcrumb trail of where the squad has actually walked,
-    // not the entire abstract area outline.
-    discovered_disks.0.clear();
+    //   - Ever seen: mesh + border stay visible *forever*. The
+    //     fog shader's scout-mask texture handles "can the
+    //     player actually see through to the terrain here" on a
+    //     per-texel basis, so this latch only drives whether
+    //     the area's *marker* mesh (disk + border + tooltip
+    //     target) exists on the map.
     let mut visible_area_disks: Vec<(Vec2, f32)> = Vec::new();
     for (entity, transform, circle, mut vis) in &mut area_q {
         let p = transform.translation.truncate();
