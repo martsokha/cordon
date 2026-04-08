@@ -4,7 +4,6 @@
 // crate-wide rather than per-system.
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
-mod ai;
 mod bunker;
 #[cfg(debug_assertions)]
 mod debug;
@@ -57,7 +56,6 @@ fn main() {
     .add_plugins(locale::LocalePlugin)
     .add_plugins(world::WorldPlugin)
     .add_plugins(CordonSimPlugin)
-    .add_plugins(ai::AiPlugin)
     .add_plugins(bunker::BunkerPlugin)
     .add_plugins(laptop::LaptopPlugin);
 

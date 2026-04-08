@@ -5,6 +5,7 @@ pub(crate) mod fog;
 mod input;
 mod palette;
 mod ui;
+mod visuals;
 
 use std::collections::HashMap;
 
@@ -33,6 +34,7 @@ impl Plugin for LaptopPlugin {
             ui::UiPlugin,
             environment::EnvironmentPlugin,
             fog::FogPlugin,
+            visuals::VisualsPlugin,
         ));
         app.insert_resource(SelectedNpc::default());
         app.add_systems(Startup, (setup_camera, init_npc_assets, init_relic_assets));
