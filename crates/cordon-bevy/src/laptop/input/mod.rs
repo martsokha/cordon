@@ -53,7 +53,11 @@ fn smooth_factor(dt: f32) -> f32 {
 }
 
 fn apply_camera(
-    time: Res<Time>,
+    // Camera smoothing reads *real* time so it stays identical
+    // regardless of the player's sim time scale. Without this,
+    // pressing F4 to fast-forward the sim would also fast-forward
+    // the camera lerp and feel wrong.
+    time: Res<Time<Real>>,
     target: Res<CameraTarget>,
     transforms: Query<&Transform, Without<Camera2d>>,
     mut camera_q: Query<(&mut Transform, &mut Projection), With<Camera2d>>,

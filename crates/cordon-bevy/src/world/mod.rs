@@ -20,19 +20,59 @@ use crate::AppState;
 
 pub struct WorldPlugin;
 
-/// How many game minutes pass per real second.
+/// How many game minutes pass per real second at 1× time scale.
 const GAME_MINUTES_PER_SECOND: f32 = 2.0;
+
+/// Player-selected time scale. Applied to `Time<Virtual>` so every
+/// sim system that reads `delta_secs()` accelerates in lockstep
+/// (combat, movement, goals, throttles, fire cooldowns). Real-time
+/// systems that should *not* accelerate (UI smoothing, camera lerp)
+/// must read `Res<Time<Real>>` explicitly.
+#[derive(Resource, Debug, Clone, Copy)]
+pub struct TimeAcceleration {
+    pub multiplier: f32,
+}
+
+impl Default for TimeAcceleration {
+    fn default() -> Self {
+        Self { multiplier: 1.0 }
+    }
+}
+
+/// Time-scale presets cycled by the F4 debug key. 1× is real time,
+/// 64× is "accelerated sim for skipping a few game hours".
+const TIME_SCALE_PRESETS: &[f32] = &[1.0, 4.0, 16.0, 64.0];
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(TimeAccumulator(0.0));
+        app.insert_resource(TimeAcceleration::default());
         app.add_systems(OnEnter(AppState::Playing), init_world);
-        app.add_systems(Update, tick_game_time.run_if(in_state(AppState::Playing)));
+        app.add_systems(
+            Update,
+            (apply_time_scale, tick_game_time)
+                .chain()
+                .run_if(in_state(AppState::Playing)),
+        );
+        #[cfg(debug_assertions)]
+        app.add_systems(Update, cheat_cycle_time_scale);
     }
 }
 
 #[derive(Resource)]
 struct TimeAccumulator(f32);
+
+/// Push [`TimeAcceleration.multiplier`] into Bevy's virtual time.
+/// `Time<Virtual>::set_relative_speed` scales every subsequent
+/// `delta_secs` read from `Res<Time>` (which aliases virtual time
+/// by default), so sim systems naturally run faster without any
+/// per-system changes.
+fn apply_time_scale(accel: Res<TimeAcceleration>, mut virt: ResMut<Time<Virtual>>) {
+    if !accel.is_changed() {
+        return;
+    }
+    virt.set_relative_speed(accel.multiplier.max(0.0));
+}
 
 fn tick_game_time(time: Res<Time>, mut acc: ResMut<TimeAccumulator>, mut clock: ResMut<GameClock>) {
     acc.0 += time.delta_secs() * GAME_MINUTES_PER_SECOND;
@@ -41,6 +81,28 @@ fn tick_game_time(time: Res<Time>, mut acc: ResMut<TimeAccumulator>, mut clock: 
         acc.0 -= minutes as f32;
         clock.0.advance_minutes(minutes);
     }
+}
+
+/// F4 → cycle through [`TIME_SCALE_PRESETS`]. Dev cheat, compiled
+/// out of release builds.
+#[cfg(debug_assertions)]
+fn cheat_cycle_time_scale(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut accel: ResMut<TimeAcceleration>,
+) {
+    if !keys.just_pressed(KeyCode::F4) {
+        return;
+    }
+    let current = accel.multiplier;
+    // Find the next preset strictly greater than the current; wrap
+    // to the smallest if we're already at the top.
+    let next = TIME_SCALE_PRESETS
+        .iter()
+        .copied()
+        .find(|&s| s > current + 0.01)
+        .unwrap_or(TIME_SCALE_PRESETS[0]);
+    accel.multiplier = next;
+    info!("cheat: time scale → {next}×");
 }
 
 /// Build the cordon-sim resource set from loaded game data and

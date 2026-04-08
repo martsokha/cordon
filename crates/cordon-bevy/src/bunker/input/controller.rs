@@ -47,7 +47,9 @@ fn fps_look(
 
 fn fps_move(
     keys: Res<ButtonInput<KeyCode>>,
-    time: Res<Time>,
+    // Player walking speed must stay real-time so fast-forwarding
+    // the sim doesn't also rocket the player around the bunker.
+    time: Res<Time<Real>>,
     mut camera_q: Query<&mut Transform, With<FpsCamera>>,
 ) {
     let mut input = Vec2::ZERO;

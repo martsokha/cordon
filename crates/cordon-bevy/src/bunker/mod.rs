@@ -111,7 +111,10 @@ fn start_free_look(
 }
 
 fn animate_camera(
-    time: Res<Time>,
+    // Bunker camera animation is player-facing, not sim state —
+    // use real time so accelerating the sim doesn't speed up the
+    // laptop-to-bunker return lerp.
+    time: Res<Time<Real>>,
     mut mode: ResMut<CameraMode>,
     mut camera_q: Query<&mut Transform, With<FpsCamera>>,
     mut laptop_cam: Query<&mut Camera, (With<crate::laptop::LaptopCamera>, Without<FpsCamera>)>,
