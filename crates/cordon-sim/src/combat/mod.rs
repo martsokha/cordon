@@ -157,13 +157,204 @@ struct HitIntent {
     dealt: u32,
 }
 
+/// Snapshot of a potential target built before the shooter loop.
+/// Captures just enough state to resolve a hit without holding a
+/// borrow on the target's components — the shooter loop needs
+/// mutable access to `LoadoutComp` which would overlap otherwise.
+#[derive(Clone, Copy)]
+struct TargetInfo {
+    pos: Vec2,
+    ballistic: u32,
+}
+
+/// Weapon + ammo stats resolved from a shooter's current loadout.
+/// Pulled out into its own struct so `simulate_shooter_frame` has
+/// a flat, boring argument list instead of a wall of locals.
+struct WeaponStats {
+    caliber: Id<cordon_core::item::Caliber>,
+    magazine: u32,
+    /// Seconds per shot (`1.0 / fire_rate`), precomputed once.
+    period: f32,
+    reload_secs: f32,
+    range: f32,
+    /// Damage dealt *after* target ballistic resistance has already
+    /// been subtracted — precomputed so the shooter loop doesn't
+    /// repeat the resolve for every catch-up shot.
+    dealt: u32,
+}
+
+/// Result of simulating one shooter for one frame. Written back to
+/// the shooter's components by the caller.
+struct ShooterOutcome {
+    cooldown: f32,
+    reload: f32,
+    shots_fired: u32,
+    hit_target: Option<Entity>,
+    /// True when the NPC ran out of ammo mid-frame and should drop
+    /// its combat target.
+    stop_targeting: bool,
+}
+
+/// Build the per-target snapshot used by the shooter loop so
+/// shooters don't need to query target components mutably.
+fn build_target_snapshot(
+    query: &Query<(Entity, &Transform, &LoadoutComp), (With<Hp>, Without<Dead>)>,
+    items: &HashMap<Id<Item>, ItemDef>,
+) -> HashMap<Entity, TargetInfo> {
+    let mut m = HashMap::with_capacity(1024);
+    for (entity, transform, loadout) in query.iter() {
+        let pos = transform.translation.truncate();
+        let ballistic = equipped_ballistic(&loadout.0, items);
+        m.insert(entity, TargetInfo { pos, ballistic });
+    }
+    m
+}
+
+/// Resolve a shooter's equipped weapon + loaded-ammo stats into a
+/// flat [`WeaponStats`] + precomputed damage. Returns `None` when
+/// the shooter doesn't have a fireable setup (no weapon, no ammo,
+/// invalid def, etc.); the caller treats that as "skip this frame".
+fn load_weapon_stats(
+    loadout: &Loadout,
+    target_ballistic: u32,
+    items: &HashMap<Id<Item>, ItemDef>,
+) -> Option<WeaponStats> {
+    let weapon_inst = loadout.equipped_weapon()?;
+    let weapon_def = items.get(&weapon_inst.def_id)?;
+    let ItemData::Weapon(weapon) = &weapon_def.data else {
+        return None;
+    };
+
+    let loaded_ammo_id = weapon_inst.loaded_ammo.clone()?;
+    let ammo_def = items.get(&loaded_ammo_id)?;
+    let ItemData::Ammo(ammo) = &ammo_def.data else {
+        return None;
+    };
+
+    let raw_damage = ammo.damage + weapon.added_damage;
+    let dealt = Resistances::resolve_hit(target_ballistic, ammo.penetration, raw_damage);
+
+    let period = if weapon.fire_rate > 0.0 {
+        1.0 / weapon.fire_rate
+    } else {
+        1.0
+    };
+
+    Some(WeaponStats {
+        caliber: weapon.caliber.clone(),
+        magazine: weapon.magazine,
+        period,
+        reload_secs: weapon.reload_secs,
+        range: weapon.range.value(),
+        dealt,
+    })
+}
+
+/// Core frame simulation for a single shooter. Runs the reload →
+/// fire → catch-up loop against a shared `dt` budget and returns
+/// a [`ShooterOutcome`] the caller can flush into components.
+///
+/// This is the interesting part of combat — split out of
+/// `resolve_combat` so the outer system is mostly plumbing. The
+/// `loadout` reference is mutable because reloads drain ammo
+/// pouches; everything else is local state.
+fn simulate_shooter_frame(
+    dt: f32,
+    target: Entity,
+    loadout: &mut Loadout,
+    stats: &WeaponStats,
+    initial_cooldown: f32,
+    initial_reload: f32,
+    initial_mag: u32,
+    items: &HashMap<Id<Item>, ItemDef>,
+) -> ShooterOutcome {
+    let mut budget = dt;
+    let mut cooldown = initial_cooldown;
+    let mut reload = initial_reload;
+    let mut mag_live = initial_mag;
+    let mut shots_fired: u32 = 0;
+    let mut stop_targeting = false;
+
+    while budget > 0.0 {
+        // --- Reload phase: consume budget until the reload timer
+        // drains. If budget runs out mid-reload, save the remainder
+        // for next frame and stop.
+        if reload > 0.0 {
+            let consumed = reload.min(budget);
+            reload -= consumed;
+            budget -= consumed;
+            if reload > 0.0 {
+                break;
+            }
+        }
+
+        // --- Empty-mag phase: kick off a reload if we can.
+        if mag_live == 0 {
+            let started = refill_magazine(loadout, items, &stats.caliber, stats.magazine);
+            if started {
+                mag_live = loadout.primary.as_ref().map(|w| w.count).unwrap_or(0);
+                reload = stats.reload_secs;
+                continue;
+            }
+            // No ammo pouches left → give up. Caller will drop
+            // the combat target so the AI can pick something else.
+            stop_targeting = true;
+            break;
+        }
+
+        // --- Firing phase: advance the cooldown, then fire as
+        // many catch-up shots as the remaining budget can afford.
+        if cooldown > 0.0 {
+            let consumed = cooldown.min(budget);
+            cooldown -= consumed;
+            budget -= consumed;
+            if cooldown > 0.0 {
+                break;
+            }
+        }
+        let affordable = if stats.period > 0.0 {
+            1 + (budget / stats.period).floor() as u32
+        } else {
+            1
+        };
+        let to_fire = affordable.min(mag_live);
+        if to_fire == 0 {
+            // Shouldn't be reachable given the branches above, but
+            // guard to prevent an infinite loop on weird input.
+            break;
+        }
+        for _ in 0..to_fire {
+            if let Some(weapon) = &mut loadout.primary {
+                weapon.count = weapon.count.saturating_sub(1);
+            }
+        }
+        shots_fired += to_fire;
+        mag_live = mag_live.saturating_sub(to_fire);
+        // The first shot of the burst was already "paid for" by
+        // exiting the cooldown branch — only the extras spend
+        // additional budget.
+        budget -= stats.period * (to_fire as f32 - 1.0);
+        cooldown = stats.period;
+    }
+
+    ShooterOutcome {
+        cooldown,
+        reload,
+        shots_fired,
+        hit_target: if shots_fired > 0 { Some(target) } else { None },
+        stop_targeting,
+    }
+}
+
 /// Tick down per-NPC fire cooldowns and apply damage when ready.
 ///
+/// Structured as four small phases — snapshot targets, run each
+/// shooter's per-frame loop, emit one tracer per shooter, apply
+/// damage — so the big ParamSet plumbing stays at the top and the
+/// per-shooter logic lives in [`simulate_shooter_frame`].
+///
 /// All NPC mutable access flows through a [`ParamSet`] so multiple
-/// `&mut LoadoutComp` queries don't overlap. The shooter loop reads
-/// from a position+armor snapshot built before mutation, drains the
-/// shooter's own ammo, then queues a [`HitIntent`].
-/// A second pass applies the hit to the target via a fresh mutable query.
+/// `&mut LoadoutComp` queries don't overlap.
 fn resolve_combat(
     time: Res<Time>,
     game_data: Res<GameDataResource>,
@@ -189,21 +380,16 @@ fn resolve_combat(
     let items = &game_data.0.items;
     let dt = time.delta_secs();
 
-    // Pass 0: snapshot every alive NPC's position + ballistic resistance.
-    let target_snapshot: HashMap<Entity, (Vec2, u32)> = {
-        let mut m = HashMap::with_capacity(1024);
-        for (entity, transform, loadout) in sets.p0().iter() {
-            let pos = transform.translation.truncate();
-            let ballistic = equipped_ballistic(&loadout.0, items);
-            m.insert(entity, (pos, ballistic));
-        }
-        m
-    };
+    // Pass 0: snapshot every alive NPC's position + ballistic.
+    let target_snapshot = build_target_snapshot(&sets.p0(), items);
 
+    // Pass 1: run each shooter's per-frame loop, collecting hits
+    // and tracer events. `ShotFired` is capped at one per shooter
+    // per frame — at 64× dt a 10 rps weapon would otherwise spam
+    // the visual layer with ~10 identical tracers, which both
+    // crushes the renderer and looks bad. Damage still applies
+    // for every shot, so combat resolves correctly.
     let mut hits: Vec<HitIntent> = Vec::new();
-
-    // Pass 1: shooter loop. Scoped so the p1 borrow is released before
-    // we grab p2 below.
     {
         let mut shooters = sets.p1();
         for (shooter_entity, shooter_transform, mut combat_target, mut fire_state, mut loadout) in
@@ -212,96 +398,66 @@ fn resolve_combat(
             let Some(target_entity) = combat_target.0 else {
                 continue;
             };
-
-            let Some(&(target_pos, target_ballistic)) = target_snapshot.get(&target_entity) else {
+            let Some(&target_info) = target_snapshot.get(&target_entity) else {
                 combat_target.0 = None;
                 *fire_state = FireState::default();
                 continue;
             };
-
-            let Some(weapon_inst) = loadout.0.equipped_weapon() else {
+            let Some(stats) =
+                load_weapon_stats(&loadout.0, target_info.ballistic, items)
+            else {
                 combat_target.0 = None;
                 *fire_state = FireState::default();
                 continue;
             };
-            let Some(weapon_def) = items.get(&weapon_inst.def_id) else {
-                continue;
-            };
-            let (caliber, magazine, fire_rate, reload_secs_def, weapon_added, range) =
-                match &weapon_def.data {
-                    ItemData::Weapon(w) => (
-                        w.caliber.clone(),
-                        w.magazine,
-                        w.fire_rate,
-                        w.reload_secs,
-                        w.added_damage,
-                        w.range.value(),
-                    ),
-                    _ => continue,
-                };
-            let mag_count = weapon_inst.count;
-            let loaded_ammo_id = weapon_inst.loaded_ammo.clone();
 
             let shooter_pos = shooter_transform.translation.truncate();
-            if shooter_pos.distance(target_pos) > range {
+            if shooter_pos.distance(target_info.pos) > stats.range {
                 continue;
             }
 
-            if fire_state.reload_secs > 0.0 {
-                fire_state.reload_secs = (fire_state.reload_secs - dt).max(0.0);
-                continue;
-            }
+            let mag_count = loadout
+                .0
+                .equipped_weapon()
+                .map(|w| w.count)
+                .unwrap_or(0);
 
-            if mag_count == 0 {
-                let started = refill_magazine(&mut loadout.0, items, &caliber, magazine);
-                if started {
-                    fire_state.reload_secs = reload_secs_def;
-                } else {
-                    combat_target.0 = None;
-                    *fire_state = FireState::default();
+            let outcome = simulate_shooter_frame(
+                dt,
+                target_entity,
+                &mut loadout.0,
+                &stats,
+                fire_state.cooldown_secs,
+                fire_state.reload_secs,
+                mag_count,
+                items,
+            );
+
+            fire_state.cooldown_secs = outcome.cooldown;
+            fire_state.reload_secs = outcome.reload;
+
+            if let Some(target) = outcome.hit_target {
+                // One tracer per shooter per frame (see comment
+                // above); emit before the damage push so the
+                // visual layer receives a single "shooter shot"
+                // event even when the sim fired a burst.
+                shots.write(ShotFired {
+                    shooter: shooter_entity,
+                    from: shooter_pos,
+                    to: target_info.pos,
+                });
+                for _ in 0..outcome.shots_fired {
+                    hits.push(HitIntent {
+                        target,
+                        dealt: stats.dealt,
+                    });
                 }
-                continue;
             }
 
-            if fire_state.cooldown_secs > 0.0 {
-                fire_state.cooldown_secs = (fire_state.cooldown_secs - dt).max(0.0);
-                continue;
+            if outcome.stop_targeting {
+                combat_target.0 = None;
+                *fire_state = FireState::default();
             }
-
-            // Fire one shot.
-            let Some(loaded_ammo_id) = loaded_ammo_id else {
-                continue;
-            };
-            let Some(ammo_def) = items.get(&loaded_ammo_id) else {
-                continue;
-            };
-            let (ammo_damage, penetration) = match &ammo_def.data {
-                ItemData::Ammo(a) => (a.damage, a.penetration),
-                _ => continue,
-            };
-            let raw_damage = ammo_damage + weapon_added;
-
-            let dealt = Resistances::resolve_hit(target_ballistic, penetration, raw_damage);
-
-            if let Some(weapon) = &mut loadout.0.primary {
-                weapon.count = weapon.count.saturating_sub(1);
-            }
-
-            shots.write(ShotFired {
-                shooter: shooter_entity,
-                from: shooter_pos,
-                to: target_pos,
-            });
-
-            fire_state.cooldown_secs = if fire_rate > 0.0 {
-                1.0 / fire_rate
-            } else {
-                1.0
-            };
-            hits.push(HitIntent {
-                target: target_entity,
-                dealt,
-            });
         }
     }
 
