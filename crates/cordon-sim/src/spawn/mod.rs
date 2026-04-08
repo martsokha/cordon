@@ -25,7 +25,7 @@ use cordon_core::primitive::{Id, Uid};
 use cordon_data::gamedata::GameDataResource;
 use rand::{Rng, RngExt};
 
-use crate::components::{NpcBundle, NpcMarker, SquadBundle, SquadMembership};
+use crate::components::{NpcMarker, SquadBundle, SquadMembership};
 use crate::resources::{FactionIndex, FactionSettlements, GameClock, SquadIdIndex, UidAllocator};
 use crate::spawn::generator::{
     DefaultNpcGenerator, LoadoutContext, NpcGenerator, roll_population_top_up,
@@ -74,6 +74,7 @@ pub fn spawn_population(
     settlements: Res<FactionSettlements>,
     game_data: Res<GameDataResource>,
     mut squad_index: ResMut<SquadIdIndex>,
+    mut squad_spawned: MessageWriter<SquadSpawned>,
     mut rng: Single<&mut WyRand, With<GlobalRng>>,
     alive_npcs: Query<(), With<NpcMarker>>,
 ) {
@@ -144,9 +145,9 @@ pub fn spawn_population(
 
     // Pass 1: spawn NPC entities, mapping their uid → entity.
     let mut uid_to_entity: HashMap<Uid<NpcData>, Entity> = HashMap::with_capacity(spawn.npcs.len());
-    for npc in spawn.npcs {
-        let uid = npc.id;
-        let entity = commands.spawn(NpcBundle::from_npc(npc)).id();
+    for bundle in spawn.npcs {
+        let uid = bundle.id;
+        let entity = commands.spawn(bundle).id();
         uid_to_entity.insert(uid, entity);
     }
 
@@ -175,6 +176,7 @@ pub fn spawn_population(
         let home = pick_faction_home(faction_settlements, &squad.faction, &mut **rng);
 
         let squad_uid = squad.id;
+        let squad_faction = squad.faction.clone();
         let squad_entity = commands
             .spawn(SquadBundle::from_squad(
                 squad,
@@ -191,6 +193,14 @@ pub fn spawn_population(
                 slot: slot_idx as u8,
             });
         }
+
+        // Notify downstream systems that a squad just entered the
+        // world. Emitted after the membership tags are set so any
+        // reader pulling squad members sees a consistent state.
+        squad_spawned.write(SquadSpawned {
+            entity: squad_entity,
+            faction: squad_faction,
+        });
     }
 }
 

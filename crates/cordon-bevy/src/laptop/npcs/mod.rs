@@ -19,9 +19,7 @@ use cordon_core::entity::squad::Formation;
 use cordon_core::primitive::Experience;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::behavior::{CombatTarget, FireState, MovementSpeed, MovementTarget, Vision};
-use cordon_sim::components::{
-    FactionId, NpcMarker, SquadHomePosition, SquadMembership,
-};
+use cordon_sim::components::{FactionId, NpcMarker, SquadHomePosition, SquadMembership};
 
 pub use self::palette::FactionPalette;
 pub use self::selection::SelectedNpc;

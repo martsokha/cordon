@@ -31,7 +31,7 @@ mod trail;
 use std::collections::HashSet;
 
 use bevy::prelude::*;
-use cordon_sim::components::{SquadFaction, SquadMarker};
+use cordon_sim::components::{FactionId, SquadMarker};
 
 /// Squads the player commands. Membership is set once by
 /// [`pick_player_squads`] and never changes afterward (for now).
@@ -124,7 +124,7 @@ impl Plugin for FogPlugin {
 /// non-empty.
 fn pick_player_squads(
     mut player_squads: ResMut<PlayerSquads>,
-    squads: Query<(Entity, &SquadFaction), With<SquadMarker>>,
+    squads: Query<(Entity, &FactionId), With<SquadMarker>>,
 ) {
     if !player_squads.0.is_empty() {
         return;

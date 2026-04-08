@@ -188,10 +188,7 @@ fn update_hover(
         HoverTarget::Npc(entity) => {
             let mut out = TooltipContent::Hidden;
             if let Ok((_, info, _, movement, combat, member, loot, _)) = npcs.get(entity) {
-                let goal = squad_goals
-                    .get(member.squad)
-                    .cloned()
-                    .unwrap_or(Goal::Idle);
+                let goal = squad_goals.get(member.squad).cloned().unwrap_or(Goal::Idle);
                 out = TooltipContent::Npc {
                     faction_icon: info.faction_icon.clone(),
                     name: info.name.clone(),

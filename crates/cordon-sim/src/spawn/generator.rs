@@ -6,10 +6,14 @@ use cordon_core::entity::name::{NameFormat, NamePool, NpcName};
 use cordon_core::entity::npc::{Npc, Personality};
 use cordon_core::entity::squad::{Goal, Squad};
 use cordon_core::item::{Item, ItemDef, Loadout};
-use cordon_core::primitive::{Credits, Experience, Id, Pool, Rank, Uid};
+use cordon_core::primitive::{Credits, Experience, Health, Id, Loyalty, Pool, Rank, Trust, Uid};
 use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
+use crate::components::{
+    BaseMaxes, Employment, FactionId, HungerPool, NpcAttributes, NpcBundle, NpcMarker, Perks,
+    StaminaPool,
+};
 use crate::resources::{FactionIndex, UidAllocator};
 use crate::spawn::loadout::generate_loadout;
 
@@ -20,10 +24,12 @@ pub struct LoadoutContext<'a> {
     pub areas: &'a HashMap<Id<Area>, AreaDef>,
 }
 
-/// One day's worth of fresh NPCs and squads, ready for the game layer
-/// to insert into the world and spawn ECS entities for.
+/// One day's worth of fresh NPCs and squads, ready for the
+/// game layer to insert into the world and spawn ECS entities
+/// for. NPCs come pre-assembled as [`NpcBundle`]s so the caller
+/// can `commands.spawn(bundle)` directly.
 pub struct DailySpawn {
-    pub npcs: Vec<Npc>,
+    pub npcs: Vec<NpcBundle>,
     pub squads: Vec<Squad>,
 }
 
@@ -122,9 +128,9 @@ pub trait NpcGenerator {
         })
     }
 
-    /// Build a complete NPC from generated parts. The caller passes in
-    /// the desired rank explicitly so squad spawning can produce
-    /// rank-correct members from a template.
+    /// Build a complete NPC bundle from generated parts. The
+    /// caller passes in the desired rank explicitly so squad
+    /// spawning can produce rank-correct members from a template.
     fn generate_with_rank<R: Rng>(
         &self,
         id: Uid<Npc>,
@@ -132,26 +138,42 @@ pub trait NpcGenerator {
         rank: Rank,
         name_pool: &NamePool,
         rng: &mut R,
-    ) -> Npc {
+    ) -> NpcBundle {
         let xp = Experience::new(rank.xp_threshold());
         let personality = self.generate_personality(rng);
         let wealth = self.generate_wealth(rank, rng);
+        let health: Pool<Health> = Pool::full();
+        let hp_max = health.max();
 
-        Npc {
+        NpcBundle {
+            marker: NpcMarker,
             id,
             name: self.generate_name(name_pool, rng),
-            faction,
+            faction: FactionId(faction),
             xp,
+            hp: health,
+            stamina: StaminaPool::full(),
+            hunger: HungerPool::full(),
+            base_maxes: BaseMaxes {
+                hp: hp_max,
+                stamina: 100,
+                hunger: 100,
+            },
             loadout: Loadout::new(),
-            health: Pool::full(),
-            trust: 0.0,
             wealth,
-            personality,
-            perks: Vec::new(),
-            revealed_perks: Vec::new(),
-            role: None,
-            loyalty: 0.5,
-            daily_pay: self.daily_pay(rank),
+            attributes: NpcAttributes {
+                trust: Trust(0.0),
+                loyalty: Loyalty(0.5),
+                personality,
+            },
+            perks: Perks {
+                all: Vec::new(),
+                revealed: Vec::new(),
+            },
+            employment: Employment {
+                role: None,
+                daily_pay: self.daily_pay(rank),
+            },
         }
     }
 
@@ -229,16 +251,17 @@ pub fn roll_population_top_up<R: Rng>(
 
         for (slot_idx, rank) in template.ranks.iter().enumerate() {
             let npc_uid = uids.alloc::<Npc>();
-            let mut npc = generator.generate_with_rank(npc_uid, faction.clone(), *rank, pool, rng);
+            let mut bundle =
+                generator.generate_with_rank(npc_uid, faction.clone(), *rank, pool, rng);
             // Roll a loadout for this member from the per-rank pool.
-            npc.loadout = generate_loadout(arch, npc.rank(), loadout_ctx.items, rng);
+            bundle.loadout = generate_loadout(arch, bundle.xp.npc_rank(), loadout_ctx.items, rng);
 
             member_uids.push(npc_uid);
             if slot_idx == 0 || *rank > highest_rank {
                 leader_uid = Some(npc_uid);
                 highest_rank = *rank;
             }
-            spawn.npcs.push(npc);
+            spawn.npcs.push(bundle);
         }
 
         let Some(leader) = leader_uid else { continue };

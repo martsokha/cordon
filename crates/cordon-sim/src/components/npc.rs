@@ -2,11 +2,11 @@
 //!
 //! Most per-NPC data types now derive `Component` directly in
 //! cordon-core (`NpcName`, `Loadout`, `Experience`, `Credits`,
-//! `Personality`), so they're attached to entities without a
-//! wrapper. This module only holds the cordon-sim-specific
-//! components that don't have a cordon-core analog: the NPC
-//! marker, baseline pool caps, the trust/loyalty scalars, the
-//! perks lists, employment status, and the `NpcBundle` glue.
+//! `Personality`, `Trust`, `Loyalty`), so they're attached to
+//! entities without a wrapper. This module only holds the
+//! cordon-sim-specific components that don't have a cordon-core
+//! analog: the NPC marker, baseline pool caps, the perks lists,
+//! employment status, and the `NpcBundle` glue.
 
 use bevy::prelude::*;
 use cordon_core::entity::faction::Faction;
@@ -14,7 +14,9 @@ use cordon_core::entity::name::NpcName;
 use cordon_core::entity::npc::{Npc, Personality, Role};
 use cordon_core::entity::perk::Perk;
 use cordon_core::item::Loadout;
-use cordon_core::primitive::{Credits, Experience, Health, Hunger, Id, Pool, Stamina, Uid};
+use cordon_core::primitive::{
+    Credits, Experience, Health, Hunger, Id, Loyalty, Pool, Stamina, Trust, Uid,
+};
 
 /// Health pool component (current + max HP).
 pub type Hp = Pool<Health>;
@@ -62,15 +64,18 @@ pub struct NpcMarker;
 #[derive(Component, Debug, Clone)]
 pub struct FactionId(pub Id<Faction>);
 
-/// How much this NPC trusts the player (-1.0 to 1.0). Component
-/// because the underlying data is a raw `f32` and raw floats
-/// can't be queried directly.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct Trust(pub f32);
-
-/// Squad-level loyalty (-1.0 to 1.0). Same reasoning as `Trust`.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct Loyalty(pub f32);
+/// Hidden NPC attributes affecting negotiation and squad
+/// behaviour. Bundled into one component because a query for
+/// "how does this NPC feel" always wants all of these at once —
+/// splitting them into three separate components would force
+/// three query touches for every decision that depends on NPC
+/// mood.
+#[derive(Component, Debug, Clone, Copy, Default)]
+pub struct NpcAttributes {
+    pub trust: Trust,
+    pub loyalty: Loyalty,
+    pub personality: Personality,
+}
 
 /// Perk lists. Cordon-core's `Npc` stores `perks` and
 /// `revealed_perks` as two separate `Vec`s; we bundle them into
@@ -92,7 +97,8 @@ pub struct Employment {
 }
 
 /// Bundle of every per-NPC component the spawn system attaches
-/// to a fresh entity.
+/// to a fresh entity. Built directly by the generator — there's
+/// no intermediate `Npc` data struct any more.
 #[derive(Bundle)]
 pub struct NpcBundle {
     pub marker: NpcMarker,
@@ -106,44 +112,7 @@ pub struct NpcBundle {
     pub base_maxes: BaseMaxes,
     pub loadout: Loadout,
     pub wealth: Credits,
-    pub trust: Trust,
-    pub loyalty: Loyalty,
-    pub personality: Personality,
+    pub attributes: NpcAttributes,
     pub perks: Perks,
     pub employment: Employment,
-}
-
-impl NpcBundle {
-    /// Construct an [`NpcBundle`] from a freshly-rolled [`Npc`].
-    pub fn from_npc(npc: Npc) -> Self {
-        let hp_max = npc.health.max();
-        Self {
-            marker: NpcMarker,
-            id: npc.id,
-            name: npc.name,
-            faction: FactionId(npc.faction),
-            xp: npc.xp,
-            hp: npc.health,
-            stamina: StaminaPool::full(),
-            hunger: HungerPool::full(),
-            base_maxes: BaseMaxes {
-                hp: hp_max,
-                stamina: 100,
-                hunger: 100,
-            },
-            loadout: npc.loadout,
-            wealth: npc.wealth,
-            trust: Trust(npc.trust),
-            loyalty: Loyalty(npc.loyalty),
-            personality: npc.personality,
-            perks: Perks {
-                all: npc.perks,
-                revealed: npc.revealed_perks,
-            },
-            employment: Employment {
-                role: npc.role,
-                daily_pay: npc.daily_pay,
-            },
-        }
-    }
 }

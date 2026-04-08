@@ -81,6 +81,7 @@ impl Plugin for CordonSimPlugin {
                 .run_if(resource_exists::<GameDataResource>),
         );
 
+        app.add_message::<spawn::SquadSpawned>();
         app.add_systems(Update, spawn::spawn_population.in_set(SimSet::Spawn));
         // Game clock ticks every frame once the world is
         // initialised. Gated on `GameClock` existing so it waits
@@ -103,30 +104,32 @@ impl Plugin for CordonSimPlugin {
 
 /// Re-exports for convenience.
 pub mod prelude {
+    // Cordon-core types that derive `Component` directly and are
+    // attached to entities as live components, plus the flavour
+    // types (`Trust`, `Loyalty`, `Personality`) that are bundled
+    // inside `NpcAttributes`. Re-exported from the prelude so
+    // consumers can pull "anything on an NPC entity" from one
+    // place.
+    pub use cordon_core::entity::name::NpcName;
+    pub use cordon_core::entity::npc::Personality;
+    pub use cordon_core::entity::squad::{Formation, Goal};
+    pub use cordon_core::item::{ItemInstance, Loadout};
+    pub use cordon_core::primitive::{Credits, Experience, Loyalty, Trust};
+
     pub use super::{CordonSimPlugin, SimSet};
     pub use crate::behavior::{
         AnomalyZone, CombatTarget, Dead, FireState, LootState, MovementSpeed, MovementTarget,
         Vision,
     };
-    // Cordon-core types that derive `Component` directly and are
-    // attached to entities as live components. Re-exported from
-    // the prelude so consumers can pull "anything on an NPC
-    // entity" from one place.
-    pub use cordon_core::entity::name::NpcName;
-    pub use cordon_core::entity::npc::Personality;
-    pub use cordon_core::entity::squad::{Formation, Goal};
-    pub use cordon_core::item::{ItemInstance, Loadout};
-    pub use cordon_core::primitive::{Credits, Experience};
     // Events are re-exported from their producer modules so
     // external consumers (cordon-bevy visuals, audio) can import
     // everything from the prelude without knowing the internal
     // module layout.
     pub use crate::combat::ShotFired;
     pub use crate::components::{
-        BaseMaxes, Employment, FactionId, Hp, HungerPool, Loyalty, NpcBundle, NpcMarker, Perks,
-        RelicHome, RelicMarker, SquadActivity, SquadBundle, SquadFacing, SquadFaction,
-        SquadHomePosition, SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
-        StaminaPool, Trust,
+        BaseMaxes, Employment, FactionId, Hp, HungerPool, NpcAttributes, NpcBundle, NpcMarker,
+        Perks, RelicHome, RelicMarker, SquadActivity, SquadBundle, SquadFacing, SquadHomePosition,
+        SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints, StaminaPool,
     };
     pub use crate::day::DayRolled;
     pub use crate::death::{CorpseRemoved, NpcDied};

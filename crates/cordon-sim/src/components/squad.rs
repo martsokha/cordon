@@ -8,18 +8,14 @@
 //! glue.
 
 use bevy::prelude::*;
-use cordon_core::entity::faction::Faction;
 use cordon_core::entity::squad::{Formation, Goal, Squad};
-use cordon_core::primitive::{Id, Uid};
+use cordon_core::primitive::Uid;
+
+use super::npc::FactionId;
 
 /// Marker that this entity is a squad.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct SquadMarker;
-
-/// Faction membership. Same "distinct from `Id<Faction>` in
-/// data-struct fields" reasoning as `FactionId` on NPCs.
-#[derive(Component, Debug, Clone)]
-pub struct SquadFaction(pub Id<Faction>);
 
 /// Last known facing direction for formation rotation. Default
 /// is +Y.
@@ -74,7 +70,7 @@ impl Default for SquadActivity {
 pub struct SquadBundle {
     pub marker: SquadMarker,
     pub id: Uid<Squad>,
-    pub faction: SquadFaction,
+    pub faction: FactionId,
     pub goal: Goal,
     pub formation: Formation,
     pub facing: SquadFacing,
@@ -90,7 +86,7 @@ impl SquadBundle {
         Self {
             marker: SquadMarker,
             id: squad.id,
-            faction: SquadFaction(squad.faction),
+            faction: FactionId(squad.faction),
             goal: squad.goal,
             formation: squad.formation,
             facing: SquadFacing(Vec2::new(squad.facing[0], squad.facing[1])),

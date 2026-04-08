@@ -15,7 +15,7 @@ use super::scan::{NpcSnap, SpatialGrid};
 use crate::behavior::{AnomalyZone, CombatTarget, Dead, Vision};
 use crate::combat::{is_hostile, line_blocked};
 use crate::components::{
-    NpcMarker, SquadActivity, SquadFacing, SquadFaction, SquadLeader, SquadMarker, SquadMembership,
+    FactionId, NpcMarker, SquadActivity, SquadFacing, SquadLeader, SquadMarker, SquadMembership,
 };
 use crate::tuning::{ENGAGEMENT_CELL_SIZE, SCAN_INTERVAL_SECS};
 
@@ -29,7 +29,7 @@ pub(super) fn update_squad_engagement(
         (Entity, &SquadMembership, &Vision, &Transform),
         (With<NpcMarker>, Without<Dead>),
     >,
-    squads_q: Query<(Entity, &SquadFaction, &SquadLeader), With<SquadMarker>>,
+    squads_q: Query<(Entity, &FactionId, &SquadLeader), With<SquadMarker>>,
     mut squad_state_q: Query<(Entity, &mut SquadActivity, &mut SquadFacing, &SquadLeader)>,
     mut combat_targets_q: Query<&mut CombatTarget, Without<Dead>>,
 ) {

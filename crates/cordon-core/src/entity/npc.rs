@@ -1,41 +1,51 @@
-//! NPC spawn template + supporting types.
+//! NPC type markers + the hidden-personality enum.
 //!
-//! [`Npc`] is the **spawn-time / save-game** representation of an NPC.
-//! At runtime, NPCs are Bevy entities composed of components defined
-//! in `cordon-sim::components`. The `Npc` struct only exists to be
-//! consumed by `cordon-sim::components::NpcBundle::from_npc` when
-//! spawning a fresh entity (and as the persistent shape for save/load
-//! once that exists).
+//! There's no `Npc` data struct anymore — NPCs are Bevy entities
+//! assembled from cordon-core component types (`NpcName`,
+//! `Loadout`, `Experience`, `Credits`, `Trust`, `Loyalty`,
+//! `Personality`) plus cordon-sim glue (`NpcMarker`,
+//! `FactionId`, `NpcAttributes`, `Perks`, `Employment`,
+//! `NpcBundle`). The generator in cordon-sim produces bundles
+//! directly.
 //!
-//! Methods on `Npc` are spawn-time helpers — they don't drive the
-//! running game. Runtime systems read components directly from the
-//! ECS, not from this struct.
+//! What remains here is:
+//!
+//! - `Npc` — a phantom marker type used as the type parameter
+//!   on [`Uid<Npc>`], so stable save-game IDs stay typed.
+//! - `Role` / `Personality` — enum flavour types stored as
+//!   fields inside components, not as components themselves.
+//! - `NpcTemplate` — marker for NPC template IDs used in quest
+//!   consequences.
 
-use bevy::prelude::Component;
 use serde::{Deserialize, Serialize};
 
-use super::faction::Faction;
-use super::name::NpcName;
-use super::perk::Perk;
-use crate::item::Loadout;
-use crate::primitive::{Credits, Experience, Health, Id, IdMarker, Pool, Rank, Uid};
+use crate::primitive::IdMarker;
+
+/// Phantom marker for NPC-stable save-game IDs. Used as the
+/// type parameter on `Uid<Npc>`. Has no fields — all the actual
+/// NPC data lives on the Bevy entity as components.
+pub struct Npc;
 
 /// Marker for NPC template IDs (used in quest consequences).
 pub struct NpcTemplate;
 impl IdMarker for NpcTemplate {}
 
 /// What role an employed NPC fills.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize)]
 pub enum Role {
     /// Goes into the Zone to scavenge, deliver, or gather intel.
     Runner,
-    /// Stays at the bunker to deter theft, enable intimidation, and fight raids.
+    /// Stays at the bunker to deter theft, enable intimidation,
+    /// and fight raids.
     Guard,
 }
 
-/// Core personality trait affecting negotiation behavior (hidden).
+/// Core personality trait affecting negotiation behavior
+/// (hidden from the player). Stored on entities as a field of
+/// `NpcAttributes`, not as its own component.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[derive(Component, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub enum Personality {
     /// Careful, slow to trust, thorough negotiator.
     Cautious,
@@ -51,76 +61,8 @@ pub enum Personality {
     Impulsive,
 }
 
-/// A non-player character in the game world.
-///
-/// NPCs have visible attributes (name, faction, rank, gear, condition)
-/// and hidden attributes (trust, wealth, need, personality, perks).
-/// Hidden attributes are never shown directly — the player infers them
-/// through behavior over multiple interactions.
-///
-/// There is no explicit "NPC type" field — what an NPC is doing is
-/// determined by the sim layer from their faction, rank, need, and
-/// other attributes. A Drifter with high trust might be offered a job;
-/// an Order Officer with a demand is a faction rep; a wounded NPC with
-/// no credits is a desperate visitor.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Npc {
-    /// Unique runtime ID for this NPC instance.
-    pub id: Uid<Npc>,
-    /// Name stored as localization keys, resolved at display time.
-    pub name: NpcName,
-    /// Faction ID this NPC belongs to.
-    pub faction: Id<Faction>,
-    /// Accumulated experience. [`Rank`] is derived from this.
-    pub xp: Experience,
-
-    /// Equipped weapons, armor, and carried items.
-    pub loadout: Loadout,
-    /// Health pool. Current / max HP; drops from combat, radiation,
-    /// and hazards.
-    pub health: Pool<Health>,
-
-    /// How much this NPC trusts the player (-1.0 to 1.0).
-    pub trust: f32,
-    /// How many credits the NPC can spend.
-    pub wealth: Credits,
-    /// Core personality trait affecting negotiation.
-    pub personality: Personality,
-    /// Perk IDs this NPC has (hidden until revealed).
-    pub perks: Vec<Id<Perk>>,
-    /// Perk IDs the player has discovered through gameplay.
-    pub revealed_perks: Vec<Id<Perk>>,
-
-    /// Current role if employed, or `None` if not hired.
-    pub role: Option<Role>,
-    /// Loyalty level (0.0–1.0). Drops with underpayment or suicide missions.
-    pub loyalty: f32,
-    /// How many credits this NPC expects per day.
-    pub daily_pay: Credits,
-}
-
-impl Npc {
-    /// Current rank, derived from XP.
-    pub fn rank(&self) -> Rank {
-        self.xp.npc_rank()
-    }
-
-    /// Whether this NPC is currently employed (has a role).
-    pub fn is_employed(&self) -> bool {
-        self.role.is_some()
-    }
-
-    /// Whether this NPC has a specific perk (by ID), even if unrevealed.
-    pub fn has_perk(&self, perk_id: &Id<Perk>) -> bool {
-        self.perks.iter().any(|p| p == perk_id)
-    }
-
-    /// Mark a perk as revealed to the player.
-    ///
-    /// Does nothing if the NPC doesn't have the perk or it's already revealed.
-    pub fn reveal_perk(&mut self, perk_id: &Id<Perk>) {
-        if self.has_perk(perk_id) && !self.revealed_perks.iter().any(|p| p == perk_id) {
-            self.revealed_perks.push(perk_id.clone());
-        }
+impl Default for Personality {
+    fn default() -> Self {
+        Personality::Cautious
     }
 }

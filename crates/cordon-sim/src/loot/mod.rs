@@ -90,7 +90,13 @@ fn drive_loot(
     mut commands: Commands,
     mut looted: MessageWriter<ItemLooted>,
     mut looters: Query<
-        (Entity, &Experience, &CombatTarget, &mut LootState, &mut Loadout),
+        (
+            Entity,
+            &Experience,
+            &CombatTarget,
+            &mut LootState,
+            &mut Loadout,
+        ),
         Without<Dead>,
     >,
     mut corpses: Query<&mut Loadout, With<Dead>>,
