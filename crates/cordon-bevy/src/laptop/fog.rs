@@ -19,6 +19,7 @@ use bevy::prelude::*;
 use cordon_sim::components::{NpcMarker, RelicMarker, SquadFaction, SquadMarker, SquadMembership};
 
 use super::environment::anomaly::AnomalyVisual;
+use super::environment::fog::{FogMaterial, FogOverlay, MAX_DISCOVERED_AREAS, MAX_REVEAL_CIRCLES};
 use super::ui::LaptopTab;
 use super::{AreaCircle, Bunker};
 use crate::PlayingState;
@@ -51,6 +52,51 @@ impl Default for FogEnabled {
     }
 }
 
+/// Cache of the per-frame reveal circles computed by [`apply_fog`].
+/// Stored in a resource so [`sync_fog_material`] can write them
+/// straight into the shader uniform without recomputing the union
+/// over every player-squad member each frame.
+#[derive(Resource, Default, Debug)]
+pub struct FogReveals(pub Vec<(Vec2, f32)>);
+
+/// Cache of the per-frame discovered area disks computed by
+/// [`apply_fog`]. Each entry is `(centre, radius)`. Same shape
+/// and lifecycle as [`FogReveals`].
+#[derive(Resource, Default, Debug)]
+pub struct DiscoveredDisks(pub Vec<(Vec2, f32)>);
+
+/// Persistent breadcrumb trail of where the player's squads have
+/// been. Sampled at low frequency by [`sample_memory_trail`] and
+/// drawn as small "memory" disks in the fog shader so the player
+/// can see the path their squads took even after they've moved on.
+///
+/// Capped to keep the discovered uniform array fitting comfortably
+/// alongside the area disks; oldest entries are evicted first
+/// once the cap is reached, so memory is "live last N samples"
+/// rather than infinite.
+#[derive(Resource, Default, Debug)]
+pub struct MemoryTrail {
+    /// `(centre, radius)` per breadcrumb. Stored in insertion
+    /// order; the front is the oldest entry.
+    pub points: std::collections::VecDeque<(Vec2, f32)>,
+    /// Time-since-startup of the last sample, used to throttle.
+    pub last_sample: f32,
+}
+
+/// Maximum number of breadcrumbs in the memory trail. Combined
+/// with `MAX_AREAS_IN_DISCOVERED` (40 areas worst case) this stays
+/// well under [`MAX_DISCOVERED_AREAS`].
+const MAX_TRAIL_POINTS: usize = 200;
+
+/// Radius of each breadcrumb in world units. A bit smaller than
+/// a typical NPC vision circle so the trail reads as a corridor
+/// rather than a series of fat dots.
+const TRAIL_POINT_RADIUS: f32 = 90.0;
+
+/// Wall-clock seconds between trail samples. Faster = more
+/// granular trail, more crowded uniform array.
+const TRAIL_SAMPLE_INTERVAL: f32 = 1.5;
+
 pub struct FogPlugin;
 
 impl Plugin for FogPlugin {
@@ -58,9 +104,17 @@ impl Plugin for FogPlugin {
         app.init_resource::<PlayerSquads>();
         app.init_resource::<RevealedAreas>();
         app.init_resource::<FogEnabled>();
+        app.init_resource::<FogReveals>();
+        app.init_resource::<DiscoveredDisks>();
+        app.init_resource::<MemoryTrail>();
         app.add_systems(
             Update,
-            (pick_player_squads, apply_fog)
+            (
+                pick_player_squads,
+                apply_fog,
+                sample_memory_trail,
+                sync_fog_material,
+            )
                 .chain()
                 .after(cordon_sim::plugin::SimSet::Spawn)
                 .run_if(in_state(crate::AppState::Playing)),
@@ -72,6 +126,13 @@ impl Plugin for FogPlugin {
 /// drifter faction so there's always something to pick from — the
 /// drifters are the neutral, always-present faction.
 const PLAYER_SQUAD_COUNT: usize = 3;
+
+/// World-space radius of the always-on "vision" around the bunker
+/// at the origin. The player can see anything inside this circle
+/// without scouting it — it's where they live, after all. Kept
+/// small so it reads as "the immediate surroundings" rather than
+/// a free chunk of map.
+const BUNKER_REVEAL_RADIUS: f32 = 90.0;
 
 /// Pick a few drifter squads to be the player's once the sim has
 /// finished spawning. Idempotent — bails if the set is already
@@ -126,10 +187,18 @@ fn pick_player_squads(
 fn apply_fog(
     player_squads: Res<PlayerSquads>,
     mut revealed_areas: ResMut<RevealedAreas>,
+    mut fog_reveals: ResMut<FogReveals>,
+    mut discovered_disks: ResMut<DiscoveredDisks>,
     fog_enabled: Res<FogEnabled>,
     state: Res<State<PlayingState>>,
     active_tab: Res<LaptopTab>,
-    members: Query<(&Transform, &SquadMembership, &cordon_sim::behavior::Vision), With<NpcMarker>>,
+    members: Query<
+        (&Transform, &SquadMembership, &cordon_sim::behavior::Vision),
+        // Dead NPCs (corpses) shouldn't see anything — their
+        // vision circle would otherwise reveal a chunk of fog
+        // around their corpse forever.
+        (With<NpcMarker>, Without<cordon_sim::behavior::Dead>),
+    >,
     mut area_q: Query<
         (Entity, &Transform, &AreaCircle, &mut Visibility),
         (Without<NpcMarker>, Without<RelicMarker>, Without<Bunker>),
@@ -169,12 +238,19 @@ fn apply_fog(
 
     // Gather reveal circles from player-squad members. When fog is
     // disabled the loops below short-circuit to "visible" regardless.
-    let mut reveals: Vec<(Vec2, f32)> = Vec::new();
+    // We reuse the cache buffer rather than reallocating each frame.
+    fog_reveals.0.clear();
+    // Always-on vision around the bunker — the player can see what's
+    // right around their home without scouting it.
+    fog_reveals.0.push((Vec2::ZERO, BUNKER_REVEAL_RADIUS));
     for (transform, membership, vision) in &members {
         if player_squads.0.contains(&membership.squad) {
-            reveals.push((transform.translation.truncate(), vision.radius));
+            fog_reveals
+                .0
+                .push((transform.translation.truncate(), vision.radius));
         }
     }
+    let reveals = &fog_reveals.0;
 
     let fog_on = fog_enabled.enabled;
     // Point/disk visibility tests used by NPCs and relics. When fog
@@ -216,13 +292,32 @@ fn apply_fog(
         }
     }
 
+    // Areas have two states for the *mesh*:
+    //
+    //   - Never seen: hidden under the fog overlay entirely.
+    //   - Ever seen: mesh + border stay visible *forever*. Whether
+    //     the player can actually see it through the fog is
+    //     decided by the fog shader sitting on top — areas that
+    //     are currently in sight get a clear cut-through; areas
+    //     that have been seen but aren't currently lit appear as
+    //     darkened-but-still-rendered shapes through the fog.
+    //
+    // We deliberately do NOT push area disks into the discovered
+    // set for the fog shader — the memory wash should follow the
+    // breadcrumb trail of where the squad has actually walked,
+    // not the entire abstract area outline.
+    discovered_disks.0.clear();
     let mut visible_area_disks: Vec<(Vec2, f32)> = Vec::new();
     for (entity, transform, circle, mut vis) in &mut area_q {
         let p = transform.translation.truncate();
-        if !revealed_areas.0.contains(&entity) && latches_area(p, circle.radius) {
+        let in_sight = latches_area(p, circle.radius);
+        if in_sight {
             revealed_areas.0.insert(entity);
         }
-        let show = !fog_on || revealed_areas.0.contains(&entity);
+        let is_discovered = revealed_areas.0.contains(&entity);
+        // Once seen, an area marker stays on the map permanently.
+        // The fog cheat (when off) reveals everything regardless.
+        let show = !fog_on || is_discovered;
         set_vis(
             &mut vis,
             if show {
@@ -231,7 +326,12 @@ fn apply_fog(
                 Visibility::Hidden
             },
         );
-        if show {
+        // `visible_area_disks` is what the anomaly visibility pass
+        // below uses to decide whether to render an anomaly's
+        // shader effects. Anomalies should only run their flashy
+        // shader when actively in sight — otherwise the player
+        // could remember an anomaly forever via its visual.
+        if in_sight {
             visible_area_disks.push((p, circle.radius));
         }
     }
@@ -282,4 +382,155 @@ fn apply_fog(
             },
         );
     }
+}
+
+/// Drop a breadcrumb at each player squad's centroid every
+/// [`TRAIL_SAMPLE_INTERVAL`] seconds, evicting the oldest
+/// breadcrumb when the buffer is full. The trail is then merged
+/// into the discovered uniform array by [`sync_fog_material`].
+///
+/// We pick the centroid (not the leader, not a member) so the
+/// breadcrumb sits in the middle of the squad's formation
+/// regardless of where individual members are walking.
+fn sample_memory_trail(
+    time: Res<Time>,
+    player_squads: Res<PlayerSquads>,
+    members: Query<
+        (&Transform, &SquadMembership),
+        (With<NpcMarker>, Without<cordon_sim::behavior::Dead>),
+    >,
+    mut trail: ResMut<MemoryTrail>,
+) {
+    let now = time.elapsed_secs();
+    if now - trail.last_sample < TRAIL_SAMPLE_INTERVAL {
+        return;
+    }
+    trail.last_sample = now;
+
+    // Centroid per player squad: sum of member positions / count.
+    // A `HashMap` keyed on the squad entity handles this in one
+    // pass over the member list.
+    let mut sums: std::collections::HashMap<Entity, (Vec2, u32)> = std::collections::HashMap::new();
+    for (transform, membership) in &members {
+        if !player_squads.0.contains(&membership.squad) {
+            continue;
+        }
+        let pos = transform.translation.truncate();
+        let entry = sums.entry(membership.squad).or_insert((Vec2::ZERO, 0));
+        entry.0 += pos;
+        entry.1 += 1;
+    }
+
+    for (_squad, (sum, count)) in sums {
+        if count == 0 {
+            continue;
+        }
+        let centroid = sum / count as f32;
+        // Don't append duplicate breadcrumbs when the squad is
+        // standing still — if the most-recent breadcrumb is closer
+        // than the breadcrumb radius, the new one would just sit
+        // on top of it. Skipping saves slots in the capped buffer.
+        if let Some(&(prev, _)) = trail.points.back()
+            && prev.distance_squared(centroid) < (TRAIL_POINT_RADIUS * 0.5).powi(2)
+        {
+            continue;
+        }
+        if trail.points.len() >= MAX_TRAIL_POINTS {
+            trail.points.pop_front();
+        }
+        trail.points.push_back((centroid, TRAIL_POINT_RADIUS));
+    }
+}
+
+/// Push the cached reveal/discovered arrays into the fog overlay
+/// material so the WGSL shader can render the right cut-throughs
+/// each frame. Runs after [`apply_fog`] in the same chain so it
+/// always sees the freshest data.
+///
+/// When fog is disabled (cheat mode), we publish a synthetic
+/// reveal so the shader's "currently visible" mask covers the
+/// whole map and effectively disables the overlay.
+fn sync_fog_material(
+    fog_reveals: Res<FogReveals>,
+    discovered_disks: Res<DiscoveredDisks>,
+    memory_trail: Res<MemoryTrail>,
+    fog_enabled: Res<FogEnabled>,
+    state: Res<State<PlayingState>>,
+    active_tab: Res<LaptopTab>,
+    mut overlay_q: Query<(&MeshMaterial2d<FogMaterial>, &mut Visibility), With<FogOverlay>>,
+    mut fog_mats: ResMut<Assets<FogMaterial>>,
+) {
+    let map_visible = *state.get() == PlayingState::Laptop && *active_tab == LaptopTab::Map;
+    let Ok((handle, mut overlay_vis)) = overlay_q.single_mut() else {
+        return;
+    };
+    // Hide the overlay entirely while the player isn't looking at
+    // the map. Change-guarded so the visibility write doesn't
+    // dirty the render pipeline every frame.
+    let target_vis = if map_visible {
+        Visibility::Visible
+    } else {
+        Visibility::Hidden
+    };
+    if *overlay_vis != target_vis {
+        *overlay_vis = target_vis;
+    }
+    if !map_visible {
+        return;
+    }
+    let Some(mat) = fog_mats.get_mut(&handle.0) else {
+        return;
+    };
+
+    if !fog_enabled.enabled {
+        // Cheat mode: one giant reveal disk that covers the whole
+        // map. Cheaper than threading a separate "fog disabled"
+        // branch through the shader.
+        mat.counts = Vec4::new(1.0, 0.0, 0.0, 0.0);
+        mat.reveals[0] = Vec4::new(0.0, 0.0, 1_000_000.0, 0.0);
+        return;
+    }
+
+    // Pack reveal circles into the fixed-size uniform array. Any
+    // slots beyond the active count are ignored by the shader (it
+    // breaks the loop at `i >= counts.x`), but we still zero them
+    // so stale data from a previous frame can't leak through if
+    // the count somehow advances unchanged.
+    let n_reveals = fog_reveals.0.len().min(MAX_REVEAL_CIRCLES);
+    for (i, slot) in mat.reveals.iter_mut().enumerate() {
+        *slot = if i < n_reveals {
+            let (c, r) = fog_reveals.0[i];
+            Vec4::new(c.x, c.y, r, 0.0)
+        } else {
+            Vec4::ZERO
+        };
+    }
+
+    // Pack discovered area disks first, then breadcrumb trail
+    // points, into the same uniform array. The shader doesn't
+    // care which is which — both contribute to the memory wash.
+    let n_areas = discovered_disks.0.len().min(MAX_DISCOVERED_AREAS);
+    let trail_room = MAX_DISCOVERED_AREAS - n_areas;
+    let n_trail = memory_trail.points.len().min(trail_room);
+    let n_disc = n_areas + n_trail;
+
+    for i in 0..MAX_DISCOVERED_AREAS {
+        let value = if i < n_areas {
+            let (c, r) = discovered_disks.0[i];
+            Vec4::new(c.x, c.y, r, 0.0)
+        } else if i < n_disc {
+            let trail_idx = i - n_areas;
+            // Walk from the *back* of the deque so the most-recent
+            // breadcrumbs always make the cut when the trail is
+            // longer than the remaining slots.
+            let from_back = memory_trail.points.len() - 1 - trail_idx;
+            let (c, r) = memory_trail.points[from_back];
+            Vec4::new(c.x, c.y, r, 0.0)
+        } else {
+            Vec4::ZERO
+        };
+        mat.discovered[i] = value;
+    }
+
+    mat.counts = Vec4::new(n_reveals as f32, n_disc as f32, 0.0, 0.0);
 }

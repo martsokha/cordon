@@ -1,9 +1,10 @@
-//! Procedural terrain, cloud, anomaly, and CRT rendering.
+//! Procedural terrain, cloud, anomaly, fog-of-war, and CRT rendering.
 
 pub(crate) mod anomaly;
 mod clouds;
 mod crt;
 mod daynight;
+pub(crate) mod fog;
 mod terrain;
 
 use bevy::prelude::*;
@@ -21,6 +22,7 @@ impl Plugin for EnvironmentPlugin {
             terrain::TerrainPlugin,
             clouds::CloudPlugin,
             anomaly::AnomalyPlugin,
+            fog::FogShaderPlugin,
             crt::CrtPlugin,
         ));
         app.add_systems(
@@ -42,6 +44,7 @@ fn spawn_environment(
     mut terrain_mats: ResMut<Assets<terrain::TerrainMaterial>>,
     mut cloud_mats: ResMut<Assets<clouds::CloudMaterial>>,
     mut anomaly_mats: ResMut<Assets<anomaly::AnomalyMaterial>>,
+    mut fog_mats: ResMut<Assets<fog::FogMaterial>>,
     mut crt_mats: ResMut<Assets<crt::CrtMaterial>>,
 ) {
     commands.spawn((
@@ -52,6 +55,7 @@ fn spawn_environment(
 
     terrain::spawn(&mut commands, &mut meshes, &mut terrain_mats);
     anomaly::spawn(&mut commands, &game_data, &mut meshes, &mut anomaly_mats);
+    fog::spawn(&mut commands, &mut meshes, &mut fog_mats);
     clouds::spawn(&mut commands, &mut meshes, &mut cloud_mats);
     crt::spawn(&mut commands, &mut meshes, &mut crt_mats);
 
