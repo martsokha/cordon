@@ -1,89 +1,60 @@
 [
   {
-    "id": "glock_17",
+    "id": "pm",
     "data": {
       "type": "weapon",
-      "caliber": "9x19mm",
-      "fire_modes": ["Semi"],
-      "fire_rate": 2.8,
-      "accuracy": 0.6,
-      "recoil": 0.22,
-      "magazine": 17,
-      "reload_secs": 1.7,
-      "range": 200.0,
+      "caliber": "9x18mm",
+      "fire_modes": [
+        "Semi"
+      ],
+      "fire_rate": 2.5,
+      "accuracy": 0.55,
+      "magazine": 8,
+      "reload_secs": 1.8,
+      "range": 180.0,
       "suppressed": false,
       "added_damage": 0
     },
-    "base_price": 1200,
+    "base_price": 800,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.9 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "m9_beretta",
+    "id": "stechkin_aps",
     "data": {
       "type": "weapon",
-      "caliber": "9x19mm",
-      "fire_modes": ["Semi"],
-      "fire_rate": 2.6,
-      "accuracy": 0.62,
-      "recoil": 0.25,
-      "magazine": 15,
-      "reload_secs": 1.9,
-      "range": 210.0,
-      "suppressed": false,
-      "added_damage": 1
-    },
-    "base_price": 1600,
-    "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.95 },
-      { "faction": "syndicate", "price_multiplier": 1.05 }
-    ],
-    "rarity": "common"
-  },
-  {
-    "id": "colt_1911",
-    "data": {
-      "type": "weapon",
-      "caliber": "45acp",
-      "fire_modes": ["Semi"],
-      "fire_rate": 2.0,
-      "accuracy": 0.62,
-      "recoil": 0.35,
-      "magazine": 7,
-      "reload_secs": 2.1,
-      "range": 200.0,
-      "suppressed": false,
-      "added_damage": 3
-    },
-    "base_price": 2200,
-    "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.9 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
-    ],
-    "rarity": "common"
-  },
-  {
-    "id": "sig_p220",
-    "data": {
-      "type": "weapon",
-      "caliber": "45acp",
-      "fire_modes": ["Semi"],
-      "fire_rate": 2.2,
-      "accuracy": 0.68,
-      "recoil": 0.32,
-      "magazine": 8,
-      "reload_secs": 2.0,
+      "caliber": "9x18mm",
+      "fire_modes": [
+        "Semi",
+        "Auto"
+      ],
+      "fire_rate": 12.0,
+      "accuracy": 0.45,
+      "magazine": 20,
+      "reload_secs": 2.2,
       "range": 220.0,
       "suppressed": false,
-      "added_damage": 4
+      "added_damage": 2
     },
-    "base_price": 3200,
+    "base_price": 1800,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.95 },
-      { "faction": "institute", "price_multiplier": 1.05 }
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "uncommon"
   }

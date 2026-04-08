@@ -1,0 +1,33 @@
+[
+  {
+    "id": "5.45x39mm",
+    "data": {
+      "type": "ammo",
+      "caliber": "5.45x39mm",
+      "damage": 35,
+      "penetration": 12,
+      "quantity": 30
+    },
+    "base_price": 150,
+    "suppliers": [
+      { "faction": "garrison", "price_multiplier": 0.9 },
+      { "faction": "syndicate", "price_multiplier": 1.1 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "5.45x39mm_ap",
+    "data": {
+      "type": "ammo",
+      "caliber": "5.45x39mm",
+      "damage": 30,
+      "penetration": 22,
+      "quantity": 30
+    },
+    "base_price": 250,
+    "suppliers": [
+      { "faction": "garrison", "price_multiplier": 1.0 }
+    ],
+    "rarity": "uncommon"
+  }
+]

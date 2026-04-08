@@ -5,11 +5,11 @@
     "ranks": {
       "novice": {
         "primary": [
-          { "id": "glock_17" },
-          { "id": "winchester_1300" },
-          { "id": "mp5" }
+          { "id": "pm" },
+          { "id": "toz34" },
+          { "id": "kedr" }
         ],
-        "secondary": [{ "id": "glock_17" }, { "id": "sig_p220" }],
+        "secondary": [{ "id": "pm" }, { "id": "stechkin_aps" }],
         "armor": [
           { "id": "leather_jacket" },
           { "id": "reinforced_coat" },
@@ -23,11 +23,11 @@
       },
       "experienced": {
         "primary": [
-          { "id": "mp5", "weight": 2 },
-          { "id": "benelli_m4" },
-          { "id": "m4_carbine" }
+          { "id": "kedr", "weight": 2 },
+          { "id": "saiga12" },
+          { "id": "ak74" }
         ],
-        "secondary": [{ "id": "sig_p220" }],
+        "secondary": [{ "id": "stechkin_aps" }],
         "armor": [
           { "id": "reinforced_coat", "weight": 2 },
           { "id": "tactical_vest" }
@@ -40,12 +40,12 @@
       },
       "veteran": {
         "primary": [
-          { "id": "mp5" },
-          { "id": "benelli_m4" },
-          { "id": "m4_carbine", "weight": 2 },
-          { "id": "hk416" }
+          { "id": "kedr" },
+          { "id": "saiga12" },
+          { "id": "ak74", "weight": 2 },
+          { "id": "aek971" }
         ],
-        "secondary": [{ "id": "sig_p220" }],
+        "secondary": [{ "id": "stechkin_aps" }],
         "armor": [
           { "id": "tactical_vest" },
           { "id": "combat_armor" }
@@ -58,10 +58,10 @@
       },
       "master": {
         "primary": [
-          { "id": "hk416", "weight": 2 },
-          { "id": "m4_carbine" }
+          { "id": "aek971", "weight": 2 },
+          { "id": "ak74" }
         ],
-        "secondary": [{ "id": "sig_p220" }],
+        "secondary": [{ "id": "stechkin_aps" }],
         "armor": [{ "id": "combat_armor" }],
         "helmet": [{ "id": "tactical_helmet" }],
         "ammo_boxes": 4,
@@ -71,10 +71,10 @@
       },
       "legend": {
         "primary": [
-          { "id": "hk416" },
-          { "id": "m24_swr" }
+          { "id": "aek971" },
+          { "id": "svd" }
         ],
-        "secondary": [{ "id": "sig_p220" }],
+        "secondary": [{ "id": "stechkin_aps" }],
         "armor": [
           { "id": "combat_armor" },
           { "id": "heavy_rig" }

@@ -1,129 +1,149 @@
 [
   {
-    "id": "m4_carbine",
+    "id": "sks",
     "data": {
       "type": "weapon",
-      "caliber": "5.56x45mm",
+      "caliber": "7.62x39mm",
       "fire_modes": [
-        "Semi",
-        { "Burst": 3 },
-        "Auto"
+        "Semi"
       ],
-      "fire_rate": 12.0,
-      "accuracy": 0.75,
-      "recoil": 0.3,
-      "magazine": 30,
-      "reload_secs": 2.7,
-      "range": 120.0,
+      "fire_rate": 3.0,
+      "accuracy": 0.7,
+      "magazine": 10,
+      "reload_secs": 3.0,
+      "range": 150.0,
       "suppressed": false,
-      "added_damage": 3
+      "added_damage": 2
     },
-    "base_price": 8500,
+    "base_price": 4000,
     "suppliers": [
-      { "faction": "syndicate", "price_multiplier": 0.9 },
-      { "faction": "institute", "price_multiplier": 1.05 }
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.0
+      }
     ],
-    "rarity": "uncommon"
+    "rarity": "common"
   },
   {
-    "id": "g36",
+    "id": "aks74u",
     "data": {
       "type": "weapon",
-      "caliber": "5.56x45mm",
-      "fire_modes": [
-        "Semi",
-        { "Burst": 3 },
-        "Auto"
-      ],
-      "fire_rate": 12.5,
-      "accuracy": 0.78,
-      "recoil": 0.28,
-      "magazine": 30,
-      "reload_secs": 2.7,
-      "range": 130.0,
-      "suppressed": false,
-      "added_damage": 4
-    },
-    "base_price": 10000,
-    "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.95 },
-      { "faction": "institute", "price_multiplier": 1.05 }
-    ],
-    "rarity": "uncommon"
-  },
-  {
-    "id": "hk416",
-    "data": {
-      "type": "weapon",
-      "caliber": "5.56x45mm",
-      "fire_modes": [
-        "Semi",
-        { "Burst": 3 },
-        "Auto"
-      ],
-      "fire_rate": 13.0,
-      "accuracy": 0.8,
-      "recoil": 0.25,
-      "magazine": 30,
-      "reload_secs": 2.6,
-      "range": 140.0,
-      "suppressed": false,
-      "added_damage": 5
-    },
-    "base_price": 14000,
-    "suppliers": [
-      { "faction": "syndicate", "price_multiplier": 0.95 },
-      { "faction": "institute", "price_multiplier": 1.1 }
-    ],
-    "rarity": "rare"
-  },
-  {
-    "id": "fn_fal",
-    "data": {
-      "type": "weapon",
-      "caliber": "7.62x51mm",
+      "caliber": "5.45x39mm",
       "fire_modes": [
         "Semi",
         "Auto"
       ],
       "fire_rate": 10.0,
-      "accuracy": 0.78,
-      "recoil": 0.5,
-      "magazine": 20,
-      "reload_secs": 3.2,
-      "range": 180.0,
+      "accuracy": 0.6,
+      "magazine": 30,
+      "reload_secs": 2.8,
+      "range": 100.0,
       "suppressed": false,
-      "added_damage": 6
+      "added_damage": 0
     },
-    "base_price": 13000,
+    "base_price": 4500,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.95 },
-      { "faction": "syndicate", "price_multiplier": 1.05 }
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.05
+      }
     ],
-    "rarity": "uncommon"
+    "rarity": "common"
   },
   {
-    "id": "scar_h",
+    "id": "akm",
     "data": {
       "type": "weapon",
-      "caliber": "7.62x51mm",
+      "caliber": "7.62x39mm",
       "fire_modes": [
         "Semi",
-        { "Burst": 3 },
+        "Auto"
+      ],
+      "fire_rate": 10.0,
+      "accuracy": 0.68,
+      "magazine": 30,
+      "reload_secs": 3.0,
+      "range": 140.0,
+      "suppressed": false,
+      "added_damage": 4
+    },
+    "base_price": 5500,
+    "suppliers": [
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "garrison",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "ak74",
+    "data": {
+      "type": "weapon",
+      "caliber": "5.45x39mm",
+      "fire_modes": [
+        "Semi",
         "Auto"
       ],
       "fire_rate": 11.0,
-      "accuracy": 0.82,
-      "recoil": 0.42,
-      "magazine": 20,
+      "accuracy": 0.7,
+      "magazine": 30,
       "reload_secs": 3.0,
-      "range": 200.0,
+      "range": 130.0,
       "suppressed": false,
-      "added_damage": 8
+      "added_damage": 4
     },
-    "base_price": 18000,
+    "base_price": 6500,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.95 }
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.9
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "aek971",
+    "data": {
+      "type": "weapon",
+      "caliber": "5.45x39mm",
+      "fire_modes": [
+        "Semi",
+        {
+          "Burst": 3
+        },
+        "Auto"
+      ],
+      "fire_rate": 13.0,
+      "accuracy": 0.78,
+      "magazine": 30,
+      "reload_secs": 2.8,
+      "range": 150.0,
+      "suppressed": false,
+      "added_damage": 5
+    },
+    "base_price": 12000,
+    "suppliers": [
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.95
+      }
     ],
     "rarity": "rare"
   }

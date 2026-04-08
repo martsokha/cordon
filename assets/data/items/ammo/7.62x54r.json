@@ -1,9 +1,9 @@
 [
   {
-    "id": "7.62x51mm",
+    "id": "7.62x54r",
     "data": {
       "type": "ammo",
-      "caliber": "7.62x51mm",
+      "caliber": "7.62x54r",
       "damage": 60,
       "penetration": 20,
       "quantity": 20
@@ -15,10 +15,10 @@
     "rarity": "uncommon"
   },
   {
-    "id": "7.62x51mm_ap",
+    "id": "7.62x54r_ap",
     "data": {
       "type": "ammo",
-      "caliber": "7.62x51mm",
+      "caliber": "7.62x54r",
       "damage": 55,
       "penetration": 32,
       "quantity": 20

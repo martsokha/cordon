@@ -4,8 +4,8 @@
     "faction": "garrison",
     "ranks": {
       "novice": {
-        "primary": [{ "id": "m4_carbine", "weight": 2 }, { "id": "mp5" }],
-        "secondary": [{ "id": "m9_beretta" }],
+        "primary": [{ "id": "ak74", "weight": 2 }, { "id": "kedr" }],
+        "secondary": [{ "id": "pm" }],
         "armor": [{ "id": "tactical_vest" }],
         "helmet": [{ "id": "steel_helmet" }],
         "ammo_boxes": 2,
@@ -14,8 +14,8 @@
         "consumable_count": 2
       },
       "experienced": {
-        "primary": [{ "id": "m4_carbine", "weight": 2 }, { "id": "hk416" }],
-        "secondary": [{ "id": "m9_beretta" }],
+        "primary": [{ "id": "ak74", "weight": 2 }, { "id": "aek971" }],
+        "secondary": [{ "id": "pm" }],
         "armor": [{ "id": "tactical_vest" }, { "id": "combat_armor" }],
         "helmet": [{ "id": "steel_helmet" }, { "id": "combat_helmet" }],
         "ammo_boxes": 3,
@@ -24,8 +24,8 @@
         "consumable_count": 3
       },
       "veteran": {
-        "primary": [{ "id": "hk416", "weight": 2 }, { "id": "scar_h" }],
-        "secondary": [{ "id": "sig_p220" }],
+        "primary": [{ "id": "aek971", "weight": 2 }, { "id": "akm" }],
+        "secondary": [{ "id": "stechkin_aps" }],
         "armor": [{ "id": "combat_armor" }],
         "helmet": [{ "id": "tactical_helmet" }],
         "ammo_boxes": 3,
@@ -34,8 +34,8 @@
         "consumable_count": 3
       },
       "master": {
-        "primary": [{ "id": "scar_h" }, { "id": "hk416" }, { "id": "m24_swr" }],
-        "secondary": [{ "id": "sig_p220" }],
+        "primary": [{ "id": "akm" }, { "id": "aek971" }, { "id": "svd" }],
+        "secondary": [{ "id": "stechkin_aps" }],
         "armor": [{ "id": "combat_armor", "weight": 2 }, { "id": "heavy_rig" }],
         "helmet": [{ "id": "tactical_helmet" }],
         "ammo_boxes": 4,
@@ -44,8 +44,8 @@
         "consumable_count": 4
       },
       "legend": {
-        "primary": [{ "id": "m24_swr", "weight": 2 }, { "id": "scar_h" }],
-        "secondary": [{ "id": "sig_p220" }],
+        "primary": [{ "id": "svd", "weight": 2 }, { "id": "akm" }],
+        "secondary": [{ "id": "stechkin_aps" }],
         "armor": [{ "id": "heavy_rig" }, { "id": "military_exoskeleton" }],
         "helmet": [{ "id": "military_exohelmet" }],
         "ammo_boxes": 4,
