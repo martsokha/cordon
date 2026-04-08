@@ -39,14 +39,29 @@ struct DayNight {
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let snapped = in.world_position.xy;
+
+    // Cheap distance test before doing any noise work. The mesh
+    // covers a much larger area than the visible frustum; pixels
+    // outside the fade-to-black zone get nothing but black, so we
+    // skip the entire noise stack (60+ hash calls per pixel) for
+    // them. This is by far the biggest win in this shader.
+    let edge = max(abs(snapped.x), abs(snapped.y));
+    if edge > 2500.0 {
+        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
+    }
+
     let uv = snapped * 0.002;
 
-    // Elevation: large-scale height map
-    let elevation = fbm(uv * 0.8, 6);
-    // Moisture: determines biome type
-    let moisture = fbm(uv * 0.6 + 50.0, 5);
-    // Detail noise for texture
-    let detail = fbm(uv * 4.0 + 13.0, 4);
+    // Elevation: large-scale height map. Dropped from 6 → 4 octaves
+    // — the highest two octaves added near-imperceptible detail
+    // because elevation is then smoothstep'd into discrete biome
+    // bands further down anyway.
+    let elevation = fbm(uv * 0.8, 4);
+    // Moisture: determines biome type. 5 → 4 octaves.
+    let moisture = fbm(uv * 0.6 + 50.0, 4);
+    // Detail noise for texture. 4 → 3 octaves; only used as a low-
+    // amplitude wash on top of the biome colour.
+    let detail = fbm(uv * 4.0 + 13.0, 3);
 
     let deep_forest = vec3<f32>(0.06, 0.10, 0.04);
     let forest = vec3<f32>(0.10, 0.15, 0.06);
@@ -103,9 +118,11 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let grid_line = max(grid_line_x, grid_line_y);
     color = mix(color, vec3<f32>(0.08, 0.08, 0.06), grid_line * 0.15);
 
-    // Roads: procedural paths using warped noise
+    // Roads: procedural paths using warped noise. 3 → 2 octaves —
+    // the warp only shifts the noise sample slightly, the difference
+    // between 2 and 3 octaves is invisible at this output scale.
     let road_uv = snapped * 0.0008;
-    let road_warp = fbm(road_uv * 3.0 + 7.0, 3) * 0.3;
+    let road_warp = fbm(road_uv * 3.0 + 7.0, 2) * 0.3;
     let road_val = abs(noise(road_uv + vec2<f32>(road_warp, 0.0)) - 0.5);
     let road = 1.0 - smoothstep(0.01, 0.04, road_val);
     color = mix(color, dirt_road, road * 0.5);
@@ -120,7 +137,8 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     // and moisture (wet biomes), so streams appear where biomes
     // would naturally carry water rather than blanketing the map.
     let stream_uv = snapped * vec2<f32>(0.003, 0.0015) + vec2<f32>(71.3, 49.7);
-    let stream_warp = fbm(stream_uv * 4.0, 4) * 0.4;
+    // 4 → 2 octaves on the warp — same reasoning as the roads.
+    let stream_warp = fbm(stream_uv * 4.0, 2) * 0.4;
     let stream_val = abs(noise(stream_uv + vec2<f32>(stream_warp, stream_warp * 0.3)) - 0.5);
     let elevation_fade = 1.0 - smoothstep(0.35, 0.55, elevation);
     let moisture_gate = smoothstep(0.45, 0.6, moisture);
@@ -137,9 +155,8 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let day_brightness = mix(0.35, 1.0, day_cycle);
     color = mix(color * night_tint * 2.0, color, day_cycle) * day_brightness;
 
-    // Fade to black at edges
-    let world = in.world_position.xy;
-    let edge = max(abs(world.x), abs(world.y));
+    // Fade to black at edges. Reuses `edge` computed at the top of
+    // the function for the early-out test.
     let fade = 1.0 - smoothstep(2000.0, 2500.0, edge);
     color *= fade;
 

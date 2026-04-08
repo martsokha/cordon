@@ -110,7 +110,9 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
         // olive over warm brown so it reads as toxic standing water,
         // not paint.
         let drift = vec2<f32>(t * 0.04, t * 0.03);
-        let slick = fbm(world * 0.018 + drift, 4);
+        // Octaves dropped one each — visually identical because
+        // the result is then clamped through smoothstep bands.
+        let slick = fbm(world * 0.018 + drift, 3);
         let grain = fbm(world * 0.18 - drift * 2.0, 2);
 
         let base = vec3<f32>(0.14, 0.13, 0.06);     // muddy brown
@@ -298,8 +300,11 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
             world.x * sn + world.y * cs,
         );
 
-        let cloud_a = fbm(sheared * 0.012 + vec2<f32>(t * 0.05, t * -0.03), 5);
-        let cloud_b = fbm(sheared * 0.025 - vec2<f32>(t * 0.04, 0.0), 4);
+        // 5 → 3 and 4 → 3 octaves — the cloud is then re-mixed
+        // through smoothstep bands so the high octaves were below
+        // the threshold noise floor.
+        let cloud_a = fbm(sheared * 0.012 + vec2<f32>(t * 0.05, t * -0.03), 3);
+        let cloud_b = fbm(sheared * 0.025 - vec2<f32>(t * 0.04, 0.0), 3);
         let cloud = cloud_a * 0.65 + cloud_b * 0.35;
 
         // Soft dark center, no hard edge.
