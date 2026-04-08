@@ -7,11 +7,9 @@ mod dialogue;
 mod input;
 mod visitor;
 
-pub use self::dialogue::{CurrentDialogue, DialogueChoice, DialogueOptionView};
-pub use self::visitor::{Visitor, VisitorQueue, VisitorState};
-
 use bevy::prelude::*;
 
+pub use self::visitor::{Visitor, VisitorQueue, VisitorState};
 use crate::PlayingState;
 
 pub struct BunkerPlugin;
@@ -57,8 +55,12 @@ const CAMERA_LERP_SPEED: f32 = 6.0;
 #[derive(Resource, Clone)]
 pub enum CameraMode {
     Free,
-    ZoomingToLaptop { saved_transform: Transform },
-    AtLaptop { saved_transform: Transform },
+    ZoomingToLaptop {
+        saved_transform: Transform,
+    },
+    AtLaptop {
+        saved_transform: Transform,
+    },
     Returning(Transform),
     /// Smoothly turn (rotation only) to face a world-space point.
     /// Used while a visitor is inside the bunker. The position is

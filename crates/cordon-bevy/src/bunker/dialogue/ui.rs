@@ -52,6 +52,10 @@ struct DialogueChoiceButton {
     /// `CurrentDialogue::Options` list. We store the index rather
     /// than `OptionId` so the UI doesn't have to import yarnspinner.
     index: Option<usize>,
+    /// Whether the player can actually pick this option. Yarn marks
+    /// options ineligible when their `<<if>>` condition is false;
+    /// we render them dim and refuse clicks.
+    available: bool,
 }
 
 #[derive(Resource, Default)]
@@ -59,6 +63,7 @@ struct DialogueUiSpawned;
 
 const PANEL_BG: Color = Color::srgba(0.04, 0.04, 0.06, 0.92);
 const TEXT_COLOR: Color = Color::srgba(0.92, 0.92, 0.92, 1.0);
+const TEXT_COLOR_DISABLED: Color = Color::srgba(0.45, 0.45, 0.45, 1.0);
 const SPEAKER_COLOR: Color = Color::srgba(1.0, 0.85, 0.5, 1.0);
 const BUTTON_BG: Color = Color::srgba(0.10, 0.10, 0.14, 0.95);
 const BUTTON_BG_HOVER: Color = Color::srgba(0.18, 0.18, 0.24, 0.95);
@@ -146,14 +151,8 @@ fn sync_dialogue_ui(
     current: Res<CurrentDialogue>,
     mut commands: Commands,
     mut panel_q: Query<&mut Visibility, With<DialoguePanel>>,
-    mut speaker_q: Query<
-        &mut Text,
-        (With<DialogueSpeaker>, Without<DialogueText>),
-    >,
-    mut text_q: Query<
-        &mut Text,
-        (With<DialogueText>, Without<DialogueSpeaker>),
-    >,
+    mut speaker_q: Query<&mut Text, (With<DialogueSpeaker>, Without<DialogueText>)>,
+    mut text_q: Query<&mut Text, (With<DialogueText>, Without<DialogueSpeaker>)>,
     row_q: Query<(Entity, Option<&Children>), With<DialogueChoicesRow>>,
     asset_server: Res<AssetServer>,
 ) {
@@ -200,7 +199,10 @@ fn sync_dialogue_ui(
                 row_entity,
                 font.clone(),
                 "▸ Continue",
-                DialogueChoiceButton { index: None },
+                DialogueChoiceButton {
+                    index: None,
+                    available: true,
+                },
             );
         }
         CurrentDialogue::Options { lines } => {
@@ -216,7 +218,10 @@ fn sync_dialogue_ui(
                     row_entity,
                     font.clone(),
                     &label,
-                    DialogueChoiceButton { index: Some(i) },
+                    DialogueChoiceButton {
+                        index: Some(i),
+                        available: opt.available,
+                    },
                 );
             }
         }
@@ -230,6 +235,11 @@ fn spawn_choice_button(
     label: &str,
     marker: DialogueChoiceButton,
 ) {
+    let text_color = if marker.available {
+        TEXT_COLOR
+    } else {
+        TEXT_COLOR_DISABLED
+    };
     let button = commands
         .spawn((
             marker,
@@ -248,7 +258,7 @@ fn spawn_choice_button(
                     font_size: 12.0,
                     ..default()
                 },
-                TextColor(TEXT_COLOR),
+                TextColor(text_color),
             ));
         })
         .id();
@@ -265,6 +275,11 @@ fn handle_choice_click(
     mut writer: MessageWriter<DialogueChoice>,
 ) {
     for (interaction, button, mut bg) in interactions {
+        // Yarn-marked unavailable options are non-interactive — they
+        // still render (dimmed) but don't accept clicks or hover.
+        if !button.available {
+            continue;
+        }
         match interaction {
             Interaction::Pressed => {
                 let choice = match button.index {

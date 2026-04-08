@@ -1,14 +1,12 @@
-//! Bunker input: FPS controls, cursor grab, interaction.
+//! Bunker input: FPS controls, cursor grab, interaction prompts.
 
 pub mod controller;
 
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions};
-use bevy_yarnspinner::prelude::DialogueRunner;
 
-use super::dialogue::ActiveRunner;
-use super::visitor::{admit_visitor, VisitorState};
-use super::{CameraMode, DoorButton, FpsCamera, InteractPrompt, LaptopObject};
+use super::visitor::{AdmitVisitor, VisitorState};
+use super::{DoorButton, FpsCamera, InteractPrompt, LaptopObject};
 use crate::PlayingState;
 
 pub struct InputPlugin;
@@ -67,18 +65,13 @@ fn update_interact_prompt(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn interact(
     keys: Res<ButtonInput<KeyCode>>,
     camera_q: Query<&Transform, With<FpsCamera>>,
     laptop_q: Query<&Transform, With<LaptopObject>>,
     button_q: Query<&Transform, With<DoorButton>>,
-    visitor_state: ResMut<VisitorState>,
-    camera_mode: ResMut<CameraMode>,
-    runner_q: Query<&mut DialogueRunner, With<ActiveRunner>>,
-    meshes: ResMut<Assets<Mesh>>,
-    materials: ResMut<Assets<StandardMaterial>>,
-    commands: Commands,
+    visitor_state: Res<VisitorState>,
+    mut admit: MessageWriter<AdmitVisitor>,
     mut next_state: ResMut<NextState<PlayingState>>,
 ) {
     if !keys.just_pressed(KeyCode::KeyE) {
@@ -89,15 +82,7 @@ fn interact(
 
     // Knocking visitor takes priority over the laptop — admit them.
     if knocking && is_near(&camera_q, &button_q) {
-        admit_visitor(
-            commands,
-            visitor_state,
-            camera_mode,
-            camera_q,
-            runner_q,
-            meshes,
-            materials,
-        );
+        admit.write(AdmitVisitor);
         return;
     }
     // Block laptop entry while a visitor is in the bunker — the

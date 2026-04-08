@@ -7,26 +7,25 @@
 //! - `Quiet` — no one at the door, button is dim, queue may be empty
 //! - `Knocking` — head of queue has arrived, door button glows red
 //! - `Inside` — player pressed E to admit them: sprite spawned,
-//!   dialogue running. The state stays here until
-//!   [`CurrentDialogue`] returns to `Idle`, at which point the
-//!   sprite is despawned and we drop back to `Quiet`.
+//!   dialogue running. The state stays here until [`CurrentDialogue`]
+//!   returns to `Idle`, at which point the sprite is despawned and
+//!   we drop back to `Quiet`.
 //!
 //! Player input is handled in [`super::input`]: while the camera is
-//! near the desk and a visitor is `Knocking`, pressing **E** calls
-//! [`admit_visitor`].
-//!
-//! For the prototype, debug key **F2** pushes a hardcoded garrison
-//! visitor onto the queue. Real visitor sourcing comes later.
+//! near the desk and a visitor is `Knocking`, pressing **E** sends
+//! an [`AdmitVisitor`] message which this module's
+//! [`apply_admit_visitor`] system handles. Dialogue start is in
+//! turn delegated to the dialogue module via a `StartDialogue`
+//! message — visitor never touches the yarn runner directly.
 
 use std::collections::VecDeque;
 
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions};
-use bevy_yarnspinner::prelude::DialogueRunner;
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::Id;
 
-use super::dialogue::{ActiveRunner, CurrentDialogue};
+use super::dialogue::{CurrentDialogue, StartDialogue};
 use super::{CameraMode, DoorButton, FpsCamera};
 use crate::PlayingState;
 
@@ -36,11 +35,12 @@ impl Plugin for VisitorPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(VisitorQueue::default());
         app.insert_resource(VisitorState::Quiet);
+        app.add_message::<AdmitVisitor>();
         app.add_systems(
             Update,
             (
-                debug_push_visitor,
                 arrive_next_visitor,
+                apply_admit_visitor,
                 update_button_glow,
                 update_cursor_lock,
                 dismiss_on_dialogue_complete,
@@ -69,32 +69,26 @@ pub struct VisitorQueue(pub VecDeque<Visitor>);
 pub enum VisitorState {
     /// No one at the door. The button is dim.
     Quiet,
-    /// A visitor is waiting outside. The button glows red and is
-    /// click-responsive.
+    /// A visitor is waiting outside. The button glows red.
     Knocking { visitor: Visitor },
     /// Player admitted the visitor. Sprite is spawned and dialogue
     /// runner is on a yarn node.
     Inside { visitor: Visitor, sprite: Entity },
 }
 
+/// Sent by the bunker `interact` system when the player presses E
+/// while a visitor is knocking. Handled by [`apply_admit_visitor`].
+#[derive(Message, Debug, Default, Clone, Copy)]
+pub struct AdmitVisitor;
+
 /// Marker for the visitor sprite entity, so we can despawn it when
 /// the dialogue ends.
 #[derive(Component)]
 struct VisitorSprite;
 
-/// F2 → push a hardcoded test visitor onto the queue. Stand-in for
-/// the real day-cycle scheduler.
-fn debug_push_visitor(keys: Res<ButtonInput<KeyCode>>, mut queue: ResMut<VisitorQueue>) {
-    if !keys.just_pressed(KeyCode::F2) {
-        return;
-    }
-    queue.0.push_back(Visitor {
-        display_name: "Garrison Soldier".to_string(),
-        faction: Id::new("garrison"),
-        yarn_node: "Visitor_Garrison_Greeting".to_string(),
-    });
-    info!("debug: queued test visitor");
-}
+/// World-space position of the placeholder visitor sprite — also
+/// the point the camera turns to face during dialogue.
+const VISITOR_SPRITE_POS: Vec3 = Vec3::new(0.0, 1.2, 2.4);
 
 /// When the door is quiet and the queue is non-empty, pop the next
 /// visitor and transition to Knocking.
@@ -131,25 +125,24 @@ fn update_button_glow(
     };
 }
 
-/// World-space position of the placeholder visitor sprite — also
-/// the point the camera turns to face during dialogue.
-const VISITOR_SPRITE_POS: Vec3 = Vec3::new(0.0, 1.2, 2.4);
-
-/// Admit the currently-knocking visitor: spawn their placeholder
-/// sprite across the desk, start the yarn node, and turn the
-/// camera to face them. No-op if state is not `Knocking`. Called
-/// by the bunker `interact` system when the player presses E near
-/// the desk.
+/// Handle [`AdmitVisitor`] messages: spawn the visitor sprite, turn
+/// the camera, and ask the dialogue module to start the yarn node.
+/// Drains all pending messages but only acts on the first one if
+/// state is `Knocking` — extra admits are no-ops.
 #[allow(clippy::too_many_arguments)]
-pub fn admit_visitor(
+fn apply_admit_visitor(
     mut commands: Commands,
+    mut requests: MessageReader<AdmitVisitor>,
     mut state: ResMut<VisitorState>,
     mut camera_mode: ResMut<CameraMode>,
     camera_q: Query<&Transform, With<FpsCamera>>,
-    mut runner_q: Query<&mut DialogueRunner, With<ActiveRunner>>,
+    mut start_dialogue: MessageWriter<StartDialogue>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    if requests.read().next().is_none() {
+        return;
+    }
     let visitor = match &*state {
         VisitorState::Knocking { visitor } => visitor.clone(),
         _ => return,
@@ -176,7 +169,6 @@ pub fn admit_visitor(
                 cull_mode: None,
                 ..default()
             })),
-            // Across the desk from the player camera.
             Transform::from_translation(VISITOR_SPRITE_POS)
                 .looking_at(Vec3::new(0.0, 1.2, 0.0), Vec3::Y),
         ))
@@ -191,9 +183,11 @@ pub fn admit_visitor(
         };
     }
 
-    if let Ok(mut runner) = runner_q.single_mut() {
-        runner.start_node(&visitor.yarn_node);
-    }
+    // Hand off the actual yarn-node start to the dialogue module so
+    // visitor never touches the runner directly.
+    start_dialogue.write(StartDialogue {
+        node: visitor.yarn_node.clone(),
+    });
 
     info!("visitor admitted: {}", visitor.display_name);
     *state = VisitorState::Inside {
@@ -209,8 +203,8 @@ pub fn admit_visitor(
 ///
 /// The transition check is critical: `CurrentDialogue` is `Idle` at
 /// startup *and* between dialogues, so a naive `if Idle` check fires
-/// the same frame `admit_visitor` ran (yarn hasn't ticked yet, so
-/// the resource still reads Idle). We track the previous active
+/// the same frame `apply_admit_visitor` ran (yarn hasn't ticked yet,
+/// so the resource still reads Idle). We track the previous active
 /// state in a `Local` and only dismiss on the falling edge.
 fn dismiss_on_dialogue_complete(
     mut commands: Commands,
@@ -226,14 +220,19 @@ fn dismiss_on_dialogue_complete(
     if !just_ended {
         return;
     }
-    if let VisitorState::Inside { sprite, .. } = *state {
-        commands.entity(sprite).despawn();
+    if let VisitorState::Inside { visitor, sprite } = &*state {
+        let name = visitor.display_name.clone();
+        let sprite_entity = *sprite;
+        commands.entity(sprite_entity).despawn();
         // Slerp the camera back to the saved transform.
-        if let CameraMode::LookingAt { saved_transform, .. } = *camera_mode {
+        if let CameraMode::LookingAt {
+            saved_transform, ..
+        } = *camera_mode
+        {
             *camera_mode = CameraMode::Returning(saved_transform);
         }
         *state = VisitorState::Quiet;
-        info!("visitor dismissed");
+        info!("visitor dismissed: {name}");
     }
 }
 
@@ -256,4 +255,3 @@ fn update_cursor_lock(state: Res<VisitorState>, mut cursor_q: Query<&mut CursorO
         }
     }
 }
-

@@ -1,10 +1,17 @@
 //! Visitor dialogue runtime.
 //!
-//! Wraps `bevy_yarnspinner` and exposes a [`CurrentDialogue`] resource
-//! the trade-tab UI reads to render the active line + choices. The
-//! UI in turn writes a [`DialogueChoice`] message when the player
-//! picks an option, which this module forwards to the underlying
-//! `DialogueRunner`.
+//! Wraps `bevy_yarnspinner` and exposes two thin layers:
+//!
+//! - The [`CurrentDialogue`] resource mirrors what the underlying
+//!   `DialogueRunner` is currently presenting (line, options, idle).
+//!   The UI module ([`ui`]) reads this and renders the visual-novel
+//!   text box.
+//! - Two messages bridge the runner without exposing yarnspinner
+//!   types to other modules:
+//!     - [`StartDialogue`] — sent by the visitor module to begin a
+//!       conversation at a named yarn node.
+//!     - [`DialogueChoice`] — sent by the UI when the player picks
+//!       a continue/option button.
 //!
 //! The Yarn project is loaded once at startup from `assets/dialogue/`
 //! and a single `DialogueRunner` entity is spawned as soon as
@@ -26,12 +33,13 @@ impl Plugin for DialoguePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((YarnSpinnerPlugin::new(), ui::DialogueUiPlugin));
         app.insert_resource(CurrentDialogue::default());
+        app.add_message::<StartDialogue>();
         app.add_message::<DialogueChoice>();
         app.add_systems(
             Update,
             spawn_dialogue_runner.run_if(resource_added::<YarnProject>),
         );
-        app.add_systems(Update, apply_player_choice);
+        app.add_systems(Update, (apply_start_dialogue, apply_player_choice));
         app.add_observer(on_present_line);
         app.add_observer(on_present_options);
         app.add_observer(on_dialogue_completed);
@@ -48,7 +56,10 @@ pub enum CurrentDialogue {
     Idle,
     /// A line is being shown. The UI should render it and present a
     /// "Continue" affordance that emits a [`DialogueChoice::Continue`].
-    Line { speaker: Option<String>, text: String },
+    Line {
+        speaker: Option<String>,
+        text: String,
+    },
     /// A set of options is presented. The UI should render the lines
     /// as buttons; selecting one emits [`DialogueChoice::Option`].
     Options { lines: Vec<DialogueOptionView> },
@@ -62,6 +73,13 @@ pub struct DialogueOptionView {
     pub available: bool,
 }
 
+/// Sent by upstream code (the visitor module) to begin a conversation
+/// at the given yarn node. Resolved by [`apply_start_dialogue`].
+#[derive(Message, Debug, Clone)]
+pub struct StartDialogue {
+    pub node: String,
+}
+
 /// Player-side message: the UI emits one of these when the player
 /// either continues past a line or picks an option.
 #[derive(Message, Debug, Clone, Copy)]
@@ -70,9 +88,11 @@ pub enum DialogueChoice {
     Option { id: OptionId },
 }
 
-/// Component used to find the single active dialogue runner entity.
+/// Marker for the single active dialogue runner entity. Internal —
+/// other modules go through [`StartDialogue`] / [`DialogueChoice`]
+/// instead of touching the runner directly.
 #[derive(Component)]
-pub struct ActiveRunner;
+pub(super) struct ActiveRunner;
 
 fn spawn_dialogue_runner(mut commands: Commands, project: Res<YarnProject>) {
     let runner = project.create_dialogue_runner(&mut commands);
@@ -100,6 +120,18 @@ fn on_present_options(event: On<PresentOptions>, mut current: ResMut<CurrentDial
 
 fn on_dialogue_completed(_event: On<DialogueCompleted>, mut current: ResMut<CurrentDialogue>) {
     *current = CurrentDialogue::Idle;
+}
+
+fn apply_start_dialogue(
+    mut requests: MessageReader<StartDialogue>,
+    mut runner_q: Query<&mut DialogueRunner, With<ActiveRunner>>,
+) {
+    let Ok(mut runner) = runner_q.single_mut() else {
+        return;
+    };
+    for req in requests.read() {
+        runner.start_node(&req.node);
+    }
 }
 
 fn apply_player_choice(

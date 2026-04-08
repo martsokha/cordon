@@ -22,9 +22,7 @@ impl Plugin for ControllerPlugin {
                 // Freeze look/move only once a visitor is `Inside`
                 // and dialogue is running. While `Knocking` the
                 // player should still be able to walk to the desk.
-                .run_if(|state: Res<VisitorState>| {
-                    !matches!(*state, VisitorState::Inside { .. })
-                }),
+                .run_if(|state: Res<VisitorState>| !matches!(*state, VisitorState::Inside { .. })),
         );
     }
 }
