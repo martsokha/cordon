@@ -82,6 +82,13 @@ impl Plugin for CordonSimPlugin {
         );
 
         app.add_systems(Update, spawn::spawn_population.in_set(SimSet::Spawn));
+        // Game clock ticks every frame once the world is
+        // initialised. Gated on `GameClock` existing so it waits
+        // for the cordon-bevy layer's `init_world_resources` call.
+        app.add_systems(
+            Update,
+            crate::world_init::tick_game_time.run_if(resource_exists::<GameClock>),
+        );
         app.add_plugins((
             DayCyclePlugin,
             BehaviorPlugin,

@@ -1,6 +1,11 @@
 //! Debug overlay: FPS counter, entity count, diagnostics, world
-//! inspector, and dev-only cheats (F2 → push a test visitor,
-//! F3 → toggle map fog of war).
+//! inspector, and dev-only cheats.
+//!
+//! Cheat keys:
+//! - **F1** — toggle the world inspector
+//! - **F2** — push a hardcoded test visitor onto the queue
+//! - **F3** — toggle map fog of war
+//! - **F4** — cycle time-scale (1× → 4× → 16× → 64× → 1×)
 //!
 //! The entire module is gated behind `cfg(debug_assertions)` at
 //! the `mod debug;` declaration in `main.rs`, so nothing in here
@@ -38,6 +43,7 @@ impl Plugin for DebugPlugin {
             WorldInspectorPlugin::new().run_if(resource_equals(InspectorVisible(true))),
         );
         app.insert_resource(InspectorVisible(false));
+        app.insert_resource(TimeAcceleration::default());
         app.add_systems(Startup, spawn_fps_counter);
         app.add_systems(
             Update,
@@ -46,9 +52,55 @@ impl Plugin for DebugPlugin {
                 toggle_inspector,
                 debug_push_visitor,
                 cheat_toggle_fog,
+                cheat_cycle_time_scale,
+                apply_time_scale,
             ),
         );
     }
+}
+
+/// Player-selected time scale. Applied to `Time<Virtual>` so every
+/// sim system that reads `delta_secs()` accelerates in lockstep
+/// (combat, movement, goals, throttles, fire cooldowns). Real-time
+/// systems that should not accelerate (UI smoothing, camera lerp)
+/// must read `Res<Time<Real>>` explicitly.
+#[derive(Resource, Debug, Clone, Copy)]
+struct TimeAcceleration {
+    multiplier: f32,
+}
+
+impl Default for TimeAcceleration {
+    fn default() -> Self {
+        Self { multiplier: 1.0 }
+    }
+}
+
+/// Time-scale presets cycled by F4.
+const TIME_SCALE_PRESETS: &[f32] = &[1.0, 4.0, 16.0, 64.0];
+
+/// Push [`TimeAcceleration.multiplier`] into Bevy's virtual time.
+/// Scales every sim system that reads `Res<Time>.delta_secs()`.
+fn apply_time_scale(accel: Res<TimeAcceleration>, mut virt: ResMut<Time<Virtual>>) {
+    if !accel.is_changed() {
+        return;
+    }
+    virt.set_relative_speed(accel.multiplier.max(0.0));
+}
+
+/// F4 → cycle through [`TIME_SCALE_PRESETS`].
+fn cheat_cycle_time_scale(keys: Res<ButtonInput<KeyCode>>, mut accel: ResMut<TimeAcceleration>) {
+    if !keys.just_pressed(KeyCode::F4) {
+        return;
+    }
+    let current = accel.multiplier;
+    // Next preset strictly greater than current; wrap to smallest.
+    let next = TIME_SCALE_PRESETS
+        .iter()
+        .copied()
+        .find(|&s| s > current + 0.01)
+        .unwrap_or(TIME_SCALE_PRESETS[0]);
+    accel.multiplier = next;
+    info!("cheat: time scale → {next}×");
 }
 
 /// F3 → toggle map fog of war. Reveals every area and shows every

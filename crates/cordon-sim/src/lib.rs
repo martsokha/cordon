@@ -43,3 +43,6 @@ pub mod squad;
 /// Gameplay tuning knobs — distances, timings, thresholds,
 /// probabilities. One place to tune the sim from.
 pub mod tuning;
+
+/// World resource bootstrap and the game-clock tick system.
+pub mod world_init;

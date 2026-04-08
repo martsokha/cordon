@@ -9,12 +9,12 @@ mod bunker;
 mod debug;
 mod laptop;
 mod locale;
-mod world;
 
 use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataPlugin;
 use cordon_sim::plugin::CordonSimPlugin;
+use cordon_sim::world_init::init_world_resources;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum AppState {
@@ -54,10 +54,15 @@ fn main() {
         ready: AppState::Playing,
     })
     .add_plugins(locale::LocalePlugin)
-    .add_plugins(world::WorldPlugin)
     .add_plugins(CordonSimPlugin)
     .add_plugins(bunker::BunkerPlugin)
     .add_plugins(laptop::LaptopPlugin);
+
+    // Bootstrap the cordon-sim resource set on enter-play.
+    // `init_world_resources` lives in cordon-sim — it knows how to
+    // read `GameDataResource` and populate the world. The hook is
+    // here in cordon-bevy because `AppState` is a bevy-layer type.
+    app.add_systems(OnEnter(AppState::Playing), init_world_resources);
 
     // Debug overlay + world inspector + dev cheats — compiled out
     // of release builds entirely via the `#[cfg(debug_assertions)]`
