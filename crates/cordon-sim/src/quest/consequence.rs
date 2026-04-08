@@ -64,24 +64,34 @@ pub fn apply(
             world.player.credits -= *amount;
         }
 
-        Consequence::GiveItem { item, scope } => {
+        Consequence::GiveItem { item, count, scope } => {
             let Some(def) = world.data.item(item) else {
                 warn!("GiveItem: unknown item `{}`", item.as_str());
                 return;
             };
-            let instance = ItemInstance::new(def);
-            if let Err(dropped) = world.player.add_item(instance, *scope) {
-                warn!(
-                    "GiveItem: stash full, dropped `{}` on the floor",
-                    dropped.def_id.as_str()
-                );
+            for _ in 0..*count {
+                let instance = ItemInstance::new(def);
+                if let Err(dropped) = world.player.add_item(instance, *scope) {
+                    warn!(
+                        "GiveItem: stash full, dropped `{}` on the floor",
+                        dropped.def_id.as_str()
+                    );
+                    break;
+                }
             }
         }
 
-        Consequence::TakeItem { item, scope } => {
-            if world.player.remove_first(item, *scope).is_none() {
+        Consequence::TakeItem { item, count, scope } => {
+            let mut removed = 0u32;
+            for _ in 0..*count {
+                if world.player.remove_first(item, *scope).is_none() {
+                    break;
+                }
+                removed += 1;
+            }
+            if removed < *count {
                 warn!(
-                    "TakeItem: player has no `{}` in scope {:?}",
+                    "TakeItem: wanted {count}× `{}` in scope {:?}, only removed {removed}",
                     item.as_str(),
                     scope
                 );
@@ -120,12 +130,15 @@ pub fn apply(
         }
 
         Consequence::SpawnNpc(template) => {
-            // Real visitor enqueueing lives in cordon-bevy — the
-            // sim has no concept of "visitor queue". The bridge
-            // listens for the log entry and pushes a visitor with
-            // the right yarn node. We emit a warning here so the
-            // lack of a bridge is visible in tests.
-            info!("SpawnNpc requested for template `{}`", template.as_str());
+            // Visitor enqueueing lives in cordon-bevy's quest
+            // bridge. The sim has no concept of "visitor
+            // queue", so until the bridge observes a spawn
+            // request this is a loud no-op.
+            warn!(
+                "STUB CONSEQUENCE `spawn_npc` fired — no visitor queue bridge yet. \
+                 Template `{}` will not appear in-game.",
+                template.as_str()
+            );
         }
 
         Consequence::GivePlayerXp(amount) => {
@@ -133,35 +146,39 @@ pub fn apply(
         }
 
         Consequence::GiveNpcXp { template, amount } => {
-            // NPC XP grants need a resolved entity, which lives
-            // in the behavior layer. Phase 3 stops at logging;
-            // Phase 4 will wire this through a message the
-            // cordon-bevy NPC layer observes.
-            info!(
-                "GiveNpcXp: template `{}` += {amount} xp (not yet wired)",
+            // NPC XP grants need a template → entity resolver
+            // in the behavior layer that does not exist yet.
+            warn!(
+                "STUB CONSEQUENCE `give_npc_xp` fired — no template→entity resolver yet. \
+                 Template `{}` will not receive {amount} xp.",
                 template.as_str()
             );
         }
 
-        Consequence::DangerModifier { area: _, delta: _ } => {
-            // AreaStates is a separate resource; applying this
-            // through the Consequence path requires either
-            // borrowing it too (blows up the WorldMut arg list)
-            // or routing through a dedicated message. We'll use
-            // a message in Phase 4 once the first quest actually
-            // needs it.
-            info!("DangerModifier consequence not yet wired");
+        Consequence::DangerModifier { area, delta } => {
+            // `AreaStates` is a separate resource; routing
+            // through the applier needs a dedicated message
+            // channel that does not exist yet.
+            let target = area
+                .as_ref()
+                .map(|a| a.as_str().to_string())
+                .unwrap_or_else(|| "zone-wide".to_string());
+            warn!(
+                "STUB CONSEQUENCE `danger_modifier` fired — no AreaStates bridge yet. \
+                 Area `{target}` will not receive danger delta {delta}."
+            );
         }
 
         Consequence::PriceModifier {
-            category: _,
-            multiplier: _,
+            category,
+            multiplier,
         } => {
-            // Market modifiers have no system to receive them
-            // yet — the trade loop is still a stub. Logged so
-            // quest authoring can reference the consequence
-            // without crashing.
-            info!("PriceModifier consequence not yet wired");
+            // The trade loop is still a stub; no market
+            // system to receive price shifts.
+            warn!(
+                "STUB CONSEQUENCE `price_modifier` fired — no market system yet. \
+                 Category {category:?} will not be multiplied by {multiplier}."
+            );
         }
     }
 }

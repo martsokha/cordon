@@ -106,15 +106,25 @@ pub enum Consequence {
     GiveCredits(Credits),
     /// Debit the player's currency.
     TakeCredits(Credits),
-    /// Place an item into the player's stash in the given scope.
+    /// Place `count` copies of an item into the player's
+    /// stash in the given scope. Each copy is a fresh
+    /// [`ItemInstance`]; stacks do not merge. `count` defaults
+    /// to 1 when omitted.
     GiveItem {
         item: Id<Item>,
+        #[serde(default = "default_item_count")]
+        count: u32,
         #[serde(default)]
         scope: StashScope,
     },
-    /// Remove an item from the player's stash in the given scope.
+    /// Remove up to `count` copies of an item from the
+    /// player's stash in the given scope. Removes the first
+    /// `count` matching instances; short-circuits with a
+    /// warning if the stash runs out. `count` defaults to 1.
     TakeItem {
         item: Id<Item>,
+        #[serde(default = "default_item_count")]
+        count: u32,
         #[serde(default)]
         scope: StashScope,
     },

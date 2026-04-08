@@ -26,12 +26,14 @@ mod bridge;
 
 use bevy::prelude::*;
 
+use self::bridge::DialogueInFlight;
 use crate::PlayingState;
 
 pub struct QuestBridgePlugin;
 
 impl Plugin for QuestBridgePlugin {
     fn build(&self, app: &mut App) {
+        app.init_resource::<DialogueInFlight>();
         app.add_systems(
             Update,
             bridge::enqueue_talk_visitors.run_if(in_state(PlayingState::Bunker)),

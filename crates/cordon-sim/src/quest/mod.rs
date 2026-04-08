@@ -23,6 +23,7 @@ pub mod engine;
 pub mod state;
 
 use bevy::prelude::*;
+use cordon_data::gamedata::GameDataResource;
 
 pub use self::consequence::StartQuestRequest;
 pub use self::state::{ActiveQuest, CompletedQuest, QuestLog};
@@ -49,9 +50,10 @@ impl Plugin for QuestPlugin {
         // targeted resource first appears, so no `Local<bool>`
         // latches are needed.
         //
-        // - Validation runs as soon as the catalog is loaded
-        //   (`GameDataResource`), the earliest moment stage
-        //   references can be checked.
+        // - Catalog validation runs as soon as game data is
+        //   loaded (`GameDataResource`), the earliest moment
+        //   stage references and consequence stubs can be
+        //   checked.
         // - Game-start trigger dispatch runs once the sim is
         //   fully bootstrapped (`GameClock`, inserted by
         //   `init_world_resources` on `OnEnter(AppState::Playing)`
@@ -59,8 +61,7 @@ impl Plugin for QuestPlugin {
         app.add_systems(
             Update,
             (
-                engine::validate_trigger_references
-                    .run_if(resource_added::<cordon_data::gamedata::GameDataResource>),
+                engine::validate_catalog.run_if(resource_added::<GameDataResource>),
                 engine::dispatch_on_game_start.run_if(resource_added::<GameClock>),
             ),
         );
@@ -69,6 +70,8 @@ impl Plugin for QuestPlugin {
             Update,
             (
                 engine::dispatch_on_day.run_if(on_message::<DayRolled>),
+                engine::dispatch_on_event,
+                engine::dispatch_on_condition,
                 engine::drive_active_quests,
                 engine::process_start_quest_requests,
             )

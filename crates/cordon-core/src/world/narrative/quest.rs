@@ -179,6 +179,23 @@ pub struct QuestDef {
     pub repeatable: bool,
 }
 
+impl QuestDef {
+    /// Look up a stage by its ID. `None` if the ID does not
+    /// match any stage in this quest — typically a dangling
+    /// reference flagged at load time by the sim layer's
+    /// catalog validator.
+    pub fn stage(&self, id: &Id<QuestStage>) -> Option<&QuestStageDef> {
+        self.stages.iter().find(|s| &s.id == id)
+    }
+
+    /// Entry stage (the first element of [`stages`](Self::stages)).
+    /// `None` when the quest has no stages, which is itself an
+    /// authoring error and will also surface in validation.
+    pub fn entry_stage(&self) -> Option<&QuestStageDef> {
+        self.stages.first()
+    }
+}
+
 /// How a quest gets triggered.
 ///
 /// Stored in a table parallel to the quest definitions. A single
@@ -216,10 +233,16 @@ pub struct QuestTriggerDef {
     pub quest: Id<Quest>,
     /// What kind of event fires the trigger.
     pub kind: QuestTriggerKind,
-    /// Extra prerequisites evaluated at trigger time. All must
-    /// be true for the trigger to fire. Empty means no extras.
+    /// Extra prerequisite evaluated at trigger time. `None`
+    /// means no gate beyond [`kind`](Self::kind). For
+    /// conjunctions use [`ObjectiveCondition::AllOf`]; for
+    /// disjunctions use [`AnyOf`](ObjectiveCondition::AnyOf).
+    /// Collapsing this to a single [`ObjectiveCondition`]
+    /// keeps one way to express boolean logic over world
+    /// state — the same recursive vocabulary quest stages
+    /// already use.
     #[serde(default)]
-    pub extra_requires: Vec<ObjectiveCondition>,
+    pub requires: Option<ObjectiveCondition>,
     /// Whether this trigger can fire more than once per game.
     /// Defaults to false.
     #[serde(default)]
@@ -288,16 +311,38 @@ mod tests {
     }
 
     #[test]
-    fn trigger_json_parses() {
+    fn trigger_json_parses_minimal() {
         let json = r#"{
             "id": "first_contact_intro",
             "quest": "first_contact",
             "kind": "on_game_start",
-            "extra_requires": [],
             "repeatable": false
         }"#;
         let trigger: QuestTriggerDef = serde_json::from_str(json).expect("parse trigger");
         assert_eq!(trigger.quest.as_str(), "first_contact");
         assert!(matches!(trigger.kind, QuestTriggerKind::OnGameStart));
+        assert!(trigger.requires.is_none());
+    }
+
+    #[test]
+    fn trigger_json_parses_with_requires_allof() {
+        let json = r#"{
+            "id": "lieutenant_visit",
+            "quest": "first_contact",
+            "kind": { "on_event": "faction_war" },
+            "requires": {
+                "all_of": [
+                    { "faction_standing": { "faction": "garrison", "min_standing": 50 } },
+                    { "quest_completed": "tutorial" }
+                ]
+            },
+            "repeatable": false
+        }"#;
+        let trigger: QuestTriggerDef = serde_json::from_str(json).expect("parse trigger");
+        assert!(matches!(trigger.kind, QuestTriggerKind::OnEvent(_)));
+        assert!(matches!(
+            trigger.requires,
+            Some(ObjectiveCondition::AllOf(_))
+        ));
     }
 }

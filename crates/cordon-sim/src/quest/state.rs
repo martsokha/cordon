@@ -43,12 +43,6 @@ pub struct ActiveQuest {
     /// that use [`ObjectiveCondition::QuestFlag`] and by Yarn
     /// itself on subsequent `Talk` stages.
     pub flags: HashMap<String, YarnValue>,
-    /// Whether the quest is currently waiting for a dialogue
-    /// round-trip. Set when a `Talk` stage enqueues a visitor;
-    /// cleared when the Yarn bridge processes the
-    /// `DialogueCompleted` event. Keeps the stage driver
-    /// idempotent.
-    pub awaiting_dialogue: bool,
 }
 
 impl ActiveQuest {
@@ -61,7 +55,6 @@ impl ActiveQuest {
             started_at: now,
             stage_started_at: now,
             flags: HashMap::new(),
-            awaiting_dialogue: false,
         }
     }
 
@@ -69,7 +62,6 @@ impl ActiveQuest {
     pub fn advance_to(&mut self, stage: Id<QuestStage>, now: GameTime) {
         self.current_stage = stage;
         self.stage_started_at = now;
-        self.awaiting_dialogue = false;
     }
 }
 

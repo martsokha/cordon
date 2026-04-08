@@ -21,8 +21,10 @@ use std::collections::HashSet;
 
 use bevy::prelude::*;
 use cordon_core::primitive::{GameTime, Id};
+use cordon_core::world::event::Event;
+use cordon_core::world::narrative::consequence::Consequence;
 use cordon_core::world::narrative::quest::{
-    Quest, QuestDef, QuestStage, QuestStageKind, QuestTriggerKind,
+    Quest, QuestDef, QuestStage, QuestStageKind, QuestTrigger, QuestTriggerKind,
 };
 use cordon_data::catalog::GameData;
 use cordon_data::gamedata::GameDataResource;
@@ -59,7 +61,7 @@ pub fn start_quest(
             return None;
         }
     }
-    let Some(entry) = def.stages.first() else {
+    let Some(entry) = def.entry_stage() else {
         warn!(
             "start_quest: quest `{}` has no stages, skipping",
             quest.as_str()
@@ -89,7 +91,7 @@ pub fn advance_after_talk(
     let Some(def) = data.quests.get(&active.def_id) else {
         return;
     };
-    let Some(stage) = def.stages.iter().find(|s| s.id == active.current_stage) else {
+    let Some(stage) = def.stage(&active.current_stage) else {
         return;
     };
     let QuestStageKind::Talk {
@@ -127,7 +129,39 @@ pub fn drive_active_quests(
     let now = clock.0;
     let catalog = &data.0;
 
-    // --- 1. Objective stages: condition + timeout handling.
+    // --- 1. Quest-wide time limits.
+    // A quest whose elapsed time exceeds `time_limit_minutes`
+    // jumps straight to its failure Outcome (the first Outcome
+    // stage with `success: false`), so the applier picks it
+    // up below like any other completion. Quests without a
+    // failure stage or without a time limit are left alone.
+    let timed_out: Vec<(Id<Quest>, Id<QuestStage>)> = log
+        .active
+        .iter()
+        .filter_map(|active| {
+            let def = catalog.quests.get(&active.def_id)?;
+            let limit = def.time_limit_minutes?;
+            if now.minutes_since(active.started_at) < limit {
+                return None;
+            }
+            let fail_stage = def.stages.iter().find(|s| {
+                matches!(s.kind, QuestStageKind::Outcome { success: false, .. })
+            })?;
+            Some((active.def_id.clone(), fail_stage.id.clone()))
+        })
+        .collect();
+    for (quest_id, fail_stage) in timed_out {
+        if let Some(active) = log.active_instance_mut(&quest_id) {
+            info!(
+                "quest `{}` exceeded time limit, jumping to `{}`",
+                quest_id.as_str(),
+                fail_stage.as_str()
+            );
+            active.advance_to(fail_stage, now);
+        }
+    }
+
+    // --- 2. Objective stages: condition + timeout handling.
     // We must not mutate `log` while evaluating a condition that
     // also borrows `log`. Collect the transitions first, apply
     // them in a second pass.
@@ -139,26 +173,29 @@ pub fn drive_active_quests(
         }
     }
 
-    // --- 2. Outcome stages: apply consequences and complete.
-    // Collect indices of quests whose current stage is an
-    // Outcome (anything parked there this frame should finish).
-    let mut to_complete: Vec<usize> = Vec::new();
-    for (index, active) in log.active.iter().enumerate() {
-        let Some(def) = catalog.quests.get(&active.def_id) else {
-            continue;
-        };
-        if let Some(stage) = def.stages.iter().find(|s| s.id == active.current_stage)
-            && matches!(stage.kind, QuestStageKind::Outcome { .. })
-        {
-            to_complete.push(index);
-        }
-    }
-    // Pop in reverse so swap_remove indices stay valid.
-    for index in to_complete.into_iter().rev() {
+    // --- 3. Outcome stages: apply consequences and complete.
+    // Collect the def_ids of quests whose current stage is an
+    // Outcome, then resolve each by def_id at completion time.
+    // Identifying by def_id rather than by index survives any
+    // mid-apply mutation of `log.active` (e.g. chained quest
+    // starts through the message channel don't disturb the
+    // resolution — though in practice StartQuest is deferred
+    // to a later system, so this is defence in depth).
+    let to_complete: Vec<Id<Quest>> = log
+        .active
+        .iter()
+        .filter_map(|active| {
+            let def = catalog.quests.get(&active.def_id)?;
+            let stage = def.stage(&active.current_stage)?;
+            matches!(stage.kind, QuestStageKind::Outcome { .. })
+                .then(|| active.def_id.clone())
+        })
+        .collect();
+    for def_id in to_complete {
         complete_quest(
             &mut log,
             catalog,
-            index,
+            &def_id,
             now,
             &mut player.0,
             &mut events.0,
@@ -187,7 +224,7 @@ fn collect_objective_transitions(
         let Some(def) = catalog.quests.get(&active.def_id) else {
             continue;
         };
-        let Some(stage) = def.stages.iter().find(|s| s.id == active.current_stage) else {
+        let Some(stage) = def.stage(&active.current_stage) else {
             continue;
         };
         let QuestStageKind::Objective {
@@ -231,24 +268,30 @@ fn collect_objective_transitions(
 }
 
 /// Apply an Outcome stage's consequences, move the quest record
-/// from `active` to `completed`, and drop it out of the active
-/// list. `index` is the position in `log.active`.
+/// Apply an `Outcome` stage's consequences, then move the
+/// quest record from `active` to `completed`. Looks the quest
+/// up by [`def_id`](Id<Quest>) rather than by `Vec` index so
+/// repeated calls (or any concurrent mutation of
+/// `log.active`) cannot silently target the wrong entry.
 fn complete_quest(
     log: &mut QuestLog,
     catalog: &GameData,
-    index: usize,
+    def_id: &Id<Quest>,
     now: GameTime,
     player: &mut cordon_core::entity::player::PlayerState,
     events: &mut Vec<cordon_core::world::event::ActiveEvent>,
     start_quest_tx: &mut MessageWriter<StartQuestRequest>,
 ) {
-    let Some(active) = log.active.get(index) else {
+    // Resolve the active instance by def_id. Cloning the
+    // scalar state we need here lets us drop the borrow of
+    // `log` before the mutable applier runs below.
+    let Some(active) = log.active_instance(def_id) else {
         return;
     };
-    let Some(def) = catalog.quests.get(&active.def_id) else {
+    let Some(def) = catalog.quests.get(def_id) else {
         return;
     };
-    let Some(stage) = def.stages.iter().find(|s| s.id == active.current_stage) else {
+    let Some(stage) = def.stage(&active.current_stage) else {
         return;
     };
     let QuestStageKind::Outcome {
@@ -261,8 +304,8 @@ fn complete_quest(
     let success = *success;
     let outcome_stage = active.current_stage.clone();
     let started_at = active.started_at;
-    let def_id = active.def_id.clone();
     let flags = active.flags.clone();
+    let consequences = consequences.clone();
 
     // Apply before moving records so consequences can reference
     // the still-active quest (e.g. chained `StartQuest`).
@@ -272,11 +315,16 @@ fn complete_quest(
         data: catalog,
         now,
     };
-    for consequence in consequences {
+    for consequence in &consequences {
         apply(consequence, &mut world, start_quest_tx);
     }
 
-    log.active.swap_remove(index);
+    // Stable removal: retain() walks once, evicts the matching
+    // entry, and leaves every other active quest in its
+    // original order. `swap_remove` was correct for the
+    // reverse-index iteration pattern used previously but was
+    // fragile — def_id + retain is obviously right.
+    log.active.retain(|a| &a.def_id != def_id);
     log.completed.push(CompletedQuest {
         def_id: def_id.clone(),
         started_at,
@@ -357,9 +405,111 @@ pub fn dispatch_on_day(
     }
 }
 
-/// Evaluate `extra_requires` against world state and, if the
-/// trigger is eligible, start its quest. Handles the
-/// repeat-guard via [`QuestLog::fired_triggers`].
+/// Fire `OnEvent` triggers for events that *just became
+/// active*. Diffs the current [`EventLog`] against a local
+/// snapshot of def IDs seen last frame; any new ID fires
+/// every trigger whose [`OnEvent`](QuestTriggerKind::OnEvent)
+/// discriminant matches it.
+///
+/// Using a def-ID snapshot (rather than the `ActiveEvent`
+/// objects themselves) means re-triggering for multiple
+/// instances of the same event is intentionally skipped —
+/// quest triggers are about kind-level "this has started
+/// happening in the world", not instance counts.
+pub fn dispatch_on_event(
+    mut log: ResMut<QuestLog>,
+    data: Res<GameDataResource>,
+    clock: Res<GameClock>,
+    player: Res<Player>,
+    events: Res<EventLog>,
+    mut previous: Local<HashSet<Id<Event>>>,
+) {
+    let catalog = &data.0;
+    let now = clock.0;
+    let current: HashSet<_> = events.0.iter().map(|e| e.def_id.clone()).collect();
+    // Newly-active events are in `current` but not `previous`.
+    let new_events: Vec<_> = current.difference(&*previous).cloned().collect();
+    *previous = current;
+
+    for event_id in new_events {
+        let triggers: Vec<_> = catalog
+            .triggers
+            .values()
+            .filter(
+                |t| matches!(&t.kind, QuestTriggerKind::OnEvent(id) if id == &event_id),
+            )
+            .cloned()
+            .collect();
+        for trigger in triggers {
+            try_fire_trigger(&mut log, catalog, &trigger, now, &player.0, &events.0);
+        }
+    }
+}
+
+/// Fire `OnCondition` triggers every frame, on the rising
+/// edge of their condition. A `Local<HashSet<Id<QuestTrigger>>>`
+/// of triggers whose condition was `true` on the previous
+/// frame suppresses re-firing while the condition remains
+/// true — without this, a trigger gated on
+/// `FactionStanding { min_standing: Neutral }` would fire
+/// every single frame for the entire game.
+///
+/// Non-repeatable triggers additionally latch via
+/// [`QuestLog::fired_triggers`] inside [`try_fire_trigger`],
+/// so this rising-edge mechanism matters most for
+/// repeatable condition triggers.
+pub fn dispatch_on_condition(
+    mut log: ResMut<QuestLog>,
+    data: Res<GameDataResource>,
+    clock: Res<GameClock>,
+    player: Res<Player>,
+    events: Res<EventLog>,
+    mut previously_true: Local<HashSet<Id<QuestTrigger>>>,
+) {
+    let catalog = &data.0;
+    let now = clock.0;
+    // Evaluate every OnCondition trigger. This is an
+    // immutable borrow of `log` inside the view, so the
+    // eligibility list is computed before any mutations.
+    let triggers: Vec<_> = catalog
+        .triggers
+        .values()
+        .filter_map(|t| match &t.kind {
+            QuestTriggerKind::OnCondition(cond) => Some((t.clone(), cond.clone())),
+            _ => None,
+        })
+        .collect();
+
+    let mut now_true: HashSet<Id<QuestTrigger>> = HashSet::new();
+    let mut to_fire: Vec<_> = Vec::new();
+    {
+        let view = WorldView {
+            player: &player.0,
+            events: &events.0,
+            quests: &log,
+        };
+        for (trigger, cond) in &triggers {
+            if evaluate(cond, &view) {
+                now_true.insert(trigger.id.clone());
+                // Rising edge only: fire if the condition
+                // was not true last frame.
+                if !previously_true.contains(&trigger.id) {
+                    to_fire.push(trigger.clone());
+                }
+            }
+        }
+    }
+    *previously_true = now_true;
+
+    for trigger in to_fire {
+        try_fire_trigger(&mut log, catalog, &trigger, now, &player.0, &events.0);
+    }
+}
+
+/// Evaluate a trigger's [`requires`](QuestTriggerDef::requires)
+/// clause against world state and, if eligible, start its
+/// quest. Handles the repeat-guard via
+/// [`QuestLog::fired_triggers`].
 fn try_fire_trigger(
     log: &mut QuestLog,
     catalog: &GameData,
@@ -375,13 +525,16 @@ fn try_fire_trigger(
     // `start_quest` call below is free of aliasing. The
     // eligibility check is pure, so this split is just a borrow
     // shuffle — behaviour is identical to a single pass.
-    let eligible = {
-        let view = WorldView {
-            player,
-            events,
-            quests: log,
-        };
-        trigger.extra_requires.iter().all(|c| evaluate(c, &view))
+    let eligible = match &trigger.requires {
+        None => true,
+        Some(cond) => {
+            let view = WorldView {
+                player,
+                events,
+                quests: log,
+            };
+            evaluate(cond, &view)
+        }
     };
     if !eligible {
         return;
@@ -391,15 +544,26 @@ fn try_fire_trigger(
     }
 }
 
-/// Minimal type-check that the quest def exists for triggers
-/// loaded at startup. Warns about dangling references so
-/// authoring errors surface without crashing the sim.
+/// Minimal type-check that the quest + trigger catalog is
+/// internally consistent and that authored content does not
+/// rely on consequence variants that are currently stubbed.
+///
+/// Warns on:
+/// - dangling quest references in trigger definitions
+/// - quests with zero stages
+/// - stage branch / fallback / on_success / on_failure
+///   references that don't match any stage ID in the quest
+/// - authored consequences that hit the stub path in the
+///   applier ([`SpawnNpc`](Consequence::SpawnNpc),
+///   [`GiveNpcXp`](Consequence::GiveNpcXp),
+///   [`DangerModifier`](Consequence::DangerModifier),
+///   [`PriceModifier`](Consequence::PriceModifier))
 ///
 /// Scheduled with `.run_if(resource_added::<GameDataResource>)`
 /// so it runs exactly once, on the frame the catalog first
 /// appears. No `Local<bool>` guard needed — Bevy's resource
 /// change detection handles the "fire once" semantic natively.
-pub fn validate_trigger_references(data: Res<GameDataResource>) {
+pub fn validate_catalog(data: Res<GameDataResource>) {
     let catalog = &data.0;
     for trigger in catalog.triggers.values() {
         if !catalog.quests.contains_key(&trigger.quest) {
@@ -416,6 +580,69 @@ pub fn validate_trigger_references(data: Res<GameDataResource>) {
             warn!("quest `{}` has no stages", def.id.as_str());
         }
         validate_stage_references(def);
+    }
+    warn_on_stub_consequences(catalog);
+}
+
+/// Walk every consequence in every quest stage and every
+/// event definition, counting how many times each currently-
+/// stubbed variant appears. Emits one summary warning per
+/// stub variant that is actually authored against, so a
+/// quest designer sees the problem at game-load time rather
+/// than only when the consequence fires at runtime.
+fn warn_on_stub_consequences(catalog: &GameData) {
+    let mut spawn_npc = 0usize;
+    let mut give_npc_xp = 0usize;
+    let mut danger_modifier = 0usize;
+    let mut price_modifier = 0usize;
+
+    let mut count = |c: &Consequence| match c {
+        Consequence::SpawnNpc(_) => spawn_npc += 1,
+        Consequence::GiveNpcXp { .. } => give_npc_xp += 1,
+        Consequence::DangerModifier { .. } => danger_modifier += 1,
+        Consequence::PriceModifier { .. } => price_modifier += 1,
+        _ => {}
+    };
+
+    for def in catalog.quests.values() {
+        for stage in &def.stages {
+            let QuestStageKind::Outcome { consequences, .. } = &stage.kind else {
+                continue;
+            };
+            for consequence in consequences {
+                count(consequence);
+            }
+        }
+    }
+    for event in catalog.events.values() {
+        for consequence in &event.consequences {
+            count(consequence);
+        }
+    }
+
+    if spawn_npc > 0 {
+        warn!(
+            "STUB CONSEQUENCE `spawn_npc` referenced {spawn_npc}× in authored content \
+             — no visitor queue bridge yet, these will no-op at runtime."
+        );
+    }
+    if give_npc_xp > 0 {
+        warn!(
+            "STUB CONSEQUENCE `give_npc_xp` referenced {give_npc_xp}× in authored content \
+             — no template→entity resolver yet, these will no-op at runtime."
+        );
+    }
+    if danger_modifier > 0 {
+        warn!(
+            "STUB CONSEQUENCE `danger_modifier` referenced {danger_modifier}× in authored content \
+             — no AreaStates bridge yet, these will no-op at runtime."
+        );
+    }
+    if price_modifier > 0 {
+        warn!(
+            "STUB CONSEQUENCE `price_modifier` referenced {price_modifier}× in authored content \
+             — no market system yet, these will no-op at runtime."
+        );
     }
 }
 
