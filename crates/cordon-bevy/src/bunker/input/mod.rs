@@ -4,8 +4,11 @@ pub mod controller;
 
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions};
+use bevy_yarnspinner::prelude::DialogueRunner;
 
-use super::{FpsCamera, InteractPrompt, LaptopObject};
+use super::dialogue::ActiveRunner;
+use super::visitor::{admit_visitor, VisitorState};
+use super::{CameraMode, DoorButton, FpsCamera, InteractPrompt, LaptopObject};
 use crate::PlayingState;
 
 pub struct InputPlugin;
@@ -40,11 +43,22 @@ fn hide_interact_prompt(mut prompt_q: Query<&mut Visibility, With<InteractPrompt
 fn update_interact_prompt(
     camera_q: Query<&Transform, With<FpsCamera>>,
     laptop_q: Query<&Transform, With<LaptopObject>>,
+    button_q: Query<&Transform, With<DoorButton>>,
+    visitor_state: Res<VisitorState>,
     mut prompt_q: Query<(&mut Text, &mut Visibility), With<InteractPrompt>>,
 ) {
-    let near = is_near_laptop(&camera_q, &laptop_q);
+    // Door button takes priority when a visitor is knocking — that's
+    // the timely interaction. Both checks are pure proximity, no
+    // facing-direction gate.
+    let knocking = matches!(*visitor_state, VisitorState::Knocking { .. });
+    let near_button = knocking && is_near(&camera_q, &button_q);
+    let near_laptop = is_near(&camera_q, &laptop_q);
+
     for (mut text, mut vis) in &mut prompt_q {
-        if near {
+        if near_button {
+            text.0 = "[E] Open Door".into();
+            *vis = Visibility::Visible;
+        } else if near_laptop {
             text.0 = "[E] Use Laptop".into();
             *vis = Visibility::Visible;
         } else {
@@ -53,37 +67,62 @@ fn update_interact_prompt(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn interact(
     keys: Res<ButtonInput<KeyCode>>,
     camera_q: Query<&Transform, With<FpsCamera>>,
     laptop_q: Query<&Transform, With<LaptopObject>>,
+    button_q: Query<&Transform, With<DoorButton>>,
+    visitor_state: ResMut<VisitorState>,
+    camera_mode: ResMut<CameraMode>,
+    runner_q: Query<&mut DialogueRunner, With<ActiveRunner>>,
+    meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<StandardMaterial>>,
+    commands: Commands,
     mut next_state: ResMut<NextState<PlayingState>>,
 ) {
     if !keys.just_pressed(KeyCode::KeyE) {
         return;
     }
-    if is_near_laptop(&camera_q, &laptop_q) {
+    let knocking = matches!(*visitor_state, VisitorState::Knocking { .. });
+    let in_dialogue = matches!(*visitor_state, VisitorState::Inside { .. });
+
+    // Knocking visitor takes priority over the laptop — admit them.
+    if knocking && is_near(&camera_q, &button_q) {
+        admit_visitor(
+            commands,
+            visitor_state,
+            camera_mode,
+            camera_q,
+            runner_q,
+            meshes,
+            materials,
+        );
+        return;
+    }
+    // Block laptop entry while a visitor is in the bunker — the
+    // dialogue runs in the bunker view, the laptop is not available
+    // until the conversation ends.
+    if in_dialogue {
+        return;
+    }
+    if is_near(&camera_q, &laptop_q) {
         *next_state = NextState::Pending(PlayingState::Laptop);
     }
 }
 
-fn is_near_laptop(
+/// Pure proximity check. Used by both the laptop and the door
+/// button — neither requires the player to be looking *at* the
+/// target, just standing near the desk.
+fn is_near<M: Component>(
     camera_q: &Query<&Transform, With<FpsCamera>>,
-    laptop_q: &Query<&Transform, With<LaptopObject>>,
+    target_q: &Query<&Transform, With<M>>,
 ) -> bool {
     let Ok(cam) = camera_q.single() else {
         return false;
     };
-    let Ok(laptop) = laptop_q.single() else {
+    let Ok(target) = target_q.single() else {
         return false;
     };
-    let dist = cam.translation.distance(laptop.translation);
-    if dist > INTERACT_DIST {
-        return false;
-    }
-
-    // Check if looking toward the laptop (dot product > 0.5 ≈ within ~60° cone)
-    let to_laptop = (laptop.translation - cam.translation).normalize_or_zero();
-    let forward = cam.forward().as_vec3();
-    forward.dot(to_laptop) > 0.5
+    cam.translation.distance(target.translation) <= INTERACT_DIST
 }

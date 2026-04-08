@@ -1,7 +1,14 @@
-//! 3D bunker scene with FPS camera.
+//! 3D bunker scene with FPS camera. Visitor dialogue lives here too —
+//! the player meets visitors at the counter inside the bunker, not on
+//! the laptop map.
 
 pub mod blockout;
+mod dialogue;
 mod input;
+mod visitor;
+
+pub use self::dialogue::{CurrentDialogue, DialogueChoice, DialogueOptionView};
+pub use self::visitor::{Visitor, VisitorQueue, VisitorState};
 
 use bevy::prelude::*;
 
@@ -11,7 +18,12 @@ pub struct BunkerPlugin;
 
 impl Plugin for BunkerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((input::InputPlugin, blockout::BlockoutPlugin));
+        app.add_plugins((
+            input::InputPlugin,
+            blockout::BlockoutPlugin,
+            dialogue::DialoguePlugin,
+            visitor::VisitorPlugin,
+        ));
         app.insert_resource(CameraMode::Free);
         app.add_systems(OnEnter(PlayingState::Bunker), enable_bunker_camera);
         app.add_systems(OnEnter(PlayingState::Laptop), start_laptop_zoom);
@@ -32,6 +44,11 @@ pub struct LaptopObject;
 #[derive(Component)]
 pub struct InteractPrompt;
 
+/// Marker for the small dome on the desk that admits a knocking
+/// visitor. Spawned by the blockout module; clicked via mesh picking.
+#[derive(Component)]
+pub struct DoorButton;
+
 /// Camera zoomed to laptop. desk_z=1.0, screen at desk_z+0.12=1.12
 const LAPTOP_VIEW_POS: Vec3 = Vec3::new(0.0, 1.15, 0.5);
 const LAPTOP_VIEW_TARGET: Vec3 = Vec3::new(0.0, 0.90, 1.12);
@@ -43,6 +60,13 @@ pub enum CameraMode {
     ZoomingToLaptop { saved_transform: Transform },
     AtLaptop { saved_transform: Transform },
     Returning(Transform),
+    /// Smoothly turn (rotation only) to face a world-space point.
+    /// Used while a visitor is inside the bunker. The position is
+    /// untouched — the player stays where they were standing.
+    LookingAt {
+        target: Vec3,
+        saved_transform: Transform,
+    },
 }
 
 fn start_laptop_zoom(camera_q: Query<&Transform, With<FpsCamera>>, mut mode: ResMut<CameraMode>) {
@@ -124,6 +148,14 @@ fn animate_camera(
                 .rotation;
             transform.translation = LAPTOP_VIEW_POS;
             transform.rotation = target_rot;
+        }
+        CameraMode::LookingAt { target, .. } => {
+            // Rotation only — player stays put. Smoothly slerp the
+            // current rotation toward facing the visitor.
+            let target_rot = Transform::from_translation(transform.translation)
+                .looking_at(target, Vec3::Y)
+                .rotation;
+            transform.rotation = transform.rotation.slerp(target_rot, factor);
         }
     }
 }

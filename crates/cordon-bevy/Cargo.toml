@@ -35,3 +35,6 @@ rand = { workspace = true }
 bevy_fluent = { workspace = true }
 fluent_content = { workspace = true }
 unic-langid = { workspace = true }
+
+# Dialogue
+bevy_yarnspinner = { workspace = true }

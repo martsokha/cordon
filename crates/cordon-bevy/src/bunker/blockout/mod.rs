@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use super::{BunkerSpawned, FpsCamera, InteractPrompt, LaptopObject};
+use super::{BunkerSpawned, DoorButton, FpsCamera, InteractPrompt, LaptopObject};
 use crate::PlayingState;
 
 pub struct BlockoutPlugin;
@@ -536,6 +536,23 @@ fn spawn_bunker(
             ..default()
         })),
         Transform::from_xyz(0.0, 0.92, desk_z + 0.12).with_rotation(Quat::from_rotation_x(-0.35)),
+    ));
+
+    // Door button — a small red dome on the desk to the right of
+    // the laptop. The visitor system makes it glow when someone is
+    // knocking; press E while standing near the desk to admit the
+    // visitor (handled in `bunker::input::interact`).
+    commands.spawn((
+        DoorButton,
+        Mesh3d(meshes.add(Sphere::new(0.025))),
+        MeshMaterial3d(mats.add(StandardMaterial {
+            base_color: Color::srgb(0.35, 0.05, 0.05),
+            perceptual_roughness: 0.4,
+            metallic: 0.2,
+            emissive: LinearRgba::BLACK,
+            ..default()
+        })),
+        Transform::from_xyz(0.28, 0.815, desk_z),
     ));
 
     // === TRADE GRATE (z = trade_z) ===
