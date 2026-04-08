@@ -9,7 +9,7 @@ use cordon_sim::events::ShotFired;
 use cordon_sim::plugin::SimSet;
 
 use crate::PlayingState;
-use crate::laptop::MapWorldEntity;
+use crate::laptop::map::MapWorldEntity;
 
 const TRACER_LIFE_SECS: f32 = 0.18;
 const TRACER_WIDTH: f32 = 0.7;
