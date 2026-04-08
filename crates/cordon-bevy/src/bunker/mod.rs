@@ -3,12 +3,14 @@
 //! the laptop map.
 
 pub mod blockout;
+mod cctv;
 mod dialogue;
 mod input;
 mod visitor;
 
 use bevy::prelude::*;
 
+pub use self::cctv::{ANTECHAMBER_VISITOR_POS, CctvMonitor};
 pub use self::visitor::{Visitor, VisitorQueue, VisitorState};
 use crate::PlayingState;
 
@@ -21,6 +23,7 @@ impl Plugin for BunkerPlugin {
             blockout::BlockoutPlugin,
             dialogue::DialoguePlugin,
             visitor::VisitorPlugin,
+            cctv::CctvPlugin,
         ));
         app.insert_resource(CameraMode::Free);
         app.add_systems(OnEnter(PlayingState::Bunker), enable_bunker_camera);
@@ -67,6 +70,12 @@ pub enum CameraMode {
     /// untouched — the player stays where they were standing.
     LookingAt {
         target: Vec3,
+        saved_transform: Transform,
+    },
+    /// Player is studying the CCTV feed in fullscreen. The CCTV
+    /// camera takes over the window and the FPS camera goes
+    /// inactive until the player presses E or Esc.
+    AtCctv {
         saved_transform: Transform,
     },
 }
@@ -164,6 +173,11 @@ fn animate_camera(
                 .looking_at(target, Vec3::Y)
                 .rotation;
             transform.rotation = transform.rotation.slerp(target_rot, factor);
+        }
+        CameraMode::AtCctv { .. } => {
+            // The CCTV camera takes over the window during fullscreen
+            // mode. The FPS camera doesn't move; the cctv plugin's
+            // `apply_cctv_fullscreen` system handles the swap.
         }
     }
 }

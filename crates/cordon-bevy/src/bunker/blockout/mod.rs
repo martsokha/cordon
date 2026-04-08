@@ -2,6 +2,7 @@
 
 use bevy::light::GlobalAmbientLight;
 use bevy::prelude::*;
+use bevy::ui::UiTargetCamera;
 
 use super::{BunkerSpawned, DoorButton, FpsCamera, InteractPrompt, LaptopObject};
 use crate::PlayingState;
@@ -296,12 +297,14 @@ fn spawn_bunker(
     let hole_half = 0.6;
 
     // Camera
-    commands.spawn((
-        FpsCamera,
-        Camera3d::default(),
-        Transform::from_xyz(0.0, 1.6, desk_z - 0.5)
-            .looking_at(Vec3::new(0.0, 1.2, front_z), Vec3::Y),
-    ));
+    let fps_camera_entity = commands
+        .spawn((
+            FpsCamera,
+            Camera3d::default(),
+            Transform::from_xyz(0.0, 1.6, desk_z - 0.5)
+                .looking_at(Vec3::new(0.0, 1.2, front_z), Vec3::Y),
+        ))
+        .id();
 
     // Lighting — three warm point lights down the room's centerline.
     for (pos, intensity, color, range) in [
@@ -665,8 +668,15 @@ fn spawn_bunker(
     );
 
     // === UI ===
+    // The interact prompt is a Text node anchored on the bunker
+    // camera. Without `UiTargetCamera` Bevy routes UI to the
+    // highest-`order` camera that targets the primary window —
+    // which would be the laptop 2D camera (order 1) even when
+    // it's inactive — and the prompt would render into the
+    // wrong camera tree.
     commands.spawn((
         InteractPrompt,
+        UiTargetCamera(fps_camera_entity),
         Node {
             position_type: PositionType::Absolute,
             left: Val::Percent(50.0),

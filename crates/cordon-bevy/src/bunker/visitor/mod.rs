@@ -26,7 +26,7 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::Id;
 
 use super::dialogue::{CurrentDialogue, StartDialogue};
-use super::{CameraMode, DoorButton, FpsCamera};
+use super::{ANTECHAMBER_VISITOR_POS, CameraMode, DoorButton, FpsCamera};
 use crate::PlayingState;
 
 pub struct VisitorPlugin;
@@ -44,6 +44,7 @@ impl Plugin for VisitorPlugin {
                 update_button_glow,
                 update_cursor_lock,
                 dismiss_on_dialogue_complete,
+                despawn_preview_on_leave_knocking,
             )
                 .run_if(in_state(PlayingState::Bunker)),
         );
@@ -81,24 +82,88 @@ pub enum VisitorState {
 #[derive(Message, Debug, Default, Clone, Copy)]
 pub struct AdmitVisitor;
 
-/// Marker for the visitor sprite entity, so we can despawn it when
-/// the dialogue ends.
+/// Marker for the in-bunker visitor sprite (the one shown across
+/// the desk during dialogue). Despawned when the dialogue ends.
 #[derive(Component)]
 struct VisitorSprite;
+
+/// Marker for the antechamber preview sprite (the one the CCTV
+/// camera films while a visitor is knocking). Despawned when
+/// state leaves `Knocking`.
+#[derive(Component)]
+struct KnockingPreview;
 
 /// World-space position of the placeholder visitor sprite — also
 /// the point the camera turns to face during dialogue.
 const VISITOR_SPRITE_POS: Vec3 = Vec3::new(0.0, 1.2, 2.4);
 
 /// When the door is quiet and the queue is non-empty, pop the next
-/// visitor and transition to Knocking.
-fn arrive_next_visitor(mut state: ResMut<VisitorState>, mut queue: ResMut<VisitorQueue>) {
+/// visitor, transition to Knocking, and spawn a preview sprite in
+/// the hidden antechamber so the CCTV camera has something to film.
+fn arrive_next_visitor(
+    mut commands: Commands,
+    mut state: ResMut<VisitorState>,
+    mut queue: ResMut<VisitorQueue>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
     if !matches!(*state, VisitorState::Quiet) {
         return;
     }
-    if let Some(visitor) = queue.0.pop_front() {
-        info!("visitor arrived: {}", visitor.display_name);
-        *state = VisitorState::Knocking { visitor };
+    let Some(visitor) = queue.0.pop_front() else {
+        return;
+    };
+
+    let sprite_color = faction_color(&visitor);
+    commands.spawn((
+        KnockingPreview,
+        Mesh3d(meshes.add(Plane3d::new(Vec3::Z, Vec2::new(0.4, 0.9)))),
+        MeshMaterial3d(materials.add(StandardMaterial {
+            base_color: sprite_color,
+            unlit: true,
+            double_sided: true,
+            cull_mode: None,
+            ..default()
+        })),
+        // Stand upright at the antechamber position, facing back
+        // toward the camera (which is mounted in the corner).
+        Transform::from_translation(ANTECHAMBER_VISITOR_POS)
+            .looking_at(ANTECHAMBER_VISITOR_POS + Vec3::new(0.0, 0.0, 1.0), Vec3::Y),
+    ));
+
+    info!("visitor arrived: {}", visitor.display_name);
+    *state = VisitorState::Knocking { visitor };
+}
+
+/// Despawn the antechamber preview sprite once the visitor has been
+/// admitted (or otherwise left the queue). Watches `VisitorState`
+/// for the transition out of `Knocking`.
+fn despawn_preview_on_leave_knocking(
+    mut commands: Commands,
+    state: Res<VisitorState>,
+    preview_q: Query<Entity, With<KnockingPreview>>,
+) {
+    if !state.is_changed() {
+        return;
+    }
+    if matches!(*state, VisitorState::Knocking { .. }) {
+        return;
+    }
+    for entity in &preview_q {
+        commands.entity(entity).despawn();
+    }
+}
+
+/// Visitor faction → placeholder sprite color. Used by both the
+/// in-bunker sprite and the antechamber preview sprite.
+fn faction_color(visitor: &Visitor) -> Color {
+    match visitor.faction.as_str() {
+        "garrison" => Color::srgb(0.42, 0.55, 0.30),
+        "syndicate" => Color::srgb(0.66, 0.27, 0.16),
+        "institute" => Color::srgb(0.23, 0.55, 0.62),
+        "devoted" => Color::srgb(0.48, 0.25, 0.55),
+        "drifters" => Color::srgb(0.62, 0.48, 0.31),
+        _ => Color::srgb(0.6, 0.6, 0.6),
     }
 }
 
@@ -150,14 +215,7 @@ fn apply_admit_visitor(
 
     // Placeholder sprite: a vertical colored quad standing in front
     // of the desk. Real visitor art replaces this later.
-    let sprite_color = match visitor.faction.as_str() {
-        "garrison" => Color::srgb(0.42, 0.55, 0.30),
-        "syndicate" => Color::srgb(0.66, 0.27, 0.16),
-        "institute" => Color::srgb(0.23, 0.55, 0.62),
-        "devoted" => Color::srgb(0.48, 0.25, 0.55),
-        "drifters" => Color::srgb(0.62, 0.48, 0.31),
-        _ => Color::srgb(0.6, 0.6, 0.6),
-    };
+    let sprite_color = faction_color(&visitor);
     let sprite_entity = commands
         .spawn((
             VisitorSprite,
