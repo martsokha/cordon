@@ -161,7 +161,7 @@ fn spawn_cctv_monitor(
     cctv_materials: &mut Assets<CctvMaterial>,
     image: Handle<Image>,
 ) {
-    // Bunker geometry constants from the blockout: walls at
+    // Bunker geometry constants from `room`: walls at
     // x = ±2.0, ceiling at h ≈ 2.4. The monitor sits in the
     // front-right corner just before the trade grate (z ≈ 1.5),
     // mounted high under the ceiling and tilted down toward the

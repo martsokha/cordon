@@ -2,10 +2,10 @@
 //! the player meets visitors at the counter inside the bunker, not on
 //! the laptop map.
 
-pub mod blockout;
 mod cctv;
 mod dialogue;
 mod input;
+pub mod room;
 mod visitor;
 
 use bevy::prelude::*;
@@ -20,7 +20,7 @@ impl Plugin for BunkerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
             input::InputPlugin,
-            blockout::BlockoutPlugin,
+            room::RoomPlugin,
             dialogue::DialoguePlugin,
             visitor::VisitorPlugin,
             cctv::CctvPlugin,
@@ -46,7 +46,7 @@ pub struct LaptopObject;
 pub struct InteractPrompt;
 
 /// Marker for the small dome on the desk that admits a knocking
-/// visitor. Spawned by the blockout module; clicked via mesh picking.
+/// visitor. Spawned by the room module; clicked via mesh picking.
 #[derive(Component)]
 pub struct DoorButton;
 

@@ -83,7 +83,7 @@ fn spawn_dialogue_ui(
         return;
     }
     // Wait until the bunker has spawned its camera. Without this we
-    // race the blockout `OnEnter` systems on the first frame and the
+    // race the room `OnEnter` systems on the first frame and the
     // panel ends up untargeted (defaulting to the laptop camera by
     // virtue of its higher `order`).
     let Ok(fps_camera) = fps_camera_q.single() else {

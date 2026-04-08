@@ -1,4 +1,4 @@
-//! Blockout geometry: reusable building blocks for the bunker scene.
+//! Bunker room geometry and lighting.
 
 use bevy::light::GlobalAmbientLight;
 use bevy::prelude::*;
@@ -7,9 +7,9 @@ use bevy::ui::UiTargetCamera;
 use super::{BunkerSpawned, DoorButton, FpsCamera, InteractPrompt, LaptopObject};
 use crate::PlayingState;
 
-pub struct BlockoutPlugin;
+pub struct RoomPlugin;
 
-impl Plugin for BlockoutPlugin {
+impl Plugin for RoomPlugin {
     fn build(&self, app: &mut App) {
         // Soft warm ambient lift so shadows don't crush to black.
         // The bunker is meant to feel cozy, not pitch dark.
@@ -25,7 +25,7 @@ impl Plugin for BlockoutPlugin {
     }
 }
 
-/// Shared materials for blockout geometry.
+/// Shared materials for room geometry.
 struct Palette {
     concrete: Handle<StandardMaterial>,
     concrete_dark: Handle<StandardMaterial>,
