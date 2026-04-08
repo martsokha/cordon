@@ -19,6 +19,7 @@ use crate::combat::CombatPlugin;
 use crate::day::DayCyclePlugin;
 use crate::death::DeathPlugin;
 use crate::loot::LootPlugin;
+use crate::quest::QuestPlugin;
 use crate::resources::{GameClock, SquadIdIndex, UidAllocator};
 use crate::spawn;
 use crate::spawn::relics::RelicSpawnPlugin;
@@ -98,6 +99,7 @@ impl Plugin for CordonSimPlugin {
             DeathPlugin,
             LootPlugin,
             RelicSpawnPlugin,
+            QuestPlugin,
         ));
     }
 }
@@ -134,6 +136,7 @@ pub mod prelude {
     pub use crate::day::DayRolled;
     pub use crate::death::{CorpseRemoved, NpcDied};
     pub use crate::loot::ItemLooted;
+    pub use crate::quest::{ActiveQuest, CompletedQuest, QuestLog, StartQuestRequest};
     pub use crate::resources::{
         AreaStates, EventLog, FactionIndex, GameClock, Player, SquadIdIndex, UidAllocator,
     };

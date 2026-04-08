@@ -9,6 +9,7 @@ mod bunker;
 mod debug;
 mod laptop;
 mod locale;
+mod quest;
 
 use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
@@ -56,7 +57,8 @@ fn main() {
     .add_plugins(locale::LocalePlugin)
     .add_plugins(CordonSimPlugin)
     .add_plugins(bunker::BunkerPlugin)
-    .add_plugins(laptop::LaptopPlugin);
+    .add_plugins(laptop::LaptopPlugin)
+    .add_plugins(quest::QuestBridgePlugin);
 
     // Bootstrap the cordon-sim resource set on enter-play.
     // `init_world_resources` lives in cordon-sim — it knows how to

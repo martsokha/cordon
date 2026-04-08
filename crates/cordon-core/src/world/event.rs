@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 
 use super::area::Area;
 use super::narrative::consequence::Consequence;
-use super::narrative::quest::Quest;
 use crate::entity::faction::Faction;
 use crate::primitive::{Day, Id, IdMarker};
 
@@ -24,7 +23,9 @@ impl IdMarker for Event {}
 /// Each category has its own base roll probability per day, modified
 /// by world state (Zone instability, market stability, faction tensions,
 /// security level, narrative flags).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum EventCategory {
     /// Weather, surges, hazard shifts, creature activity.
     Environmental,
@@ -82,8 +83,6 @@ pub struct EventDef {
     pub consequences: Vec<Consequence>,
     /// IDs of events that chain from this one (e.g., surge → relic rush).
     pub chain_events: Vec<Id<Event>>,
-    /// Quest ID triggered when this event fires. `None` means no quest.
-    pub triggers_quest: Option<Id<Quest>>,
 }
 
 /// An active event instance in the game world.

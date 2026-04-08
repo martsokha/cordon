@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use super::bunker::Upgrade;
 use super::faction::Faction;
 use super::npc::{Npc, Role};
-use crate::item::Stash;
+use crate::item::{Item, ItemInstance, Stash, StashScope};
 use crate::primitive::{Credits, Experience, Id, Relation, Uid};
 
 /// Player rank tier. Determines squad capacity and unlocks.
@@ -173,5 +173,69 @@ impl PlayerState {
     /// Whether the base has a generator (prevents power outages).
     pub fn has_power(&self) -> bool {
         self.has_upgrade(&Id::<Upgrade>::new("generator"))
+    }
+
+    /// Total count of a given item definition across the requested
+    /// scope. For weapons and consumables this counts *instances*
+    /// (one per entry in the stash); for ammo it sums the `count`
+    /// field across matching instances (rounds across boxes).
+    pub fn item_count(&self, item: &Id<Item>, scope: StashScope) -> u32 {
+        let sum = |stash: &Stash| -> u32 {
+            stash
+                .items()
+                .iter()
+                .filter(|i| &i.def_id == item)
+                .map(|i| i.count)
+                .sum()
+        };
+        match scope {
+            StashScope::Main => sum(&self.storage),
+            StashScope::Hidden => sum(&self.hidden_storage),
+            StashScope::Any => sum(&self.storage) + sum(&self.hidden_storage),
+        }
+    }
+
+    /// Whether the player holds at least `count` of the given item
+    /// def within the scope. Uses [`item_count`](Self::item_count)
+    /// semantics — one instance of a 30-round ammo box counts as 30.
+    pub fn has_item(&self, item: &Id<Item>, count: u32, scope: StashScope) -> bool {
+        self.item_count(item, scope) >= count
+    }
+
+    /// Insert an item instance into the requested scope.
+    ///
+    /// For [`StashScope::Any`], main is preferred and hidden is
+    /// used as overflow. Returns `Err(instance)` when every
+    /// targeted stash is full.
+    pub fn add_item(
+        &mut self,
+        instance: ItemInstance,
+        scope: StashScope,
+    ) -> Result<(), ItemInstance> {
+        match scope {
+            StashScope::Main => self.storage.add(instance),
+            StashScope::Hidden => self.hidden_storage.add(instance),
+            StashScope::Any => match self.storage.add(instance) {
+                Ok(()) => Ok(()),
+                Err(instance) => self.hidden_storage.add(instance),
+            },
+        }
+    }
+
+    /// Remove and return the first instance of the given item def
+    /// within the scope, or `None` if nothing matches. Under
+    /// [`StashScope::Any`] main is searched first.
+    pub fn remove_first(&mut self, item: &Id<Item>, scope: StashScope) -> Option<ItemInstance> {
+        let take_from = |stash: &mut Stash| -> Option<ItemInstance> {
+            let index = stash.items().iter().position(|i| &i.def_id == item)?;
+            stash.remove(index)
+        };
+        match scope {
+            StashScope::Main => take_from(&mut self.storage),
+            StashScope::Hidden => take_from(&mut self.hidden_storage),
+            StashScope::Any => {
+                take_from(&mut self.storage).or_else(|| take_from(&mut self.hidden_storage))
+            }
+        }
     }
 }

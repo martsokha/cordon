@@ -8,8 +8,9 @@ use serde::{Deserialize, Serialize};
 /// targeted search missions, UI filtering, inventory grouping.
 /// Does not carry type-specific data — see [`ItemData`](super::ItemData)
 /// for that.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ItemCategory {
     /// Food, medicine, drinks, pills.
     Consumable,

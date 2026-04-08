@@ -1,0 +1,7 @@
+{
+  "id": "first_contact_intro",
+  "quest": "first_contact",
+  "kind": "on_game_start",
+  "extra_requires": [],
+  "repeatable": false
+}

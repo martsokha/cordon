@@ -11,6 +11,7 @@ mod def;
 mod effect;
 mod instance;
 mod loadout;
+mod scope;
 mod stash;
 
 pub use self::category::ItemCategory;
@@ -25,4 +26,5 @@ pub use self::effect::{
 };
 pub use self::instance::ItemInstance;
 pub use self::loadout::{BASE_GENERAL_SLOTS, Loadout, MAX_RELIC_SLOTS};
+pub use self::scope::StashScope;
 pub use self::stash::Stash;

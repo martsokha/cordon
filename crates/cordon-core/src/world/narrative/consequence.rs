@@ -1,95 +1,147 @@
-//! Consequences and conditions shared by quests and events.
+//! Conditions and consequences shared by quests and events.
 //!
-//! [`Consequence`] describes what happens when a quest stage completes,
-//! a choice is made, or an event fires. [`ObjectiveCondition`] describes
-//! what must be true for a quest objective to succeed or a choice to
-//! be available.
+//! [`ObjectiveCondition`] is the vocabulary for "something the
+//! player must satisfy" — quest objectives, quest trigger
+//! prerequisites, and choice gates. [`Consequence`] is the
+//! vocabulary for "something that happens to the world" — quest
+//! outcomes, event fallout, choice effects.
+//!
+//! Both enums are shared so the sim has a single condition
+//! evaluator and a single consequence applier, no matter whether
+//! the caller is a quest stage or an active event.
+//!
+//! Conditions are recursive: [`ObjectiveCondition::AllOf`],
+//! [`AnyOf`](ObjectiveCondition::AnyOf), and
+//! [`Not`](ObjectiveCondition::Not) compose the leaf conditions
+//! into arbitrary boolean expressions.
 
 use serde::{Deserialize, Serialize};
 
 use super::quest::Quest;
 use crate::entity::bunker::Upgrade;
 use crate::entity::faction::Faction;
-use crate::entity::npc::{Npc, NpcTemplate};
-use crate::item::{Item, ItemCategory};
-use crate::primitive::{Credits, Id, Relation, Uid};
+use crate::entity::npc::NpcTemplate;
+use crate::item::{Item, ItemCategory, StashScope};
+use crate::primitive::{Credits, Id, Relation};
 use crate::world::area::Area;
 use crate::world::event::Event;
 
-/// A condition that must be met.
+/// A boolean condition over world state.
 ///
-/// Used for quest objectives (what the player must do) and for
-/// gating choice availability (choice only appears if condition is met).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Used for quest objectives (what must become true for a stage
+/// to succeed), quest trigger prerequisites (extra gating on top
+/// of the trigger kind), and quest flag lookups. Compound
+/// conditions ([`AllOf`](Self::AllOf), [`AnyOf`](Self::AnyOf),
+/// [`Not`](Self::Not)) make the leaf vocabulary compose without
+/// needing a custom per-quest condition type.
+#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ObjectiveCondition {
-    /// Player must have a specific item in storage.
-    HaveItem(Id<Item>),
-    /// Player must have at least this many credits.
+    /// Player holds at least `count` of the given item def in
+    /// the scoped stash(es).
+    HaveItem {
+        item: Id<Item>,
+        #[serde(default = "default_item_count")]
+        count: u32,
+        #[serde(default)]
+        scope: StashScope,
+    },
+    /// Player has at least this many credits.
     HaveCredits(Credits),
-    /// Player must reach a minimum standing with a faction.
+    /// Player's standing with the given faction is at least the
+    /// given relation.
     FactionStanding {
         faction: Id<Faction>,
         min_standing: Relation,
     },
-    /// Player must have a specific upgrade installed.
+    /// The given upgrade is installed.
     HaveUpgrade(Id<Upgrade>),
-    /// A specific event must be active in the world.
+    /// The given event is currently active.
     EventActive(Id<Event>),
-    /// A specific quest must be currently active.
+    /// The given quest is currently active.
     QuestActive(Id<Quest>),
-    /// A specific quest must have been completed successfully.
+    /// The given quest has been completed successfully.
     QuestCompleted(Id<Quest>),
-    /// Player must deliver a specific item to the quest NPC.
-    DeliverItem(Id<Item>),
-    /// Simply wait (used with timeout_days on the stage).
+    /// A flag on the given active quest equals a specific string
+    /// value. For numeric / boolean flags the evaluator coerces
+    /// via Yarn's value cast rules.
+    QuestFlag {
+        quest: Id<Quest>,
+        key: String,
+        equals: String,
+    },
+    /// Trivial condition — always true. Used with a stage
+    /// `timeout_minutes` to implement "wait N minutes then
+    /// advance" without any world dependency.
     Wait,
+    /// All of the nested conditions must be true.
+    AllOf(Vec<ObjectiveCondition>),
+    /// At least one of the nested conditions must be true.
+    AnyOf(Vec<ObjectiveCondition>),
+    /// Logical negation of the nested condition.
+    Not(Box<ObjectiveCondition>),
 }
 
-/// A consequence applied when a choice is made, a quest stage
-/// completes, or an event fires.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+fn default_item_count() -> u32 {
+    1
+}
+
+/// A mutation applied to world state.
+///
+/// Fired by quest outcomes, quest stage transitions, choice
+/// effects, and event triggers. The sim has a single applier
+/// that pattern-matches on this enum — adding a new variant
+/// means adding one branch there and nowhere else.
+#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Consequence {
-    /// Change standing with a faction.
+    /// Shift the player's standing with a faction.
     StandingChange {
         faction: Id<Faction>,
         delta: Relation,
     },
-    /// Give credits to the player.
+    /// Credit the player with currency.
     GiveCredits(Credits),
-    /// Take credits from the player.
+    /// Debit the player's currency.
     TakeCredits(Credits),
-    /// Give an item to the player (placed in storage).
-    GiveItem(Id<Item>),
-    /// Remove an item from the player's storage.
-    TakeItem(Id<Item>),
-    /// Trigger an event by its def ID.
-    TriggerEvent(Id<Event>),
-    /// Start a quest.
-    StartQuest(Id<Quest>),
-    /// Unlock an upgrade (make it available for purchase/installation).
-    UnlockUpgrade(Id<Upgrade>),
-    /// Spawn a named NPC visitor (references an NPC template ID from config).
-    SpawnNpc(Id<NpcTemplate>),
-    /// Immediately fail the current quest (only meaningful in quest context).
-    FailQuest,
-    /// Award experience points to the player. Rank is derived from
-    /// accumulated XP — enough XP triggers an automatic rank-up.
-    GivePlayerXp(u32),
-    /// Award experience points to an NPC (by runtime UID). NPC rank
-    /// is derived from accumulated XP.
-    GiveNpcXp(Uid<Npc>, u32),
-    /// Modify danger in a target area.
-    DangerModifier {
-        /// Area ID. If `None`, applies zone-wide.
-        area: Option<Id<Area>>,
-        /// Additive danger change.
-        delta: f32,
+    /// Place an item into the player's stash in the given scope.
+    GiveItem {
+        item: Id<Item>,
+        #[serde(default)]
+        scope: StashScope,
     },
-    /// Modify market prices for an item category.
+    /// Remove an item from the player's stash in the given scope.
+    TakeItem {
+        item: Id<Item>,
+        #[serde(default)]
+        scope: StashScope,
+    },
+    /// Fire an event by its definition ID.
+    TriggerEvent(Id<Event>),
+    /// Start a quest manually (bypassing its trigger table).
+    StartQuest(Id<Quest>),
+    /// Unlock a bunker upgrade for purchase / installation.
+    UnlockUpgrade(Id<Upgrade>),
+    /// Spawn a visitor from the given NPC template.
+    SpawnNpc(Id<NpcTemplate>),
+    /// Grant the player experience. Rank is derived from total XP.
+    GivePlayerXp(u32),
+    /// Grant an NPC template experience. The sim resolves the
+    /// template to one live instance (e.g. the quest's current
+    /// giver) at apply time.
+    GiveNpcXp {
+        template: Id<NpcTemplate>,
+        amount: u32,
+    },
+    /// Shift the danger rating of an area, or the whole zone if
+    /// [`area`](Consequence::DangerModifier::area) is `None`.
+    DangerModifier { area: Option<Id<Area>>, delta: f32 },
+    /// Multiply market prices for an item category. Stacks
+    /// multiplicatively with other active modifiers.
     PriceModifier {
-        /// Item category affected.
         category: ItemCategory,
-        /// Price multiplier (e.g., 1.5 = 50% more expensive).
         multiplier: f32,
     },
 }

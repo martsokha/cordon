@@ -27,6 +27,10 @@ pub mod loot;
 /// Bevy plugin entry point.
 pub mod plugin;
 
+/// Runtime quest state, condition evaluation, consequence
+/// application, and trigger dispatch.
+pub mod quest;
+
 /// Top-level Bevy resources owned by cordon-sim.
 pub mod resources;
 

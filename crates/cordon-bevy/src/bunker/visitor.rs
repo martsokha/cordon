@@ -24,6 +24,7 @@ use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions};
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::Id;
+use cordon_core::world::narrative::quest::Quest;
 
 use super::dialogue::{CurrentDialogue, StartDialogue};
 use super::{ANTECHAMBER_VISITOR_POS, CameraMode, DoorButton, FpsCamera};
@@ -58,6 +59,12 @@ pub struct Visitor {
     pub display_name: String,
     pub faction: Id<Faction>,
     pub yarn_node: String,
+    /// Quest this visitor belongs to, if any. Set by the quest
+    /// engine when it enqueues a visitor for a `Talk` stage;
+    /// read by the quest dialogue bridge on `DialogueCompleted`
+    /// to route the yarn variables back to the right active
+    /// quest. `None` for ambient (non-quest) visitors.
+    pub quest: Option<Id<Quest>>,
 }
 
 /// FIFO queue of visitors waiting outside.

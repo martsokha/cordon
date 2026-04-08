@@ -2291,6 +2291,7 @@ dependencies = [
  "bevy",
  "bevy_prng",
  "bevy_rand",
+ "bevy_yarnspinner",
  "cordon-core",
  "cordon-data",
  "rand 0.10.0",
