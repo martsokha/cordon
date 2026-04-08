@@ -1,6 +1,6 @@
 //! Procedural terrain, cloud, anomaly, and CRT rendering.
 
-mod anomaly;
+pub(crate) mod anomaly;
 mod clouds;
 mod crt;
 mod daynight;

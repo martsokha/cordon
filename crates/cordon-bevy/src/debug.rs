@@ -1,5 +1,6 @@
 //! Debug overlay: FPS counter, entity count, diagnostics, world
-//! inspector, and dev-only shortcuts (F2 → push a test visitor).
+//! inspector, and dev-only cheats (F2 → push a test visitor,
+//! F3 → toggle map fog of war).
 
 use bevy::diagnostic::{
     EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin,
@@ -11,6 +12,7 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::Id;
 
 use crate::bunker::{Visitor, VisitorQueue};
+use crate::laptop::fog::FogEnabled;
 
 pub struct DebugPlugin;
 
@@ -33,8 +35,20 @@ impl Plugin for DebugPlugin {
         app.add_systems(Update, (update_fps_counter, toggle_inspector));
         // Dev-only shortcuts that don't belong in shipping builds.
         #[cfg(debug_assertions)]
-        app.add_systems(Update, debug_push_visitor);
+        app.add_systems(Update, (debug_push_visitor, cheat_toggle_fog));
     }
+}
+
+/// F3 → toggle map fog of war. Reveals every area and shows every
+/// NPC/relic regardless of player line of sight. Compiled out of
+/// release builds.
+#[cfg(debug_assertions)]
+fn cheat_toggle_fog(keys: Res<ButtonInput<KeyCode>>, mut fog: ResMut<FogEnabled>) {
+    if !keys.just_pressed(KeyCode::F3) {
+        return;
+    }
+    fog.enabled = !fog.enabled;
+    info!("cheat: fog {}", if fog.enabled { "on" } else { "off" });
 }
 
 /// F2 → push a hardcoded test visitor onto the queue. Stand-in for
