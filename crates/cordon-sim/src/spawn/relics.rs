@@ -31,9 +31,18 @@ use crate::behavior::Dead;
 use crate::components::{
     LoadoutComp, NpcMarker, RelicHome, RelicItem, RelicMarker, SquadGoal, SquadLeader,
 };
-use crate::events::{DayRolled, RelicPickedUp};
+use crate::day::DayRolled;
 use crate::plugin::SimSet;
 use crate::tuning::{RELIC_ATTEMPTS_PER_AREA, RELIC_PICKUP_REACH, RELIC_SPAWN_PROBABILITY};
+
+/// A squad member picked up a relic lying in the world. The
+/// relic entity has already been despawned; the item is now in
+/// the picker's loadout.
+#[derive(Message, Debug, Clone)]
+pub struct RelicPickedUp {
+    pub picker: Entity,
+    pub item: Id<Item>,
+}
 
 pub struct RelicSpawnPlugin;
 

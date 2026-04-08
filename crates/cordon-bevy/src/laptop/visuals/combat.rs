@@ -5,7 +5,7 @@
 //! line entity per event and fades it out.
 
 use bevy::prelude::*;
-use cordon_sim::events::ShotFired;
+use cordon_sim::combat::ShotFired;
 use cordon_sim::plugin::SimSet;
 
 use crate::PlayingState;

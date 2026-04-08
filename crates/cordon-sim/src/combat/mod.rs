@@ -17,8 +17,17 @@ use cordon_data::gamedata::GameDataResource;
 
 use crate::behavior::{CombatTarget, Dead, FireState};
 use crate::components::{Hp, LoadoutComp};
-use crate::events::ShotFired;
 use crate::plugin::SimSet;
+
+/// A weapon discharged from `from` toward `to`. The visual layer
+/// renders a tracer; the audio layer plays a gunshot. Emitted
+/// at most once per shooter per frame by `resolve_combat`.
+#[derive(Message, Debug, Clone, Copy)]
+pub struct ShotFired {
+    pub shooter: Entity,
+    pub from: Vec2,
+    pub to: Vec2,
+}
 
 /// Whether two factions are hostile.
 pub fn is_hostile(
@@ -403,9 +412,7 @@ fn resolve_combat(
                 *fire_state = FireState::default();
                 continue;
             };
-            let Some(stats) =
-                load_weapon_stats(&loadout.0, target_info.ballistic, items)
-            else {
+            let Some(stats) = load_weapon_stats(&loadout.0, target_info.ballistic, items) else {
                 combat_target.0 = None;
                 *fire_state = FireState::default();
                 continue;
@@ -416,11 +423,7 @@ fn resolve_combat(
                 continue;
             }
 
-            let mag_count = loadout
-                .0
-                .equipped_weapon()
-                .map(|w| w.count)
-                .unwrap_or(0);
+            let mag_count = loadout.0.equipped_weapon().map(|w| w.count).unwrap_or(0);
 
             let outcome = simulate_shooter_frame(
                 dt,

@@ -108,6 +108,11 @@ pub mod prelude {
         AnomalyZone, CombatTarget, Dead, FireState, LootState, MovementSpeed, MovementTarget,
         Vision,
     };
+    // Events are re-exported from their producer modules so
+    // external consumers (cordon-bevy visuals, audio) can import
+    // everything from the prelude without knowing the internal
+    // module layout.
+    pub use crate::combat::ShotFired;
     pub use crate::components::{
         BaseMaxes, Employment, FactionId, Hp, HungerPool, LoadoutComp, Loyalty, NpcBundle,
         NpcMarker, NpcNameComp, Perks, PersonalityComp, RelicHome, RelicItem, RelicMarker,
@@ -115,11 +120,13 @@ pub mod prelude {
         SquadHomePosition, SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
         StaminaPool, Trust, Wealth, Xp,
     };
-    pub use crate::events::{
-        CorpseRemoved, DayRolled, ItemLooted, NpcDied, ShotFired, SquadSpawned,
-    };
+    pub use crate::day::DayRolled;
+    pub use crate::death::{CorpseRemoved, NpcDied};
+    pub use crate::loot::ItemLooted;
     pub use crate::resources::{
         AreaStates, EventLog, FactionIndex, GameClock, Player, SquadIdIndex, UidAllocator,
     };
+    pub use crate::spawn::SquadSpawned;
+    pub use crate::spawn::relics::RelicPickedUp;
     pub use crate::squad::{Owned, SquadCommand};
 }

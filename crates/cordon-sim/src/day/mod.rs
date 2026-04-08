@@ -16,9 +16,17 @@ use cordon_data::gamedata::GameDataResource;
 
 use crate::day::events::{expire_events, roll_daily_events};
 use crate::day::factions::tick_factions;
-use crate::events::DayRolled;
 use crate::plugin::SimSet;
 use crate::resources::{AreaStates, EventLog, FactionIndex, GameClock, Player};
+
+/// In-game day advanced. Fires exactly once per day rollover
+/// from [`detect_day_rollover`]; per-day work (daily event
+/// rolls, faction reactions, event expiry) runs as separate
+/// systems gated on this message.
+#[derive(Message, Debug, Clone, Copy)]
+pub struct DayRolled {
+    pub new_day: Day,
+}
 
 pub struct DayCyclePlugin;
 

@@ -8,7 +8,7 @@
 
 use bevy::prelude::*;
 use cordon_sim::components::{FactionId, NpcMarker};
-use cordon_sim::events::NpcDied;
+use cordon_sim::death::NpcDied;
 use cordon_sim::plugin::SimSet;
 
 use crate::AppState;

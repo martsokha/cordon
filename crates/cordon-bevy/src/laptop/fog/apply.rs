@@ -12,8 +12,8 @@ use cordon_sim::components::{NpcMarker, RelicMarker, SquadMembership};
 use super::{DiscoveredDisks, FogEnabled, FogReveals, PlayerSquads, RevealedAreas};
 use crate::PlayingState;
 use crate::laptop::environment::anomaly::AnomalyVisual;
-use crate::laptop::ui::LaptopTab;
 use crate::laptop::map::{AreaCircle, Bunker};
+use crate::laptop::ui::LaptopTab;
 
 /// World-space radius of the always-on vision around the bunker
 /// at the origin. The player can see anything inside this circle

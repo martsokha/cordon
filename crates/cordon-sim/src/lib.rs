@@ -21,9 +21,6 @@ pub mod day;
 /// Death and corpse lifecycle.
 pub mod death;
 
-/// Sim → game events emitted on the boundary.
-pub mod events;
-
 /// Looting: alive NPCs pull items from nearby corpses.
 pub mod loot;
 

@@ -2,14 +2,23 @@
 //! their own general pouch.
 
 use bevy::prelude::*;
-use cordon_core::item::{ItemData, Loadout};
+use cordon_core::item::{Item, ItemData, Loadout};
+use cordon_core::primitive::Id;
 use cordon_data::gamedata::GameDataResource;
 
 use crate::behavior::{CombatTarget, Dead, LootState};
 use crate::components::{LoadoutComp, NpcMarker, Xp};
-use crate::events::ItemLooted;
 use crate::plugin::SimSet;
 use crate::tuning::{LOOT_INTERVAL_SECS, LOOT_REACH};
+
+/// A looter pulled an item from a corpse into their general
+/// pouch.
+#[derive(Message, Debug, Clone)]
+pub struct ItemLooted {
+    pub looter: Entity,
+    pub corpse: Entity,
+    pub item: Id<Item>,
+}
 
 pub struct LootPlugin;
 

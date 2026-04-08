@@ -32,6 +32,15 @@ use crate::spawn::generator::{
 };
 use crate::tuning::{SPAWN_DAY_END, SPAWN_DAY_START};
 
+/// A fresh squad just entered the world. Currently declared
+/// but not wired up — reserved as a seed for future spawn →
+/// visual/audio hooks.
+#[derive(Message, Debug, Clone)]
+pub struct SquadSpawned {
+    pub entity: Entity,
+    pub faction: Id<Faction>,
+}
+
 /// Per-day spawn schedule: a list of `(day_progress, chunk_size)`
 /// pairs picked at the start of each in-game day. Each entry fires
 /// once when the in-game day progress reaches it; chunks are then

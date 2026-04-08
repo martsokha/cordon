@@ -25,11 +25,10 @@ use bevy_fluent::prelude::*;
 use cordon_core::primitive::Tier;
 use cordon_data::gamedata::GameDataResource;
 
-pub use crate::laptop::ui::MapWorldEntity;
-use crate::PlayingState;
-use crate::laptop::ui::{LaptopFont, spawn_ui};
-
 use self::tooltip::build_area_info;
+use crate::PlayingState;
+pub use crate::laptop::ui::MapWorldEntity;
+use crate::laptop::ui::{LaptopFont, spawn_ui};
 
 const COLOR_AREA: Color = Color::srgba(1.0, 1.0, 1.0, 0.08);
 const COLOR_AREA_BORDER: Color = Color::srgba(1.0, 1.0, 1.0, 0.25);
