@@ -4,5 +4,6 @@ resources:
   - factions.ftl
   - items.ftl
   - names.ftl
+  - quests.ftl
   - ranks.ftl
   - ui.ftl

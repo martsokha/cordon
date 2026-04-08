@@ -95,7 +95,7 @@ fn spawn_map(
     let empty_l10n = Localization::default();
     let l10n = l10n.as_deref().unwrap_or(&empty_l10n);
 
-    spawn_ui(&mut commands, &laptop_font.0);
+    spawn_ui(&mut commands, &laptop_font.0, l10n);
 
     // Shared border material — safe to share because nothing ever
     // mutates the border color at runtime. Disk materials, by

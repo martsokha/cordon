@@ -17,6 +17,8 @@
 //! lives there and only calls back into [`advance_after_talk`]
 //! when Yarn returns a choice.
 
+use std::collections::HashSet;
+
 use bevy::prelude::*;
 use cordon_core::primitive::{GameTime, Id};
 use cordon_core::world::narrative::quest::{
@@ -305,20 +307,19 @@ pub fn process_start_quest_requests(
     }
 }
 
-/// Fire `OnGameStart` triggers once, on the first frame after
-/// the quest log is live.
+/// Fire `OnGameStart` triggers once, on the first frame the
+/// sim is fully bootstrapped. Scheduled with
+/// `.run_if(resource_added::<GameClock>)` so it runs exactly
+/// once — [`GameClock`] is inserted by `init_world_resources`
+/// on `OnEnter(AppState::Playing)`, after `GameDataResource`
+/// is already live, so all sim state is ready by then.
 pub fn dispatch_on_game_start(
     mut log: ResMut<QuestLog>,
     data: Res<GameDataResource>,
     clock: Res<GameClock>,
     player: Res<Player>,
     events: Res<EventLog>,
-    mut done: Local<bool>,
 ) {
-    if *done {
-        return;
-    }
-    *done = true;
     let now = clock.0;
     let catalog = &data.0;
     let triggers: Vec<_> = catalog
@@ -393,11 +394,12 @@ fn try_fire_trigger(
 /// Minimal type-check that the quest def exists for triggers
 /// loaded at startup. Warns about dangling references so
 /// authoring errors surface without crashing the sim.
-pub fn validate_trigger_references(data: Res<GameDataResource>, mut done: Local<bool>) {
-    if *done {
-        return;
-    }
-    *done = true;
+///
+/// Scheduled with `.run_if(resource_added::<GameDataResource>)`
+/// so it runs exactly once, on the frame the catalog first
+/// appears. No `Local<bool>` guard needed — Bevy's resource
+/// change detection handles the "fire once" semantic natively.
+pub fn validate_trigger_references(data: Res<GameDataResource>) {
     let catalog = &data.0;
     for trigger in catalog.triggers.values() {
         if !catalog.quests.contains_key(&trigger.quest) {
@@ -418,7 +420,7 @@ pub fn validate_trigger_references(data: Res<GameDataResource>, mut done: Local<
 }
 
 fn validate_stage_references(def: &QuestDef) {
-    let ids: std::collections::HashSet<_> = def.stages.iter().map(|s| &s.id).collect();
+    let ids: HashSet<_> = def.stages.iter().map(|s| &s.id).collect();
     for stage in &def.stages {
         match &stage.kind {
             QuestStageKind::Talk {

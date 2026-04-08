@@ -43,11 +43,31 @@ impl Plugin for QuestPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<QuestLog>();
         app.add_message::<StartQuestRequest>();
+
+        // One-shot systems: Bevy's `resource_added` run
+        // condition fires exactly once, on the frame the
+        // targeted resource first appears, so no `Local<bool>`
+        // latches are needed.
+        //
+        // - Validation runs as soon as the catalog is loaded
+        //   (`GameDataResource`), the earliest moment stage
+        //   references can be checked.
+        // - Game-start trigger dispatch runs once the sim is
+        //   fully bootstrapped (`GameClock`, inserted by
+        //   `init_world_resources` on `OnEnter(AppState::Playing)`
+        //   after the catalog is already live).
         app.add_systems(
             Update,
             (
-                engine::validate_trigger_references,
-                engine::dispatch_on_game_start,
+                engine::validate_trigger_references
+                    .run_if(resource_added::<cordon_data::gamedata::GameDataResource>),
+                engine::dispatch_on_game_start.run_if(resource_added::<GameClock>),
+            ),
+        );
+
+        app.add_systems(
+            Update,
+            (
                 engine::dispatch_on_day.run_if(on_message::<DayRolled>),
                 engine::drive_active_quests,
                 engine::process_start_quest_requests,

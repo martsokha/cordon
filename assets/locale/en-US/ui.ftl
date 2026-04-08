@@ -21,3 +21,19 @@ areakind-anchor = Anchor
 # Settlement role labels
 settlement-role-outpost = Outpost
 settlement-role-market = Market
+
+# Intel tab
+intel-quest-log = QUEST LOG
+intel-quest-log-empty = No active quests.
+intel-faction-standings = FACTION STANDINGS
+intel-recent-events = RECENT EVENTS
+intel-events-empty = No events.
+
+# Faction standing buckets. Mirror `Relation::is_*` helpers in
+# `cordon-core/src/primitive/relation.rs` — if the thresholds
+# there change, update the descriptive text here to match.
+standing-hostile = Hostile
+standing-unfriendly = Unfriendly
+standing-neutral = Neutral
+standing-friendly = Friendly
+standing-allied = Allied

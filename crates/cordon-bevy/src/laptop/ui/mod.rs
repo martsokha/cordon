@@ -7,6 +7,7 @@ pub mod trade;
 pub mod upgrades;
 
 use bevy::prelude::*;
+use bevy_fluent::prelude::Localization;
 
 use crate::PlayingState;
 
@@ -65,12 +66,17 @@ fn load_font(mut commands: Commands, server: Res<AssetServer>) {
 }
 
 /// Spawn the tab bar and all tab content panels.
-pub fn spawn_ui(commands: &mut Commands, font: &Handle<Font>) {
+///
+/// `l10n` is used for any static label that is *authored
+/// once* at spawn time (panel headings, empty-state text).
+/// Runtime-updated strings still go through the usual
+/// `Res<Localization>` lookup inside their refresh systems.
+pub fn spawn_ui(commands: &mut Commands, font: &Handle<Font>, l10n: &Localization) {
     spawn_tab_bar(commands, font);
     map::spawn(commands, font);
     trade::spawn(commands, font);
     squad::spawn(commands, font);
-    intel::spawn(commands, font);
+    intel::spawn(commands, font, l10n);
     upgrades::spawn(commands, font);
 }
 
