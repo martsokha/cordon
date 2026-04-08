@@ -12,14 +12,14 @@
 use std::collections::HashMap;
 
 use bevy::prelude::*;
-use cordon_core::entity::squad::Goal;
+use cordon_core::entity::squad::{Formation, Goal};
+use cordon_core::item::Loadout;
 use cordon_data::gamedata::GameDataResource;
 
 use crate::behavior::{CombatTarget, Dead, MovementSpeed, MovementTarget};
 use crate::combat::weapon_range;
 use crate::components::{
-    LoadoutComp, NpcMarker, SquadActivity, SquadFacing, SquadFormation, SquadGoal, SquadLeader,
-    SquadMarker, SquadMembers, SquadMembership,
+    NpcMarker, SquadActivity, SquadFacing, SquadLeader, SquadMarker, SquadMembers, SquadMembership,
 };
 use crate::resources::SquadIdIndex;
 use crate::tuning::{
@@ -33,23 +33,13 @@ pub(super) fn drive_squad_formation(
     squad_index: Res<SquadIdIndex>,
     mut throttle: Local<f32>,
     mut squad_leader_pos: Local<HashMap<Entity, Vec2>>,
-    mut squad_info: Local<
-        HashMap<
-            Entity,
-            (
-                SquadActivity,
-                Vec2,
-                cordon_core::entity::squad::Formation,
-                usize,
-            ),
-        >,
-    >,
+    mut squad_info: Local<HashMap<Entity, (SquadActivity, Vec2, Formation, usize)>>,
     mut squad_state_q: Query<(
         Entity,
-        &SquadGoal,
+        &Goal,
         &SquadLeader,
         &SquadMembers,
-        &SquadFormation,
+        &Formation,
         &mut SquadActivity,
         &mut SquadFacing,
     )>,
@@ -60,7 +50,7 @@ pub(super) fn drive_squad_formation(
             &SquadMembership,
             &Transform,
             &CombatTarget,
-            &LoadoutComp,
+            &Loadout,
             &mut MovementTarget,
             &mut MovementSpeed,
         ),
@@ -89,7 +79,7 @@ pub(super) fn drive_squad_formation(
             continue;
         };
 
-        if let Goal::Protect { other } = &goal.0
+        if let Goal::Protect { other } = goal
             && !matches!(*activity, SquadActivity::Engage { .. })
             && let Some(other_entity) = squad_index.0.get(other).copied()
             && let Ok(other_leader) = other_leaders_q.get(other_entity)
@@ -124,10 +114,7 @@ pub(super) fn drive_squad_formation(
 
     squad_info.clear();
     for (e, _, _, members, formation, activity, facing) in squad_state_q.iter() {
-        squad_info.insert(
-            e,
-            (activity.clone(), facing.0, formation.0, members.0.len()),
-        );
+        squad_info.insert(e, (activity.clone(), facing.0, *formation, members.0.len()));
     }
 
     for (member, transform, combat_target, loadout, mut move_target, mut speed) in &mut members_q {
@@ -144,7 +131,7 @@ pub(super) fn drive_squad_formation(
             {
                 let target_pos = target_t.translation.truncate();
                 let dist = pos.distance(target_pos);
-                let range = weapon_range(items, &loadout.0);
+                let range = weapon_range(items, loadout);
                 if range > 0.0 && dist <= range {
                     if move_target.0.is_some() {
                         move_target.0 = None;

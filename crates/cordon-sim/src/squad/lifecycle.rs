@@ -9,16 +9,17 @@
 //! long as they exist on the map.
 
 use bevy::prelude::*;
+use cordon_core::primitive::Experience;
 
 use crate::behavior::Dead;
-use crate::components::{NpcMarker, SquadLeader, SquadMembers, Xp};
+use crate::components::{NpcMarker, SquadLeader, SquadMembers};
 use crate::tuning::CLEANUP_INTERVAL_SECS;
 
 pub(super) fn cleanup_dead_squads(
     time: Res<Time>,
     mut throttle: Local<f32>,
     mut commands: Commands,
-    alive_q: Query<&Xp, (With<NpcMarker>, Without<Dead>)>,
+    alive_q: Query<&Experience, (With<NpcMarker>, Without<Dead>)>,
     member_exists_q: Query<(), With<NpcMarker>>,
     mut squads_q: Query<(Entity, &mut SquadMembers, &mut SquadLeader)>,
 ) {
@@ -45,7 +46,7 @@ pub(super) fn cleanup_dead_squads(
             if let Some(new) = members
                 .0
                 .iter()
-                .filter_map(|m| alive_q.get(*m).ok().map(|xp| (*m, xp.rank())))
+                .filter_map(|m| alive_q.get(*m).ok().map(|xp| (*m, xp.npc_rank())))
                 .max_by_key(|(_, r)| *r)
                 .map(|(m, _)| m)
             {

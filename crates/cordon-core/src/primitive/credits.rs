@@ -2,23 +2,14 @@
 
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
+use bevy::prelude::Component;
 use serde::{Deserialize, Serialize};
 
 /// The Zone's currency. Used for trading, bribes, upgrades, and payroll.
 ///
 /// Wraps a `u32`. Cannot go negative — subtraction saturates at zero.
-#[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    Serialize,
-    Deserialize
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Component, Serialize, Deserialize)]
 pub struct Credits(u32);
 
 impl Credits {

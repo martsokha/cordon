@@ -108,17 +108,25 @@ pub mod prelude {
         AnomalyZone, CombatTarget, Dead, FireState, LootState, MovementSpeed, MovementTarget,
         Vision,
     };
+    // Cordon-core types that derive `Component` directly and are
+    // attached to entities as live components. Re-exported from
+    // the prelude so consumers can pull "anything on an NPC
+    // entity" from one place.
+    pub use cordon_core::entity::name::NpcName;
+    pub use cordon_core::entity::npc::Personality;
+    pub use cordon_core::entity::squad::{Formation, Goal};
+    pub use cordon_core::item::{ItemInstance, Loadout};
+    pub use cordon_core::primitive::{Credits, Experience};
     // Events are re-exported from their producer modules so
     // external consumers (cordon-bevy visuals, audio) can import
     // everything from the prelude without knowing the internal
     // module layout.
     pub use crate::combat::ShotFired;
     pub use crate::components::{
-        BaseMaxes, Employment, FactionId, Hp, HungerPool, LoadoutComp, Loyalty, NpcBundle,
-        NpcMarker, NpcNameComp, Perks, PersonalityComp, RelicHome, RelicItem, RelicMarker,
-        SquadActivity, SquadBundle, SquadFacing, SquadFaction, SquadFormation, SquadGoal,
+        BaseMaxes, Employment, FactionId, Hp, HungerPool, Loyalty, NpcBundle, NpcMarker, Perks,
+        RelicHome, RelicMarker, SquadActivity, SquadBundle, SquadFacing, SquadFaction,
         SquadHomePosition, SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
-        StaminaPool, Trust, Wealth, Xp,
+        StaminaPool, Trust,
     };
     pub use crate::day::DayRolled;
     pub use crate::death::{CorpseRemoved, NpcDied};

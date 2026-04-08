@@ -8,18 +8,18 @@
 use bevy::prelude::*;
 use cordon_core::entity::squad::Goal;
 
-use crate::components::{SquadActivity, SquadGoal, SquadWaypoints};
+use crate::components::{SquadActivity, SquadWaypoints};
 
 pub(super) fn drive_squad_goals(
     time: Res<Time>,
-    mut squads_q: Query<(&SquadGoal, &mut SquadActivity, &mut SquadWaypoints)>,
+    mut squads_q: Query<(&Goal, &mut SquadActivity, &mut SquadWaypoints)>,
 ) {
     let dt = time.delta_secs();
     for (goal, mut activity, mut waypoints) in &mut squads_q {
         if let SquadActivity::Hold { duration_secs } = &mut *activity {
             *duration_secs -= dt;
             if *duration_secs <= 0.0 {
-                *activity = next_activity_for_goal(&goal.0, &mut waypoints);
+                *activity = next_activity_for_goal(goal, &mut waypoints);
             }
         }
     }

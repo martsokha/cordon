@@ -15,10 +15,12 @@ use bevy::prelude::*;
 use bevy_fluent::prelude::*;
 use cordon_core::entity::faction::RankScheme;
 use cordon_core::entity::name::{NameFormat, NpcName};
+use cordon_core::entity::squad::Formation;
+use cordon_core::primitive::Experience;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::behavior::{CombatTarget, FireState, MovementSpeed, MovementTarget, Vision};
 use cordon_sim::components::{
-    FactionId, NpcMarker, NpcNameComp, SquadFormation, SquadHomePosition, SquadMembership, Xp,
+    FactionId, NpcMarker, SquadHomePosition, SquadMembership,
 };
 
 pub use self::palette::FactionPalette;
@@ -160,11 +162,11 @@ fn attach_npc_visuals(
     l10n: Option<Res<Localization>>,
     squads: Query<(
         &SquadHomePosition,
-        &SquadFormation,
+        &Formation,
         &cordon_sim::components::SquadMembers,
     )>,
     new_npcs: Query<
-        (Entity, &FactionId, &Xp, &NpcNameComp, &SquadMembership),
+        (Entity, &FactionId, &Experience, &NpcName, &SquadMembership),
         (With<NpcMarker>, Added<SquadMembership>),
     >,
     mut commands: Commands,
@@ -180,8 +182,8 @@ fn attach_npc_visuals(
         let faction_str = faction.0.as_str();
         let faction_icon = faction_icon_str(Some(faction_str)).to_string();
         let faction_name = l10n_or(l10n, &format!("faction-{}", faction_str), faction_str);
-        let name_display = resolve_npc_name(l10n, &name.0);
-        let rank = xp.rank();
+        let name_display = resolve_npc_name(l10n, name);
+        let rank = xp.npc_rank();
         let rank_title = data
             .faction(&faction.0)
             .map(|fdef| {
@@ -195,7 +197,7 @@ fn attach_npc_visuals(
         let (home, slot_offset) = match squads.get(membership.squad) {
             Ok((home, formation, members)) => {
                 let count = members.0.len().max(1);
-                let offsets = formation.0.slot_offsets(count);
+                let offsets = formation.slot_offsets(count);
                 let slot = (membership.slot as usize).min(offsets.len() - 1);
                 (home.0, Vec2::new(offsets[slot][0], offsets[slot][1]))
             }

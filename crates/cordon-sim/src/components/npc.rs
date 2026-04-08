@@ -1,8 +1,12 @@
 //! Per-NPC ECS components.
 //!
-//! Every NPC is a Bevy entity with the components below. The
-//! `cordon-core` `Npc` struct is the spawn-time / save-game shape,
-//! consumed by [`NpcBundle::from_npc`].
+//! Most per-NPC data types now derive `Component` directly in
+//! cordon-core (`NpcName`, `Loadout`, `Experience`, `Credits`,
+//! `Personality`), so they're attached to entities without a
+//! wrapper. This module only holds the cordon-sim-specific
+//! components that don't have a cordon-core analog: the NPC
+//! marker, baseline pool caps, the trust/loyalty scalars, the
+//! perks lists, employment status, and the `NpcBundle` glue.
 
 use bevy::prelude::*;
 use cordon_core::entity::faction::Faction;
@@ -10,7 +14,7 @@ use cordon_core::entity::name::NpcName;
 use cordon_core::entity::npc::{Npc, Personality, Role};
 use cordon_core::entity::perk::Perk;
 use cordon_core::item::Loadout;
-use cordon_core::primitive::{Credits, Experience, Health, Hunger, Id, Pool, Rank, Stamina, Uid};
+use cordon_core::primitive::{Credits, Experience, Health, Hunger, Id, Pool, Stamina, Uid};
 
 /// Health pool component (current + max HP).
 pub type Hp = Pool<Health>;
@@ -23,12 +27,13 @@ pub type HungerPool = Pool<Hunger>;
 
 /// Baseline pool caps before any equipment bonuses.
 ///
-/// `Hp`, `StaminaPool`, and `HungerPool` hold the *effective* current
-/// / max; this component stores the underlying base so the
-/// `sync_pool_maxes` system can recompute the effective max each
-/// time the loadout changes (equip +10 max HP relic → effective 110,
-/// drop it → effective 100). Using a snapshot of the base decouples
-/// the bookkeeping from the equipment change order.
+/// `Hp`, `StaminaPool`, and `HungerPool` hold the *effective*
+/// current / max; this component stores the underlying base so
+/// the `sync_pool_maxes` system can recompute the effective max
+/// each time the loadout changes (equip +10 max HP relic →
+/// effective 110, drop it → effective 100). Using a snapshot of
+/// the base decouples the bookkeeping from the equipment change
+/// order.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct BaseMaxes {
     pub hp: u32,
@@ -50,67 +55,60 @@ impl Default for BaseMaxes {
 #[derive(Component, Debug, Clone, Copy)]
 pub struct NpcMarker;
 
-/// Localized name. Wrapper avoids shadowing `bevy::prelude::Name`.
-#[derive(Component, Debug, Clone)]
-pub struct NpcNameComp(pub NpcName);
-
+/// Faction membership. Distinct from `Id<Faction>` in other
+/// contexts (e.g. fields inside data structs) because this
+/// wrapper type is what Bevy queries actually filter on —
+/// `With<FactionId>` only matches entities, not raw IDs.
 #[derive(Component, Debug, Clone)]
 pub struct FactionId(pub Id<Faction>);
 
-#[derive(Component, Debug, Clone, Copy)]
-pub struct Xp(pub Experience);
-
-impl Xp {
-    pub fn rank(&self) -> Rank {
-        self.0.npc_rank()
-    }
-}
-
-#[derive(Component, Debug, Clone)]
-pub struct LoadoutComp(pub Loadout);
-
-#[derive(Component, Debug, Clone, Copy)]
-pub struct Wealth(pub Credits);
-
+/// How much this NPC trusts the player (-1.0 to 1.0). Component
+/// because the underlying data is a raw `f32` and raw floats
+/// can't be queried directly.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Trust(pub f32);
 
+/// Squad-level loyalty (-1.0 to 1.0). Same reasoning as `Trust`.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Loyalty(pub f32);
 
-#[derive(Component, Debug, Clone, Copy)]
-pub struct PersonalityComp(pub Personality);
-
+/// Perk lists. Cordon-core's `Npc` stores `perks` and
+/// `revealed_perks` as two separate `Vec`s; we bundle them into
+/// one component here because a query for "NPC's perks" always
+/// wants both at once.
 #[derive(Component, Debug, Clone)]
 pub struct Perks {
     pub all: Vec<Id<Perk>>,
     pub revealed: Vec<Id<Perk>>,
 }
 
+/// Employment status. Bundles the two employment fields from
+/// cordon-core's `Npc` into one component so "is this NPC
+/// hired?" is a single query touch.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Employment {
     pub role: Option<Role>,
     pub daily_pay: Credits,
 }
 
-/// Bundle of every per-NPC component the spawn system attaches to a
-/// fresh entity.
+/// Bundle of every per-NPC component the spawn system attaches
+/// to a fresh entity.
 #[derive(Bundle)]
 pub struct NpcBundle {
     pub marker: NpcMarker,
     pub id: Uid<Npc>,
-    pub name: NpcNameComp,
+    pub name: NpcName,
     pub faction: FactionId,
-    pub xp: Xp,
+    pub xp: Experience,
     pub hp: Hp,
     pub stamina: StaminaPool,
     pub hunger: HungerPool,
     pub base_maxes: BaseMaxes,
-    pub loadout: LoadoutComp,
-    pub wealth: Wealth,
+    pub loadout: Loadout,
+    pub wealth: Credits,
     pub trust: Trust,
     pub loyalty: Loyalty,
-    pub personality: PersonalityComp,
+    pub personality: Personality,
     pub perks: Perks,
     pub employment: Employment,
 }
@@ -122,9 +120,9 @@ impl NpcBundle {
         Self {
             marker: NpcMarker,
             id: npc.id,
-            name: NpcNameComp(npc.name),
+            name: npc.name,
             faction: FactionId(npc.faction),
-            xp: Xp(npc.xp),
+            xp: npc.xp,
             hp: npc.health,
             stamina: StaminaPool::full(),
             hunger: HungerPool::full(),
@@ -133,11 +131,11 @@ impl NpcBundle {
                 stamina: 100,
                 hunger: 100,
             },
-            loadout: LoadoutComp(npc.loadout),
-            wealth: Wealth(npc.wealth),
+            loadout: npc.loadout,
+            wealth: npc.wealth,
             trust: Trust(npc.trust),
             loyalty: Loyalty(npc.loyalty),
-            personality: PersonalityComp(npc.personality),
+            personality: npc.personality,
             perks: Perks {
                 all: npc.perks,
                 revealed: npc.revealed_perks,

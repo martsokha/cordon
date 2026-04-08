@@ -11,10 +11,11 @@
 //! beyond [`MAX_DEAD_NPCS`] so entity counts stay bounded.
 
 use bevy::prelude::*;
+use cordon_core::item::Loadout;
 use cordon_core::primitive::GameTime;
 
 use crate::behavior::Dead;
-use crate::components::{Hp, LoadoutComp, NpcMarker};
+use crate::components::{Hp, NpcMarker};
 use crate::plugin::SimSet;
 use crate::resources::GameClock;
 use crate::tuning::{CLEANUP_INTERVAL_SECS, CORPSE_PERSISTENCE_MINUTES, MAX_DEAD_NPCS};
@@ -97,12 +98,12 @@ fn cleanup_corpses(
     clock: Res<GameClock>,
     mut commands: Commands,
     mut removed: MessageWriter<CorpseRemoved>,
-    q: Query<(Entity, &Dead, &LoadoutComp)>,
+    q: Query<(Entity, &Dead, &Loadout)>,
 ) {
     let now = clock.0;
     for (entity, dead, loadout) in &q {
         let elapsed = minutes_between(dead.died_at, now);
-        let looted = loadout.0.is_empty();
+        let looted = loadout.is_empty();
         if looted || elapsed >= CORPSE_PERSISTENCE_MINUTES {
             commands.entity(entity).despawn();
             removed.write(CorpseRemoved { entity });

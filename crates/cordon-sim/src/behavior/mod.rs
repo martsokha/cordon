@@ -6,11 +6,11 @@
 //! is naturally race-free under explicit system ordering.
 
 use bevy::prelude::*;
-use cordon_core::item::{ItemData, PassiveModifier, StatTarget};
+use cordon_core::item::{ItemData, Loadout, PassiveModifier, StatTarget};
 use cordon_core::primitive::{GameTime, Rank};
 use cordon_data::gamedata::GameDataResource;
 
-use crate::components::{BaseMaxes, Hp, HungerPool, LoadoutComp, NpcMarker, StaminaPool};
+use crate::components::{BaseMaxes, Hp, HungerPool, NpcMarker, StaminaPool};
 use crate::plugin::SimSet;
 use crate::tuning::MAP_BOUND;
 
@@ -117,27 +117,27 @@ pub fn move_npcs(
 /// any relic passive modifiers targeting `MaxHealth` / `MaxStamina`
 /// / `MaxHunger`.
 ///
-/// Runs on `Changed<LoadoutComp>` so we only pay the cost for NPCs
+/// Runs on `Changed<Loadout>` so we only pay the cost for NPCs
 /// whose equipment just mutated. Keeping the base in a separate
-/// component means drops (future work) reverse cleanly — the system
-/// just recomputes from base + whatever's left equipped.
+/// component means drops (future work) reverse cleanly — the
+/// system just recomputes from base + whatever's left equipped.
 ///
-/// If a pool's effective max shrinks below its current, the current
-/// clamps down (`Pool::set_max` handles that). If the max grows, we
-/// restore the delta so picking up a `+10 MaxHP` relic feels like
-/// "you gained 10 HP right now," not "you earned 10 HP worth of
-/// headroom."
+/// If a pool's effective max shrinks below its current, the
+/// current clamps down (`Pool::set_max` handles that). If the
+/// max grows, we restore the delta so picking up a `+10 MaxHP`
+/// relic feels like "you gained 10 HP right now", not "you earned
+/// 10 HP worth of headroom".
 pub fn sync_pool_maxes(
     game_data: Res<GameDataResource>,
     mut changed: Query<
         (
-            &LoadoutComp,
+            &Loadout,
             &BaseMaxes,
             &mut Hp,
             &mut StaminaPool,
             &mut HungerPool,
         ),
-        (With<NpcMarker>, Changed<LoadoutComp>),
+        (With<NpcMarker>, Changed<Loadout>),
     >,
 ) {
     let items = &game_data.0.items;
@@ -146,7 +146,7 @@ pub fn sync_pool_maxes(
         let mut dmax_hp: i32 = 0;
         let mut dmax_stamina: i32 = 0;
         let mut dmax_hunger: i32 = 0;
-        for inst in &loadout.0.relics {
+        for inst in &loadout.relics {
             let Some(def) = items.get(&inst.def_id) else {
                 continue;
             };

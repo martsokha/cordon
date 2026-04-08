@@ -12,8 +12,9 @@
 //! there's room in the relic slots, then despawn the relic entity
 //! and emit [`RelicPickedUp`].
 //!
-//! Relic entities carry [`RelicMarker`], [`RelicItem`], [`RelicHome`]
-//! (the anchoring area), and a [`Transform`] placed at a random
+//! Relic entities carry [`RelicMarker`], [`ItemInstance`] (the
+//! concrete item ready to be picked up), [`RelicHome`] (the
+//! anchoring area), and a [`Transform`] placed at a random
 //! point inside the anomaly disk.
 
 use std::collections::HashMap;
@@ -21,16 +22,15 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::GlobalRng;
-use cordon_core::item::{Item, ItemData, ItemDef, ItemInstance, RelicData};
+use cordon_core::entity::squad::Goal;
+use cordon_core::item::{Item, ItemData, ItemDef, ItemInstance, Loadout, RelicData};
 use cordon_core::primitive::{HazardType, Id, Tier};
 use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
 use rand::{Rng, RngExt};
 
 use crate::behavior::Dead;
-use crate::components::{
-    LoadoutComp, NpcMarker, RelicHome, RelicItem, RelicMarker, SquadGoal, SquadLeader,
-};
+use crate::components::{NpcMarker, RelicHome, RelicMarker, SquadLeader};
 use crate::day::DayRolled;
 use crate::plugin::SimSet;
 use crate::tuning::{RELIC_ATTEMPTS_PER_AREA, RELIC_PICKUP_REACH, RELIC_SPAWN_PROBABILITY};
@@ -167,7 +167,7 @@ fn spawn_one(commands: &mut Commands, area: &AreaDef, def: &ItemDef, rng: &mut W
 
     commands.spawn((
         RelicMarker,
-        RelicItem(instance),
+        instance,
         RelicHome(area.id.clone()),
         // z=10 keeps relics above the cloud layer at z=5 so they
         // aren't obscured by passing cloud shadows.
@@ -185,13 +185,12 @@ fn pickup_relics(
     mut commands: Commands,
     game_data: Res<GameDataResource>,
     mut picked: MessageWriter<RelicPickedUp>,
-    relics: Query<(Entity, &RelicItem, &RelicHome, &Transform), With<RelicMarker>>,
-    squads: Query<(&SquadGoal, &SquadLeader)>,
+    relics: Query<(Entity, &ItemInstance, &RelicHome, &Transform), With<RelicMarker>>,
+    squads: Query<(&Goal, &SquadLeader)>,
     leader_positions: Query<&Transform, (With<NpcMarker>, Without<Dead>)>,
-    mut leader_loadouts: Query<&mut LoadoutComp, (With<NpcMarker>, Without<Dead>)>,
+    mut leader_loadouts: Query<&mut Loadout, (With<NpcMarker>, Without<Dead>)>,
 ) {
-    use cordon_core::entity::squad::Goal;
-    use cordon_core::item::{ArmorData, ItemData, Loadout};
+    use cordon_core::item::ArmorData;
 
     if relics.is_empty() {
         return;
@@ -206,7 +205,7 @@ fn pickup_relics(
         Vec2,
     )> = Vec::new();
     for (goal, leader) in squads.iter() {
-        let Goal::Scavenge { area } = &goal.0 else {
+        let Goal::Scavenge { area } = goal else {
             continue;
         };
         let Ok(leader_t) = leader_positions.get(leader.0) else {
@@ -243,12 +242,11 @@ fn pickup_relics(
             continue;
         };
 
-        let Ok(mut loadout_comp) = leader_loadouts.get_mut(leader_entity) else {
+        let Ok(mut loadout) = leader_loadouts.get_mut(leader_entity) else {
             continue;
         };
 
-        let armor_def: Option<&ArmorData> = loadout_comp
-            .0
+        let armor_def: Option<&ArmorData> = loadout
             .armor
             .as_ref()
             .and_then(|inst| items.get(&inst.def_id))
@@ -258,8 +256,8 @@ fn pickup_relics(
             });
         let cap = Loadout::relic_capacity(armor_def);
 
-        let item_id = relic_item.0.def_id.clone();
-        if loadout_comp.0.add_relic(relic_item.0.clone(), cap).is_err() {
+        let item_id = relic_item.def_id.clone();
+        if loadout.add_relic(relic_item.clone(), cap).is_err() {
             // No room — leave the relic in the world.
             continue;
         }

@@ -1,5 +1,6 @@
 //! NPC equipment with typed slots and a general carry pouch.
 
+use bevy::prelude::Component;
 use serde::{Deserialize, Serialize};
 
 use super::data::{ArmorData, ArmorSlot, RelicData};
@@ -20,7 +21,8 @@ pub const MAX_RELIC_SLOTS: u8 = 4;
 /// a flat list. The general slots hold ammo, consumables, scavenged
 /// loot, and unequipped equipment, with capacity scaling by rank and
 /// equipped armor.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default)]
+#[derive(Component, Serialize, Deserialize)]
 pub struct Loadout {
     /// Primary weapon (if equipped). The weapon instance's `count`
     /// holds the rounds currently in its magazine, drained as the NPC

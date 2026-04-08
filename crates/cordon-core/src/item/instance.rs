@@ -1,5 +1,6 @@
 //! Concrete item instances in the game world.
 
+use bevy::prelude::Component;
 use serde::{Deserialize, Serialize};
 
 use super::data::ItemData;
@@ -19,7 +20,8 @@ use crate::primitive::Id;
 /// which ammo def's rounds are currently in the magazine, so the
 /// combat system reads accurate damage and penetration values without
 /// having to guess.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Component, Serialize, Deserialize)]
 pub struct ItemInstance {
     /// ID of the [`ItemDef`] this is an instance of.
     pub def_id: Id<ItemMarker>,

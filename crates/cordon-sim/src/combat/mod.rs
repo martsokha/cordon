@@ -16,7 +16,7 @@ use cordon_core::primitive::{Id, Resistances};
 use cordon_data::gamedata::GameDataResource;
 
 use crate::behavior::{CombatTarget, Dead, FireState};
-use crate::components::{Hp, LoadoutComp};
+use crate::components::Hp;
 use crate::plugin::SimSet;
 
 /// A weapon discharged from `from` toward `to`. The visual layer
@@ -160,7 +160,7 @@ impl Plugin for CombatPlugin {
 
 /// One pending hit produced by the shooter loop and applied to the
 /// target in a separate pass. Decoupling lets us hold one mutable
-/// query at a time, avoiding overlapping `&mut LoadoutComp` access.
+/// query at a time, avoiding overlapping `&mut Loadout` access.
 struct HitIntent {
     target: Entity,
     dealt: u32,
@@ -169,7 +169,7 @@ struct HitIntent {
 /// Snapshot of a potential target built before the shooter loop.
 /// Captures just enough state to resolve a hit without holding a
 /// borrow on the target's components — the shooter loop needs
-/// mutable access to `LoadoutComp` which would overlap otherwise.
+/// mutable access to `Loadout` which would overlap otherwise.
 #[derive(Clone, Copy)]
 struct TargetInfo {
     pos: Vec2,
@@ -207,13 +207,13 @@ struct ShooterOutcome {
 /// Build the per-target snapshot used by the shooter loop so
 /// shooters don't need to query target components mutably.
 fn build_target_snapshot(
-    query: &Query<(Entity, &Transform, &LoadoutComp), (With<Hp>, Without<Dead>)>,
+    query: &Query<(Entity, &Transform, &Loadout), (With<Hp>, Without<Dead>)>,
     items: &HashMap<Id<Item>, ItemDef>,
 ) -> HashMap<Entity, TargetInfo> {
     let mut m = HashMap::with_capacity(1024);
     for (entity, transform, loadout) in query.iter() {
         let pos = transform.translation.truncate();
-        let ballistic = equipped_ballistic(&loadout.0, items);
+        let ballistic = equipped_ballistic(loadout, items);
         m.insert(entity, TargetInfo { pos, ballistic });
     }
     m
@@ -363,14 +363,14 @@ fn simulate_shooter_frame(
 /// per-shooter logic lives in [`simulate_shooter_frame`].
 ///
 /// All NPC mutable access flows through a [`ParamSet`] so multiple
-/// `&mut LoadoutComp` queries don't overlap.
+/// `&mut Loadout` queries don't overlap.
 fn resolve_combat(
     time: Res<Time>,
     game_data: Res<GameDataResource>,
     mut shots: MessageWriter<ShotFired>,
     mut sets: ParamSet<(
         // Read-only snapshot pass.
-        Query<(Entity, &Transform, &LoadoutComp), (With<Hp>, Without<Dead>)>,
+        Query<(Entity, &Transform, &Loadout), (With<Hp>, Without<Dead>)>,
         // Shooter mutation pass.
         Query<
             (
@@ -378,12 +378,12 @@ fn resolve_combat(
                 &Transform,
                 &mut CombatTarget,
                 &mut FireState,
-                &mut LoadoutComp,
+                &mut Loadout,
             ),
             Without<Dead>,
         >,
         // Target apply pass.
-        Query<(&mut Hp, &mut LoadoutComp), Without<Dead>>,
+        Query<&mut Hp, Without<Dead>>,
     )>,
 ) {
     let items = &game_data.0.items;
@@ -412,7 +412,7 @@ fn resolve_combat(
                 *fire_state = FireState::default();
                 continue;
             };
-            let Some(stats) = load_weapon_stats(&loadout.0, target_info.ballistic, items) else {
+            let Some(stats) = load_weapon_stats(&loadout, target_info.ballistic, items) else {
                 combat_target.0 = None;
                 *fire_state = FireState::default();
                 continue;
@@ -423,12 +423,12 @@ fn resolve_combat(
                 continue;
             }
 
-            let mag_count = loadout.0.equipped_weapon().map(|w| w.count).unwrap_or(0);
+            let mag_count = loadout.equipped_weapon().map(|w| w.count).unwrap_or(0);
 
             let outcome = simulate_shooter_frame(
                 dt,
                 target_entity,
-                &mut loadout.0,
+                &mut loadout,
                 &stats,
                 fire_state.cooldown_secs,
                 fire_state.reload_secs,
@@ -467,7 +467,7 @@ fn resolve_combat(
     // Pass 2: apply HP damage.
     let mut targets_apply = sets.p2();
     for hit in hits {
-        if let Ok((mut hp, _loadout)) = targets_apply.get_mut(hit.target) {
+        if let Ok(mut hp) = targets_apply.get_mut(hit.target) {
             hp.deplete(hit.dealt);
         }
     }

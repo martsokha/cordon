@@ -12,9 +12,11 @@
 
 use bevy::prelude::*;
 use bevy_fluent::prelude::*;
+use cordon_core::entity::squad::Goal;
+use cordon_core::item::{ItemData, ItemInstance};
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::behavior::{CombatTarget, MovementTarget};
-use cordon_sim::components::{NpcMarker, SquadMembership};
+use cordon_sim::behavior::{CombatTarget, LootState, MovementTarget};
+use cordon_sim::components::{NpcMarker, RelicMarker, SquadMembership};
 
 use crate::PlayingState;
 use crate::laptop::LaptopCamera;
@@ -69,21 +71,13 @@ fn update_hover(
             &MovementTarget,
             &CombatTarget,
             &SquadMembership,
-            Option<&cordon_sim::behavior::LootState>,
+            Option<&LootState>,
             &Visibility,
         ),
         With<NpcMarker>,
     >,
-    relics: Query<
-        (
-            Entity,
-            &cordon_sim::components::RelicItem,
-            &Transform,
-            &Visibility,
-        ),
-        With<cordon_sim::components::RelicMarker>,
-    >,
-    squad_goals: Query<&cordon_sim::components::SquadGoal>,
+    relics: Query<(Entity, &ItemInstance, &Transform, &Visibility), With<RelicMarker>>,
+    squad_goals: Query<&Goal>,
     mut mats: ResMut<Assets<ColorMaterial>>,
     mut tooltip: ResMut<TooltipContent>,
 ) {
@@ -181,8 +175,8 @@ fn update_hover(
         HoverTarget::Relic(entity) => {
             let mut out = TooltipContent::Hidden;
             if let Ok((_, item, _, _)) = relics.get(entity)
-                && let Some(def) = game_data.0.items.get(&item.0.def_id)
-                && let cordon_core::item::ItemData::Relic(relic_data) = &def.data
+                && let Some(def) = game_data.0.items.get(&item.def_id)
+                && let ItemData::Relic(relic_data) = &def.data
                 && let Some(icons) = relic_icons.as_deref()
             {
                 let empty_l10n = Localization::default();
@@ -196,8 +190,8 @@ fn update_hover(
             if let Ok((_, info, _, movement, combat, member, loot, _)) = npcs.get(entity) {
                 let goal = squad_goals
                     .get(member.squad)
-                    .map(|g| g.0.clone())
-                    .unwrap_or(cordon_core::entity::squad::Goal::Idle);
+                    .cloned()
+                    .unwrap_or(Goal::Idle);
                 out = TooltipContent::Npc {
                     faction_icon: info.faction_icon.clone(),
                     name: info.name.clone(),

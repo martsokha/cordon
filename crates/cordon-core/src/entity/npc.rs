@@ -11,6 +11,7 @@
 //! running game. Runtime systems read components directly from the
 //! ECS, not from this struct.
 
+use bevy::prelude::Component;
 use serde::{Deserialize, Serialize};
 
 use super::faction::Faction;
@@ -33,7 +34,8 @@ pub enum Role {
 }
 
 /// Core personality trait affecting negotiation behavior (hidden).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Component, Serialize, Deserialize)]
 pub enum Personality {
     /// Careful, slow to trust, thorough negotiator.
     Cautious,

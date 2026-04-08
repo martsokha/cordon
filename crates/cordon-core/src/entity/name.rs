@@ -5,6 +5,7 @@
 //! keys are picked from the pool and stored on the NPC. The UI
 //! layer resolves them through fluent at display time.
 
+use bevy::prelude::Component;
 use serde::{Deserialize, Serialize};
 
 use crate::primitive::{Id, IdMarker};
@@ -50,7 +51,8 @@ pub struct NamePool {
 ///
 /// Resolved to a display string by the UI layer through fluent.
 /// The format determines how the parts are combined.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Component, Serialize, Deserialize)]
 pub struct NpcName {
     /// How this name should be formatted.
     pub format: NameFormat,

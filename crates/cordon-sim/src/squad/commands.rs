@@ -16,7 +16,7 @@ use cordon_core::entity::squad::{Formation, Goal, Squad};
 use cordon_core::primitive::{Id, Uid};
 use cordon_core::world::area::Area;
 
-use crate::components::{SquadFormation, SquadGoal, SquadMarker, SquadWaypoints};
+use crate::components::{SquadMarker, SquadWaypoints};
 
 /// Marker for squads under direct player control. Only owned squads
 /// react to [`SquadCommand`]s.
@@ -49,7 +49,7 @@ pub(super) fn apply_squad_commands(
     mut messages: MessageReader<SquadCommand>,
     owned: Query<(), (With<SquadMarker>, With<Owned>)>,
     squad_ids: Query<&Uid<Squad>>,
-    mut squads: Query<(&mut SquadGoal, &mut SquadFormation, &mut SquadWaypoints)>,
+    mut squads: Query<(&mut Goal, &mut Formation, &mut SquadWaypoints)>,
 ) {
     for cmd in messages.read() {
         let target = cmd.squad();
@@ -62,19 +62,19 @@ pub(super) fn apply_squad_commands(
 
         match cmd {
             SquadCommand::Hold { .. } => {
-                goal.0 = Goal::Idle;
+                *goal = Goal::Idle;
                 waypoints.points.clear();
                 waypoints.next = 0;
             }
             SquadCommand::Patrol { area, .. } => {
-                goal.0 = Goal::Patrol { area: area.clone() };
+                *goal = Goal::Patrol { area: area.clone() };
                 // Concrete waypoints get rolled by the next squad-AI
                 // tick — clear the old set so fresh ones land.
                 waypoints.points.clear();
                 waypoints.next = 0;
             }
             SquadCommand::Scavenge { area, .. } => {
-                goal.0 = Goal::Scavenge { area: area.clone() };
+                *goal = Goal::Scavenge { area: area.clone() };
                 waypoints.points.clear();
                 waypoints.next = 0;
             }
@@ -85,10 +85,10 @@ pub(super) fn apply_squad_commands(
                 let Ok(other_uid) = squad_ids.get(*other) else {
                     continue;
                 };
-                goal.0 = Goal::Protect { other: *other_uid };
+                *goal = Goal::Protect { other: *other_uid };
             }
             SquadCommand::Deliver { to, .. } => {
-                goal.0 = Goal::Deliver { to: [to.x, to.y] };
+                *goal = Goal::Deliver { to: [to.x, to.y] };
                 waypoints.points.clear();
                 waypoints.next = 0;
             }
@@ -96,7 +96,7 @@ pub(super) fn apply_squad_commands(
                 formation: new_formation,
                 ..
             } => {
-                formation.0 = *new_formation;
+                *formation = *new_formation;
             }
         }
     }
