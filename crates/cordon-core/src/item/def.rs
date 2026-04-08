@@ -39,7 +39,7 @@ pub struct Supplier {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ItemDef {
     /// Unique identifier, localization key, and asset ID
-    /// (e.g., `"ak74"`, `"medkit"`, `"9x18mm"`).
+    /// (e.g., `"m4_carbine"`, `"medkit"`, `"9x19mm"`).
     pub id: Id<Item>,
     /// Type-specific data: consumable effects, weapon caliber, etc.
     pub data: ItemData,

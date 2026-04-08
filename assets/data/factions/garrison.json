@@ -4,7 +4,7 @@
   "rank_scheme": "military",
   "buys": ["weapon", "ammo", "armor"],
   "sells": ["weapon", "ammo"],
-  "namepool": "slavic",
+  "namepool": "zone",
   "color": "#6B8C4D",
   "spawn_weight": 25,
   "relations": [

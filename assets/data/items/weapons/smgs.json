@@ -6,9 +6,7 @@
       "caliber": "9x19mm",
       "fire_modes": [
         "Semi",
-        {
-          "Burst": 3
-        },
+        { "Burst": 3 },
         "Auto"
       ],
       "fire_rate": 13.0,
@@ -22,14 +20,33 @@
     },
     "base_price": 5500,
     "suppliers": [
-      {
-        "faction": "syndicate",
-        "price_multiplier": 0.95
-      },
-      {
-        "faction": "garrison",
-        "price_multiplier": 1.1
-      }
+      { "faction": "syndicate", "price_multiplier": 0.95 },
+      { "faction": "garrison", "price_multiplier": 1.1 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "ump45",
+    "data": {
+      "type": "weapon",
+      "caliber": "45acp",
+      "fire_modes": [
+        "Semi",
+        "Auto"
+      ],
+      "fire_rate": 10.0,
+      "accuracy": 0.68,
+      "recoil": 0.4,
+      "magazine": 25,
+      "reload_secs": 2.7,
+      "range": 240.0,
+      "suppressed": false,
+      "added_damage": 5
+    },
+    "base_price": 6500,
+    "suppliers": [
+      { "faction": "syndicate", "price_multiplier": 0.95 },
+      { "faction": "garrison", "price_multiplier": 1.1 }
     ],
     "rarity": "uncommon"
   }

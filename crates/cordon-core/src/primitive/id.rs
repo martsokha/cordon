@@ -22,7 +22,7 @@ pub trait IdMarker: 'static {}
 /// accidentally passing a faction ID where an item ID is expected.
 ///
 /// IDs are case-sensitive, lowercase, snake_case by convention
-/// (e.g., `"garrison"`, `"9x18mm"`, `"threshold"`, `"scavengers_eye"`).
+/// (e.g., `"garrison"`, `"9x19mm"`, `"the_vault"`, `"scavengers_eye"`).
 #[derive(Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Id<T: IdMarker>(String, #[serde(skip)] PhantomData<T>);

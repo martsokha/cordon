@@ -1,0 +1,33 @@
+[
+  {
+    "id": "12gauge_buck",
+    "data": {
+      "type": "ammo",
+      "caliber": "12gauge",
+      "damage": 55,
+      "penetration": 4,
+      "quantity": 8
+    },
+    "base_price": 90,
+    "suppliers": [
+      { "faction": "drifters", "price_multiplier": 0.85 },
+      { "faction": "syndicate", "price_multiplier": 1.0 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "12gauge_slug",
+    "data": {
+      "type": "ammo",
+      "caliber": "12gauge",
+      "damage": 70,
+      "penetration": 16,
+      "quantity": 8
+    },
+    "base_price": 160,
+    "suppliers": [
+      { "faction": "syndicate", "price_multiplier": 0.95 }
+    ],
+    "rarity": "uncommon"
+  }
+]

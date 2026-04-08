@@ -4,7 +4,7 @@
   "rank_scheme": "academic",
   "buys": ["relic", "document", "tech"],
   "sells": ["tech", "attachment", "consumable"],
-  "namepool": "western",
+  "namepool": "zone",
   "color": "#3B8C9E",
   "spawn_weight": 5,
   "relations": [

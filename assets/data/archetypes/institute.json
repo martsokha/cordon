@@ -4,8 +4,8 @@
     "faction": "institute",
     "ranks": {
       "novice": {
-        "primary": [{ "id": "mp5" }, { "id": "stechkin" }],
-        "secondary": [{ "id": "pmm" }],
+        "primary": [{ "id": "mp5" }, { "id": "m4_carbine" }],
+        "secondary": [{ "id": "glock_17" }],
         "armor": [{ "id": "cbrn_suit" }, { "id": "tactical_vest" }],
         "helmet": [{ "id": "respirator" }, { "id": "tactical_helmet" }],
         "ammo_boxes": 2,
@@ -15,7 +15,7 @@
       },
       "experienced": {
         "primary": [{ "id": "m4_carbine", "weight": 2 }, { "id": "mp5" }],
-        "secondary": [{ "id": "pb_pistol" }],
+        "secondary": [{ "id": "sig_p220" }],
         "armor": [{ "id": "cbrn_suit" }, { "id": "tactical_vest" }],
         "helmet": [{ "id": "cbrn_mask" }, { "id": "tactical_helmet" }],
         "ammo_boxes": 3,
@@ -25,7 +25,7 @@
       },
       "veteran": {
         "primary": [{ "id": "m4_carbine" }, { "id": "hk416" }],
-        "secondary": [{ "id": "pb_pistol" }],
+        "secondary": [{ "id": "sig_p220" }],
         "armor": [{ "id": "cbrn_suit" }, { "id": "combat_armor" }],
         "helmet": [{ "id": "cbrn_mask" }],
         "ammo_boxes": 3,
@@ -35,7 +35,7 @@
       },
       "master": {
         "primary": [{ "id": "hk416", "weight": 2 }, { "id": "m4_carbine" }],
-        "secondary": [{ "id": "pb_pistol" }],
+        "secondary": [{ "id": "sig_p220" }],
         "armor": [{ "id": "combat_armor" }],
         "helmet": [{ "id": "cbrn_mask" }],
         "ammo_boxes": 4,
@@ -45,7 +45,7 @@
       },
       "legend": {
         "primary": [{ "id": "hk416" }],
-        "secondary": [{ "id": "pb_pistol" }],
+        "secondary": [{ "id": "sig_p220" }],
         "armor": [{ "id": "combat_armor" }, { "id": "heavy_rig" }],
         "helmet": [{ "id": "cbrn_mask" }],
         "ammo_boxes": 5,

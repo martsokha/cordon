@@ -66,9 +66,7 @@ pub fn line_blocked(from: Vec2, to: Vec2, anomalies: &[(Vec2, f32)]) -> bool {
         // Skip if either endpoint is inside this anomaly: the
         // observer (or target) is already in the fog and isn't
         // line-blocked by their own surroundings.
-        if from.distance_squared(*center) <= r_sq
-            || to.distance_squared(*center) <= r_sq
-        {
+        if from.distance_squared(*center) <= r_sq || to.distance_squared(*center) <= r_sq {
             continue;
         }
         let to_center = *center - from;

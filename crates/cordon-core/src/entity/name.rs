@@ -34,7 +34,7 @@ pub enum NameFormat {
 /// so names adapt to the active locale.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NamePool {
-    /// Unique identifier (e.g., `"slavic"`, `"western"`).
+    /// Unique identifier (e.g., `"zone"`, `"aliases"`).
     pub id: Id<NamePoolMarker>,
     /// How names are assembled from this pool's lists.
     pub format: NameFormat,

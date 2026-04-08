@@ -4,7 +4,7 @@
     "faction": "drifters",
     "ranks": {
       "novice": {
-        "primary": [{ "id": "pmm" }, { "id": "toz34", "weight": 2 }],
+        "primary": [{ "id": "glock_17" }, { "id": "winchester_1300", "weight": 2 }],
         "armor": [{ "id": "leather_jacket", "weight": 3 }],
         "helmet": [{ "id": "balaclava" }],
         "ammo_boxes": 2,
@@ -12,8 +12,8 @@
         "consumable_count": 2
       },
       "experienced": {
-        "primary": [{ "id": "toz34", "weight": 2 }, { "id": "stechkin" }, { "id": "aks74u" }],
-        "secondary": [{ "id": "pmm" }],
+        "primary": [{ "id": "winchester_1300", "weight": 2 }, { "id": "glock_17" }, { "id": "m4_carbine" }],
+        "secondary": [{ "id": "glock_17" }],
         "armor": [{ "id": "leather_jacket", "weight": 2 }, { "id": "reinforced_coat" }],
         "helmet": [{ "id": "balaclava" }],
         "ammo_boxes": 2,
@@ -22,8 +22,8 @@
         "consumable_count": 3
       },
       "veteran": {
-        "primary": [{ "id": "saiga12", "weight": 2 }, { "id": "aks74u" }, { "id": "ak74" }],
-        "secondary": [{ "id": "stechkin" }],
+        "primary": [{ "id": "benelli_m4", "weight": 2 }, { "id": "m4_carbine" }],
+        "secondary": [{ "id": "m9_beretta" }],
         "armor": [{ "id": "reinforced_coat", "weight": 2 }],
         "helmet": [{ "id": "balaclava", "weight": 2 }, { "id": "steel_helmet" }],
         "ammo_boxes": 3,
@@ -32,8 +32,8 @@
         "consumable_count": 3
       },
       "master": {
-        "primary": [{ "id": "ak74", "weight": 2 }, { "id": "saiga12" }],
-        "secondary": [{ "id": "stechkin" }],
+        "primary": [{ "id": "m4_carbine", "weight": 2 }, { "id": "benelli_m4" }],
+        "secondary": [{ "id": "m9_beretta" }],
         "armor": [{ "id": "reinforced_coat" }, { "id": "tactical_vest" }],
         "helmet": [{ "id": "steel_helmet" }],
         "ammo_boxes": 3,
@@ -42,8 +42,8 @@
         "consumable_count": 4
       },
       "legend": {
-        "primary": [{ "id": "ak74" }, { "id": "rpk74" }],
-        "secondary": [{ "id": "pb_pistol" }],
+        "primary": [{ "id": "m4_carbine" }, { "id": "scar_h" }],
+        "secondary": [{ "id": "sig_p220" }],
         "armor": [{ "id": "tactical_vest" }],
         "helmet": [{ "id": "tactical_helmet" }],
         "ammo_boxes": 4,

@@ -5,11 +5,11 @@
     "ranks": {
       "novice": {
         "primary": [
-          { "id": "stechkin" },
-          { "id": "toz34" },
+          { "id": "glock_17" },
+          { "id": "winchester_1300" },
           { "id": "mp5" }
         ],
-        "secondary": [{ "id": "pmm" }, { "id": "pb_pistol" }],
+        "secondary": [{ "id": "glock_17" }, { "id": "sig_p220" }],
         "armor": [
           { "id": "leather_jacket" },
           { "id": "reinforced_coat" },
@@ -24,10 +24,10 @@
       "experienced": {
         "primary": [
           { "id": "mp5", "weight": 2 },
-          { "id": "saiga12" },
+          { "id": "benelli_m4" },
           { "id": "m4_carbine" }
         ],
-        "secondary": [{ "id": "pb_pistol" }],
+        "secondary": [{ "id": "sig_p220" }],
         "armor": [
           { "id": "reinforced_coat", "weight": 2 },
           { "id": "tactical_vest" }
@@ -41,11 +41,11 @@
       "veteran": {
         "primary": [
           { "id": "mp5" },
-          { "id": "saiga12" },
+          { "id": "benelli_m4" },
           { "id": "m4_carbine", "weight": 2 },
           { "id": "hk416" }
         ],
-        "secondary": [{ "id": "pb_pistol" }],
+        "secondary": [{ "id": "sig_p220" }],
         "armor": [
           { "id": "tactical_vest" },
           { "id": "combat_armor" }
@@ -59,10 +59,9 @@
       "master": {
         "primary": [
           { "id": "hk416", "weight": 2 },
-          { "id": "m4_carbine" },
-          { "id": "ak74" }
+          { "id": "m4_carbine" }
         ],
-        "secondary": [{ "id": "pb_pistol" }],
+        "secondary": [{ "id": "sig_p220" }],
         "armor": [{ "id": "combat_armor" }],
         "helmet": [{ "id": "tactical_helmet" }],
         "ammo_boxes": 4,
@@ -73,10 +72,9 @@
       "legend": {
         "primary": [
           { "id": "hk416" },
-          { "id": "ak74" },
-          { "id": "svd" }
+          { "id": "m24_swr" }
         ],
-        "secondary": [{ "id": "pb_pistol" }],
+        "secondary": [{ "id": "sig_p220" }],
         "armor": [
           { "id": "combat_armor" },
           { "id": "heavy_rig" }

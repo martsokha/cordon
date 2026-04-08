@@ -1,58 +1,88 @@
 [
   {
-    "id": "toz34",
+    "id": "winchester_1300",
     "data": {
       "type": "weapon",
       "caliber": "12gauge",
-      "fire_modes": [
-        "Semi"
-      ],
-      "fire_rate": 1.2,
-      "accuracy": 0.5,
-      "recoil": 0.7,
-      "magazine": 6,
+      "fire_modes": ["Semi"],
+      "fire_rate": 1.4,
+      "accuracy": 0.55,
+      "recoil": 0.65,
+      "magazine": 7,
       "reload_secs": 4.5,
-      "range": 56.0,
+      "range": 60.0,
       "suppressed": false,
       "added_damage": 0
     },
-    "base_price": 3200,
+    "base_price": 2800,
     "suppliers": [
-      {
-        "faction": "drifters",
-        "price_multiplier": 0.85
-      },
-      {
-        "faction": "syndicate",
-        "price_multiplier": 1.0
-      }
+      { "faction": "drifters", "price_multiplier": 0.9 },
+      { "faction": "syndicate", "price_multiplier": 1.0 }
     ],
     "rarity": "common"
   },
   {
-    "id": "saiga12",
+    "id": "spas12",
     "data": {
       "type": "weapon",
       "caliber": "12gauge",
-      "fire_modes": [
-        "Semi"
-      ],
-      "fire_rate": 3.0,
-      "accuracy": 0.55,
+      "fire_modes": ["Semi"],
+      "fire_rate": 2.5,
+      "accuracy": 0.6,
       "recoil": 0.6,
       "magazine": 8,
-      "reload_secs": 3.2,
-      "range": 72.0,
+      "reload_secs": 4.0,
+      "range": 70.0,
+      "suppressed": false,
+      "added_damage": 3
+    },
+    "base_price": 5500,
+    "suppliers": [
+      { "faction": "syndicate", "price_multiplier": 0.95 },
+      { "faction": "garrison", "price_multiplier": 1.05 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "benelli_m4",
+    "data": {
+      "type": "weapon",
+      "caliber": "12gauge",
+      "fire_modes": ["Semi"],
+      "fire_rate": 3.2,
+      "accuracy": 0.6,
+      "recoil": 0.55,
+      "magazine": 7,
+      "reload_secs": 3.5,
+      "range": 75.0,
       "suppressed": false,
       "added_damage": 4
     },
-    "base_price": 6000,
+    "base_price": 6500,
     "suppliers": [
-      {
-        "faction": "syndicate",
-        "price_multiplier": 0.95
-      }
+      { "faction": "garrison", "price_multiplier": 0.95 }
     ],
     "rarity": "uncommon"
+  },
+  {
+    "id": "double_barrel",
+    "data": {
+      "type": "weapon",
+      "caliber": "12gauge",
+      "fire_modes": ["Semi"],
+      "fire_rate": 1.8,
+      "accuracy": 0.5,
+      "recoil": 0.8,
+      "magazine": 2,
+      "reload_secs": 3.2,
+      "range": 50.0,
+      "suppressed": false,
+      "added_damage": 6
+    },
+    "base_price": 1500,
+    "suppliers": [
+      { "faction": "drifters", "price_multiplier": 0.85 }
+    ],
+    "rarity": "common"
   }
 ]

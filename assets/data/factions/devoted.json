@@ -4,7 +4,7 @@
   "rank_scheme": "religious",
   "buys": ["relic", "consumable", "document"],
   "sells": ["relic", "consumable"],
-  "namepool": "slavic",
+  "namepool": "zone",
   "color": "#7A3F8C",
   "spawn_weight": 15,
   "relations": [

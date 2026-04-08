@@ -12,7 +12,7 @@ use crate::primitive::Id;
 /// same caliber ID can use this ammo.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AmmoData {
-    /// Caliber ID this ammo belongs to (e.g., `"9x18mm"`).
+    /// Caliber ID this ammo belongs to (e.g., `"9x19mm"`).
     pub caliber: Id<Caliber>,
     /// Base damage per round in HP.
     pub damage: u32,
