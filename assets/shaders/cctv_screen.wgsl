@@ -94,7 +94,7 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let burst_cycle = fract(t * 0.125);
     let burst = smoothstep(0.0, 0.02, burst_cycle)
         * (1.0 - smoothstep(0.02, 0.06, burst_cycle));
-    let static_alpha = (static_noise * burst * 0.4 + static_noise * 0.03) * s;
+    let static_alpha = (static_noise * burst * 0.15 + static_noise * 0.015) * s;
     color = mix(color, vec3<f32>(0.1, 0.2, 0.1), static_alpha);
 
     return vec4<f32>(color, 1.0);
