@@ -22,7 +22,7 @@ use cordon_sim::components::{
 
 pub use self::palette::FactionPalette;
 use crate::PlayingState;
-use crate::locale::{GameLocalization, l10n_or};
+use crate::locale::l10n_or;
 
 pub struct LaptopPlugin;
 
@@ -480,14 +480,14 @@ fn spawn_map(
     game_data: Res<GameDataResource>,
     laptop_font: Res<LaptopFont>,
     _asset_server: Res<AssetServer>,
-    l10n: Option<Res<GameLocalization>>,
+    l10n: Option<Res<Localization>>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let data = &game_data.0;
     let empty_l10n = Localization::default();
-    let l10n = l10n.as_ref().map(|r| &r.0).unwrap_or(&empty_l10n);
+    let l10n = l10n.as_deref().unwrap_or(&empty_l10n);
 
     spawn_ui(&mut commands, &laptop_font.0);
 
@@ -580,7 +580,7 @@ fn update_hover(
     cam_proj: Query<&Projection, With<LaptopCamera>>,
     game_data: Res<GameDataResource>,
     relic_icons: Option<Res<RelicIconAssets>>,
-    l10n: Option<Res<GameLocalization>>,
+    l10n: Option<Res<Localization>>,
     areas: Query<(
         Entity,
         &AreaCircle,
@@ -721,7 +721,7 @@ fn update_hover(
                 && let Some(icons) = relic_icons.as_deref()
             {
                 let empty_l10n = Localization::default();
-                let l10n = l10n.as_ref().map(|r| &r.0).unwrap_or(&empty_l10n);
+                let l10n = l10n.as_deref().unwrap_or(&empty_l10n);
                 out = build_relic_tooltip(l10n, icons, def, relic_data);
             }
             out
@@ -890,7 +890,7 @@ fn attach_npc_visuals(
     game_data: Res<GameDataResource>,
     npc_assets: Res<NpcAssets>,
     palette: Res<FactionPalette>,
-    l10n: Option<Res<GameLocalization>>,
+    l10n: Option<Res<Localization>>,
     squads: Query<(
         &SquadHomePosition,
         &SquadFormation,
@@ -907,7 +907,7 @@ fn attach_npc_visuals(
     }
     let data = &game_data.0;
     let empty_l10n = Localization::default();
-    let l10n = l10n.as_ref().map(|r| &r.0).unwrap_or(&empty_l10n);
+    let l10n = l10n.as_deref().unwrap_or(&empty_l10n);
 
     for (entity, faction, xp, name, membership) in &new_npcs {
         let faction_str = faction.0.as_str();
