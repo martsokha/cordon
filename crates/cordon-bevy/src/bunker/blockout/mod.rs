@@ -1,5 +1,6 @@
 //! Blockout geometry: reusable building blocks for the bunker scene.
 
+use bevy::light::GlobalAmbientLight;
 use bevy::prelude::*;
 
 use super::{BunkerSpawned, DoorButton, FpsCamera, InteractPrompt, LaptopObject};
@@ -9,6 +10,13 @@ pub struct BlockoutPlugin;
 
 impl Plugin for BlockoutPlugin {
     fn build(&self, app: &mut App) {
+        // Soft warm ambient lift so shadows don't crush to black.
+        // The bunker is meant to feel cozy, not pitch dark.
+        app.insert_resource(GlobalAmbientLight {
+            color: Color::srgb(1.0, 0.85, 0.65),
+            brightness: 120.0,
+            ..default()
+        });
         app.add_systems(
             OnEnter(PlayingState::Bunker),
             spawn_bunker.run_if(not(resource_exists::<BunkerSpawned>)),
@@ -295,39 +303,62 @@ fn spawn_bunker(
             .looking_at(Vec3::new(0.0, 1.2, front_z), Vec3::Y),
     ));
 
-    // Lighting
-    for (pos, intensity, color) in [
+    // Lighting — three warm point lights down the room's centerline.
+    for (pos, intensity, color, range) in [
+        // Desk lamp — the warm focal point. Brighter, slightly
+        // warmer hue, longer range so the wood and walls around the
+        // desk pick up the glow.
         (
             Vec3::new(0.0, h - 0.15, desk_z),
-            80000.0,
-            Color::srgb(1.0, 0.88, 0.6),
+            140000.0,
+            Color::srgb(1.0, 0.85, 0.55),
+            14.0,
         ),
+        // Back of the room — a softer fill so the back wall is no
+        // longer pitch black.
         (
             Vec3::new(0.0, h - 0.15, -3.0),
-            40000.0,
-            Color::srgb(0.95, 0.8, 0.55),
+            70000.0,
+            Color::srgb(1.0, 0.82, 0.50),
+            12.0,
         ),
+        // Front of the room — brighter than before, same warm hue.
         (
             Vec3::new(0.0, h - 0.15, 3.0),
-            30000.0,
-            Color::srgb(0.9, 0.75, 0.5),
+            60000.0,
+            Color::srgb(1.0, 0.80, 0.48),
+            12.0,
         ),
     ] {
         commands.spawn((
             PointLight {
                 intensity,
                 color,
-                range: 10.0,
+                range,
                 shadows_enabled: pos.z == desk_z,
                 ..default()
             },
             Transform::from_translation(pos),
         ));
     }
+
+    // Low warm fill near the desk corner — sells the "lampshade"
+    // effect without an actual lamp model. Short range, soft falloff.
+    commands.spawn((
+        PointLight {
+            intensity: 25000.0,
+            color: Color::srgb(1.0, 0.72, 0.40),
+            range: 4.0,
+            shadows_enabled: false,
+            ..default()
+        },
+        Transform::from_xyz(0.5, 1.4, desk_z - 0.2),
+    ));
+
     // Monitor glow
     commands.spawn((
         PointLight {
-            intensity: 6000.0,
+            intensity: 8000.0,
             color: Color::srgb(0.5, 0.8, 0.5),
             range: 2.5,
             shadows_enabled: false,

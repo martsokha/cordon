@@ -118,7 +118,13 @@ fn animate_camera(
         CameraMode::Returning(saved) => {
             transform.translation = transform.translation.lerp(saved.translation, factor);
             transform.rotation = transform.rotation.slerp(saved.rotation, factor);
-            if transform.translation.distance(saved.translation) < 0.1 {
+            // The visitor-return case only changes rotation (the
+            // player never moved), so a translation-only threshold
+            // would flip back to Free on the very first frame
+            // before the slerp had any visible effect. Check both.
+            let pos_done = transform.translation.distance(saved.translation) < 0.01;
+            let rot_done = transform.rotation.dot(saved.rotation).abs() > 0.9999;
+            if pos_done && rot_done {
                 *transform = saved;
                 *mode = CameraMode::Free;
             }
