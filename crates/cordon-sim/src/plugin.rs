@@ -87,7 +87,7 @@ impl Plugin for CordonSimPlugin {
         // for the cordon-bevy layer's `init_world_resources` call.
         app.add_systems(
             Update,
-            crate::world_init::tick_game_time.run_if(resource_exists::<GameClock>),
+            crate::resources::tick_game_time.run_if(resource_exists::<GameClock>),
         );
         app.add_plugins((
             DayCyclePlugin,

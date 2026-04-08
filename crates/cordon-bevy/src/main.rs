@@ -14,7 +14,7 @@ use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataPlugin;
 use cordon_sim::plugin::CordonSimPlugin;
-use cordon_sim::world_init::init_world_resources;
+use cordon_sim::resources::init_world_resources;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum AppState {
