@@ -19,13 +19,10 @@ use cordon_data::gamedata::GameDataResource;
 pub struct FactionPalette {
     /// Tinted material for NPC dots (full alpha).
     pub dot_mat: HashMap<Id<Faction>, Handle<ColorMaterial>>,
-    /// Tinted material for Settlement area disks (low alpha).
-    pub area_mat: HashMap<Id<Faction>, Handle<ColorMaterial>>,
     /// Tinted material for the X-bar corpse marker.
     pub corpse_mat: HashMap<Id<Faction>, Handle<ColorMaterial>>,
     /// Fallback material when an entity has no known faction.
     pub fallback_dot: Handle<ColorMaterial>,
-    pub fallback_area: Handle<ColorMaterial>,
     pub fallback_corpse: Handle<ColorMaterial>,
 }
 
@@ -35,13 +32,6 @@ impl FactionPalette {
             .get(faction)
             .cloned()
             .unwrap_or_else(|| self.fallback_dot.clone())
-    }
-
-    pub fn area(&self, faction: &Id<Faction>) -> Handle<ColorMaterial> {
-        self.area_mat
-            .get(faction)
-            .cloned()
-            .unwrap_or_else(|| self.fallback_area.clone())
     }
 
     pub fn corpse(&self, faction: &Id<Faction>) -> Handle<ColorMaterial> {
@@ -67,7 +57,6 @@ pub fn build_faction_palette(
 ) {
     let cap = game_data.0.factions.len();
     let mut dot_mat: HashMap<Id<Faction>, Handle<ColorMaterial>> = HashMap::with_capacity(cap);
-    let mut area_mat: HashMap<Id<Faction>, Handle<ColorMaterial>> = HashMap::with_capacity(cap);
     let mut corpse_mat: HashMap<Id<Faction>, Handle<ColorMaterial>> = HashMap::with_capacity(cap);
 
     for (id, def) in &game_data.0.factions {
@@ -76,13 +65,6 @@ pub fn build_faction_palette(
         // NPC dot: full alpha, slightly desaturated to keep the map
         // readable when many of them are clustered.
         dot_mat.insert(id.clone(), materials.add(ColorMaterial::from_color(color)));
-
-        // Area disk: low alpha so the map terrain shows through.
-        let area_color = color.with_alpha(0.18);
-        area_mat.insert(
-            id.clone(),
-            materials.add(ColorMaterial::from_color(area_color)),
-        );
 
         // Corpse X-bars: dimmed faction color so dead bodies are
         // recognizable but visually de-emphasized vs alive members.
@@ -95,15 +77,12 @@ pub fn build_faction_palette(
     }
 
     let fallback_dot = materials.add(ColorMaterial::from_color(FALLBACK));
-    let fallback_area = materials.add(ColorMaterial::from_color(FALLBACK.with_alpha(0.18)));
     let fallback_corpse = materials.add(ColorMaterial::from_color(FALLBACK.with_alpha(0.85)));
 
     commands.insert_resource(FactionPalette {
         dot_mat,
-        area_mat,
         corpse_mat,
         fallback_dot,
-        fallback_area,
         fallback_corpse,
     });
 }

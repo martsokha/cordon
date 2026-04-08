@@ -1,6 +1,7 @@
 //! Laptop view: the Zone map with areas, bunker, and NPC dots.
 
 mod environment;
+pub(crate) mod fog;
 mod input;
 mod palette;
 mod ui;
@@ -31,6 +32,7 @@ impl Plugin for LaptopPlugin {
             input::InputPlugin,
             ui::UiPlugin,
             environment::EnvironmentPlugin,
+            fog::FogPlugin,
         ));
         app.insert_resource(SelectedNpc::default());
         app.add_systems(Startup, (setup_camera, init_npc_assets, init_relic_assets));
@@ -82,14 +84,18 @@ impl Plugin for LaptopPlugin {
     }
 }
 
-/// Shared mesh + selection material handles for NPC dots. The
-/// per-faction default tints live in [`FactionPalette`]; this struct
-/// only carries the shared mesh and the two selection-state overlays.
+/// Shared mesh + outline material handles for NPC dots. The
+/// per-faction default tints live in [`FactionPalette`]. Selection
+/// state is shown via an outline ring child — `selected_ring_mesh`
+/// for the focused NPC, `squad_ring_mesh` for their squadmates —
+/// rather than by re-tinting the dot itself.
 #[derive(Resource, Clone)]
 pub struct NpcAssets {
     pub dot_mesh: Handle<Mesh>,
-    pub selected_mat: Handle<ColorMaterial>,
-    pub squad_mat: Handle<ColorMaterial>,
+    pub selected_ring_mesh: Handle<Mesh>,
+    pub squad_ring_mesh: Handle<Mesh>,
+    pub selected_ring_mat: Handle<ColorMaterial>,
+    pub squad_ring_mat: Handle<ColorMaterial>,
 }
 
 fn init_npc_assets(
@@ -97,13 +103,19 @@ fn init_npc_assets(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
+    // Dot radius is 6; rings sit at 8 (outer) with a 1.5px band
+    // so they read as a crisp outline around the dot.
     let dot_mesh = meshes.add(Circle::new(6.0));
-    let selected_mat = materials.add(ColorMaterial::from_color(COLOR_NPC_SELECTED));
-    let squad_mat = materials.add(ColorMaterial::from_color(COLOR_NPC_SQUAD));
+    let selected_ring_mesh = meshes.add(Annulus::new(7.5, 9.0));
+    let squad_ring_mesh = meshes.add(Annulus::new(7.0, 8.2));
+    let selected_ring_mat = materials.add(ColorMaterial::from_color(COLOR_NPC_SELECTED));
+    let squad_ring_mat = materials.add(ColorMaterial::from_color(COLOR_NPC_SQUAD));
     commands.insert_resource(NpcAssets {
         dot_mesh,
-        selected_mat,
-        squad_mat,
+        selected_ring_mesh,
+        squad_ring_mesh,
+        selected_ring_mat,
+        squad_ring_mat,
     });
 }
 
@@ -198,6 +210,11 @@ struct AreaCircle {
     /// Visual radius in world units — used by hover detection so the
     /// clickable zone matches the rendered disk exactly.
     radius: f32,
+    /// The disk's default tint. Stored here so the hover system can
+    /// restore each area to its own colour after un-hovering —
+    /// hardcoding one "reset" colour doesn't work once each area
+    /// owns a fresh per-entity `ColorMaterial`.
+    base_color: Color,
 }
 
 #[derive(Component)]
@@ -227,7 +244,7 @@ struct NpcDotInfo {
 }
 
 #[derive(Resource, Default)]
-struct SelectedNpc(Option<Entity>);
+pub(crate) struct SelectedNpc(pub Option<Entity>);
 
 const COLOR_AREA: Color = Color::srgba(1.0, 1.0, 1.0, 0.08);
 const COLOR_AREA_BORDER: Color = Color::srgba(1.0, 1.0, 1.0, 0.25);
@@ -461,7 +478,6 @@ fn build_relic_tooltip(
 
 fn spawn_map(
     game_data: Res<GameDataResource>,
-    palette: Res<FactionPalette>,
     laptop_font: Res<LaptopFont>,
     _asset_server: Res<AssetServer>,
     l10n: Option<Res<GameLocalization>>,
@@ -475,10 +491,13 @@ fn spawn_map(
 
     spawn_ui(&mut commands, &laptop_font.0);
 
-    // Shared materials reused across the area loop. Without this each
-    // of the ~16 non-Settlement disks (and all 40 borders) would
-    // allocate its own identical material handle.
-    let neutral_area_mat = materials.add(ColorMaterial::from_color(COLOR_AREA));
+    // Shared border material — safe to share because nothing ever
+    // mutates the border color at runtime. Disk materials, by
+    // contrast, each get their own handle (see the loop below)
+    // because the hover system tints the *selected* disk, and a
+    // shared handle would smear that tint across every area
+    // sharing the material (all non-settlement areas, or all
+    // settlements of the same faction).
     let border_mat = materials.add(ColorMaterial::from_color(COLOR_AREA_BORDER));
 
     for area in data.areas.values() {
@@ -487,29 +506,40 @@ fn spawn_map(
         let radius = area.radius.value();
         let info = build_area_info(l10n, area);
 
-        // Settlement disks pick up their faction tint; everything else
-        // (Wasteland, AnomalyField, Anchor, MutantLair) keeps the
-        // neutral white wash.
-        let area_material = match area.kind.faction() {
-            Some(f) => palette.area(f),
-            None => neutral_area_mat.clone(),
-        };
+        // All areas share the same neutral wash — no per-faction
+        // tint on the map disk itself (faction is still readable
+        // via the NPC dots standing inside it). Each area gets a
+        // *fresh* ColorMaterial so the hover system can tint a
+        // single disk without smearing across its neighbours.
+        let base_color = COLOR_AREA;
+        let area_material = materials.add(ColorMaterial::from_color(base_color));
 
-        let _area_entity = commands.spawn((
-            MapWorldEntity,
-            AreaCircle { radius },
-            AreaData(info),
-            Mesh2d(meshes.add(Circle::new(radius))),
-            MeshMaterial2d(area_material),
-            Transform::from_xyz(x, y, 0.01),
-        ));
+        let area_entity = commands
+            .spawn((
+                MapWorldEntity,
+                AreaCircle { radius, base_color },
+                AreaData(info),
+                Mesh2d(meshes.add(Circle::new(radius))),
+                MeshMaterial2d(area_material),
+                Transform::from_xyz(x, y, 0.01),
+            ))
+            .id();
 
-        commands.spawn((
-            MapWorldEntity,
-            Mesh2d(meshes.add(Annulus::new(radius - 2.0, radius))),
-            MeshMaterial2d(border_mat.clone()),
-            Transform::from_xyz(x, y, 0.1),
-        ));
+        // Border annulus is a child of the disk so hierarchy
+        // visibility propagation hides them together when fog of
+        // war hides the area.
+        let border = commands
+            .spawn((
+                MapWorldEntity,
+                Mesh2d(meshes.add(Annulus::new(radius - 2.0, radius))),
+                MeshMaterial2d(border_mat.clone()),
+                // Child transform: local offset from the disk, which
+                // already sits at (x, y, 0.01). The border just
+                // needs a tiny z bump so it draws above the fill.
+                Transform::from_xyz(0.0, 0.0, 0.09),
+            ))
+            .id();
+        commands.entity(area_entity).add_child(border);
     }
 
     commands.spawn((
@@ -529,7 +559,22 @@ fn spawn_map(
     commands.insert_resource(MapSpawned);
 }
 
+/// What the hover system currently believes the cursor is pointing
+/// at. Persisted in a [`Local`] so we can detect *changes* and
+/// only mutate `ColorMaterial.color`, `TooltipContent`, etc. when
+/// the target actually changes — instead of rewriting everything
+/// every frame and dirtying Bevy's change detection pipeline.
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
+enum HoverTarget {
+    #[default]
+    None,
+    Area(Entity),
+    Npc(Entity),
+    Relic(Entity),
+}
+
 fn update_hover(
+    mut last_target: Local<HoverTarget>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
     cam_proj: Query<&Projection, With<LaptopCamera>>,
@@ -537,24 +582,33 @@ fn update_hover(
     relic_icons: Option<Res<RelicIconAssets>>,
     l10n: Option<Res<GameLocalization>>,
     areas: Query<(
+        Entity,
         &AreaCircle,
         &AreaData,
         &Transform,
         &MeshMaterial2d<ColorMaterial>,
+        &Visibility,
     )>,
     npcs: Query<
         (
+            Entity,
             &NpcDotInfo,
             &Transform,
             &MovementTarget,
             &CombatTarget,
             &SquadMembership,
             Option<&cordon_sim::behavior::LootState>,
+            &Visibility,
         ),
         With<NpcMarker>,
     >,
     relics: Query<
-        (&cordon_sim::components::RelicItem, &Transform),
+        (
+            Entity,
+            &cordon_sim::components::RelicItem,
+            &Transform,
+            &Visibility,
+        ),
         With<cordon_sim::components::RelicMarker>,
     >,
     squad_goals: Query<&cordon_sim::components::SquadGoal>,
@@ -576,111 +630,147 @@ fn update_hover(
     let npc_hit = 20.0 * scale;
     let relic_hit = 12.0 * scale;
 
-    // Priority: relic > NPC > area. Relics are tiny dots inside
-    // dense anomaly zones, so if the cursor is close enough to touch
-    // one it's almost certainly what the player is aiming at — even
-    // if a passing NPC overlaps the same pixel.
-    let mut closest_relic: Option<(&cordon_sim::components::RelicItem, f32)> = None;
-    for (item, transform) in &relics {
+    // ---- Pass 1: find the new hover target. Priority is relic >
+    // NPC > area, so relics tucked inside dense anomaly zones stay
+    // tooltip-reachable even when NPCs cross over the same pixel.
+    let mut new_target = HoverTarget::None;
+
+    let mut closest_relic: Option<(Entity, f32)> = None;
+    for (entity, _item, transform, vis) in &relics {
+        if matches!(vis, Visibility::Hidden) {
+            continue;
+        }
         let dist = cursor.distance(transform.translation.truncate());
-        if dist < relic_hit && (closest_relic.is_none() || dist < closest_relic.as_ref().unwrap().1)
-        {
-            closest_relic = Some((item, dist));
+        if dist < relic_hit && closest_relic.is_none_or(|(_, d)| dist < d) {
+            closest_relic = Some((entity, dist));
         }
     }
-    if let Some((item, _)) = closest_relic
-        && let Some(def) = game_data.0.items.get(&item.0.def_id)
-        && let cordon_core::item::ItemData::Relic(relic_data) = &def.data
-        && let Some(icons) = relic_icons.as_deref()
+    if let Some((entity, _)) = closest_relic {
+        new_target = HoverTarget::Relic(entity);
+    }
+
+    if matches!(new_target, HoverTarget::None) {
+        let mut closest_npc: Option<(Entity, f32)> = None;
+        for (entity, _info, transform, _mvt, _cmb, _mem, _loot, vis) in &npcs {
+            if matches!(vis, Visibility::Hidden) {
+                continue;
+            }
+            let dist = cursor.distance(transform.translation.truncate());
+            if dist < npc_hit && closest_npc.is_none_or(|(_, d)| dist < d) {
+                closest_npc = Some((entity, dist));
+            }
+        }
+        if let Some((entity, _)) = closest_npc {
+            new_target = HoverTarget::Npc(entity);
+        }
+    }
+
+    if matches!(new_target, HoverTarget::None) {
+        for (entity, circle, _data, transform, _mat, vis) in &areas {
+            if matches!(vis, Visibility::Hidden) {
+                continue;
+            }
+            let dist = cursor.distance(transform.translation.truncate());
+            if dist < circle.radius {
+                new_target = HoverTarget::Area(entity);
+                break;
+            }
+        }
+    }
+
+    // ---- Early out: target unchanged → don't touch the tooltip or
+    // any materials. This is the hot path most frames. Writes to
+    // `ResMut<TooltipContent>` or `ColorMaterial.color` would mark
+    // them as changed and wake Bevy's whole change-detection and
+    // render-upload pipeline each frame; skipping them here is most
+    // of the performance win.
+    if *last_target == new_target {
+        return;
+    }
+
+    // ---- Target changed. Repaint the *old* hovered area back to
+    // its base colour (if the previous target was an area), and
+    // paint the *new* area with the hover colour (if the new target
+    // is an area). All other areas keep whatever colour they
+    // already had — no mass rewrite.
+    if let HoverTarget::Area(prev) = *last_target
+        && let Ok((_, circle, _, _, mat_handle, _)) = areas.get(prev)
+        && let Some(m) = mats.get_mut(&mat_handle.0)
     {
-        let empty_l10n = Localization::default();
-        let l10n = l10n.as_ref().map(|r| &r.0).unwrap_or(&empty_l10n);
-        *tooltip = build_relic_tooltip(l10n, icons, def, relic_data);
-        // Clear any area highlighting that might be lingering.
-        for (_, _, _, mat_handle) in &areas {
-            if let Some(m) = mats.get_mut(&mat_handle.0) {
-                m.color = COLOR_AREA;
-            }
-        }
-        return;
+        m.color = circle.base_color;
+    }
+    if let HoverTarget::Area(curr) = new_target
+        && let Ok((_, _, _, _, mat_handle, _)) = areas.get(curr)
+        && let Some(m) = mats.get_mut(&mat_handle.0)
+    {
+        m.color = COLOR_AREA_HOVER;
     }
 
-    // NPCs next — second priority above areas.
-    type Hit<'a> = (
-        &'a NpcDotInfo,
-        &'a MovementTarget,
-        &'a CombatTarget,
-        &'a SquadMembership,
-        bool,
-        f32,
-    );
-    let mut closest_npc: Option<Hit<'_>> = None;
-    for (info, transform, movement, combat, member, loot) in &npcs {
-        let dist = cursor.distance(transform.translation.truncate());
-        if dist < npc_hit && (closest_npc.is_none() || dist < closest_npc.as_ref().unwrap().5) {
-            closest_npc = Some((info, movement, combat, member, loot.is_some(), dist));
-        }
-    }
-    if let Some((info, movement, combat, member, looting, _)) = closest_npc {
-        let goal = squad_goals
-            .get(member.squad)
-            .map(|g| g.0.clone())
-            .unwrap_or(cordon_core::entity::squad::Goal::Idle);
-        *tooltip = TooltipContent::Npc {
-            faction_icon: info.faction_icon.clone(),
-            name: info.name.clone(),
-            faction: info.faction.clone(),
-            rank: info.rank.clone(),
-            status: format_npc_status(movement, combat, looting, &goal),
-        };
-        // Clear any stale area highlighting — same reason as above.
-        for (_, _, _, mat_handle) in &areas {
-            if let Some(m) = mats.get_mut(&mat_handle.0) {
-                m.color = COLOR_AREA;
+    // ---- Build the new tooltip content. This runs only on the
+    // transition frame, so the string allocations here are cheap.
+    *tooltip = match new_target {
+        HoverTarget::None => TooltipContent::Hidden,
+        HoverTarget::Relic(entity) => {
+            // Resolve relic def + icon, falling back to Hidden if
+            // anything is missing (shouldn't happen but we don't
+            // want to stick the tooltip on stale state).
+            let mut out = TooltipContent::Hidden;
+            if let Ok((_, item, _, _)) = relics.get(entity)
+                && let Some(def) = game_data.0.items.get(&item.0.def_id)
+                && let cordon_core::item::ItemData::Relic(relic_data) = &def.data
+                && let Some(icons) = relic_icons.as_deref()
+            {
+                let empty_l10n = Localization::default();
+                let l10n = l10n.as_ref().map(|r| &r.0).unwrap_or(&empty_l10n);
+                out = build_relic_tooltip(l10n, icons, def, relic_data);
             }
+            out
         }
-        return;
-    }
-
-    // Reset all area colors, then highlight hovered. Each area's
-    // hit radius matches its rendered disk, so the clickable zone
-    // lines up with what the player sees.
-    let mut hovered_area = false;
-    for (circle, data, transform, mat_handle) in &areas {
-        let dist = cursor.distance(transform.translation.truncate());
-        if dist < circle.radius && !hovered_area {
-            if let Some(m) = mats.get_mut(&mat_handle.0) {
-                m.color = COLOR_AREA_HOVER;
+        HoverTarget::Npc(entity) => {
+            let mut out = TooltipContent::Hidden;
+            if let Ok((_, info, _, movement, combat, member, loot, _)) = npcs.get(entity) {
+                let goal = squad_goals
+                    .get(member.squad)
+                    .map(|g| g.0.clone())
+                    .unwrap_or(cordon_core::entity::squad::Goal::Idle);
+                out = TooltipContent::Npc {
+                    faction_icon: info.faction_icon.clone(),
+                    name: info.name.clone(),
+                    faction: info.faction.clone(),
+                    rank: info.rank.clone(),
+                    status: format_npc_status(movement, combat, loot.is_some(), &goal),
+                };
             }
-            let i = &data.0;
-            *tooltip = TooltipContent::Area {
-                faction_icon: i.faction_icon.clone(),
-                name: i.name.clone(),
-                kind_label: i.kind_label.clone(),
-                role: i.role.clone(),
-                creatures: i.creatures.clone(),
-                radiation: i.radiation.clone(),
-                hazard_image: i.hazard_image.clone(),
-                hazard_count: i.hazard_count,
-                loot: i.loot.clone(),
-            };
-            hovered_area = true;
-        } else if let Some(m) = mats.get_mut(&mat_handle.0) {
-            m.color = COLOR_AREA;
+            out
         }
-    }
-    if hovered_area {
-        return;
-    }
+        HoverTarget::Area(entity) => {
+            let mut out = TooltipContent::Hidden;
+            if let Ok((_, _, data, _, _, _)) = areas.get(entity) {
+                let i = &data.0;
+                out = TooltipContent::Area {
+                    faction_icon: i.faction_icon.clone(),
+                    name: i.name.clone(),
+                    kind_label: i.kind_label.clone(),
+                    role: i.role.clone(),
+                    creatures: i.creatures.clone(),
+                    radiation: i.radiation.clone(),
+                    hazard_image: i.hazard_image.clone(),
+                    hazard_count: i.hazard_count,
+                    loot: i.loot.clone(),
+                };
+            }
+            out
+        }
+    };
 
-    *tooltip = TooltipContent::Hidden;
+    *last_target = new_target;
 }
 
 fn handle_npc_click(
     mouse: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
-    dots: Query<(Entity, &Transform), With<NpcMarker>>,
+    dots: Query<(Entity, &Transform, &Visibility), With<NpcMarker>>,
     mut selected: ResMut<SelectedNpc>,
 ) {
     if !mouse.just_pressed(MouseButton::Left) {
@@ -692,7 +782,11 @@ fn handle_npc_click(
 
     let hit_radius = 20.0;
     let mut closest: Option<(Entity, f32)> = None;
-    for (entity, transform) in &dots {
+    for (entity, transform, vis) in &dots {
+        // Fog-hidden NPCs aren't clickable.
+        if matches!(vis, Visibility::Hidden) {
+            continue;
+        }
         let pos = transform.translation.truncate();
         let dist = pos.distance(cursor_world);
         if dist <= hit_radius && (closest.is_none() || dist < closest.unwrap().1) {
@@ -707,40 +801,74 @@ fn handle_npc_click(
     }
 }
 
+/// Marker for the ring child entity that draws the selection /
+/// squadmate outline around an NPC dot. Keeping it as its own
+/// component lets the selection system find and despawn the ring
+/// without touching anything else parented to the NPC.
+#[derive(Component)]
+struct SelectionRing;
+
 fn update_npc_selection(
     selected: Res<SelectedNpc>,
     npc_assets: Res<NpcAssets>,
-    palette: Res<FactionPalette>,
-    mut dots: Query<
-        (
-            Entity,
-            &SquadMembership,
-            &FactionId,
-            &mut MeshMaterial2d<ColorMaterial>,
-        ),
+    mut commands: Commands,
+    dots: Query<
+        (Entity, &SquadMembership, Option<&Children>),
         With<NpcMarker>,
     >,
+    rings: Query<Entity, With<SelectionRing>>,
 ) {
     if !selected.is_changed() {
         return;
     }
 
-    // Find the selected NPC's squad entity.
-    let selected_squad = selected.0.and_then(|entity| {
-        dots.iter()
-            .find(|(e, _, _, _)| *e == entity)
-            .map(|(_, m, _, _)| m.squad)
-    });
+    // Despawn all existing rings first. Rings are children of their
+    // NPC, so despawning the ring entity is enough — the NPC stays.
+    for ring in &rings {
+        commands.entity(ring).despawn();
+    }
 
-    for (entity, member, faction, mut mat_handle) in &mut dots {
-        let new_mat = match (selected.0, selected_squad) {
-            (Some(sel), _) if sel == entity => npc_assets.selected_mat.clone(),
-            (_, Some(sq)) if member.squad == sq => npc_assets.squad_mat.clone(),
-            // Default state: faction-tinted dot (not the legacy grey
-            // shared default).
-            _ => palette.dot(&faction.0),
+    // Nothing selected → nothing to draw.
+    let Some(selected_entity) = selected.0 else {
+        return;
+    };
+
+    // Find the selected NPC's squad so we can mark its squadmates.
+    let Some(selected_squad) = dots
+        .iter()
+        .find(|(e, _, _)| *e == selected_entity)
+        .map(|(_, m, _)| m.squad)
+    else {
+        return;
+    };
+
+    // Spawn a ring under each matching NPC. The focused NPC gets the
+    // thicker "selected" ring; squadmates get the thinner one. Rings
+    // sit at local z = 0.5 so they render just above the dot (which
+    // is at 0) but below any later overlay.
+    for (entity, member, _) in &dots {
+        let (mesh, mat) = if entity == selected_entity {
+            (
+                npc_assets.selected_ring_mesh.clone(),
+                npc_assets.selected_ring_mat.clone(),
+            )
+        } else if member.squad == selected_squad {
+            (
+                npc_assets.squad_ring_mesh.clone(),
+                npc_assets.squad_ring_mat.clone(),
+            )
+        } else {
+            continue;
         };
-        mat_handle.0 = new_mat;
+        let ring = commands
+            .spawn((
+                SelectionRing,
+                Mesh2d(mesh),
+                MeshMaterial2d(mat),
+                Transform::from_xyz(0.0, 0.0, 0.5),
+            ))
+            .id();
+        commands.entity(entity).add_child(ring);
     }
 }
 
