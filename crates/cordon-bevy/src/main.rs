@@ -6,6 +6,7 @@
 
 mod ai;
 mod bunker;
+#[cfg(debug_assertions)]
 mod debug;
 mod laptop;
 mod locale;
@@ -32,33 +33,39 @@ pub enum PlayingState {
 }
 
 fn main() {
-    App::new()
-        .add_plugins(
-            DefaultPlugins
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        title: "Cordon".to_string(),
-                        ..default()
-                    }),
-                    ..default()
-                })
-                .set(AssetPlugin {
-                    file_path: "../../assets".to_string(),
+    let mut app = App::new();
+    app.add_plugins(
+        DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Cordon".to_string(),
                     ..default()
                 }),
-        )
-        .init_state::<AppState>()
-        .add_sub_state::<PlayingState>()
-        .add_plugins(GameDataPlugin {
-            loading: AppState::Loading,
-            ready: AppState::Playing,
-        })
-        .add_plugins(locale::LocalePlugin)
-        .add_plugins(world::WorldPlugin)
-        .add_plugins(CordonSimPlugin)
-        .add_plugins(ai::AiPlugin)
-        .add_plugins(bunker::BunkerPlugin)
-        .add_plugins(laptop::LaptopPlugin)
-        .add_plugins(debug::DebugPlugin)
-        .run();
+                ..default()
+            })
+            .set(AssetPlugin {
+                file_path: "../../assets".to_string(),
+                ..default()
+            }),
+    )
+    .init_state::<AppState>()
+    .add_sub_state::<PlayingState>()
+    .add_plugins(GameDataPlugin {
+        loading: AppState::Loading,
+        ready: AppState::Playing,
+    })
+    .add_plugins(locale::LocalePlugin)
+    .add_plugins(world::WorldPlugin)
+    .add_plugins(CordonSimPlugin)
+    .add_plugins(ai::AiPlugin)
+    .add_plugins(bunker::BunkerPlugin)
+    .add_plugins(laptop::LaptopPlugin);
+
+    // Debug overlay + world inspector + dev cheats — compiled out
+    // of release builds entirely via the `#[cfg(debug_assertions)]`
+    // on the `mod debug;` declaration above.
+    #[cfg(debug_assertions)]
+    app.add_plugins(debug::DebugPlugin);
+
+    app.run();
 }

@@ -1,6 +1,13 @@
 //! Debug overlay: FPS counter, entity count, diagnostics, world
 //! inspector, and dev-only cheats (F2 → push a test visitor,
 //! F3 → toggle map fog of war).
+//!
+//! The entire module is gated behind `cfg(debug_assertions)` at
+//! the `mod debug;` declaration in `main.rs`, so nothing in here
+//! (egui, the world inspector, cheat keys, dev shortcuts) exists
+//! in release builds at all. That means we can use deps like
+//! `bevy_inspector_egui` freely without paying for them in
+//! shipping builds.
 
 use bevy::diagnostic::{
     EntityCountDiagnosticsPlugin, FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin,
@@ -23,7 +30,7 @@ impl Plugin for DebugPlugin {
             EntityCountDiagnosticsPlugin::default(),
             LogDiagnosticsPlugin::default(),
         ));
-        // World inspector — toggle with F12. Egui plugin is required
+        // World inspector — toggle with F1. Egui plugin is required
         // for the inspector window; both are wired here so the rest of
         // the app stays unaware of the dev overlay.
         app.add_plugins(EguiPlugin::default());
@@ -32,17 +39,20 @@ impl Plugin for DebugPlugin {
         );
         app.insert_resource(InspectorVisible(false));
         app.add_systems(Startup, spawn_fps_counter);
-        app.add_systems(Update, (update_fps_counter, toggle_inspector));
-        // Dev-only shortcuts that don't belong in shipping builds.
-        #[cfg(debug_assertions)]
-        app.add_systems(Update, (debug_push_visitor, cheat_toggle_fog));
+        app.add_systems(
+            Update,
+            (
+                update_fps_counter,
+                toggle_inspector,
+                debug_push_visitor,
+                cheat_toggle_fog,
+            ),
+        );
     }
 }
 
 /// F3 → toggle map fog of war. Reveals every area and shows every
-/// NPC/relic regardless of player line of sight. Compiled out of
-/// release builds.
-#[cfg(debug_assertions)]
+/// NPC/relic regardless of player line of sight.
 fn cheat_toggle_fog(keys: Res<ButtonInput<KeyCode>>, mut fog: ResMut<FogEnabled>) {
     if !keys.just_pressed(KeyCode::F3) {
         return;
@@ -52,8 +62,7 @@ fn cheat_toggle_fog(keys: Res<ButtonInput<KeyCode>>, mut fog: ResMut<FogEnabled>
 }
 
 /// F2 → push a hardcoded test visitor onto the queue. Stand-in for
-/// the real day-cycle scheduler. Compiled out of release builds.
-#[cfg(debug_assertions)]
+/// the real day-cycle scheduler.
 fn debug_push_visitor(keys: Res<ButtonInput<KeyCode>>, mut queue: ResMut<VisitorQueue>) {
     if !keys.just_pressed(KeyCode::F2) {
         return;
@@ -70,7 +79,7 @@ fn debug_push_visitor(keys: Res<ButtonInput<KeyCode>>, mut queue: ResMut<Visitor
 struct InspectorVisible(bool);
 
 fn toggle_inspector(keys: Res<ButtonInput<KeyCode>>, mut visible: ResMut<InspectorVisible>) {
-    if keys.just_pressed(KeyCode::F12) {
+    if keys.just_pressed(KeyCode::F1) {
         visible.0 = !visible.0;
     }
 }
