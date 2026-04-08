@@ -27,7 +27,12 @@ impl Plugin for DialogueUiPlugin {
         // run.
         app.add_systems(
             Update,
-            (spawn_dialogue_ui, sync_dialogue_ui, handle_choice_click)
+            (
+                spawn_dialogue_ui,
+                sync_dialogue_ui,
+                handle_choice_click,
+                handle_choice_keys,
+            )
                 .run_if(in_state(PlayingState::Bunker)),
         );
     }
@@ -193,12 +198,12 @@ fn sync_dialogue_ui(
             *panel_vis = Visibility::Visible;
             speaker.0 = spk.clone().unwrap_or_default();
             text.0 = line.clone();
-            // One "Continue" button.
+            // One "Continue" button. Slot "1" so the 1-key works.
             spawn_choice_button(
                 &mut commands,
                 row_entity,
                 font.clone(),
-                "▸ Continue",
+                "[1] ▸ Continue",
                 DialogueChoiceButton {
                     index: None,
                     available: true,
@@ -212,7 +217,7 @@ fn sync_dialogue_ui(
             // line *before* options, so the previous line text is
             // already on screen — leave it as-is.
             for (i, opt) in lines.iter().enumerate() {
-                let label = format!("▸ {}", opt.text);
+                let label = format!("[{}] ▸ {}", i + 1, opt.text);
                 spawn_choice_button(
                     &mut commands,
                     row_entity,
@@ -299,6 +304,50 @@ fn handle_choice_click(
             }
             Interaction::Hovered => bg.0 = BUTTON_BG_HOVER,
             Interaction::None => bg.0 = BUTTON_BG,
+        }
+    }
+}
+
+/// Number-key shortcuts for dialogue choices. `1` always advances
+/// a `Line` (there's only ever one "Continue" button), and
+/// `1`..`9` pick the matching option in `Options` mode. Ineligible
+/// Yarn options are skipped — pressing their number is a no-op,
+/// same as clicking the dimmed button.
+fn handle_choice_keys(
+    keys: Res<ButtonInput<KeyCode>>,
+    current: Res<CurrentDialogue>,
+    mut writer: MessageWriter<DialogueChoice>,
+) {
+    let digit_keys = [
+        KeyCode::Digit1,
+        KeyCode::Digit2,
+        KeyCode::Digit3,
+        KeyCode::Digit4,
+        KeyCode::Digit5,
+        KeyCode::Digit6,
+        KeyCode::Digit7,
+        KeyCode::Digit8,
+        KeyCode::Digit9,
+    ];
+    let Some(pressed) = digit_keys.iter().position(|k| keys.just_pressed(*k)) else {
+        return;
+    };
+
+    match &*current {
+        CurrentDialogue::Idle => {}
+        CurrentDialogue::Line { .. } => {
+            if pressed == 0 {
+                writer.write(DialogueChoice::Continue);
+            }
+        }
+        CurrentDialogue::Options { lines } => {
+            let Some(opt) = lines.get(pressed) else {
+                return;
+            };
+            if !opt.available {
+                return;
+            }
+            writer.write(DialogueChoice::Option { id: opt.id });
         }
     }
 }
