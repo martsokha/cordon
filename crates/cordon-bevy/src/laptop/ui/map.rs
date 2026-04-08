@@ -77,6 +77,39 @@ pub enum TooltipContent {
 #[derive(Component)]
 pub struct MapOnlyUi;
 
+/// Root panel for the player-squad roster in the top-left corner
+/// of the map. Populated lazily once the fog of war has picked the
+/// player's squads.
+#[derive(Component)]
+pub struct SquadRosterPanel;
+
+/// One row inside [`SquadRosterPanel`], representing a single
+/// player squad.
+#[derive(Component)]
+pub struct SquadRosterRow {
+    /// Which squad this row represents. Currently unused by any
+    /// system but kept as the row's identity so future interactions
+    /// (click-to-focus, squad reassignment) can resolve the squad
+    /// from the row entity without re-looking it up.
+    #[allow(dead_code)]
+    pub squad: Entity,
+}
+
+/// One slot box inside a [`SquadRosterRow`]. Stores the NPC entity
+/// so a lightweight update system can recolor the box when that
+/// NPC dies without rebuilding the panel. An `Option` because rows
+/// are padded to a fixed width ([`SQUAD_ROSTER_MAX_SLOTS`]) — slots
+/// beyond the live member count hold `None` and render as empty.
+#[derive(Component)]
+pub struct SquadRosterSlot {
+    pub npc: Option<Entity>,
+}
+
+/// Every row is padded out to this many slots. Real squads in
+/// this project never exceed 5 members; anything larger would need
+/// a different UI treatment anyway.
+const SQUAD_ROSTER_MAX_SLOTS: usize = 5;
+
 fn tier_color(t: &Tier) -> Color {
     match t {
         Tier::VeryLow => Color::srgb(0.5, 0.8, 0.5),
@@ -109,6 +142,19 @@ impl Plugin for MapUiPlugin {
             Update,
             (update_time_label, update_money_label).run_if(in_state(PlayingState::Laptop)),
         );
+        // Squad roster: build once the fog-of-war picks player
+        // squads; update per-box color every frame as members die
+        // or the selection changes; handle clicks to select an NPC.
+        app.add_systems(
+            Update,
+            (
+                build_squad_roster,
+                handle_roster_click,
+                update_squad_roster_state,
+            )
+                .chain()
+                .run_if(in_state(PlayingState::Laptop)),
+        );
     }
 }
 
@@ -128,12 +174,15 @@ fn update_map_ui_visibility(
             Visibility::Hidden
         };
     }
-    for mut vis in &mut world_q {
-        *vis = if visible {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        };
+    // When leaving the Map tab, hide every world entity. On *entry*
+    // we deliberately don't force them visible — the fog-of-war
+    // system ([`laptop::fog::apply_fog`]) owns per-entity visibility
+    // based on player squad line-of-sight, and blindly showing
+    // everything here would un-fog the map for one frame.
+    if !visible {
+        for mut vis in &mut world_q {
+            *vis = Visibility::Hidden;
+        }
     }
 }
 
@@ -150,7 +199,35 @@ pub fn cursor_world_pos(
         .ok()
 }
 
+/// Build the top-left squad roster panel. Shell-only at spawn
+/// time — the rows are filled in by [`build_squad_roster`] once
+/// the fog system has picked the player's squads.
+///
+/// The panel itself has no background; each row carries its own
+/// dark background with internal padding, so separate rows read as
+/// distinct cards stacked with a gap between them.
+fn spawn_squad_roster(commands: &mut Commands) {
+    commands.spawn((
+        MapOnlyUi,
+        SquadRosterPanel,
+        Node {
+            position_type: PositionType::Absolute,
+            // Clear of the 32px tab bar with generous margin so the
+            // roster doesn't crowd the top-left corner.
+            top: Val::Px(60.0),
+            left: Val::Px(60.0),
+            flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(8.0),
+            ..default()
+        },
+        GlobalZIndex(95),
+        Visibility::Hidden,
+    ));
+}
+
 pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
+    spawn_squad_roster(commands);
+
     // Tooltip panel with a single Text root + TextSpan children
     commands
         .spawn((
@@ -549,5 +626,142 @@ fn update_money_label(
     let credits = player.0.credits.value();
     for mut text in &mut label_q {
         text.0 = format!("{credits} ¢");
+    }
+}
+
+/// Filled slot whose NPC is alive.
+const ROSTER_BOX_ALIVE: Color = Color::srgba(0.7, 0.85, 0.55, 0.9);
+/// Slot whose NPC has died (corpse still lingering). Dimmed and
+/// desaturated red.
+const ROSTER_BOX_DEAD: Color = Color::srgba(0.35, 0.18, 0.18, 0.85);
+/// Empty slot — either the squad was spawned with fewer members
+/// than the max, or an earlier member died and their corpse has
+/// since been despawned. Rendered as a faint outlined placeholder.
+const ROSTER_BOX_EMPTY: Color = Color::srgba(0.10, 0.10, 0.12, 0.85);
+/// Slot highlight when this NPC is the currently selected one —
+/// mirrors the on-map selection ring color.
+const ROSTER_BOX_SELECTED: Color = Color::srgba(1.0, 0.9, 0.3, 1.0);
+
+/// Build the squad roster rows once [`PlayerSquads`] is populated.
+/// Idempotent — rebuilds only when the panel's children are empty.
+/// A full rebuild on every player-squad change keeps the code
+/// simple; at three squads of five members this is cheap.
+fn build_squad_roster(
+    mut commands: Commands,
+    player_squads: Res<crate::laptop::fog::PlayerSquads>,
+    panel_q: Query<(Entity, Option<&Children>), With<SquadRosterPanel>>,
+    squads: Query<&cordon_sim::components::SquadMembers>,
+) {
+    let Ok((panel_entity, panel_children)) = panel_q.single() else {
+        return;
+    };
+    let already_built = panel_children.map(|c| c.len() > 0).unwrap_or(false);
+    if already_built {
+        return;
+    }
+    if player_squads.0.is_empty() {
+        return;
+    }
+
+    // Sort squad entities for a stable row order — otherwise HashSet
+    // iteration would shuffle the rows every time we rebuilt.
+    let mut ordered: Vec<Entity> = player_squads.0.iter().copied().collect();
+    ordered.sort_by_key(|e| e.to_bits());
+
+    for squad_entity in ordered {
+        let Ok(members) = squads.get(squad_entity) else {
+            continue;
+        };
+        let row = commands
+            .spawn((
+                SquadRosterRow {
+                    squad: squad_entity,
+                },
+                Node {
+                    flex_direction: FlexDirection::Row,
+                    column_gap: Val::Px(5.0),
+                    padding: UiRect::all(Val::Px(6.0)),
+                    ..default()
+                },
+                BackgroundColor(Color::srgba(0.04, 0.04, 0.08, 0.88)),
+            ))
+            .id();
+
+        // Fill slot boxes up to the fixed max. Live members
+        // occupy the first N; the remainder are empty placeholders
+        // (npc: None) so rows always have the same width.
+        for i in 0..SQUAD_ROSTER_MAX_SLOTS {
+            let npc_opt = members.0.get(i).copied();
+            let slot = commands
+                .spawn((
+                    SquadRosterSlot { npc: npc_opt },
+                    Button,
+                    Node {
+                        width: Val::Px(26.0),
+                        height: Val::Px(26.0),
+                        ..default()
+                    },
+                    BackgroundColor(ROSTER_BOX_EMPTY),
+                ))
+                .id();
+            commands.entity(row).add_child(slot);
+        }
+
+        commands.entity(panel_entity).add_child(row);
+    }
+}
+
+/// Recolor each roster box based on its NPC's current state:
+/// alive → green, dead → dark red, despawned → near-black. Also
+/// applies a yellow highlight when this slot is the selected NPC
+/// so the panel mirrors the on-map selection ring.
+fn update_squad_roster_state(
+    selected: Res<crate::laptop::SelectedNpc>,
+    mut slots: Query<(&SquadRosterSlot, &mut BackgroundColor)>,
+    npcs: Query<Option<&cordon_sim::behavior::Dead>, With<cordon_sim::components::NpcMarker>>,
+) {
+    for (slot, mut bg) in &mut slots {
+        let (base, is_selected) = match slot.npc {
+            None => (ROSTER_BOX_EMPTY, false),
+            Some(npc) => {
+                let base = match npcs.get(npc) {
+                    Ok(None) => ROSTER_BOX_ALIVE,
+                    Ok(Some(_)) => ROSTER_BOX_DEAD,
+                    Err(_) => ROSTER_BOX_EMPTY,
+                };
+                (base, selected.0 == Some(npc))
+            }
+        };
+        bg.0 = if is_selected { ROSTER_BOX_SELECTED } else { base };
+    }
+}
+
+/// Clicking a roster slot selects that NPC and smoothly centers
+/// the camera on them. Clicking the already-selected slot toggles
+/// the selection *and* the camera follow off. The camera follow
+/// piggybacks on [`CameraTarget::following`], which the existing
+/// `apply_camera` system already lerp-follows each frame; the
+/// controller clears `following` on any arrow-key pan, so the
+/// follow breaks naturally when the player wants to look elsewhere.
+fn handle_roster_click(
+    interactions: Query<(&Interaction, &SquadRosterSlot), Changed<Interaction>>,
+    mut selected: ResMut<crate::laptop::SelectedNpc>,
+    mut camera_target: ResMut<CameraTarget>,
+) {
+    for (interaction, slot) in &interactions {
+        if *interaction != Interaction::Pressed {
+            continue;
+        }
+        // Empty slots are non-interactive.
+        let Some(npc) = slot.npc else {
+            continue;
+        };
+        if selected.0 == Some(npc) {
+            selected.0 = None;
+            camera_target.following = None;
+        } else {
+            selected.0 = Some(npc);
+            camera_target.following = Some(npc);
+        }
     }
 }
