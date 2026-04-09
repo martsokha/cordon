@@ -109,11 +109,11 @@
       ],
       "triggered": [
         {
-          "trigger": { "periodic": 4 },
+          "trigger": { "periodic": 2 },
           "effect": {
             "target": "Health",
             "value": 2.0,
-            "duration": { "secs": 1 }
+            "duration": 1
           }
         }
       ]

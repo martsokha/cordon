@@ -21,8 +21,7 @@ pub use self::data::{
 };
 pub use self::def::{Item, ItemDef, Supplier};
 pub use self::effect::{
-    EffectDuration, EffectTrigger, PassiveModifier, ResourceTarget, StatTarget, TimedEffect,
-    TriggeredEffect,
+    EffectTrigger, PassiveModifier, ResourceTarget, StatTarget, TimedEffect, TriggeredEffect,
 };
 pub use self::instance::ItemInstance;
 pub use self::loadout::{BASE_GENERAL_SLOTS, Loadout, MAX_RELIC_SLOTS};

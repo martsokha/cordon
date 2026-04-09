@@ -113,7 +113,7 @@
           "effect": {
             "target": "Health",
             "value": 4.0,
-            "duration": { "secs": 5 }
+            "duration": 5
           }
         }
       ]
@@ -136,11 +136,11 @@
       ],
       "triggered": [
         {
-          "trigger": { "periodic": 8 },
+          "trigger": { "periodic": 4 },
           "effect": {
             "target": "RadiationLevel",
             "value": -2.0,
-            "duration": { "secs": 4 }
+            "duration": 4
           }
         }
       ]

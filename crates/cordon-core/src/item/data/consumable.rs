@@ -13,7 +13,8 @@ use crate::primitive::Duration;
 pub struct ConsumableData {
     /// Effects applied when consumed. Each has its own duration.
     pub effects: Vec<TimedEffect>,
-    /// Seconds to consume this item (animation/use time).
+    /// Minutes to consume this item. [`Duration::INSTANT`] means
+    /// the item applies on click with no sim time elapsed.
     pub use_time: Duration,
     /// Days until spoilage. `None` means it never spoils.
     pub spoil_days: Option<u32>,

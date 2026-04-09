@@ -3,7 +3,7 @@
 //! Three distinct shapes, one vocabulary:
 //!
 //! - [`TimedEffect`]      — a fire-and-forget change to a live
-//!   resource, applied once (instant) or over a duration (per-second).
+//!   resource, applied once (instant) or over a duration (per-minute).
 //!   Produced by consumables and throwables.
 //! - [`PassiveModifier`]  — an always-on flat stat modifier, applied
 //!   while the source (relic) is equipped. Produced by relics.
@@ -18,7 +18,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::Distance;
+use crate::primitive::{Distance, Duration};
 
 /// Live resources that timed effects modify.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -62,18 +62,6 @@ pub enum StatTarget {
     GravitationalResistance,
 }
 
-/// How long a [`TimedEffect`] runs once fired.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EffectDuration {
-    /// Applied once, totally, at fire time. `value` is the total
-    /// amount (e.g. medkit: +50 HP instant).
-    Instant,
-    /// Applied per-second for `N` seconds. `value` is the per-second
-    /// rate (e.g. anti-rad pills: -5 rad/sec for 10 seconds).
-    Secs(u32),
-}
-
 /// A timed change to a live resource.
 ///
 /// Consumables and throwables produce these on use. Triggered relic
@@ -82,10 +70,13 @@ pub enum EffectDuration {
 pub struct TimedEffect {
     /// The live resource this effect touches.
     pub target: ResourceTarget,
-    /// Amount applied. Instant: total. Secs(n): per-second rate.
+    /// Amount applied. Instant duration: total value. Non-instant:
+    /// per-minute rate.
     pub value: f32,
     /// How long the effect runs once fired.
-    pub duration: EffectDuration,
+    /// [`Duration::INSTANT`] applies [`value`](Self::value) once;
+    /// any non-instant duration applies it per minute for that long.
+    pub duration: Duration,
     /// Area of effect radius. `None` means single-target (self or
     /// direct hit). Only meaningful for throwables.
     #[serde(default)]
@@ -112,9 +103,10 @@ pub enum EffectTrigger {
     /// Fires edge-triggered when the carrier's HP drops below
     /// `max * threshold` (0.0–1.0).
     OnHpLow(f32),
-    /// Fires on a recurring tick every N seconds while the source is
-    /// equipped.
-    Periodic(u32),
+    /// Fires on a recurring tick at the given interval while the
+    /// source is equipped. Minute-grained like everything else;
+    /// [`Duration::INSTANT`] is rejected by the sim at load time.
+    Periodic(Duration),
 }
 
 /// A reactive effect: when [`trigger`](Self::trigger) fires, the
@@ -132,20 +124,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn effect_duration_deserializes_instant() {
-        let json = r#""instant""#;
-        let d: EffectDuration = serde_json::from_str(json).unwrap();
-        assert_eq!(d, EffectDuration::Instant);
-    }
-
-    #[test]
-    fn effect_duration_deserializes_secs() {
-        let json = r#"{"secs": 10}"#;
-        let d: EffectDuration = serde_json::from_str(json).unwrap();
-        assert_eq!(d, EffectDuration::Secs(10));
-    }
-
-    #[test]
     fn timed_effect_deserializes_without_aoe() {
         let json = r#"{
             "target": "Health",
@@ -155,19 +133,19 @@ mod tests {
         let e: TimedEffect = serde_json::from_str(json).unwrap();
         assert_eq!(e.target, ResourceTarget::Health);
         assert_eq!(e.value, 50.0);
-        assert_eq!(e.duration, EffectDuration::Instant);
+        assert_eq!(e.duration, Duration::INSTANT);
         assert_eq!(e.aoe, None);
     }
 
     #[test]
-    fn timed_effect_deserializes_with_secs_duration() {
+    fn timed_effect_deserializes_with_minute_duration() {
         let json = r#"{
             "target": "Bleeding",
             "value": 1.0,
-            "duration": { "secs": 5 }
+            "duration": 5
         }"#;
         let e: TimedEffect = serde_json::from_str(json).unwrap();
-        assert_eq!(e.duration, EffectDuration::Secs(5));
+        assert_eq!(e.duration.minutes(), 5);
     }
 
     #[test]
@@ -188,7 +166,7 @@ mod tests {
             effect: TimedEffect {
                 target: ResourceTarget::Health,
                 value: 5.0,
-                duration: EffectDuration::Secs(3),
+                duration: Duration::from_minutes(3),
                 aoe: None,
             },
         };
@@ -207,7 +185,7 @@ mod tests {
 
     #[test]
     fn effect_trigger_periodic_roundtrip() {
-        let t = EffectTrigger::Periodic(10);
+        let t = EffectTrigger::Periodic(Duration::from_minutes(10));
         let json = serde_json::to_string(&t).unwrap();
         let parsed: EffectTrigger = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, t);

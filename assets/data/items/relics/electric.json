@@ -135,11 +135,11 @@
       ],
       "triggered": [
         {
-          "trigger": { "periodic": 10 },
+          "trigger": { "periodic": 5 },
           "effect": {
             "target": "Stamina",
             "value": 5.0,
-            "duration": { "secs": 3 }
+            "duration": 3
           }
         }
       ]
@@ -166,7 +166,7 @@
           "effect": {
             "target": "Health",
             "value": 12.0,
-            "duration": { "secs": 5 }
+            "duration": 5
           }
         }
       ]

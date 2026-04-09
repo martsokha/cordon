@@ -113,7 +113,7 @@
           "effect": {
             "target": "Health",
             "value": 6.0,
-            "duration": { "secs": 3 }
+            "duration": 3
           }
         }
       ]
@@ -136,11 +136,11 @@
       ],
       "triggered": [
         {
-          "trigger": { "periodic": 6 },
+          "trigger": { "periodic": 3 },
           "effect": {
             "target": "Health",
             "value": 3.0,
-            "duration": { "secs": 2 }
+            "duration": 2
           }
         }
       ]
@@ -167,7 +167,7 @@
           "effect": {
             "target": "Health",
             "value": 10.0,
-            "duration": { "secs": 4 }
+            "duration": 4
           }
         }
       ]
