@@ -82,7 +82,16 @@ fn spawn_tracers_for_shots(
     }
 }
 
-fn fade_tracers(time: Res<Time>, mut commands: Commands, mut q: Query<(Entity, &mut Tracer)>) {
+fn fade_tracers(
+    time: Res<Time<Real>>,
+    mut commands: Commands,
+    mut q: Query<(Entity, &mut Tracer)>,
+) {
+    // Real time, not virtual: tracer fade is a pure visual
+    // effect and must take the same wall-clock duration
+    // regardless of the sim time scale. Under a 64× cheat the
+    // sim fires 64× more shots per real second, but each
+    // individual tracer still fades over its natural lifetime.
     let dt = time.delta_secs();
     for (entity, mut tracer) in &mut q {
         tracer.life_secs -= dt;
