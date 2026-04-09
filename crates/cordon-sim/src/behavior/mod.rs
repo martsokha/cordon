@@ -62,14 +62,10 @@ pub struct Vision {
 }
 
 impl Vision {
-    /// Default vision: 120 base + 15 per rank tier above Novice + 25 if
-    /// the NPC's faction has military training.
-    pub fn for_npc(rank: Rank, is_military: bool) -> Self {
-        let from_rank = 120.0 + (rank.tier() as f32 - 1.0) * 15.0;
-        let from_faction = if is_military { 25.0 } else { 0.0 };
-        Self {
-            radius: from_rank + from_faction,
-        }
+    /// Default vision: 120 base + 15 per rank tier above Novice.
+    pub fn for_npc(rank: Rank) -> Self {
+        let radius = 120.0 + (rank.tier() as f32 - 1.0) * 15.0;
+        Self { radius }
     }
 }
 

@@ -203,8 +203,7 @@ fn attach_npc_visuals(
         };
         let spawn_pos = home + slot_offset;
 
-        let is_military = matches!(faction_str, "faction_garrison");
-        let vision = Vision::for_npc(rank, is_military);
+        let vision = Vision::for_npc(rank);
 
         commands.entity(entity).insert((
             MapWorldEntity,
