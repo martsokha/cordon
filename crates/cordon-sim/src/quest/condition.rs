@@ -6,9 +6,13 @@
 //! [`evaluate`]. Extending the vocabulary means adding one arm
 //! here and nothing else.
 
+use bevy::log::warn;
 use bevy_yarnspinner::prelude::YarnValue;
 use cordon_core::entity::player::PlayerState;
-use cordon_core::world::narrative::{ActiveEvent, ObjectiveCondition};
+use cordon_core::primitive::GameTime;
+use cordon_core::world::narrative::{
+    ActiveEvent, ObjectiveCondition, QuestFlagPredicate, QuestFlagValue,
+};
 
 use super::state::QuestLog;
 
@@ -19,6 +23,15 @@ pub struct WorldView<'a> {
     pub player: &'a PlayerState,
     pub events: &'a [ActiveEvent],
     pub quests: &'a QuestLog,
+    /// The current game clock. Used by `Wait` and any future
+    /// time-sensitive leaf conditions.
+    pub now: GameTime,
+    /// When the current quest stage was entered, if the
+    /// evaluator is running inside a stage context. `None`
+    /// means the caller is a trigger `requires`, a standalone
+    /// check, or somewhere else with no per-stage clock — any
+    /// stage-aware condition falls back to a warning + false.
+    pub stage_started_at: Option<GameTime>,
 }
 
 /// Evaluate a condition against the given world view.
@@ -48,28 +61,83 @@ pub fn evaluate(cond: &ObjectiveCondition, world: &WorldView<'_>) -> bool {
 
         ObjectiveCondition::QuestCompleted(quest) => world.quests.is_completed_successfully(quest),
 
-        ObjectiveCondition::QuestFlag { quest, key, equals } => {
-            match world.quests.active_instance(quest) {
-                Some(active) => match active.flags.get(key) {
-                    Some(value) => yarn_value_matches(value, equals),
-                    None => false,
-                },
-                // Also check completed quests — flag reads on finished
-                // quests are the main way later quests branch on
-                // earlier outcomes.
-                None => world
-                    .quests
-                    .completed
-                    .iter()
-                    .rev()
-                    .find(|c| &c.def_id == quest)
-                    .and_then(|c| c.flags.get(key))
-                    .map(|value| yarn_value_matches(value, equals))
-                    .unwrap_or(false),
+        ObjectiveCondition::QuestFlag {
+            quest,
+            key,
+            predicate,
+        } => {
+            // Active quest first, then most-recent completed
+            // instance. Completed-quest fallback lets later quests
+            // branch on how an earlier one ended.
+            let value = world
+                .quests
+                .active_instance(quest)
+                .and_then(|a| a.flags.get(key))
+                .or_else(|| {
+                    world
+                        .quests
+                        .completed
+                        .iter()
+                        .rev()
+                        .find(|c| &c.def_id == quest)
+                        .and_then(|c| c.flags.get(key))
+                });
+            match (predicate, value) {
+                // `IsSet` is true iff any value is present.
+                (QuestFlagPredicate::IsSet, v) => v.is_some(),
+                (_, None) => false,
+                (QuestFlagPredicate::Equals(expected), Some(v)) => yarn_value_equals(v, expected),
+                (QuestFlagPredicate::NotEquals(expected), Some(v)) => {
+                    !yarn_value_equals(v, expected)
+                }
+                (QuestFlagPredicate::GreaterThan(threshold), Some(v)) => {
+                    yarn_value_as_number(v).is_some_and(|n| n > *threshold)
+                }
+                (QuestFlagPredicate::LessThan(threshold), Some(v)) => {
+                    yarn_value_as_number(v).is_some_and(|n| n < *threshold)
+                }
             }
         }
 
-        ObjectiveCondition::Wait => true,
+        // NPC-template conditions are stubs until the template →
+        // live-entity resolution story lands (tasks #104/#105).
+        // The warning ships the ID so malformed quests surface
+        // during development.
+        ObjectiveCondition::NpcAlive(npc) => {
+            warn!(
+                "STUB CONDITION: NpcAlive({}) evaluated — returning false",
+                npc.as_str()
+            );
+            false
+        }
+        ObjectiveCondition::NpcDead(npc) => {
+            warn!(
+                "STUB CONDITION: NpcDead({}) evaluated — returning false",
+                npc.as_str()
+            );
+            false
+        }
+        ObjectiveCondition::NpcAtLocation { npc, area } => {
+            warn!(
+                "STUB CONDITION: NpcAtLocation({}, {}) evaluated — returning false",
+                npc.as_str(),
+                area.as_str()
+            );
+            false
+        }
+
+        ObjectiveCondition::Wait { duration } => {
+            let Some(started_at) = world.stage_started_at else {
+                // Evaluator was called without a stage clock —
+                // e.g. from a trigger `requires`. `Wait` is only
+                // meaningful inside a stage; anywhere else is an
+                // authoring mistake.
+                warn!("Wait condition evaluated without a stage clock — returning false");
+                return false;
+            };
+            let elapsed = world.now.minutes_since(started_at);
+            elapsed >= duration.minutes()
+        }
 
         ObjectiveCondition::AllOf(conds) => conds.iter().all(|c| evaluate(c, world)),
         ObjectiveCondition::AnyOf(conds) => conds.iter().any(|c| evaluate(c, world)),
@@ -77,20 +145,32 @@ pub fn evaluate(cond: &ObjectiveCondition, world: &WorldView<'_>) -> bool {
     }
 }
 
-/// Compare a [`YarnValue`] flag to a string literal from a
-/// [`ObjectiveCondition::QuestFlag`] check, following Yarn's
-/// loose casting rules. String flags compare textually; numeric
-/// flags are parsed from the literal; boolean flags accept
-/// `"true"` / `"false"` case-insensitively.
-fn yarn_value_matches(value: &YarnValue, expected: &str) -> bool {
+/// Compare a live [`YarnValue`] flag against an authored
+/// [`QuestFlagValue`] using Yarn's loose casting rules.
+///
+/// The three variants line up one-to-one: numbers to numbers
+/// (parsing a number flag from its own representation rounds-
+/// trips via `==`), booleans to booleans, strings to strings.
+/// Cross-type comparisons return false rather than coerce —
+/// authors can use the explicit predicate shape to say what
+/// they mean.
+fn yarn_value_equals(value: &YarnValue, expected: &QuestFlagValue) -> bool {
+    match (value, expected) {
+        (YarnValue::String(a), QuestFlagValue::String(b)) => a == b,
+        (YarnValue::Number(a), QuestFlagValue::Number(b)) => a == b,
+        (YarnValue::Boolean(a), QuestFlagValue::Boolean(b)) => a == b,
+        _ => false,
+    }
+}
+
+/// Coerce a live [`YarnValue`] flag to an `f32` for numeric
+/// comparison predicates. `None` when the flag isn't numeric —
+/// string-to-number coercion is deliberately not supported; use
+/// an explicit numeric flag.
+fn yarn_value_as_number(value: &YarnValue) -> Option<f32> {
     match value {
-        YarnValue::String(s) => s == expected,
-        YarnValue::Number(n) => expected.parse::<f32>().map(|e| *n == e).unwrap_or(false),
-        YarnValue::Boolean(b) => match expected.to_ascii_lowercase().as_str() {
-            "true" => *b,
-            "false" => !*b,
-            _ => false,
-        },
+        YarnValue::Number(n) => Some(*n),
+        _ => None,
     }
 }
 
@@ -101,10 +181,12 @@ mod tests {
     use bevy_yarnspinner::prelude::YarnValue;
     use cordon_core::entity::faction::Faction;
     use cordon_core::entity::player::PlayerState;
-    use cordon_core::primitive::{Credits, GameTime, Id, Relation, RelationDelta};
-    use cordon_core::world::narrative::{ObjectiveCondition, Quest, QuestStage};
+    use cordon_core::primitive::{Credits, Duration, GameTime, Id, Relation, RelationDelta};
+    use cordon_core::world::narrative::{
+        ObjectiveCondition, Quest, QuestFlagPredicate, QuestFlagValue, QuestStage,
+    };
 
-    use super::{WorldView, evaluate, yarn_value_matches};
+    use super::{WorldView, evaluate, yarn_value_equals};
     use crate::quest::state::{ActiveQuest, CompletedQuest, QuestLog};
 
     fn player(factions: &[&str]) -> PlayerState {
@@ -117,6 +199,23 @@ mod tests {
             player,
             events: &[],
             quests: log,
+            now: GameTime::new(),
+            stage_started_at: None,
+        }
+    }
+
+    fn view_with_clock<'a>(
+        player: &'a PlayerState,
+        log: &'a QuestLog,
+        now: GameTime,
+        stage_started_at: GameTime,
+    ) -> WorldView<'a> {
+        WorldView {
+            player,
+            events: &[],
+            quests: log,
+            now,
+            stage_started_at: Some(stage_started_at),
         }
     }
 
@@ -163,10 +262,14 @@ mod tests {
         let p = player(&[]);
         let log = QuestLog::default();
         let cond = ObjectiveCondition::AllOf(vec![
-            ObjectiveCondition::Wait,
+            ObjectiveCondition::Wait {
+                duration: Duration::INSTANT,
+            },
             ObjectiveCondition::HaveCredits(Credits::new(9999)),
         ]);
-        assert!(!evaluate(&cond, &view(&p, &log)));
+        // Wait{INSTANT} needs a stage clock, use the clocked view.
+        let v = view_with_clock(&p, &log, GameTime::new(), GameTime::new());
+        assert!(!evaluate(&cond, &v));
     }
 
     #[test]
@@ -175,17 +278,57 @@ mod tests {
         let log = QuestLog::default();
         let cond = ObjectiveCondition::AnyOf(vec![
             ObjectiveCondition::HaveCredits(Credits::new(9999)),
-            ObjectiveCondition::Wait,
+            ObjectiveCondition::Wait {
+                duration: Duration::INSTANT,
+            },
         ]);
-        assert!(evaluate(&cond, &view(&p, &log)));
+        let v = view_with_clock(&p, &log, GameTime::new(), GameTime::new());
+        assert!(evaluate(&cond, &v));
     }
 
     #[test]
     fn not_flips_result() {
         let p = player(&[]);
         let log = QuestLog::default();
-        let cond = ObjectiveCondition::Not(Box::new(ObjectiveCondition::Wait));
+        let cond = ObjectiveCondition::Not(Box::new(ObjectiveCondition::Wait {
+            duration: Duration::INSTANT,
+        }));
+        let v = view_with_clock(&p, &log, GameTime::new(), GameTime::new());
+        assert!(!evaluate(&cond, &v));
+    }
+
+    #[test]
+    fn wait_without_stage_clock_returns_false() {
+        let p = player(&[]);
+        let log = QuestLog::default();
+        let cond = ObjectiveCondition::Wait {
+            duration: Duration::INSTANT,
+        };
+        // No stage clock → false.
         assert!(!evaluate(&cond, &view(&p, &log)));
+    }
+
+    #[test]
+    fn wait_honours_duration() {
+        let p = player(&[]);
+        let log = QuestLog::default();
+        let cond = ObjectiveCondition::Wait {
+            duration: Duration::from_minutes(30),
+        };
+        // Zero elapsed → not yet satisfied.
+        let start = GameTime::new();
+        let now_early = start;
+        assert!(!evaluate(
+            &cond,
+            &view_with_clock(&p, &log, now_early, start)
+        ));
+        // 30+ minutes elapsed → satisfied.
+        let mut now_late = start;
+        now_late.advance_minutes(30);
+        assert!(evaluate(
+            &cond,
+            &view_with_clock(&p, &log, now_late, start)
+        ));
     }
 
     #[test]
@@ -211,11 +354,10 @@ mod tests {
     }
 
     #[test]
-    fn quest_flag_reads_active_first_then_completed() {
+    fn quest_flag_equals_active_first_then_completed() {
         let p = player(&[]);
         let mut log = QuestLog::default();
 
-        // Active quest with a flag.
         let mut flags = HashMap::new();
         flags.insert(
             "$quest_choice".to_string(),
@@ -229,7 +371,6 @@ mod tests {
             flags,
         });
 
-        // Completed quest with a different flag value.
         let mut completed_flags = HashMap::new();
         completed_flags.insert(
             "$quest_choice".to_string(),
@@ -249,56 +390,116 @@ mod tests {
             &ObjectiveCondition::QuestFlag {
                 quest: Id::<Quest>::new("live"),
                 key: "$quest_choice".to_string(),
-                equals: "accepted".to_string(),
+                predicate: QuestFlagPredicate::Equals(QuestFlagValue::String(
+                    "accepted".to_string(),
+                )),
             },
             &view(&p, &log)
         ));
-        // Completed quest hit — active_instance miss falls
-        // through to the completed scan.
+        // Completed quest hit — active_instance miss falls through.
         assert!(evaluate(
             &ObjectiveCondition::QuestFlag {
                 quest: Id::<Quest>::new("done"),
                 key: "$quest_choice".to_string(),
-                equals: "refused".to_string(),
-            },
-            &view(&p, &log)
-        ));
-        // Wrong expected value.
-        assert!(!evaluate(
-            &ObjectiveCondition::QuestFlag {
-                quest: Id::<Quest>::new("live"),
-                key: "$quest_choice".to_string(),
-                equals: "refused".to_string(),
-            },
-            &view(&p, &log)
-        ));
-        // Unknown key.
-        assert!(!evaluate(
-            &ObjectiveCondition::QuestFlag {
-                quest: Id::<Quest>::new("live"),
-                key: "$quest_missing".to_string(),
-                equals: "anything".to_string(),
+                predicate: QuestFlagPredicate::Equals(QuestFlagValue::String(
+                    "refused".to_string(),
+                )),
             },
             &view(&p, &log)
         ));
     }
 
     #[test]
-    fn yarn_value_number_non_numeric_expected_fails_gracefully() {
-        // The load-bearing behaviour here is our `.unwrap_or(false)`
-        // — passing a non-numeric literal to a numeric flag must
-        // return false instead of bubbling up a parse error.
-        assert!(!yarn_value_matches(&YarnValue::Number(3.0), "three"));
+    fn quest_flag_is_set_matches_any_value() {
+        let p = player(&[]);
+        let mut log = QuestLog::default();
+        let mut flags = HashMap::new();
+        flags.insert("$quest_stage".to_string(), YarnValue::Number(3.0));
+        log.active.push(ActiveQuest {
+            def_id: Id::<Quest>::new("live"),
+            current_stage: Id::<QuestStage>::new("s"),
+            started_at: GameTime::new(),
+            stage_started_at: GameTime::new(),
+            flags,
+        });
+
+        assert!(evaluate(
+            &ObjectiveCondition::QuestFlag {
+                quest: Id::<Quest>::new("live"),
+                key: "$quest_stage".to_string(),
+                predicate: QuestFlagPredicate::IsSet,
+            },
+            &view(&p, &log)
+        ));
+        // Missing key → false.
+        assert!(!evaluate(
+            &ObjectiveCondition::QuestFlag {
+                quest: Id::<Quest>::new("live"),
+                key: "$quest_other".to_string(),
+                predicate: QuestFlagPredicate::IsSet,
+            },
+            &view(&p, &log)
+        ));
     }
 
     #[test]
-    fn yarn_value_bool_rejects_non_truthy_strings() {
-        // Our match arm only accepts the literals "true" /
-        // "false" (case-insensitive) and rejects everything
-        // else — including other truthy-looking strings like
-        // "1" or "yes". Lock that in.
-        assert!(!yarn_value_matches(&YarnValue::Boolean(true), "1"));
-        assert!(!yarn_value_matches(&YarnValue::Boolean(true), "yes"));
-        assert!(!yarn_value_matches(&YarnValue::Boolean(true), ""));
+    fn quest_flag_greater_than_only_matches_numbers() {
+        let p = player(&[]);
+        let mut log = QuestLog::default();
+        let mut flags = HashMap::new();
+        flags.insert("$score".to_string(), YarnValue::Number(42.0));
+        flags.insert(
+            "$name".to_string(),
+            YarnValue::String("alice".to_string()),
+        );
+        log.active.push(ActiveQuest {
+            def_id: Id::<Quest>::new("live"),
+            current_stage: Id::<QuestStage>::new("s"),
+            started_at: GameTime::new(),
+            stage_started_at: GameTime::new(),
+            flags,
+        });
+
+        // Numeric flag over threshold.
+        assert!(evaluate(
+            &ObjectiveCondition::QuestFlag {
+                quest: Id::<Quest>::new("live"),
+                key: "$score".to_string(),
+                predicate: QuestFlagPredicate::GreaterThan(40.0),
+            },
+            &view(&p, &log)
+        ));
+        // Numeric flag under threshold.
+        assert!(!evaluate(
+            &ObjectiveCondition::QuestFlag {
+                quest: Id::<Quest>::new("live"),
+                key: "$score".to_string(),
+                predicate: QuestFlagPredicate::GreaterThan(50.0),
+            },
+            &view(&p, &log)
+        ));
+        // String flag can't satisfy a numeric predicate.
+        assert!(!evaluate(
+            &ObjectiveCondition::QuestFlag {
+                quest: Id::<Quest>::new("live"),
+                key: "$name".to_string(),
+                predicate: QuestFlagPredicate::GreaterThan(0.0),
+            },
+            &view(&p, &log)
+        ));
+    }
+
+    #[test]
+    fn yarn_value_equals_rejects_cross_type() {
+        // String to number → false, no coercion.
+        assert!(!yarn_value_equals(
+            &YarnValue::String("3".to_string()),
+            &QuestFlagValue::Number(3.0),
+        ));
+        // Boolean to string → false.
+        assert!(!yarn_value_equals(
+            &YarnValue::Boolean(true),
+            &QuestFlagValue::String("true".to_string()),
+        ));
     }
 }

@@ -18,12 +18,13 @@
 use serde::{Deserialize, Serialize};
 
 use super::event::Event;
+use super::flag::QuestFlagPredicate;
 use super::quest::Quest;
 use crate::entity::bunker::Upgrade;
 use crate::entity::faction::Faction;
 use crate::entity::npc::NpcTemplate;
 use crate::item::{ItemCategory, ItemQuery};
-use crate::primitive::{Credits, Id, Relation, RelationDelta};
+use crate::primitive::{Credits, Duration, Id, Relation, RelationDelta};
 use crate::world::area::Area;
 
 /// A boolean condition over world state.
@@ -58,18 +59,40 @@ pub enum ObjectiveCondition {
     QuestActive(Id<Quest>),
     /// The given quest has been completed successfully.
     QuestCompleted(Id<Quest>),
-    /// A flag on the given active quest equals a specific string
-    /// value. For numeric / boolean flags the evaluator coerces
-    /// via Yarn's value cast rules.
+    /// A flag on the given quest matches the predicate. The
+    /// evaluator reads the flag from the active quest first and
+    /// falls back to the most recent completed instance — so
+    /// later quests can branch on how an earlier one ended.
+    ///
+    /// Flag values are [`QuestFlagValue`](super::QuestFlagValue)s
+    /// under the hood; the predicate is the richer vocabulary
+    /// (see [`QuestFlagPredicate`]) so authors can test `IsSet`,
+    /// numeric comparisons, and explicit inequality without
+    /// stringly-typed coercion.
     QuestFlag {
         quest: Id<Quest>,
         key: String,
-        equals: String,
+        predicate: QuestFlagPredicate,
     },
-    /// Trivial condition — always true. Used with a stage
-    /// `timeout_minutes` to implement "wait N minutes then
-    /// advance" without any world dependency.
-    Wait,
+    /// The named NPC template is currently alive in the world.
+    /// Stub: the evaluator warns and returns `false` until the
+    /// NpcTemplate → live-entity resolution story is in.
+    NpcAlive(Id<NpcTemplate>),
+    /// The named NPC template has died at least once. Stub.
+    NpcDead(Id<NpcTemplate>),
+    /// The named NPC template is currently in the named area.
+    /// Stub.
+    NpcAtLocation {
+        npc: Id<NpcTemplate>,
+        area: Id<Area>,
+    },
+    /// Wait for the given duration to elapse in stage time. Used
+    /// for pacing stages where no world event needs to happen
+    /// but the quest shouldn't advance immediately.
+    ///
+    /// [`Duration::INSTANT`] is equivalent to the old unit `Wait`
+    /// and evaluates to true on the first tick.
+    Wait { duration: Duration },
     /// All of the nested conditions must be true.
     AllOf(Vec<ObjectiveCondition>),
     /// At least one of the nested conditions must be true.

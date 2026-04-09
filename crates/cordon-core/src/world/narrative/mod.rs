@@ -13,11 +13,13 @@
 
 mod consequence;
 mod event;
+mod flag;
 mod quest;
 mod trigger;
 
 pub use self::consequence::{Consequence, ObjectiveCondition};
 pub use self::event::{ActiveEvent, Event, EventCategory, EventDef};
+pub use self::flag::{QuestFlagPredicate, QuestFlagValue};
 pub use self::quest::{
     Quest, QuestCategory, QuestDef, QuestStage, QuestStageDef, QuestStageKind, TalkBranch,
 };

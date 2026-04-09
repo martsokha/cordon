@@ -253,11 +253,6 @@ fn collect_objective_transitions(
     catalog: &GameData,
     now: GameTime,
 ) -> Vec<(usize, Id<QuestStage>)> {
-    let view = WorldView {
-        player,
-        events,
-        quests: log,
-    };
     let mut out = Vec::new();
     for (index, active) in log.active.iter().enumerate() {
         let Some(def) = catalog.quests.get(&active.def_id) else {
@@ -280,6 +275,17 @@ fn collect_objective_transitions(
         let timed_out = timeout_minutes
             .map(|limit| elapsed >= limit)
             .unwrap_or(false);
+
+        // Per-iteration view: each active quest has its own
+        // stage clock, so `Wait { duration }` inside a composite
+        // condition reads the right elapsed time.
+        let view = WorldView {
+            player,
+            events,
+            quests: log,
+            now,
+            stage_started_at: Some(active.stage_started_at),
+        };
 
         if evaluate(condition, &view) {
             out.push((index, on_success.clone()));
@@ -522,6 +528,11 @@ pub fn dispatch_on_condition(
             player: &ctx.player.0,
             events: &ctx.events.0,
             quests: &ctx.log,
+            now,
+            // Trigger-requires has no per-stage clock; `Wait`
+            // in a trigger is meaningless and the evaluator
+            // will warn if it appears.
+            stage_started_at: None,
         };
         for (trigger, cond) in &triggers {
             if evaluate(cond, &view) {
@@ -574,6 +585,8 @@ fn try_fire_trigger(
                 player,
                 events,
                 quests: log,
+                now,
+                stage_started_at: None,
             };
             evaluate(cond, &view)
         }
