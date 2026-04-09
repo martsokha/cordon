@@ -26,7 +26,8 @@ pub const MAX_RELIC_SLOTS: u8 = 4;
 pub struct Loadout {
     /// Primary weapon (if equipped). The weapon instance's `count`
     /// holds the rounds currently in its magazine, drained as the NPC
-    /// fires and refilled from a general-pouch ammo box when reloading.
+    /// fires and topped up instantly from a general-pouch ammo box
+    /// when the mag runs dry.
     pub primary: Option<ItemInstance>,
     /// Secondary weapon (sidearm or backup). `count` is loaded rounds.
     pub secondary: Option<ItemInstance>,

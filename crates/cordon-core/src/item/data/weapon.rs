@@ -29,8 +29,6 @@ pub struct WeaponData {
     pub accuracy: f32,
     /// Magazine capacity in rounds.
     pub magazine: u32,
-    /// Time to reload a fresh magazine, in seconds.
-    pub reload_secs: f32,
     /// Effective firing range in map units.
     pub range: Distance,
     /// Whether this weapon is suppressed (affects runner stealth missions).

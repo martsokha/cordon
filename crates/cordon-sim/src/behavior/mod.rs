@@ -36,12 +36,14 @@ impl Default for MovementSpeed {
 #[derive(Component, Default, Debug, Clone, Copy)]
 pub struct CombatTarget(pub Option<Entity>);
 
-/// Per-NPC firing state: cooldown until next shot and reload progress.
-/// While `reload_secs > 0`, no shots fire.
+/// Per-NPC firing state: cooldown until next shot.
+///
+/// Reload is not modelled as a timed phase — magazines refill
+/// instantly from the general pouch when empty, and fire tempo is
+/// controlled entirely by the weapon's `fire_rate`.
 #[derive(Component, Default, Debug, Clone, Copy)]
 pub struct FireState {
     pub cooldown_secs: f32,
-    pub reload_secs: f32,
 }
 
 /// Per-NPC looting progress. Present only while the NPC is actively

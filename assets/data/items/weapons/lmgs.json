@@ -11,7 +11,6 @@
       "fire_rate": 12.0,
       "accuracy": 0.65,
       "magazine": 45,
-      "reload_secs": 5.5,
       "range": 160.0,
       "suppressed": false,
       "added_damage": 6
@@ -36,7 +35,6 @@
       "fire_rate": 11.0,
       "accuracy": 0.6,
       "magazine": 100,
-      "reload_secs": 6.0,
       "range": 170.0,
       "suppressed": false,
       "added_damage": 7
@@ -65,7 +63,6 @@
       "fire_rate": 10.0,
       "accuracy": 0.65,
       "magazine": 100,
-      "reload_secs": 7.0,
       "range": 200.0,
       "suppressed": false,
       "added_damage": 10
