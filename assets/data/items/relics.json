@@ -1,0 +1,890 @@
+[
+  {
+    "id": "item_sludge_bead",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 350,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_acid_knot",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 400,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_rot_drop",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 450,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_venom_core",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "max_health",
+          "value": 5.0
+        }
+      ]
+    },
+    "base_price": 900,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.95
+      }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "item_mire_heart",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "corruption_resistance",
+          "value": 10.0
+        }
+      ]
+    },
+    "base_price": 1000,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.9
+      }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "item_corrode_coil",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "ballistic_resistance",
+          "value": -5.0
+        }
+      ]
+    },
+    "base_price": 1100,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "item_plague_bloom",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "max_health",
+          "value": 10.0
+        }
+      ],
+      "triggered": [
+        {
+          "trigger": "on_low_health",
+          "effect": {
+            "target": "health",
+            "value": 4.0,
+            "duration": 5
+          }
+        }
+      ]
+    },
+    "base_price": 2000,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.85
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "item_alkahest_shard",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "corruption_resistance",
+          "value": 20.0
+        }
+      ],
+      "triggered": [
+        {
+          "trigger": "periodic",
+          "effect": {
+            "target": "corruption",
+            "value": -2.0,
+            "duration": 4
+          }
+        }
+      ]
+    },
+    "base_price": 2400,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.85
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "item_black_lung",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "max_health",
+          "value": -5.0
+        }
+      ],
+      "triggered": [
+        {
+          "trigger": "on_hit",
+          "effect": {
+            "target": "health",
+            "value": 8.0,
+            "duration": "instant"
+          }
+        }
+      ]
+    },
+    "base_price": 2600,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "item_spark_plug",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 350,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_static_orb",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 400,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_charge_fragment",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 450,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_volt_core",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "max_stamina",
+          "value": 10.0
+        }
+      ]
+    },
+    "base_price": 900,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "item_storm_glass",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 1000,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.9
+      }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "item_pulse_node",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "corruption_resistance",
+          "value": -5.0
+        }
+      ]
+    },
+    "base_price": 1100,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.95
+      }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "item_thunder_relic",
+    "data": {
+      "type": "relic",
+      "passive": [],
+      "triggered": [
+        {
+          "trigger": "on_hit",
+          "effect": {
+            "target": "health",
+            "value": 10.0,
+            "duration": "instant"
+          }
+        }
+      ]
+    },
+    "base_price": 2100,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "item_arc_brain",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "max_stamina",
+          "value": 20.0
+        }
+      ],
+      "triggered": [
+        {
+          "trigger": "periodic",
+          "effect": {
+            "target": "stamina",
+            "value": 5.0,
+            "duration": 3
+          }
+        }
+      ]
+    },
+    "base_price": 2400,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.85
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "item_silence_heart",
+    "data": {
+      "type": "relic",
+      "passive": [],
+      "triggered": [
+        {
+          "trigger": "on_low_health",
+          "effect": {
+            "target": "health",
+            "value": 12.0,
+            "duration": 5
+          }
+        }
+      ]
+    },
+    "base_price": 2700,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "item_heavy_pebble",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 350,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_pull_nugget",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 400,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_warp_shard",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 450,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_grav_core",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "max_health",
+          "value": 8.0
+        }
+      ]
+    },
+    "base_price": 950,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.9
+      }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "item_fold_stone",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "ballistic_resistance",
+          "value": 5.0
+        }
+      ]
+    },
+    "base_price": 1050,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "item_mass_seed",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "max_stamina",
+          "value": -5.0
+        }
+      ]
+    },
+    "base_price": 1100,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.95
+      }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "item_singularity_fragment",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "max_health",
+          "value": 15.0
+        }
+      ],
+      "triggered": [
+        {
+          "trigger": "periodic",
+          "effect": {
+            "target": "health",
+            "value": 2.0,
+            "duration": 1
+          }
+        }
+      ]
+    },
+    "base_price": 2200,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.85
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "item_void_heart",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "max_stamina",
+          "value": -10.0
+        }
+      ],
+      "triggered": [
+        {
+          "trigger": "on_hit",
+          "effect": {
+            "target": "health",
+            "value": 12.0,
+            "duration": "instant"
+          }
+        }
+      ]
+    },
+    "base_price": 2500,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "item_anchor_relic",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "ballistic_resistance",
+          "value": 10.0
+        },
+        {
+          "target": "max_health",
+          "value": 20.0
+        }
+      ]
+    },
+    "base_price": 2800,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.85
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "item_cinder_pebble",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 350,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_ash_node",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 400,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_heat_shard",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 450,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_blaze_core",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "max_stamina",
+          "value": 5.0
+        }
+      ]
+    },
+    "base_price": 900,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.95
+      }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "item_furnace_eye",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 1000,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "item_meltstone",
+    "data": {
+      "type": "relic",
+      "passive": []
+    },
+    "base_price": 1100,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.9
+      }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "item_sun_fragment",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "max_health",
+          "value": 10.0
+        }
+      ],
+      "triggered": [
+        {
+          "trigger": "on_hit",
+          "effect": {
+            "target": "health",
+            "value": 6.0,
+            "duration": 3
+          }
+        }
+      ]
+    },
+    "base_price": 2100,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.85
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "item_infernal_seed",
+    "data": {
+      "type": "relic",
+      "passive": [],
+      "triggered": [
+        {
+          "trigger": "periodic",
+          "effect": {
+            "target": "health",
+            "value": 3.0,
+            "duration": 2
+          }
+        }
+      ]
+    },
+    "base_price": 2400,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "item_white_ember",
+    "data": {
+      "type": "relic",
+      "passive": [
+        {
+          "target": "max_stamina",
+          "value": 15.0
+        }
+      ],
+      "triggered": [
+        {
+          "trigger": "on_low_health",
+          "effect": {
+            "target": "health",
+            "value": 10.0,
+            "duration": 4
+          }
+        }
+      ]
+    },
+    "base_price": 2700,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.85
+      }
+    ],
+    "rarity": "rare"
+  }
+]

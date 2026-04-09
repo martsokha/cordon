@@ -15,7 +15,7 @@ use cordon_core::item::Loadout;
 use cordon_core::primitive::GameTime;
 
 use crate::behavior::Dead;
-use crate::components::{Hp, NpcMarker};
+use crate::components::{HealthPool, NpcMarker};
 use crate::plugin::SimSet;
 use crate::resources::GameClock;
 use crate::tuning::{CLEANUP_INTERVAL_SECS, CORPSE_PERSISTENCE_MINUTES, MAX_DEAD_NPCS};
@@ -77,7 +77,7 @@ fn handle_deaths(
     clock: Res<GameClock>,
     mut commands: Commands,
     mut died: MessageWriter<NpcDied>,
-    q: Query<(Entity, &Hp), (With<NpcMarker>, Without<Dead>)>,
+    q: Query<(Entity, &HealthPool), (With<NpcMarker>, Without<Dead>)>,
 ) {
     let now = clock.0;
     for (entity, hp) in &q {

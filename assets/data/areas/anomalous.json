@@ -8,10 +8,6 @@
     "radius": 60.0,
     "kind": {
       "type": "anomaly_field",
-      "hazard": {
-        "kind": "chemical",
-        "intensity": "low"
-      },
       "creatures": "low",
       "corruption": "low",
       "loot": "low"
@@ -26,10 +22,6 @@
     "radius": 105.0,
     "kind": {
       "type": "anomaly_field",
-      "hazard": {
-        "kind": "chemical",
-        "intensity": "medium"
-      },
       "creatures": "medium",
       "corruption": "medium",
       "loot": "medium"
@@ -44,10 +36,6 @@
     "radius": 165.0,
     "kind": {
       "type": "anomaly_field",
-      "hazard": {
-        "kind": "chemical",
-        "intensity": "veryhigh"
-      },
       "creatures": "veryhigh",
       "corruption": "high",
       "loot": "veryhigh"
@@ -62,10 +50,6 @@
     "radius": 70.0,
     "kind": {
       "type": "anomaly_field",
-      "hazard": {
-        "kind": "thermal",
-        "intensity": "medium"
-      },
       "creatures": "medium",
       "corruption": "low",
       "loot": "low"
@@ -80,10 +64,6 @@
     "radius": 95.0,
     "kind": {
       "type": "anomaly_field",
-      "hazard": {
-        "kind": "thermal",
-        "intensity": "high"
-      },
       "creatures": "medium",
       "corruption": "medium",
       "loot": "high"
@@ -98,10 +78,6 @@
     "radius": 80.0,
     "kind": {
       "type": "anomaly_field",
-      "hazard": {
-        "kind": "electric",
-        "intensity": "medium"
-      },
       "creatures": "low",
       "corruption": "medium",
       "loot": "medium"
@@ -116,10 +92,6 @@
     "radius": 75.0,
     "kind": {
       "type": "anomaly_field",
-      "hazard": {
-        "kind": "gravitational",
-        "intensity": "medium"
-      },
       "creatures": "medium",
       "corruption": "medium",
       "loot": "medium"
@@ -134,10 +106,6 @@
     "radius": 100.0,
     "kind": {
       "type": "anomaly_field",
-      "hazard": {
-        "kind": "gravitational",
-        "intensity": "high"
-      },
       "creatures": "high",
       "corruption": "high",
       "loot": "high"

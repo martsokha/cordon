@@ -63,8 +63,6 @@ pub struct AreaTooltipInfo {
     pub role: Option<String>,
     pub creatures: Option<(String, Tier)>,
     pub corruption: Option<(String, Tier)>,
-    pub hazard_image: Option<String>,
-    pub hazard_count: u8,
     pub loot: Option<(String, Tier)>,
 }
 

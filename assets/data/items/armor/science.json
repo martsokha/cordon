@@ -6,11 +6,7 @@
       "slot": "suit",
       "resistances": {
         "ballistic": 6,
-        "corruption": 5,
-        "chemical": 5,
-        "thermal": 3,
-        "electric": 3,
-        "gravitational": 1
+        "corruption": 5
       },
       "inventory_slots": 3,
       "relic_slots": 2
@@ -31,11 +27,7 @@
       "slot": "suit",
       "resistances": {
         "ballistic": 4,
-        "corruption": 8,
-        "chemical": 7,
-        "thermal": 5,
-        "electric": 4,
-        "gravitational": 2
+        "corruption": 8
       },
       "inventory_slots": 2,
       "relic_slots": 3

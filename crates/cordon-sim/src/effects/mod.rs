@@ -5,15 +5,18 @@
 //! ([`ActiveEffects`]) and one global scheduler
 //! ([`PeriodicTriggers`]):
 //!
-//! - [`NpcDamaged`] messages from combat fire `OnHit` and edge-
-//!   triggered `OnHpLow` relic effects.
+//! - [`NpcPoolChanged`] messages from combat and from the
+//!   dispatcher's own pool writes fire every reactive trigger:
+//!   `OnHit` on any HP decrease, plus edge-triggered
+//!   `OnLow*` / `OnHigh*` variants when a pool crosses its
+//!   threshold.
 //! - Loadout changes (add/remove relic) register or prune
 //!   periodic entries.
 //! - The game clock's minute rollover ticks every active
 //!   effect and fires eligible periodic entries.
 //!
 //! Runs in [`SimSet::Effects`] between combat and death so an
-//! `OnHpLow` heal can save a carrier in the same frame combat
+//! `OnLowHealth` heal can save a carrier in the same frame combat
 //! depleted them.
 //!
 //! # What each `TimedEffect::target` does here
@@ -23,7 +26,6 @@
 //! | `Health` | `hp.restore` for positive, `hp.deplete` for negative. Positive clamps at max. |
 //! | `Damage` | `hp.deplete(value as u32)`. Distinct from `Health` by authorial intent. |
 //! | `Stamina` | `stamina.restore` / `deplete`. |
-//! | `Hunger`  | `hunger.restore` / `deplete`. |
 //! | `Corruption` | `corruption.restore` for positive (gain corruption), `deplete` for negative (scrubbing). |
 //!
 //! `Bleeding`, `Poison`, and `Smoke` were deleted from
@@ -32,18 +34,19 @@
 //! different data shapes and will come back when their
 //! respective subsystems land.
 
-use std::collections::HashMap;
-
 use bevy::prelude::*;
-use cordon_core::item::{EffectTrigger, Item, ItemData, Loadout, ResourceTarget, TimedEffect};
+use cordon_core::item::{
+    CORRUPTION_HIGH_THRESHOLD, CORRUPTION_LOW_THRESHOLD, EffectTrigger, HP_HIGH_THRESHOLD,
+    HP_LOW_THRESHOLD, Item, ItemData, Loadout, PERIODIC_INTERVAL_MINUTES, ResourceTarget,
+    STAMINA_HIGH_THRESHOLD, STAMINA_LOW_THRESHOLD, TimedEffect,
+};
 use cordon_core::primitive::{GameTime, Id};
 use cordon_data::gamedata::GameDataResource;
 
 use crate::behavior::Dead;
-use crate::combat::NpcDamaged;
+use crate::combat::NpcPoolChanged;
 use crate::components::{
-    ActiveEffect, ActiveEffectSource, ActiveEffects, Hp, HungerPool, NpcMarker, CorruptionPool,
-    StaminaPool,
+    ActiveEffect, ActiveEffects, CorruptionPool, HealthPool, NpcMarker, StaminaPool,
 };
 use crate::plugin::SimSet;
 use crate::resources::GameClock;
@@ -58,7 +61,7 @@ impl Plugin for EffectsPlugin {
             Update,
             (
                 sync_periodic_triggers,
-                dispatch_damage_triggers,
+                dispatch_pool_triggers,
                 fire_periodic_triggers,
                 tick_active_effects,
             )
@@ -80,7 +83,9 @@ pub struct PeriodicTriggers {
     entries: Vec<PeriodicEntry>,
 }
 
-/// One scheduled periodic trigger.
+/// One scheduled periodic trigger. Every periodic relic fires on
+/// the same fixed cadence ([`PERIODIC_INTERVAL_MINUTES`]), so the
+/// entry doesn't store its own period.
 #[derive(Debug, Clone)]
 struct PeriodicEntry {
     /// Which entity carries the relic.
@@ -90,34 +95,41 @@ struct PeriodicEntry {
     relic: Id<Item>,
     /// The effect to apply on each fire.
     effect: TimedEffect,
-    /// How often the trigger fires. Stored so the re-schedule
-    /// step can compute the next-fire time.
-    period_minutes: u32,
     /// When the next fire is scheduled. Compared against
     /// `GameClock::now` each tick.
     next_fire: GameTime,
 }
 
-/// Read [`NpcDamaged`] messages and fire matching `OnHit` and
-/// edge-triggered `OnHpLow` effects from the target's equipped
-/// relics.
+/// Read [`NpcPoolChanged`] messages and fire any matching
+/// reactive relic effects on the affected entity.
+///
+/// This is the single entry point for every non-periodic trigger:
+/// - [`EffectTrigger::OnHit`] fires when a `Health` event carries
+///   a negative delta (damage taken).
+/// - [`EffectTrigger::OnLowHealth`] / [`OnHighHealth`] fire
+///   edge-triggered when `prev` crossed the threshold but
+///   `current` didn't.
+/// - The stamina and corruption variants work the same way on
+///   their respective pools.
 ///
 /// Runs before [`tick_active_effects`] so instant-effect heals
-/// land the same frame the damage was applied — which is why
-/// an `OnHpLow` heal can save a carrier that just hit zero HP.
-/// The query filters `Without<Dead>` because dead entities
-/// don't get new triggers (the frame's already resolved).
-fn dispatch_damage_triggers(
-    mut damaged: MessageReader<NpcDamaged>,
+/// land the same frame the damage was applied — which is why an
+/// `OnLowHealth` heal can save a carrier that just hit zero HP.
+/// The query filters `Without<Dead>` because dead entities don't
+/// get new triggers (the frame's already resolved).
+fn dispatch_pool_triggers(
+    mut messages: ParamSet<(
+        MessageReader<NpcPoolChanged>,
+        MessageWriter<NpcPoolChanged>,
+    )>,
     data: Res<GameDataResource>,
     clock: Res<GameClock>,
     mut targets: Query<
         (
             &Loadout,
             &mut ActiveEffects,
-            &mut Hp,
+            &mut HealthPool,
             &mut StaminaPool,
-            &mut HungerPool,
             &mut CorruptionPool,
         ),
         Without<Dead>,
@@ -126,9 +138,16 @@ fn dispatch_damage_triggers(
     let now = clock.0;
     let items = &data.0.items;
 
-    for event in damaged.read() {
-        let Ok((loadout, mut active, mut hp, mut stamina, mut hunger, mut corruption)) =
-            targets.get_mut(event.target)
+    // Drain into a Vec so we can re-emit further events later
+    // (instant-apply side effects emit their own NpcPoolChanged)
+    // without aliasing the reader — and so that the writer borrow
+    // below doesn't overlap the reader borrow.
+    let events: Vec<NpcPoolChanged> = messages.p0().read().copied().collect();
+    let mut pool_changed = messages.p1();
+
+    for event in events {
+        let Ok((loadout, mut active, mut hp, mut stamina, mut corruption)) =
+            targets.get_mut(event.entity)
         else {
             continue;
         };
@@ -141,51 +160,77 @@ fn dispatch_damage_triggers(
                 continue;
             };
             for triggered in &relic.triggered {
-                match &triggered.trigger {
-                    EffectTrigger::OnHit => {
-                        apply_or_queue(
-                            triggered.effect,
-                            ActiveEffectSource::OneShot,
-                            now,
-                            &mut active,
-                            &mut hp,
-                            &mut stamina,
-                            &mut hunger,
-                            &mut corruption,
-                        );
-                    }
-                    EffectTrigger::OnHpLow(ratio) => {
-                        // Edge trigger: fired only on the frame
-                        // HP crosses below `max * ratio`.
-                        let max = hp.max() as f32;
-                        if max <= 0.0 {
-                            continue;
-                        }
-                        let threshold = max * ratio;
-                        let was_above = (event.prev_hp as f32) > threshold;
-                        let now_below = (hp.current() as f32) <= threshold;
-                        if was_above && now_below {
-                            apply_or_queue(
-                                triggered.effect,
-                                ActiveEffectSource::OneShot,
-                                now,
-                                &mut active,
-                                &mut hp,
-                                &mut stamina,
-                                &mut hunger,
-                                &mut corruption,
-                            );
-                        }
-                    }
-                    EffectTrigger::Periodic(_) => {
-                        // Periodic effects are scheduled by
-                        // `sync_periodic_triggers`; this path
-                        // doesn't fire them.
-                    }
+                if !trigger_matches(&triggered.trigger, &event) {
+                    continue;
                 }
+                apply_or_queue(
+                    event.entity,
+                    triggered.effect,
+                    now,
+                    &mut active,
+                    &mut hp,
+                    &mut stamina,
+                    &mut corruption,
+                    &mut pool_changed,
+                );
             }
         }
     }
+}
+
+/// Decide whether `trigger` should fire for `event`. Threshold
+/// variants are edge-triggered: they only fire on the frame the
+/// pool crosses the threshold, never while the pool sits on the
+/// wrong side.
+fn trigger_matches(trigger: &EffectTrigger, event: &NpcPoolChanged) -> bool {
+    let max = event.max as f32;
+    if max <= 0.0 {
+        return false;
+    }
+    match trigger {
+        // OnHit: any HP decrease.
+        EffectTrigger::OnHit => {
+            event.pool == ResourceTarget::Health && event.current < event.prev
+        }
+        EffectTrigger::OnLowHealth => {
+            event.pool == ResourceTarget::Health && crossed_low(event, max, HP_LOW_THRESHOLD)
+        }
+        EffectTrigger::OnHighHealth => {
+            event.pool == ResourceTarget::Health && crossed_high(event, max, HP_HIGH_THRESHOLD)
+        }
+        EffectTrigger::OnLowStamina => {
+            event.pool == ResourceTarget::Stamina
+                && crossed_low(event, max, STAMINA_LOW_THRESHOLD)
+        }
+        EffectTrigger::OnHighStamina => {
+            event.pool == ResourceTarget::Stamina
+                && crossed_high(event, max, STAMINA_HIGH_THRESHOLD)
+        }
+        EffectTrigger::OnLowCorruption => {
+            event.pool == ResourceTarget::Corruption
+                && crossed_low(event, max, CORRUPTION_LOW_THRESHOLD)
+        }
+        EffectTrigger::OnHighCorruption => {
+            event.pool == ResourceTarget::Corruption
+                && crossed_high(event, max, CORRUPTION_HIGH_THRESHOLD)
+        }
+        // Periodic is scheduled separately.
+        EffectTrigger::Periodic => false,
+    }
+}
+
+/// True if `event` crossed from above-or-at `max * ratio` to
+/// strictly below it this frame.
+fn crossed_low(event: &NpcPoolChanged, max: f32, ratio: f32) -> bool {
+    let threshold = max * ratio;
+    (event.prev as f32) > threshold && (event.current as f32) <= threshold
+}
+
+/// True if `event` crossed from below-or-at `max * ratio` to
+/// strictly above it this frame.
+fn crossed_high(event: &NpcPoolChanged, max: f32, ratio: f32) -> bool {
+    let threshold = max * ratio;
+    (event.prev as f32) < threshold && (event.current as f32) >= threshold
 }
 
 /// Walk every entity with a changed loadout and rebuild its
@@ -199,26 +244,44 @@ fn dispatch_damage_triggers(
 ///
 /// Change detection on [`Loadout`] means this only runs when
 /// equipment actually shifts — quiet in the common case.
+///
+/// Dead-entity pruning uses `RemovedComponents<NpcMarker>` as
+/// the signal rather than scanning every dead entity each
+/// frame: when `NpcMarker` comes off an entity (because it
+/// despawned, which takes the whole bundle with it), the
+/// removed-components reader yields exactly those entities
+/// this frame, and we drop their periodic entries. `Dead` is
+/// a marker but despawn is the lifetime event we actually
+/// care about, and removing the underlying NpcMarker is what
+/// happens on despawn.
 fn sync_periodic_triggers(
     data: Res<GameDataResource>,
     clock: Res<GameClock>,
     mut periodic: ResMut<PeriodicTriggers>,
     changed: Query<(Entity, &Loadout), (With<NpcMarker>, Changed<Loadout>, Without<Dead>)>,
-    dead_or_despawned: Query<Entity, Or<(With<Dead>, Without<NpcMarker>)>>,
+    mut removed_npcs: RemovedComponents<NpcMarker>,
 ) {
-    if changed.is_empty() && periodic.entries.is_empty() {
+    // Drop any entries whose carrier despawned this frame.
+    // Cheap: the reader yields only removed entities, not the
+    // whole alive-NPC set.
+    let removed: Vec<Entity> = removed_npcs.read().collect();
+    if !removed.is_empty() {
+        periodic.entries.retain(|e| !removed.contains(&e.entity));
+    }
+
+    if changed.is_empty() {
         return;
     }
     let now = clock.0;
     let items = &data.0.items;
 
     // For every entity whose loadout changed this frame, build
-    // a set of (relic_id, period_minutes, effect) tuples the
-    // entity currently carries. Any existing PeriodicTriggers
-    // entry for this entity that isn't in the set gets dropped;
-    // any tuple not yet in the entries gets added.
+    // the set of `(relic_id, effect)` pairs the entity currently
+    // carries for periodic triggers. Any existing entry for this
+    // entity that isn't in the set gets dropped; any pair not yet
+    // in the entries gets added.
     for (entity, loadout) in &changed {
-        let mut carried: Vec<(Id<Item>, u32, TimedEffect)> = Vec::new();
+        let mut carried: Vec<(Id<Item>, TimedEffect)> = Vec::new();
         for relic_instance in &loadout.relics {
             let Some(def) = items.get(&relic_instance.def_id) else {
                 continue;
@@ -227,17 +290,8 @@ fn sync_periodic_triggers(
                 continue;
             };
             for triggered in &relic.triggered {
-                if let EffectTrigger::Periodic(duration) = triggered.trigger {
-                    let period = duration.minutes();
-                    if period == 0 {
-                        warn!(
-                            "relic `{}` has Periodic trigger with zero-minute \
-                             duration — skipping",
-                            relic_instance.def_id.as_str()
-                        );
-                        continue;
-                    }
-                    carried.push((relic_instance.def_id.clone(), period, triggered.effect));
+                if triggered.trigger == EffectTrigger::Periodic {
+                    carried.push((relic_instance.def_id.clone(), triggered.effect));
                 }
             }
         }
@@ -247,105 +301,76 @@ fn sync_periodic_triggers(
             if e.entity != entity {
                 return true;
             }
-            carried
-                .iter()
-                .any(|(relic, period, _)| e.relic == *relic && e.period_minutes == *period)
+            carried.iter().any(|(relic, _)| e.relic == *relic)
         });
 
         // Add entries that don't exist yet.
-        for (relic, period, effect) in carried {
+        for (relic, effect) in carried {
             let already = periodic
                 .entries
                 .iter()
-                .any(|e| e.entity == entity && e.relic == relic && e.period_minutes == period);
+                .any(|e| e.entity == entity && e.relic == relic);
             if already {
                 continue;
             }
             let mut next_fire = now;
-            next_fire.advance_minutes(period);
+            next_fire.advance_minutes(PERIODIC_INTERVAL_MINUTES);
             periodic.entries.push(PeriodicEntry {
                 entity,
                 relic,
                 effect,
-                period_minutes: period,
                 next_fire,
             });
         }
     }
-
-    // Also drop entries whose entity is dead or despawned.
-    // Bevy change detection doesn't fire for despawns, so we
-    // catch them by filtering the entries list.
-    let dead_set: HashMap<Entity, ()> = dead_or_despawned
-        .iter()
-        .map(|e| (e, ()))
-        .collect();
-    periodic
-        .entries
-        .retain(|e| !dead_set.contains_key(&e.entity));
 }
 
 /// Fire every periodic entry whose `next_fire` has landed.
 ///
-/// Applies the effect to the carrier and re-schedules the
-/// entry for `next_fire + period_minutes`. If the carrier's
-/// pool components don't match the entity (e.g. it's been
-/// despawned since the last sync), the entry is dropped.
+/// Single pass: apply the effect, then advance `next_fire` to
+/// the first minute strictly after `now`. The advance loop
+/// handles clock stutter where multiple periods elapsed in one
+/// frame by skipping the backlog (fire once, not N times).
 fn fire_periodic_triggers(
     clock: Res<GameClock>,
     mut periodic: ResMut<PeriodicTriggers>,
+    mut pool_changed: MessageWriter<NpcPoolChanged>,
     mut carriers: Query<
         (
             &mut ActiveEffects,
-            &mut Hp,
+            &mut HealthPool,
             &mut StaminaPool,
-            &mut HungerPool,
             &mut CorruptionPool,
         ),
         Without<Dead>,
     >,
 ) {
     let now = clock.0;
-    // Collect which entries fire this frame so we can mutate
-    // the resource after the carrier query releases. An entry
-    // is "due" when `now >= entry.next_fire` — expressed as
-    // `minutes_since > 0` (now is strictly after) OR
-    // `now == next_fire` (now lands exactly on the minute).
-    let mut fires: Vec<usize> = Vec::new();
-    for (idx, entry) in periodic.entries.iter().enumerate() {
+    for entry in periodic.entries.iter_mut() {
         let due = now.minutes_since(entry.next_fire) > 0 || now == entry.next_fire;
-        if due {
-            fires.push(idx);
-        }
-    }
-
-    for idx in &fires {
-        let entry = periodic.entries[*idx].clone();
-        let Ok((mut active, mut hp, mut stamina, mut hunger, mut corruption)) =
-            carriers.get_mut(entry.entity)
-        else {
+        if !due {
             continue;
-        };
-        apply_or_queue(
-            entry.effect,
-            ActiveEffectSource::PeriodicRelic(entry.relic),
-            now,
-            &mut active,
-            &mut hp,
-            &mut stamina,
-            &mut hunger,
-            &mut corruption,
-        );
-    }
-
-    // Re-schedule or drop.
-    for idx in fires.into_iter().rev() {
-        let entry = &mut periodic.entries[idx];
-        // Advance next_fire until it lands in the future.
-        // Handles clock stutter where multiple periods may
-        // have elapsed in one frame (fire one, skip the rest).
+        }
+        if let Ok((mut active, mut hp, mut stamina, mut corruption)) =
+            carriers.get_mut(entry.entity)
+        {
+            apply_or_queue(
+                entry.entity,
+                entry.effect,
+                now,
+                &mut active,
+                &mut hp,
+                &mut stamina,
+                &mut corruption,
+                &mut pool_changed,
+            );
+        }
+        // Advance next_fire until it lands strictly in the
+        // future. Dead-carrier entries are left in place and
+        // cleaned up by `sync_periodic_triggers` when
+        // `RemovedComponents<NpcMarker>` fires on despawn.
         while now.minutes_since(entry.next_fire) > 0 || now == entry.next_fire {
-            entry.next_fire.advance_minutes(entry.period_minutes);
+            entry.next_fire.advance_minutes(PERIODIC_INTERVAL_MINUTES);
         }
     }
 }
@@ -359,25 +384,24 @@ fn fire_periodic_triggers(
 /// walks entries that had a non-instant duration at creation.
 fn tick_active_effects(
     clock: Res<GameClock>,
+    mut pool_changed: MessageWriter<NpcPoolChanged>,
     mut carriers: Query<
         (
+            Entity,
             &mut ActiveEffects,
-            &mut Hp,
+            &mut HealthPool,
             &mut StaminaPool,
-            &mut HungerPool,
             &mut CorruptionPool,
         ),
         Without<Dead>,
     >,
 ) {
     let now = clock.0;
-    for (mut active, mut hp, mut stamina, mut hunger, mut corruption) in &mut carriers {
+    for (entity, mut active, mut hp, mut stamina, mut corruption) in &mut carriers {
         // Walk indices so we can `swap_remove` expired entries
         // without invalidating iteration. Read the fields we
         // need up-front so the outer borrow of `active` is
-        // released before `apply_pool_delta` runs — it doesn't
-        // touch `active` but the compiler wants the shape to
-        // be obvious.
+        // released before `apply_pool_delta` runs.
         let mut i = 0;
         while i < active.effects.len() {
             let target = active.effects[i].effect.target;
@@ -389,17 +413,25 @@ fn tick_active_effects(
             let elapsed_since_tick = now.minutes_since(last_tick_at);
             let total_elapsed = now.minutes_since(started_at);
 
-            // Apply one per-minute tick for each whole minute
-            // that rolled over since last_tick_at.
+            // Tick count is the number of whole minutes that
+            // rolled over since last_tick_at, capped at the
+            // effect's remaining lifetime. Without the cap, a
+            // frame stutter that advances the clock past the
+            // effect's expiry would overrun the tick count by
+            // (stutter - remaining) extra applies before the
+            // expiry check below drops the entry.
             if elapsed_since_tick > 0 {
-                for _ in 0..elapsed_since_tick {
+                let remaining = duration.saturating_sub(total_elapsed - elapsed_since_tick);
+                let ticks = elapsed_since_tick.min(remaining);
+                for _ in 0..ticks {
                     apply_pool_delta(
+                        entity,
                         target,
                         value,
                         &mut hp,
                         &mut stamina,
-                        &mut hunger,
                         &mut corruption,
+                        &mut pool_changed,
                     );
                 }
                 active.effects[i].last_tick_at = now;
@@ -426,48 +458,105 @@ fn tick_active_effects(
 /// method.
 #[allow(clippy::too_many_arguments)]
 fn apply_or_queue(
+    entity: Entity,
     effect: TimedEffect,
-    source: ActiveEffectSource,
     now: GameTime,
     active: &mut ActiveEffects,
-    hp: &mut Hp,
+    hp: &mut HealthPool,
     stamina: &mut StaminaPool,
-    hunger: &mut HungerPool,
     corruption: &mut CorruptionPool,
+    pool_changed: &mut MessageWriter<NpcPoolChanged>,
 ) {
     if effect.duration.is_instant() {
-        apply_pool_delta(effect.target, effect.value, hp, stamina, hunger, corruption);
+        apply_pool_delta(
+            entity,
+            effect.target,
+            effect.value,
+            hp,
+            stamina,
+            corruption,
+            pool_changed,
+        );
         return;
     }
     active.effects.push(ActiveEffect {
         effect,
-        source,
         started_at: now,
         last_tick_at: now,
     });
 }
 
-/// Apply a single `(target, value)` delta to the right pool.
+/// Apply a single `(target, value)` delta to the right pool and
+/// emit a [`NpcPoolChanged`] message describing the change.
 ///
-/// Positive values restore (heal, feed, gain corruption), negative
+/// Positive values restore (heal, gain corruption), negative
 /// values deplete. `Damage` is distinct from negative-`Health`
 /// by authorial intent — using it reads as "this is damage",
 /// using `Health` with a negative value reads as "this is a
-/// drain or cost".
+/// drain or cost" — but both emit as a `Health` pool change
+/// because the downstream bus only cares about which pool moved,
+/// not about authorial flavour.
 fn apply_pool_delta(
+    entity: Entity,
     target: ResourceTarget,
     value: f32,
-    hp: &mut Hp,
+    hp: &mut HealthPool,
     stamina: &mut StaminaPool,
-    hunger: &mut HungerPool,
     corruption: &mut CorruptionPool,
+    pool_changed: &mut MessageWriter<NpcPoolChanged>,
 ) {
     match target {
-        ResourceTarget::Health => apply_signed(hp, value),
-        ResourceTarget::Damage => hp.deplete(value.abs() as u32),
-        ResourceTarget::Stamina => apply_signed(stamina, value),
-        ResourceTarget::Hunger => apply_signed(hunger, value),
-        ResourceTarget::Corruption => apply_signed(corruption, value),
+        ResourceTarget::Health => {
+            emit_signed(entity, ResourceTarget::Health, hp, value, pool_changed);
+        }
+        ResourceTarget::Damage => {
+            let prev = hp.current();
+            hp.deplete(value.abs() as u32);
+            if hp.current() != prev {
+                pool_changed.write(NpcPoolChanged {
+                    entity,
+                    pool: ResourceTarget::Health,
+                    prev,
+                    current: hp.current(),
+                    max: hp.max(),
+                });
+            }
+        }
+        ResourceTarget::Stamina => {
+            emit_signed(entity, ResourceTarget::Stamina, stamina, value, pool_changed);
+        }
+        ResourceTarget::Corruption => {
+            emit_signed(
+                entity,
+                ResourceTarget::Corruption,
+                corruption,
+                value,
+                pool_changed,
+            );
+        }
+    }
+}
+
+/// Apply a signed value to `pool` and emit a [`NpcPoolChanged`]
+/// if anything actually moved.
+fn emit_signed<K: cordon_core::primitive::PoolKind>(
+    entity: Entity,
+    kind: ResourceTarget,
+    pool: &mut cordon_core::primitive::Pool<K>,
+    value: f32,
+    pool_changed: &mut MessageWriter<NpcPoolChanged>,
+) {
+    let prev = pool.current();
+    apply_signed(pool, value);
+    let current = pool.current();
+    if current != prev {
+        pool_changed.write(NpcPoolChanged {
+            entity,
+            pool: kind,
+            prev,
+            current,
+            max: pool.max(),
+        });
     }
 }
 

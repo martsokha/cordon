@@ -5,11 +5,9 @@ tier-medium = Medium
 tier-high = High
 tier-veryhigh = Very High
 
-# Hazard labels
-hazard-chemical = Chemical
-hazard-thermal = Thermal
-hazard-electric = Electric
-hazard-gravitational = Gravitational
+# Resistance labels
+resistance-ballistic = Ballistic
+resistance-corruption = Corruption
 
 # Area archetype labels
 areakind-settlement = Settlement

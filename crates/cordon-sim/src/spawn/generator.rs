@@ -11,8 +11,8 @@ use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
 use crate::components::{
-    ActiveEffects, BaseMaxes, Employment, FactionId, HungerPool, NpcAttributes, NpcBundle,
-    NpcMarker, Perks, CorruptionPool, StaminaPool,
+    ActiveEffects, BaseMaxes, CorruptionPool, Employment, FactionId, NpcAttributes, NpcBundle,
+    NpcMarker, Perks, StaminaPool,
 };
 use crate::resources::{FactionIndex, UidAllocator};
 use crate::spawn::loadout::generate_loadout;
@@ -153,13 +153,11 @@ pub trait NpcGenerator {
             xp,
             hp: health,
             stamina: StaminaPool::full(),
-            hunger: HungerPool::full(),
             corruption: CorruptionPool::empty(),
             active_effects: ActiveEffects::default(),
             base_maxes: BaseMaxes {
                 hp: hp_max,
                 stamina: 100,
-                hunger: 100,
             },
             loadout: Loadout::new(),
             wealth,

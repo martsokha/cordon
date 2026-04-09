@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 /// Protection against all damage types.
 ///
 /// Each value is an absolute protection rating. Compared directly
-/// against the corresponding threat value (ammo penetration, hazard
-/// intensity, corruption level). Higher = more protection.
+/// against the corresponding threat value (ammo penetration,
+/// corruption exposure). Higher = more protection.
 ///
 /// Used by armor, consumable buffs, and relics.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -15,14 +15,6 @@ pub struct Resistances {
     pub ballistic: u32,
     /// Corruption protection.
     pub corruption: u32,
-    /// Chemical hazard protection.
-    pub chemical: u32,
-    /// Thermal hazard protection.
-    pub thermal: u32,
-    /// Electric hazard protection.
-    pub electric: u32,
-    /// Gravitational anomaly protection.
-    pub gravitational: u32,
 }
 
 impl Resistances {
@@ -30,10 +22,6 @@ impl Resistances {
     pub const NONE: Self = Self {
         ballistic: 0,
         corruption: 0,
-        chemical: 0,
-        thermal: 0,
-        electric: 0,
-        gravitational: 0,
     };
 
     /// Combine two resistance sets (e.g., suit + helmet).
@@ -41,10 +29,6 @@ impl Resistances {
         Self {
             ballistic: self.ballistic + other.ballistic,
             corruption: self.corruption + other.corruption,
-            chemical: self.chemical + other.chemical,
-            thermal: self.thermal + other.thermal,
-            electric: self.electric + other.electric,
-            gravitational: self.gravitational + other.gravitational,
         }
     }
 

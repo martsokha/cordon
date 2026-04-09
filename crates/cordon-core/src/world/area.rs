@@ -7,26 +7,17 @@
 //! Areas come in five archetypes via [`AreaKind`]. Each archetype
 //! carries the fields that make sense for it — Settlements have a
 //! controlling faction and no danger (threat is a function of
-//! faction relations at runtime), AnomalyFields and Anchors have
-//! hazards, and so on.
+//! faction relations at runtime), AnomalyFields and Anchors carry
+//! a corruption tier, and so on.
 
 use serde::{Deserialize, Serialize};
 
 use crate::entity::faction::Faction;
-use crate::primitive::{Distance, HazardType, Id, IdMarker, Location, Tier};
+use crate::primitive::{Distance, Id, IdMarker, Location, Tier};
 
 /// Marker for area (point of interest) IDs.
 pub struct Area;
 impl IdMarker for Area {}
-
-/// An environmental hazard with a type and intensity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Hazard {
-    /// What kind of hazard.
-    pub kind: HazardType,
-    /// How severe it is.
-    pub intensity: Tier,
-}
 
 /// Role a settlement plays for its faction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,20 +48,18 @@ pub enum AreaKind {
     /// what they've dragged in. (Reserved for the upcoming
     /// mutants faction — no current data uses this variant.)
     MutantLair { creatures: Tier, loot: Tier },
-    /// Open hazard zone — chemical pools, electric storms, etc.
-    /// Spawns relics whose origin matches the hazard kind.
+    /// Open anomaly zone — thick with corruption and Zone
+    /// artifacts. Spawns relics.
     AnomalyField {
-        hazard: Hazard,
         creatures: Tier,
         corruption: Tier,
         loot: Tier,
     },
     /// A pre-existing hardened structure (vault, bunker, archive)
     /// repurposed by survivors of the Zone. High loot, dense
-    /// hazard, often guarded by mutants. Spawns relics like
+    /// corruption, often guarded by mutants. Spawns relics like
     /// AnomalyField does.
     Anchor {
-        hazard: Hazard,
         creatures: Tier,
         corruption: Tier,
         loot: Tier,
@@ -78,14 +67,11 @@ pub enum AreaKind {
 }
 
 impl AreaKind {
-    /// Hazard for archetypes that have one (AnomalyField, Anchor).
-    pub fn hazard(&self) -> Option<Hazard> {
-        match self {
-            AreaKind::AnomalyField { hazard, .. } | AreaKind::Anchor { hazard, .. } => {
-                Some(*hazard)
-            }
-            _ => None,
-        }
+    /// Whether this area hosts anomalies and spawns relics.
+    /// True for [`AreaKind::AnomalyField`] and [`AreaKind::Anchor`]
+    /// only.
+    pub fn is_anomaly(&self) -> bool {
+        matches!(self, AreaKind::AnomalyField { .. } | AreaKind::Anchor { .. })
     }
 
     /// Creature density tier, where it applies.

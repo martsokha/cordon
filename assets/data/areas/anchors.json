@@ -8,10 +8,6 @@
     "radius": 60.0,
     "kind": {
       "type": "anchor",
-      "hazard": {
-        "kind": "electric",
-        "intensity": "veryhigh"
-      },
       "creatures": "high",
       "corruption": "veryhigh",
       "loot": "veryhigh"
@@ -26,10 +22,6 @@
     "radius": 80.0,
     "kind": {
       "type": "anchor",
-      "hazard": {
-        "kind": "electric",
-        "intensity": "medium"
-      },
       "creatures": "low",
       "corruption": "low",
       "loot": "high"
@@ -44,10 +36,6 @@
     "radius": 72.0,
     "kind": {
       "type": "anchor",
-      "hazard": {
-        "kind": "gravitational",
-        "intensity": "medium"
-      },
       "creatures": "medium",
       "corruption": "low",
       "loot": "high"

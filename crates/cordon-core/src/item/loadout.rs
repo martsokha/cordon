@@ -66,8 +66,8 @@ impl Loadout {
             .unwrap_or(0)
     }
 
-    /// Combined ballistic/hazard resistances from equipped armor,
-    /// helmet, and relics.
+    /// Combined ballistic/corruption resistances from equipped
+    /// armor, helmet, and relics.
     ///
     /// `resolve_relic` is called for each relic in
     /// [`self.relics`](Self::relics); returning `None` (e.g. the relic
@@ -176,14 +176,7 @@ impl Resistances {
     where
         I: IntoIterator<Item = &'a [PassiveModifier]>,
     {
-        let mut acc: [i64; 6] = [
-            self.ballistic as i64,
-            self.corruption as i64,
-            self.chemical as i64,
-            self.thermal as i64,
-            self.electric as i64,
-            self.gravitational as i64,
-        ];
+        let mut acc: [i64; 2] = [self.ballistic as i64, self.corruption as i64];
 
         for slice in passives {
             for modifier in slice {
@@ -191,11 +184,7 @@ impl Resistances {
                 match modifier.target {
                     StatTarget::BallisticResistance => acc[0] += value,
                     StatTarget::CorruptionResistance => acc[1] += value,
-                    StatTarget::ChemicalResistance => acc[2] += value,
-                    StatTarget::ThermalResistance => acc[3] += value,
-                    StatTarget::ElectricResistance => acc[4] += value,
-                    StatTarget::GravitationalResistance => acc[5] += value,
-                    StatTarget::MaxHealth | StatTarget::MaxStamina | StatTarget::MaxHunger => {}
+                    StatTarget::MaxHealth | StatTarget::MaxStamina => {}
                 }
             }
         }
@@ -204,10 +193,6 @@ impl Resistances {
         Resistances {
             ballistic: clamp(acc[0]),
             corruption: clamp(acc[1]),
-            chemical: clamp(acc[2]),
-            thermal: clamp(acc[3]),
-            electric: clamp(acc[4]),
-            gravitational: clamp(acc[5]),
         }
     }
 }
@@ -250,12 +235,12 @@ mod tests {
             ..Resistances::NONE
         };
         let relic: &[PassiveModifier] = &[
-            modifier(StatTarget::GravitationalResistance, 30.0),
+            modifier(StatTarget::CorruptionResistance, 30.0),
             modifier(StatTarget::BallisticResistance, -5.0),
         ];
         let result = fold_one(base, relic);
         assert_eq!(result.ballistic, 15, "drawback should subtract");
-        assert_eq!(result.gravitational, 30);
+        assert_eq!(result.corruption, 30);
     }
 
     #[test]
@@ -274,10 +259,10 @@ mod tests {
     fn multiple_relics_cancel_correctly() {
         // Two relics: +20 and -10 should net +10.
         let base = Resistances::NONE;
-        let relic_a: &[PassiveModifier] = &[modifier(StatTarget::ThermalResistance, 20.0)];
-        let relic_b: &[PassiveModifier] = &[modifier(StatTarget::ThermalResistance, -10.0)];
+        let relic_a: &[PassiveModifier] = &[modifier(StatTarget::CorruptionResistance, 20.0)];
+        let relic_b: &[PassiveModifier] = &[modifier(StatTarget::CorruptionResistance, -10.0)];
         let result = fold_many(base, [relic_a, relic_b]);
-        assert_eq!(result.thermal, 10);
+        assert_eq!(result.corruption, 10);
     }
 
     #[test]

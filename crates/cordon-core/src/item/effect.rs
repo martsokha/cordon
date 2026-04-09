@@ -20,6 +20,21 @@ use serde::{Deserialize, Serialize};
 
 use crate::primitive::{Distance, Duration};
 
+/// HP fraction below which [`EffectTrigger::OnLowHealth`] fires.
+pub const HP_LOW_THRESHOLD: f32 = 0.2;
+/// HP fraction above which [`EffectTrigger::OnHighHealth`] fires.
+pub const HP_HIGH_THRESHOLD: f32 = 0.8;
+/// Stamina fraction below which [`EffectTrigger::OnLowStamina`] fires.
+pub const STAMINA_LOW_THRESHOLD: f32 = 0.2;
+/// Stamina fraction above which [`EffectTrigger::OnHighStamina`] fires.
+pub const STAMINA_HIGH_THRESHOLD: f32 = 0.8;
+/// Corruption fraction below which [`EffectTrigger::OnLowCorruption`] fires.
+pub const CORRUPTION_LOW_THRESHOLD: f32 = 0.2;
+/// Corruption fraction above which [`EffectTrigger::OnHighCorruption`] fires.
+pub const CORRUPTION_HIGH_THRESHOLD: f32 = 0.8;
+/// How often [`EffectTrigger::Periodic`] fires, in minutes.
+pub const PERIODIC_INTERVAL_MINUTES: u32 = 1;
+
 /// Live resources that timed effects modify.
 ///
 /// Every variant corresponds to a per-entity numeric pool that
@@ -35,8 +50,6 @@ pub enum ResourceTarget {
     Health,
     /// Current stamina.
     Stamina,
-    /// Current hunger (higher = more sated).
-    Hunger,
     /// Accumulated corruption carried by the character.
     /// Negative values scrub corruption (antidote pills,
     /// scrubber relics), positive increase it (tainted food,
@@ -59,15 +72,10 @@ pub enum StatTarget {
     MaxHealth,
     /// Flat addition to the carrier's max stamina cap.
     MaxStamina,
-    /// Flat addition to the carrier's max hunger cap.
-    MaxHunger,
-    /// Flat addition to each resistance track.
+    /// Flat addition to ballistic protection.
     BallisticResistance,
+    /// Flat addition to corruption protection.
     CorruptionResistance,
-    ChemicalResistance,
-    ThermalResistance,
-    ElectricResistance,
-    GravitationalResistance,
 }
 
 /// A timed change to a live resource.
@@ -103,18 +111,32 @@ pub struct PassiveModifier {
 }
 
 /// When a [`TriggeredEffect`] fires.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+///
+/// All threshold variants are edge-triggered: they fire on the
+/// frame the carrier's pool crosses the threshold, not while it
+/// sits on the wrong side. Thresholds are fractions of the
+/// current max — relics don't know absolute HP numbers, and max
+/// pools move with equipment anyway.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EffectTrigger {
     /// Fires when the carrier takes damage.
     OnHit,
-    /// Fires edge-triggered when the carrier's HP drops below
-    /// `max * threshold` (0.0–1.0).
-    OnHpLow(f32),
-    /// Fires on a recurring tick at the given interval while the
-    /// source is equipped. Minute-grained like everything else;
-    /// [`Duration::INSTANT`] is rejected by the sim at load time.
-    Periodic(Duration),
+    /// Fires when HP drops below [`HP_LOW_THRESHOLD`].
+    OnLowHealth,
+    /// Fires when HP rises above [`HP_HIGH_THRESHOLD`].
+    OnHighHealth,
+    /// Fires when stamina drops below [`STAMINA_LOW_THRESHOLD`].
+    OnLowStamina,
+    /// Fires when stamina rises above [`STAMINA_HIGH_THRESHOLD`].
+    OnHighStamina,
+    /// Fires when corruption drops below [`CORRUPTION_LOW_THRESHOLD`].
+    OnLowCorruption,
+    /// Fires when corruption rises above [`CORRUPTION_HIGH_THRESHOLD`].
+    OnHighCorruption,
+    /// Fires every [`PERIODIC_INTERVAL_MINUTES`] minutes while
+    /// the source is equipped.
+    Periodic,
 }
 
 /// A reactive effect: when [`trigger`](Self::trigger) fires, the
@@ -184,17 +206,19 @@ mod tests {
     }
 
     #[test]
-    fn effect_trigger_on_hp_low_roundtrip() {
-        let t = EffectTrigger::OnHpLow(0.3);
+    fn effect_trigger_on_low_health_roundtrip() {
+        let t = EffectTrigger::OnLowHealth;
         let json = serde_json::to_string(&t).unwrap();
+        assert_eq!(json, "\"on_low_health\"");
         let parsed: EffectTrigger = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, t);
     }
 
     #[test]
     fn effect_trigger_periodic_roundtrip() {
-        let t = EffectTrigger::Periodic(Duration::from_minutes(10));
+        let t = EffectTrigger::Periodic;
         let json = serde_json::to_string(&t).unwrap();
+        assert_eq!(json, "\"periodic\"");
         let parsed: EffectTrigger = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, t);
     }

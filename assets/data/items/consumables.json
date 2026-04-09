@@ -86,7 +86,7 @@
       "type": "consumable",
       "effects": [
         {
-          "target": "hunger",
+          "target": "stamina",
           "value": 60.0,
           "duration": "instant"
         }

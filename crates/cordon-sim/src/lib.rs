@@ -21,7 +21,7 @@ pub mod day;
 /// Death and corpse lifecycle.
 pub mod death;
 
-/// Effect dispatcher: ActiveEffects tick, OnHit/OnHpLow/Periodic
+/// Effect dispatcher: ActiveEffects tick, OnHit/OnLowHealth/Periodic
 /// relic-trigger wiring, and the TimedEffect → pool handler.
 pub mod effects;
 

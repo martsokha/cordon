@@ -48,11 +48,11 @@ pub enum SimSet {
     /// Apply `MovementTarget` to `Transform`.
     Movement,
     /// Fire weapons, apply damage, emit `ShotFired` and
-    /// `NpcDamaged`.
+    /// `NpcPoolChanged`.
     Combat,
     /// Effect dispatch and active-effect ticking. Runs after
-    /// combat so it can react to `NpcDamaged` messages, and
-    /// before death handling so an `OnHpLow` heal can pull a
+    /// combat so it can react to `NpcPoolChanged` messages, and
+    /// before death handling so an `OnLowHealth` heal can pull a
     /// carrier back from zero HP in the same frame.
     Effects,
     /// Tag dead NPCs, despawn corpses.
@@ -138,10 +138,9 @@ pub mod prelude {
     // module layout.
     pub use crate::combat::ShotFired;
     pub use crate::components::{
-        BaseMaxes, Employment, FactionId, Hp, HungerPool, NpcAttributes, NpcBundle, NpcMarker,
-        Perks, CorruptionPool, RelicHome, RelicMarker, SquadActivity, SquadBundle, SquadFacing,
-        SquadHomePosition, SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
-        StaminaPool,
+        BaseMaxes, CorruptionPool, Employment, FactionId, HealthPool, NpcAttributes, NpcBundle, NpcMarker,
+        Perks, RelicHome, RelicMarker, SquadActivity, SquadBundle, SquadFacing, SquadHomePosition,
+        SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints, StaminaPool,
     };
     pub use crate::day::DayRolled;
     pub use crate::death::{CorpseRemoved, NpcDied};

@@ -3,7 +3,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::item::effect::{PassiveModifier, TriggeredEffect};
-use crate::primitive::HazardType;
 
 /// Data for Zone relics with anomalous properties.
 ///
@@ -16,29 +15,23 @@ use crate::primitive::HazardType;
 ///
 /// ## Runtime status
 ///
-/// - `passive` resistance modifiers (`*Resistance` targets) are
-///   folded into combat's damage resolution by
-///   [`crate::item::Loadout::equipped_resistances`].
-/// - `passive` max-pool modifiers (`MaxHealth`, `MaxStamina`,
-///   `MaxHunger`) are applied by `cordon_sim::behavior::sync_pool_maxes`
-///   whenever a carrier's loadout changes.
-/// - `triggered` is **data-only** until the trigger dispatcher lands
-///   (see the commit 5 plan in the world-sim branch). Relics can
-///   declare reactive effects today, but nothing fires them yet.
+/// - `passive` resistance modifiers are folded into combat's
+///   damage resolution by [`crate::item::Loadout::equipped_resistances`].
+/// - `passive` max-pool modifiers (`MaxHealth`, `MaxStamina`) are
+///   applied by `cordon_sim::behavior::sync_pool_maxes` whenever a
+///   carrier's loadout changes.
+/// - `triggered` is wired to `cordon_sim::effects` for `OnHit`,
+///   `OnLowHealth`, and `Periodic`; other threshold variants are
+///   defined but not yet fired (pending the unified pool-change
+///   bus).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RelicData {
-    /// Which hazard type births this relic. The spawner uses this
-    /// to pick candidate relics for each anomaly area.
-    pub origin: HazardType,
-
     /// Always-on stat modifiers applied while this relic is carried
     /// in a relic slot.
     #[serde(default)]
     pub passive: Vec<PassiveModifier>,
 
-    /// Reactive effects fired on specific events while this relic is
-    /// carried. Not yet wired to a runtime dispatcher — see the
-    /// type-level doc.
+    /// Reactive effects fired while this relic is carried.
     #[serde(default)]
     pub triggered: Vec<TriggeredEffect>,
 }

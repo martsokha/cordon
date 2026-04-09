@@ -6,11 +6,7 @@
       "slot": "helmet",
       "resistances": {
         "ballistic": 12,
-        "corruption": 2,
-        "chemical": 0,
-        "thermal": 0,
-        "electric": 0,
-        "gravitational": 0
+        "corruption": 2
       },
       "inventory_slots": 0,
       "relic_slots": 0
@@ -35,11 +31,7 @@
       "slot": "helmet",
       "resistances": {
         "ballistic": 14,
-        "corruption": 2,
-        "chemical": 1,
-        "thermal": 1,
-        "electric": 1,
-        "gravitational": 0
+        "corruption": 2
       },
       "inventory_slots": 0,
       "relic_slots": 0
@@ -60,11 +52,7 @@
       "slot": "helmet",
       "resistances": {
         "ballistic": 18,
-        "corruption": 3,
-        "chemical": 2,
-        "thermal": 2,
-        "electric": 2,
-        "gravitational": 1
+        "corruption": 3
       },
       "inventory_slots": 0,
       "relic_slots": 0

@@ -210,8 +210,6 @@ fn update_hover(
                     role: i.role.clone(),
                     creatures: i.creatures.clone(),
                     corruption: i.corruption.clone(),
-                    hazard_image: i.hazard_image.clone(),
-                    hazard_count: i.hazard_count,
                     loot: i.loot.clone(),
                 };
             }
