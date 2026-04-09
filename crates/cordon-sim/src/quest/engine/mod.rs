@@ -9,12 +9,14 @@
 //! - [`talk`] — [`advance_after_talk`], the cordon-sim /
 //!   cordon-bevy boundary call the Yarn bridge reaches back
 //!   into when a `Talk` stage finishes.
-//! - [`validate`] — load-time catalog checks.
+//!
+//! Catalog validation used to live here as a one-shot system;
+//! it now runs inline during [`assemble_game_data`](cordon_data::gamedata)
+//! as a method on [`GameData`](cordon_data::catalog::GameData).
 
 mod dispatch;
 mod drive;
 mod talk;
-mod validate;
 
 pub use self::dispatch::{
     QuestDispatchCtx, dispatch_on_condition, dispatch_on_day, dispatch_on_event,
@@ -22,4 +24,3 @@ pub use self::dispatch::{
 };
 pub use self::drive::{QuestEngineCtx, drive_active_quests};
 pub use self::talk::advance_after_talk;
-pub use self::validate::validate_catalog;

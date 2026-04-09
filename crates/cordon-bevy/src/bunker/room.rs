@@ -74,8 +74,6 @@ impl Palette {
     }
 }
 
-// === Reusable spawn helpers ===
-
 fn spawn_box(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
@@ -276,8 +274,6 @@ fn spawn_stairs(
     }
 }
 
-// === Main bunker spawn ===
-
 fn spawn_bunker(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -450,7 +446,7 @@ fn spawn_bunker(
         0.12,
     );
 
-    // === STORAGE (back_z to divider_z) ===
+    // Storage zone: back_z to divider_z.
     for z in [-2.5, -4.0] {
         spawn_shelf_unit(
             &mut commands,
@@ -483,7 +479,7 @@ fn spawn_bunker(
         spawn_box(&mut commands, &mut meshes, pal.crate_.clone(), pos, size);
     }
 
-    // === DESK AREA (divider_z to trade_z) ===
+    // Desk area: divider_z to trade_z.
     spawn_desk_enclosed(
         &mut commands,
         &mut meshes,
@@ -589,7 +585,7 @@ fn spawn_bunker(
         Transform::from_xyz(0.28, 0.815, desk_z),
     ));
 
-    // === TRADE GRATE (z = trade_z) ===
+    // Trade grate at z = trade_z.
     // Left grate
     spawn_grate_bars(
         &mut commands,
@@ -621,9 +617,7 @@ fn spawn_bunker(
         Vec3::new(hole_half * 2.0 + 0.2, 0.04, 0.25),
     );
 
-    // === VISITOR SIDE (z > trade_z) ===
-
-    // Lockers on LEFT side (5 together)
+    // Visitor side: z > trade_z. Lockers on LEFT side (5 together).
     for i in 0..5 {
         spawn_locker(
             &mut commands,
@@ -667,7 +661,6 @@ fn spawn_bunker(
         6,
     );
 
-    // === UI ===
     // The interact prompt is a Text node anchored on the bunker
     // camera. Without `UiTargetCamera` Bevy routes UI to the
     // highest-`order` camera that targets the primary window —

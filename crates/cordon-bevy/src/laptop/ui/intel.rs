@@ -325,11 +325,11 @@ fn refresh_quest_list(
         }
     }
 
-    // ---- Completed quests. Show the last MAX_COMPLETED
-    // entries under a subheading so the player can review
-    // what's happened recently. Tail-biased (most-recent
-    // first) because an emerging history reads better that
-    // way than chronologically forward.
+    // Show the last MAX_COMPLETED completed entries under a
+    // subheading so the player can review what's happened
+    // recently. Tail-biased (most-recent first) because an
+    // emerging history reads better that way than
+    // chronologically forward.
     const MAX_COMPLETED: usize = 5;
     if !log.completed.is_empty() {
         let heading_text = l10n

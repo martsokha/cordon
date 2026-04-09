@@ -7,6 +7,7 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 /// Game data catalog: the read-only database of all definitions.
+/// Includes `GameData::validate` for post-load integrity checks.
 pub mod catalog;
 
 /// Bevy plugin for loading game data from JSON assets.
