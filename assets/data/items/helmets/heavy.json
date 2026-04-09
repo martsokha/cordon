@@ -1,6 +1,6 @@
 [
   {
-    "id": "tactical_helmet",
+    "id": "item_tactical_helmet",
     "data": {
       "type": "armor",
       "slot": "helmet",
@@ -17,13 +17,19 @@
     },
     "base_price": 3500,
     "suppliers": [
-      { "faction": "syndicate", "price_multiplier": 0.95 },
-      { "faction": "garrison", "price_multiplier": 1.1 }
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "exohelmet",
+    "id": "item_exohelmet",
     "data": {
       "type": "armor",
       "slot": "helmet",
@@ -40,12 +46,15 @@
     },
     "base_price": 6000,
     "suppliers": [
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "military_exohelmet",
+    "id": "item_military_exohelmet",
     "data": {
       "type": "armor",
       "slot": "helmet",
@@ -62,7 +71,10 @@
     },
     "base_price": 12000,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "rare"
   }

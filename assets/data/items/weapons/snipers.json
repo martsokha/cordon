@@ -1,9 +1,9 @@
 [
   {
-    "id": "mosin_nagant",
+    "id": "item_mosin_nagant",
     "data": {
       "type": "weapon",
-      "caliber": "7.62x54r",
+      "caliber": "caliber_762x54r",
       "fire_modes": [
         "Semi"
       ],
@@ -17,21 +17,21 @@
     "base_price": 6000,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.9
       },
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 1.0
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "svd",
+    "id": "item_svd",
     "data": {
       "type": "weapon",
-      "caliber": "7.62x54r",
+      "caliber": "caliber_762x54r",
       "fire_modes": [
         "Semi"
       ],
@@ -45,17 +45,17 @@
     "base_price": 18000,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.9
       }
     ],
     "rarity": "rare"
   },
   {
-    "id": "svu",
+    "id": "item_svu",
     "data": {
       "type": "weapon",
-      "caliber": "7.62x54r",
+      "caliber": "caliber_762x54r",
       "fire_modes": [
         "Semi"
       ],
@@ -69,21 +69,21 @@
     "base_price": 17000,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.95
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.05
       }
     ],
     "rarity": "rare"
   },
   {
-    "id": "sv98",
+    "id": "item_sv98",
     "data": {
       "type": "weapon",
-      "caliber": "7.62x54r",
+      "caliber": "caliber_762x54r",
       "fire_modes": [
         "Semi"
       ],
@@ -97,7 +97,7 @@
     "base_price": 22000,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.9
       }
     ],

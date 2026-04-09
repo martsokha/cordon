@@ -1,8 +1,8 @@
 {
-  "id": "first_contact",
+  "id": "quest_first_contact",
   "category": "tutorial",
   "giver": "garrison_lieutenant",
-  "giver_faction": "garrison",
+  "giver_faction": "faction_garrison",
   "stages": [
     {
       "id": "intro",
@@ -10,9 +10,18 @@
       "npc": "garrison_lieutenant",
       "yarn_node": "first_contact.intro",
       "branches": [
-        { "choice": "accept", "next_stage": "outcome_accept" },
-        { "choice": "neutral", "next_stage": "outcome_neutral" },
-        { "choice": "refuse", "next_stage": "outcome_refuse" }
+        {
+          "choice": "accept",
+          "next_stage": "outcome_accept"
+        },
+        {
+          "choice": "neutral",
+          "next_stage": "outcome_neutral"
+        },
+        {
+          "choice": "refuse",
+          "next_stage": "outcome_refuse"
+        }
       ],
       "fallback": "outcome_refuse"
     },
@@ -23,10 +32,24 @@
       "consequences": [
         {
           "apply": [
-            { "give_credits": 200 },
-            { "give_player_xp": 50 },
-            { "standing_change": { "faction": "garrison", "delta": 15 } },
-            { "standing_change": { "faction": "syndicate", "delta": -5 } }
+            {
+              "give_credits": 200
+            },
+            {
+              "give_player_xp": 50
+            },
+            {
+              "standing_change": {
+                "faction": "faction_garrison",
+                "delta": 15
+              }
+            },
+            {
+              "standing_change": {
+                "faction": "faction_syndicate",
+                "delta": -5
+              }
+            }
           ]
         }
       ]
@@ -38,9 +61,18 @@
       "consequences": [
         {
           "apply": [
-            { "give_credits": 100 },
-            { "give_player_xp": 25 },
-            { "standing_change": { "faction": "garrison", "delta": 5 } }
+            {
+              "give_credits": 100
+            },
+            {
+              "give_player_xp": 25
+            },
+            {
+              "standing_change": {
+                "faction": "faction_garrison",
+                "delta": 5
+              }
+            }
           ]
         }
       ]
@@ -52,7 +84,12 @@
       "consequences": [
         {
           "apply": [
-            { "standing_change": { "faction": "garrison", "delta": -10 } }
+            {
+              "standing_change": {
+                "faction": "faction_garrison",
+                "delta": -10
+              }
+            }
           ]
         }
       ]

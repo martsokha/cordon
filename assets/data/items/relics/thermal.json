@@ -1,111 +1,180 @@
 [
   {
-    "id": "cinder_pebble",
+    "id": "item_cinder_pebble",
     "data": {
       "type": "relic",
       "origin": "thermal",
       "passive": [
-        { "target": "ThermalResistance", "value": 20.0 }
+        {
+          "target": "ThermalResistance",
+          "value": 20.0
+        }
       ]
     },
     "base_price": 350,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.1 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "ash_node",
+    "id": "item_ash_node",
     "data": {
       "type": "relic",
       "origin": "thermal",
       "passive": [
-        { "target": "ThermalResistance", "value": 25.0 }
+        {
+          "target": "ThermalResistance",
+          "value": 25.0
+        }
       ]
     },
     "base_price": 400,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.1 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "heat_shard",
+    "id": "item_heat_shard",
     "data": {
       "type": "relic",
       "origin": "thermal",
       "passive": [
-        { "target": "ThermalResistance", "value": 30.0 }
+        {
+          "target": "ThermalResistance",
+          "value": 30.0
+        }
       ]
     },
     "base_price": 450,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "drifters", "price_multiplier": 1.05 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 1.05
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "blaze_core",
+    "id": "item_blaze_core",
     "data": {
       "type": "relic",
       "origin": "thermal",
       "passive": [
-        { "target": "ThermalResistance", "value": 40.0 },
-        { "target": "MaxStamina", "value": 5.0 }
+        {
+          "target": "ThermalResistance",
+          "value": 40.0
+        },
+        {
+          "target": "MaxStamina",
+          "value": 5.0
+        }
       ]
     },
     "base_price": 900,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "drifters", "price_multiplier": 0.95 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.95
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "furnace_eye",
+    "id": "item_furnace_eye",
     "data": {
       "type": "relic",
       "origin": "thermal",
       "passive": [
-        { "target": "ThermalResistance", "value": 45.0 },
-        { "target": "ChemicalResistance", "value": -10.0 }
+        {
+          "target": "ThermalResistance",
+          "value": 45.0
+        },
+        {
+          "target": "ChemicalResistance",
+          "value": -10.0
+        }
       ]
     },
     "base_price": 1000,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.05 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.05
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "meltstone",
+    "id": "item_meltstone",
     "data": {
       "type": "relic",
       "origin": "thermal",
       "passive": [
-        { "target": "ThermalResistance", "value": 50.0 },
-        { "target": "ElectricResistance", "value": 10.0 }
+        {
+          "target": "ThermalResistance",
+          "value": 50.0
+        },
+        {
+          "target": "ElectricResistance",
+          "value": 10.0
+        }
       ]
     },
     "base_price": 1100,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "devoted", "price_multiplier": 0.9 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.9
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "sun_fragment",
+    "id": "item_sun_fragment",
     "data": {
       "type": "relic",
       "origin": "thermal",
       "passive": [
-        { "target": "ThermalResistance", "value": 60.0 },
-        { "target": "MaxHealth", "value": 10.0 }
+        {
+          "target": "ThermalResistance",
+          "value": 60.0
+        },
+        {
+          "target": "MaxHealth",
+          "value": 10.0
+        }
       ],
       "triggered": [
         {
@@ -120,23 +189,37 @@
     },
     "base_price": 2100,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "devoted", "price_multiplier": 0.85 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.85
+      }
     ],
     "rarity": "rare"
   },
   {
-    "id": "infernal_seed",
+    "id": "item_infernal_seed",
     "data": {
       "type": "relic",
       "origin": "thermal",
       "passive": [
-        { "target": "ThermalResistance", "value": 70.0 },
-        { "target": "ChemicalResistance", "value": -15.0 }
+        {
+          "target": "ThermalResistance",
+          "value": 70.0
+        },
+        {
+          "target": "ChemicalResistance",
+          "value": -15.0
+        }
       ],
       "triggered": [
         {
-          "trigger": { "periodic": 3 },
+          "trigger": {
+            "periodic": 3
+          },
           "effect": {
             "target": "Health",
             "value": 3.0,
@@ -147,23 +230,37 @@
     },
     "base_price": 2400,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "rare"
   },
   {
-    "id": "white_ember",
+    "id": "item_white_ember",
     "data": {
       "type": "relic",
       "origin": "thermal",
       "passive": [
-        { "target": "ThermalResistance", "value": 80.0 },
-        { "target": "MaxStamina", "value": 15.0 }
+        {
+          "target": "ThermalResistance",
+          "value": 80.0
+        },
+        {
+          "target": "MaxStamina",
+          "value": 15.0
+        }
       ],
       "triggered": [
         {
-          "trigger": { "on_hp_low": 0.25 },
+          "trigger": {
+            "on_hp_low": 0.25
+          },
           "effect": {
             "target": "Health",
             "value": 10.0,
@@ -174,8 +271,14 @@
     },
     "base_price": 2700,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "devoted", "price_multiplier": 0.85 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.85
+      }
     ],
     "rarity": "rare"
   }

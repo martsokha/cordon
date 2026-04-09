@@ -1,9 +1,9 @@
 [
   {
-    "id": "toz34",
+    "id": "item_toz34",
     "data": {
       "type": "weapon",
-      "caliber": "12gauge",
+      "caliber": "caliber_12gauge",
       "fire_modes": [
         "Semi"
       ],
@@ -17,21 +17,21 @@
     "base_price": 3200,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.85
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.0
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "saiga12",
+    "id": "item_saiga12",
     "data": {
       "type": "weapon",
-      "caliber": "12gauge",
+      "caliber": "caliber_12gauge",
       "fire_modes": [
         "Semi"
       ],
@@ -45,11 +45,11 @@
     "base_price": 6000,
     "suppliers": [
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 0.95
       },
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 1.05
       }
     ],

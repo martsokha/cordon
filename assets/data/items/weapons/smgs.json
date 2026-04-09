@@ -1,9 +1,9 @@
 [
   {
-    "id": "kedr",
+    "id": "item_kedr",
     "data": {
       "type": "weapon",
-      "caliber": "9x18mm",
+      "caliber": "caliber_9x18mm",
       "fire_modes": [
         "Semi",
         "Auto"
@@ -18,21 +18,21 @@
     "base_price": 3500,
     "suppliers": [
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 0.95
       },
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 1.05
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "pp19_bizon",
+    "id": "item_pp19_bizon",
     "data": {
       "type": "weapon",
-      "caliber": "9x18mm",
+      "caliber": "caliber_9x18mm",
       "fire_modes": [
         "Semi",
         {
@@ -50,11 +50,11 @@
     "base_price": 5500,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.95
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.05
       }
     ],

@@ -1,34 +1,49 @@
 [
   {
-    "id": "9x18mm",
+    "id": "item_9x18mm_fmj",
     "data": {
       "type": "ammo",
-      "caliber": "9x18mm",
+      "caliber": "caliber_9x18mm",
       "damage": 20,
       "penetration": 3,
       "quantity": 16
     },
     "base_price": 50,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.9 },
-      { "faction": "syndicate", "price_multiplier": 1.0 },
-      { "faction": "garrison", "price_multiplier": 1.1 }
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "9x18mm_ap",
+    "id": "item_9x18mm_ap",
     "data": {
       "type": "ammo",
-      "caliber": "9x18mm",
+      "caliber": "caliber_9x18mm",
       "damage": 18,
       "penetration": 6,
       "quantity": 16
     },
     "base_price": 80,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.1 }
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "uncommon"
   }

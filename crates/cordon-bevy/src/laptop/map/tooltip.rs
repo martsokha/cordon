@@ -83,11 +83,10 @@ pub fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
 
     AreaTooltipInfo {
         faction_icon: faction_icon_str(area.kind.faction().map(|f| f.as_str())).to_string(),
-        name: l10n_or(
-            l10n,
-            &format!("area-{}", area.id.as_str()),
-            area.id.as_str(),
-        ),
+        // FTL keys mirror the raw ID 1:1 after the category-
+        // prefix rename, so we pass the id string straight
+        // through instead of formatting a `area-` prefix.
+        name: l10n_or(l10n, area.id.as_str(), area.id.as_str()),
         kind_label: l10n_or(l10n, kind_key, kind_key),
         role,
         creatures,
@@ -112,7 +111,7 @@ pub fn build_relic_tooltip(
     use cordon_core::item::{PassiveModifier, StatTarget};
     use cordon_core::primitive::{HazardType, Rarity};
 
-    let name = l10n_or(l10n, &format!("item-{}", def.id.as_str()), def.id.as_str());
+    let name = l10n_or(l10n, def.id.as_str(), def.id.as_str());
     let origin_key = match data.origin {
         HazardType::Chemical => "hazard-chemical",
         HazardType::Thermal => "hazard-thermal",

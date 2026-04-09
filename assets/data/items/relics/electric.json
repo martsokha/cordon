@@ -1,110 +1,176 @@
 [
   {
-    "id": "spark_plug",
+    "id": "item_spark_plug",
     "data": {
       "type": "relic",
       "origin": "electric",
       "passive": [
-        { "target": "ElectricResistance", "value": 20.0 }
+        {
+          "target": "ElectricResistance",
+          "value": 20.0
+        }
       ]
     },
     "base_price": 350,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.1 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "static_orb",
+    "id": "item_static_orb",
     "data": {
       "type": "relic",
       "origin": "electric",
       "passive": [
-        { "target": "ElectricResistance", "value": 25.0 }
+        {
+          "target": "ElectricResistance",
+          "value": 25.0
+        }
       ]
     },
     "base_price": 400,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.1 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "charge_fragment",
+    "id": "item_charge_fragment",
     "data": {
       "type": "relic",
       "origin": "electric",
       "passive": [
-        { "target": "ElectricResistance", "value": 30.0 }
+        {
+          "target": "ElectricResistance",
+          "value": 30.0
+        }
       ]
     },
     "base_price": 450,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "drifters", "price_multiplier": 1.05 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 1.05
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "volt_core",
+    "id": "item_volt_core",
     "data": {
       "type": "relic",
       "origin": "electric",
       "passive": [
-        { "target": "ElectricResistance", "value": 40.0 },
-        { "target": "MaxStamina", "value": 10.0 }
+        {
+          "target": "ElectricResistance",
+          "value": 40.0
+        },
+        {
+          "target": "MaxStamina",
+          "value": 10.0
+        }
       ]
     },
     "base_price": 900,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.05 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.05
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "storm_glass",
+    "id": "item_storm_glass",
     "data": {
       "type": "relic",
       "origin": "electric",
       "passive": [
-        { "target": "ElectricResistance", "value": 45.0 },
-        { "target": "ThermalResistance", "value": 10.0 }
+        {
+          "target": "ElectricResistance",
+          "value": 45.0
+        },
+        {
+          "target": "ThermalResistance",
+          "value": 10.0
+        }
       ]
     },
     "base_price": 1000,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "devoted", "price_multiplier": 0.9 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.9
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "pulse_node",
+    "id": "item_pulse_node",
     "data": {
       "type": "relic",
       "origin": "electric",
       "passive": [
-        { "target": "ElectricResistance", "value": 50.0 },
-        { "target": "RadiationResistance", "value": -5.0 }
+        {
+          "target": "ElectricResistance",
+          "value": 50.0
+        },
+        {
+          "target": "RadiationResistance",
+          "value": -5.0
+        }
       ]
     },
     "base_price": 1100,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "drifters", "price_multiplier": 0.95 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.95
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "thunder_relic",
+    "id": "item_thunder_relic",
     "data": {
       "type": "relic",
       "origin": "electric",
       "passive": [
-        { "target": "ElectricResistance", "value": 60.0 }
+        {
+          "target": "ElectricResistance",
+          "value": 60.0
+        }
       ],
       "triggered": [
         {
@@ -119,23 +185,37 @@
     },
     "base_price": 2100,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "rare"
   },
   {
-    "id": "arc_brain",
+    "id": "item_arc_brain",
     "data": {
       "type": "relic",
       "origin": "electric",
       "passive": [
-        { "target": "ElectricResistance", "value": 70.0 },
-        { "target": "MaxStamina", "value": 20.0 }
+        {
+          "target": "ElectricResistance",
+          "value": 70.0
+        },
+        {
+          "target": "MaxStamina",
+          "value": 20.0
+        }
       ],
       "triggered": [
         {
-          "trigger": { "periodic": 5 },
+          "trigger": {
+            "periodic": 5
+          },
           "effect": {
             "target": "Stamina",
             "value": 5.0,
@@ -146,23 +226,37 @@
     },
     "base_price": 2400,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "devoted", "price_multiplier": 0.85 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.85
+      }
     ],
     "rarity": "rare"
   },
   {
-    "id": "silence_heart",
+    "id": "item_silence_heart",
     "data": {
       "type": "relic",
       "origin": "electric",
       "passive": [
-        { "target": "ElectricResistance", "value": 80.0 },
-        { "target": "ThermalResistance", "value": -10.0 }
+        {
+          "target": "ElectricResistance",
+          "value": 80.0
+        },
+        {
+          "target": "ThermalResistance",
+          "value": -10.0
+        }
       ],
       "triggered": [
         {
-          "trigger": { "on_hp_low": 0.2 },
+          "trigger": {
+            "on_hp_low": 0.2
+          },
           "effect": {
             "target": "Health",
             "value": 12.0,
@@ -173,8 +267,14 @@
     },
     "base_price": 2700,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "rare"
   }

@@ -1,61 +1,79 @@
 [
   {
-    "id": "dump",
-    "location": { "x": -450.0, "y": 600.0 },
+    "id": "area_dump",
+    "location": {
+      "x": -450.0,
+      "y": 600.0
+    },
     "radius": 82.5,
     "kind": {
       "type": "settlement",
-      "faction": "syndicate",
+      "faction": "faction_syndicate",
       "role": "outpost"
     }
   },
   {
-    "id": "smugglers_den",
-    "location": { "x": -900.0, "y": 450.0 },
+    "id": "area_smugglers_den",
+    "location": {
+      "x": -900.0,
+      "y": 450.0
+    },
     "radius": 75.0,
     "kind": {
       "type": "settlement",
-      "faction": "syndicate",
+      "faction": "faction_syndicate",
       "role": "outpost"
     }
   },
   {
-    "id": "chop_shop",
-    "location": { "x": -1140.0, "y": -150.0 },
+    "id": "area_chop_shop",
+    "location": {
+      "x": -1140.0,
+      "y": -150.0
+    },
     "radius": 85.0,
     "kind": {
       "type": "settlement",
-      "faction": "syndicate",
+      "faction": "faction_syndicate",
       "role": "outpost"
     }
   },
   {
-    "id": "quarry",
-    "location": { "x": -1050.0, "y": -540.0 },
+    "id": "area_quarry",
+    "location": {
+      "x": -1050.0,
+      "y": -540.0
+    },
     "radius": 95.0,
     "kind": {
       "type": "settlement",
-      "faction": "syndicate",
+      "faction": "faction_syndicate",
       "role": "outpost"
     }
   },
   {
-    "id": "factory",
-    "location": { "x": -720.0, "y": -660.0 },
+    "id": "area_factory",
+    "location": {
+      "x": -720.0,
+      "y": -660.0
+    },
     "radius": 97.5,
     "kind": {
       "type": "settlement",
-      "faction": "syndicate",
+      "faction": "faction_syndicate",
       "role": "outpost"
     }
   },
   {
-    "id": "black_market",
-    "location": { "x": -330.0, "y": -780.0 },
+    "id": "area_black_market",
+    "location": {
+      "x": -330.0,
+      "y": -780.0
+    },
     "radius": 95.0,
     "kind": {
       "type": "settlement",
-      "faction": "syndicate",
+      "faction": "faction_syndicate",
       "role": "market"
     }
   }

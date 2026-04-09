@@ -1,6 +1,6 @@
 {
-  "id": "first_contact_intro",
-  "quest": "first_contact",
+  "id": "trigger_first_contact_intro",
+  "quest": "quest_first_contact",
   "kind": "on_game_start",
   "repeatable": false
 }

@@ -1,34 +1,49 @@
 [
   {
-    "id": "7.62x39mm",
+    "id": "item_762x39mm_fmj",
     "data": {
       "type": "ammo",
-      "caliber": "7.62x39mm",
+      "caliber": "caliber_762x39mm",
       "damage": 45,
       "penetration": 14,
       "quantity": 30
     },
     "base_price": 180,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.9 },
-      { "faction": "syndicate", "price_multiplier": 1.0 },
-      { "faction": "garrison", "price_multiplier": 1.05 }
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 1.05
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "7.62x39mm_ap",
+    "id": "item_762x39mm_ap",
     "data": {
       "type": "ammo",
-      "caliber": "7.62x39mm",
+      "caliber": "caliber_762x39mm",
       "damage": 40,
       "penetration": 24,
       "quantity": 30
     },
     "base_price": 290,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.95 },
-      { "faction": "syndicate", "price_multiplier": 1.1 }
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "uncommon"
   }

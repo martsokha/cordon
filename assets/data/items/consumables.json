@@ -1,6 +1,6 @@
 [
   {
-    "id": "bandage",
+    "id": "item_bandage",
     "data": {
       "type": "consumable",
       "effects": [
@@ -21,18 +21,18 @@
     "base_price": 30,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 1.0
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.0
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "medkit",
+    "id": "item_medkit",
     "data": {
       "type": "consumable",
       "effects": [
@@ -53,18 +53,18 @@
     "base_price": 250,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.9
       },
       {
-        "faction": "institute",
+        "faction": "faction_institute",
         "price_multiplier": 1.0
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "antirad",
+    "id": "item_antirad",
     "data": {
       "type": "consumable",
       "effects": [
@@ -80,18 +80,18 @@
     "base_price": 180,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.85
       },
       {
-        "faction": "institute",
+        "faction": "faction_institute",
         "price_multiplier": 1.0
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "ration",
+    "id": "item_ration",
     "data": {
       "type": "consumable",
       "effects": [
@@ -107,11 +107,11 @@
     "base_price": 40,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.9
       },
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 1.0
       }
     ],

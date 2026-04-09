@@ -1,115 +1,186 @@
 [
   {
-    "id": "sludge_bead",
+    "id": "item_sludge_bead",
     "data": {
       "type": "relic",
       "origin": "chemical",
       "passive": [
-        { "target": "ChemicalResistance", "value": 20.0 }
+        {
+          "target": "ChemicalResistance",
+          "value": 20.0
+        }
       ]
     },
     "base_price": 350,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.1 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "acid_knot",
+    "id": "item_acid_knot",
     "data": {
       "type": "relic",
       "origin": "chemical",
       "passive": [
-        { "target": "ChemicalResistance", "value": 25.0 }
+        {
+          "target": "ChemicalResistance",
+          "value": 25.0
+        }
       ]
     },
     "base_price": 400,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.1 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "rot_drop",
+    "id": "item_rot_drop",
     "data": {
       "type": "relic",
       "origin": "chemical",
       "passive": [
-        { "target": "ChemicalResistance", "value": 30.0 }
+        {
+          "target": "ChemicalResistance",
+          "value": 30.0
+        }
       ]
     },
     "base_price": 450,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "drifters", "price_multiplier": 1.05 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 1.05
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "venom_core",
+    "id": "item_venom_core",
     "data": {
       "type": "relic",
       "origin": "chemical",
       "passive": [
-        { "target": "ChemicalResistance", "value": 40.0 },
-        { "target": "MaxHealth", "value": 5.0 }
+        {
+          "target": "ChemicalResistance",
+          "value": 40.0
+        },
+        {
+          "target": "MaxHealth",
+          "value": 5.0
+        }
       ]
     },
     "base_price": 900,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "devoted", "price_multiplier": 0.95 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.95
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "mire_heart",
+    "id": "item_mire_heart",
     "data": {
       "type": "relic",
       "origin": "chemical",
       "passive": [
-        { "target": "ChemicalResistance", "value": 45.0 },
-        { "target": "RadiationResistance", "value": 10.0 }
+        {
+          "target": "ChemicalResistance",
+          "value": 45.0
+        },
+        {
+          "target": "RadiationResistance",
+          "value": 10.0
+        }
       ]
     },
     "base_price": 1000,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "devoted", "price_multiplier": 0.9 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.9
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "corrode_coil",
+    "id": "item_corrode_coil",
     "data": {
       "type": "relic",
       "origin": "chemical",
       "passive": [
-        { "target": "ChemicalResistance", "value": 50.0 },
-        { "target": "BallisticResistance", "value": -5.0 }
+        {
+          "target": "ChemicalResistance",
+          "value": 50.0
+        },
+        {
+          "target": "BallisticResistance",
+          "value": -5.0
+        }
       ]
     },
     "base_price": 1100,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.05 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.05
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "plague_bloom",
+    "id": "item_plague_bloom",
     "data": {
       "type": "relic",
       "origin": "chemical",
       "passive": [
-        { "target": "ChemicalResistance", "value": 60.0 },
-        { "target": "MaxHealth", "value": 10.0 }
+        {
+          "target": "ChemicalResistance",
+          "value": 60.0
+        },
+        {
+          "target": "MaxHealth",
+          "value": 10.0
+        }
       ],
       "triggered": [
         {
-          "trigger": { "on_hp_low": 0.3 },
+          "trigger": {
+            "on_hp_low": 0.3
+          },
           "effect": {
             "target": "Health",
             "value": 4.0,
@@ -120,23 +191,37 @@
     },
     "base_price": 2000,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "devoted", "price_multiplier": 0.85 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.85
+      }
     ],
     "rarity": "rare"
   },
   {
-    "id": "alkahest_shard",
+    "id": "item_alkahest_shard",
     "data": {
       "type": "relic",
       "origin": "chemical",
       "passive": [
-        { "target": "ChemicalResistance", "value": 70.0 },
-        { "target": "RadiationResistance", "value": 20.0 }
+        {
+          "target": "ChemicalResistance",
+          "value": 70.0
+        },
+        {
+          "target": "RadiationResistance",
+          "value": 20.0
+        }
       ],
       "triggered": [
         {
-          "trigger": { "periodic": 4 },
+          "trigger": {
+            "periodic": 4
+          },
           "effect": {
             "target": "RadiationLevel",
             "value": -2.0,
@@ -147,19 +232,31 @@
     },
     "base_price": 2400,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "devoted", "price_multiplier": 0.85 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_devoted",
+        "price_multiplier": 0.85
+      }
     ],
     "rarity": "rare"
   },
   {
-    "id": "black_lung",
+    "id": "item_black_lung",
     "data": {
       "type": "relic",
       "origin": "chemical",
       "passive": [
-        { "target": "ChemicalResistance", "value": 80.0 },
-        { "target": "MaxHealth", "value": -5.0 }
+        {
+          "target": "ChemicalResistance",
+          "value": 80.0
+        },
+        {
+          "target": "MaxHealth",
+          "value": -5.0
+        }
       ],
       "triggered": [
         {
@@ -174,8 +271,14 @@
     },
     "base_price": 2600,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "rare"
   }

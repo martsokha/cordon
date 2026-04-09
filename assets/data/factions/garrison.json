@@ -1,16 +1,16 @@
 {
-  "id": "garrison",
+  "id": "faction_garrison",
   "recruitable": false,
   "rank_scheme": "military",
   "buys": ["weapon", "ammo", "armor"],
   "sells": ["weapon", "ammo"],
-  "namepool": "zone",
+  "namepool": "namepool_zone",
   "color": "#6B8C4D",
   "spawn_weight": 25,
   "relations": [
-    ["syndicate", -60],
-    ["institute", 40],
-    ["devoted", -70],
-    ["drifters", -30]
+    ["faction_syndicate", -60],
+    ["faction_institute", 40],
+    ["faction_devoted", -70],
+    ["faction_drifters", -30]
   ]
 }

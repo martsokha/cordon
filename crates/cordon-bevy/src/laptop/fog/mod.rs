@@ -119,7 +119,7 @@ fn pick_player_squads(
     // of frames to finish spawning.
     let mut candidates: Vec<Entity> = squads
         .iter()
-        .filter(|(_, f)| f.0.as_str() == "drifters")
+        .filter(|(_, f)| f.0.as_str() == "faction_drifters")
         .map(|(e, _)| e)
         .collect();
     if candidates.is_empty() {

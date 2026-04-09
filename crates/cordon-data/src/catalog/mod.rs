@@ -72,9 +72,16 @@ impl GameData {
     }
 
     /// Look up the loadout archetype for a faction.
+    ///
+    /// Walks `archetypes.values()` filtering on the
+    /// [`ArchetypeDef::faction`] field rather than key-lookup by
+    /// string. The HashMap key is an archetype ID
+    /// (`archetype_garrison`), not a faction ID
+    /// (`faction_garrison`), so a direct `.get` won't work — and
+    /// even if we normalized the key, the `faction` field is the
+    /// real cross-reference. Cost is O(N) where N ≤ 5.
     pub fn archetype_for_faction(&self, faction: &Id<Faction>) -> Option<&ArchetypeDef> {
-        // Archetype IDs mirror faction IDs, so we look up by the same string.
-        self.archetypes.get(&Id::<Archetype>::new(faction.as_str()))
+        self.archetypes.values().find(|a| &a.faction == faction)
     }
 
     /// Get all faction IDs.

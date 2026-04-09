@@ -1,6 +1,6 @@
 [
   {
-    "id": "leather_jacket",
+    "id": "item_leather_jacket",
     "data": {
       "type": "armor",
       "slot": "suit",
@@ -17,13 +17,19 @@
     },
     "base_price": 500,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.9 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "raincoat",
+    "id": "item_raincoat",
     "data": {
       "type": "armor",
       "slot": "suit",
@@ -40,12 +46,15 @@
     },
     "base_price": 700,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.85 }
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.85
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "reinforced_coat",
+    "id": "item_reinforced_coat",
     "data": {
       "type": "armor",
       "slot": "suit",
@@ -62,7 +71,10 @@
     },
     "base_price": 2500,
     "suppliers": [
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common"
   }

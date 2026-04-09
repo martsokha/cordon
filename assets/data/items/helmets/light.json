@@ -1,6 +1,6 @@
 [
   {
-    "id": "balaclava",
+    "id": "item_balaclava",
     "data": {
       "type": "armor",
       "slot": "helmet",
@@ -17,13 +17,19 @@
     },
     "base_price": 100,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.8 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.8
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "cloth_mask",
+    "id": "item_cloth_mask",
     "data": {
       "type": "armor",
       "slot": "helmet",
@@ -40,7 +46,10 @@
     },
     "base_price": 60,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.8 }
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.8
+      }
     ],
     "rarity": "common"
   }

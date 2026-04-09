@@ -233,9 +233,11 @@ pub fn roll_population_top_up<R: Rng>(
     while deficit > 0 && attempts_remaining > 0 {
         attempts_remaining -= 1;
         let faction = pick_weighted_faction(&factions.0, total_weight, rng);
-        let arch = loadout_ctx
-            .archetypes
-            .get(&Id::<Archetype>::new(faction.as_str()));
+        // Walk archetypes by faction field, not by faction id
+        // lookup: the HashMap is keyed by archetype id
+        // (`archetype_garrison`) which differs from the faction
+        // id string after the category-prefix rename.
+        let arch = loadout_ctx.archetypes.values().find(|a| a.faction == faction);
         let Some(arch) = arch else { continue };
 
         // Pick a squad template from this faction's pool.

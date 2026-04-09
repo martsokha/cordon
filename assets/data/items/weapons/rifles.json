@@ -1,9 +1,9 @@
 [
   {
-    "id": "sks",
+    "id": "item_sks",
     "data": {
       "type": "weapon",
-      "caliber": "7.62x39mm",
+      "caliber": "caliber_762x39mm",
       "fire_modes": [
         "Semi"
       ],
@@ -17,21 +17,21 @@
     "base_price": 4000,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.9
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.0
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "aks74u",
+    "id": "item_aks74u",
     "data": {
       "type": "weapon",
-      "caliber": "5.45x39mm",
+      "caliber": "caliber_545x39mm",
       "fire_modes": [
         "Semi",
         "Auto"
@@ -46,21 +46,21 @@
     "base_price": 4500,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.95
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.05
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "akm",
+    "id": "item_akm",
     "data": {
       "type": "weapon",
-      "caliber": "7.62x39mm",
+      "caliber": "caliber_762x39mm",
       "fire_modes": [
         "Semi",
         "Auto"
@@ -75,25 +75,25 @@
     "base_price": 5500,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.95
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.0
       },
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 1.05
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "ak74",
+    "id": "item_ak74",
     "data": {
       "type": "weapon",
-      "caliber": "5.45x39mm",
+      "caliber": "caliber_545x39mm",
       "fire_modes": [
         "Semi",
         "Auto"
@@ -108,17 +108,17 @@
     "base_price": 6500,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.9
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "aek971",
+    "id": "item_aek971",
     "data": {
       "type": "weapon",
-      "caliber": "5.45x39mm",
+      "caliber": "caliber_545x39mm",
       "fire_modes": [
         "Semi",
         {
@@ -136,7 +136,7 @@
     "base_price": 12000,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.95
       }
     ],

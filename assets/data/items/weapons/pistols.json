@@ -1,9 +1,9 @@
 [
   {
-    "id": "pm",
+    "id": "item_pm",
     "data": {
       "type": "weapon",
-      "caliber": "9x18mm",
+      "caliber": "caliber_9x18mm",
       "fire_modes": [
         "Semi"
       ],
@@ -17,21 +17,21 @@
     "base_price": 800,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.9
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.0
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "stechkin_aps",
+    "id": "item_stechkin_aps",
     "data": {
       "type": "weapon",
-      "caliber": "9x18mm",
+      "caliber": "caliber_9x18mm",
       "fire_modes": [
         "Semi",
         "Auto"
@@ -46,11 +46,11 @@
     "base_price": 1800,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.95
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.0
       }
     ],

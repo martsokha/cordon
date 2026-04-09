@@ -43,8 +43,8 @@ pub enum RankScheme {
 /// from localization files, not stored here.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FactionDef {
-    /// Unique identifier and localization key (e.g., `"garrison"`,
-    /// `"drifters"`).
+    /// Unique identifier and localization key (e.g.,
+    /// `"faction_garrison"`, `"faction_drifters"`).
     pub id: Id<Faction>,
     /// Whether NPCs from this faction can be recruited as runners/guards.
     pub recruitable: bool,

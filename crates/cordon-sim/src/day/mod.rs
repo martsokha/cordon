@@ -6,7 +6,6 @@
 //! expiry — runs as separate systems gated on the message.
 
 pub mod events;
-pub mod factions;
 
 use bevy::prelude::*;
 use bevy_prng::WyRand;
@@ -15,9 +14,8 @@ use cordon_core::primitive::Day;
 use cordon_data::gamedata::GameDataResource;
 
 use crate::day::events::{expire_events, roll_daily_events};
-use crate::day::factions::tick_factions;
 use crate::plugin::SimSet;
-use crate::resources::{AreaStates, EventLog, FactionIndex, GameClock, Player};
+use crate::resources::{EventLog, FactionIndex, GameClock};
 
 /// In-game day advanced. Fires exactly once per day rollover
 /// from [`detect_day_rollover`]; per-day work (daily event
@@ -38,7 +36,6 @@ impl Plugin for DayCyclePlugin {
             (
                 detect_day_rollover,
                 roll_today_events.run_if(on_message::<DayRolled>),
-                react_to_events.run_if(on_message::<DayRolled>),
                 expire_old_events.run_if(on_message::<DayRolled>),
             )
                 .chain()
@@ -89,14 +86,6 @@ fn roll_today_events(
         clock.0.day,
         &mut **rng,
     );
-}
-
-fn react_to_events(
-    events: Res<EventLog>,
-    mut areas: ResMut<AreaStates>,
-    mut player: ResMut<Player>,
-) {
-    tick_factions(&events.0, &mut areas.0, &mut player.0);
 }
 
 fn expire_old_events(clock: Res<GameClock>, mut events: ResMut<EventLog>) {

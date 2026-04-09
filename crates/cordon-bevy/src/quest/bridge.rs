@@ -111,7 +111,7 @@ pub fn enqueue_talk_dialogue(
             let faction = def
                 .giver_faction
                 .clone()
-                .unwrap_or_else(|| Id::<Faction>::new("drifters"));
+                .unwrap_or_else(|| Id::<Faction>::new("faction_drifters"));
             queue.0.push_back(Visitor {
                 display_name: template.as_str().to_string(),
                 faction,

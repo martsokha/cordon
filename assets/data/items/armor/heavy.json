@@ -1,6 +1,6 @@
 [
   {
-    "id": "combat_armor",
+    "id": "item_combat_armor",
     "data": {
       "type": "armor",
       "slot": "suit",
@@ -17,12 +17,15 @@
     },
     "base_price": 15000,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "rare"
   },
   {
-    "id": "heavy_rig",
+    "id": "item_heavy_rig",
     "data": {
       "type": "armor",
       "slot": "suit",
@@ -39,13 +42,19 @@
     },
     "base_price": 25000,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 1.1 },
-      { "faction": "syndicate", "price_multiplier": 1.2 }
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 1.1
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.2
+      }
     ],
     "rarity": "rare"
   },
   {
-    "id": "exoskeleton",
+    "id": "item_exoskeleton",
     "data": {
       "type": "armor",
       "slot": "suit",
@@ -62,13 +71,19 @@
     },
     "base_price": 35000,
     "suppliers": [
-      { "faction": "syndicate", "price_multiplier": 1.0 },
-      { "faction": "drifters", "price_multiplier": 1.2 }
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 1.2
+      }
     ],
     "rarity": "rare"
   },
   {
-    "id": "military_exoskeleton",
+    "id": "item_military_exoskeleton",
     "data": {
       "type": "armor",
       "slot": "suit",
@@ -85,7 +100,10 @@
     },
     "base_price": 60000,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "rare"
   }

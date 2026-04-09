@@ -1,6 +1,6 @@
 [
   {
-    "id": "kevlar_vest",
+    "id": "item_kevlar_vest",
     "data": {
       "type": "armor",
       "slot": "suit",
@@ -17,13 +17,19 @@
     },
     "base_price": 3500,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.95 },
-      { "faction": "syndicate", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "tactical_vest",
+    "id": "item_tactical_vest",
     "data": {
       "type": "armor",
       "slot": "suit",
@@ -40,13 +46,19 @@
     },
     "base_price": 5000,
     "suppliers": [
-      { "faction": "syndicate", "price_multiplier": 0.9 },
-      { "faction": "garrison", "price_multiplier": 1.2 }
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 1.2
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "patrol_armor",
+    "id": "item_patrol_armor",
     "data": {
       "type": "armor",
       "slot": "suit",
@@ -63,8 +75,14 @@
     },
     "base_price": 9000,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.95 },
-      { "faction": "syndicate", "price_multiplier": 1.1 }
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
     ],
     "rarity": "uncommon"
   }

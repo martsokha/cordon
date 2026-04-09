@@ -116,11 +116,11 @@ fn init_npc_assets(
 
 pub fn faction_icon_str(faction: Option<&str>) -> &'static str {
     match faction {
-        Some("garrison") => "[G]",
-        Some("syndicate") => "[S]",
-        Some("institute") => "[I]",
-        Some("devoted") => "[D]",
-        Some("drifters") => "[d]",
+        Some("faction_garrison") => "[G]",
+        Some("faction_syndicate") => "[S]",
+        Some("faction_institute") => "[I]",
+        Some("faction_devoted") => "[D]",
+        Some("faction_drifters") => "[d]",
         _ => "[?]",
     }
 }
@@ -179,7 +179,7 @@ fn attach_npc_visuals(
     for (entity, faction, xp, name, membership) in &new_npcs {
         let faction_str = faction.0.as_str();
         let faction_icon = faction_icon_str(Some(faction_str)).to_string();
-        let faction_name = l10n_or(l10n, &format!("faction-{}", faction_str), faction_str);
+        let faction_name = l10n_or(l10n, faction_str, faction_str);
         let name_display = resolve_npc_name(l10n, name);
         let rank = xp.npc_rank();
         let rank_title = data
@@ -203,7 +203,7 @@ fn attach_npc_visuals(
         };
         let spawn_pos = home + slot_offset;
 
-        let is_military = matches!(faction_str, "garrison");
+        let is_military = matches!(faction_str, "faction_garrison");
         let vision = Vision::for_npc(rank, is_military);
 
         commands.entity(entity).insert((

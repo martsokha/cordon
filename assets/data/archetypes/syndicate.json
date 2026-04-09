@@ -1,97 +1,277 @@
 [
   {
-    "id": "syndicate",
-    "faction": "syndicate",
+    "id": "archetype_syndicate",
+    "faction": "faction_syndicate",
     "ranks": {
       "novice": {
         "primary": [
-          { "id": "pm" },
-          { "id": "toz34" },
-          { "id": "kedr" }
+          {
+            "id": "item_pm"
+          },
+          {
+            "id": "item_toz34"
+          },
+          {
+            "id": "item_kedr"
+          }
         ],
-        "secondary": [{ "id": "pm" }, { "id": "stechkin_aps" }],
+        "secondary": [
+          {
+            "id": "item_pm"
+          },
+          {
+            "id": "item_stechkin_aps"
+          }
+        ],
         "armor": [
-          { "id": "leather_jacket" },
-          { "id": "reinforced_coat" },
-          { "id": "tactical_vest" }
+          {
+            "id": "item_leather_jacket"
+          },
+          {
+            "id": "item_reinforced_coat"
+          },
+          {
+            "id": "item_tactical_vest"
+          }
         ],
-        "helmet": [{ "id": "balaclava" }],
+        "helmet": [
+          {
+            "id": "item_balaclava"
+          }
+        ],
         "ammo_boxes": 2,
         "secondary_ammo_boxes": 1,
-        "consumables": [{ "id": "bandage" }, { "id": "ration" }],
+        "consumables": [
+          {
+            "id": "item_bandage"
+          },
+          {
+            "id": "item_ration"
+          }
+        ],
         "consumable_count": 2
       },
       "experienced": {
         "primary": [
-          { "id": "kedr", "weight": 2 },
-          { "id": "saiga12" },
-          { "id": "ak74" }
+          {
+            "id": "item_kedr",
+            "weight": 2
+          },
+          {
+            "id": "item_saiga12"
+          },
+          {
+            "id": "item_ak74"
+          }
         ],
-        "secondary": [{ "id": "stechkin_aps" }],
+        "secondary": [
+          {
+            "id": "item_stechkin_aps"
+          }
+        ],
         "armor": [
-          { "id": "reinforced_coat", "weight": 2 },
-          { "id": "tactical_vest" }
+          {
+            "id": "item_reinforced_coat",
+            "weight": 2
+          },
+          {
+            "id": "item_tactical_vest"
+          }
         ],
-        "helmet": [{ "id": "balaclava" }, { "id": "steel_helmet" }],
+        "helmet": [
+          {
+            "id": "item_balaclava"
+          },
+          {
+            "id": "item_steel_helmet"
+          }
+        ],
         "ammo_boxes": 3,
         "secondary_ammo_boxes": 1,
-        "consumables": [{ "id": "bandage" }, { "id": "medkit" }],
+        "consumables": [
+          {
+            "id": "item_bandage"
+          },
+          {
+            "id": "item_medkit"
+          }
+        ],
         "consumable_count": 3
       },
       "veteran": {
         "primary": [
-          { "id": "kedr" },
-          { "id": "saiga12" },
-          { "id": "ak74", "weight": 2 },
-          { "id": "aek971" }
+          {
+            "id": "item_kedr"
+          },
+          {
+            "id": "item_saiga12"
+          },
+          {
+            "id": "item_ak74",
+            "weight": 2
+          },
+          {
+            "id": "item_aek971"
+          }
         ],
-        "secondary": [{ "id": "stechkin_aps" }],
+        "secondary": [
+          {
+            "id": "item_stechkin_aps"
+          }
+        ],
         "armor": [
-          { "id": "tactical_vest" },
-          { "id": "combat_armor" }
+          {
+            "id": "item_tactical_vest"
+          },
+          {
+            "id": "item_combat_armor"
+          }
         ],
-        "helmet": [{ "id": "tactical_helmet" }],
+        "helmet": [
+          {
+            "id": "item_tactical_helmet"
+          }
+        ],
         "ammo_boxes": 3,
         "secondary_ammo_boxes": 1,
-        "consumables": [{ "id": "medkit" }, { "id": "antirad" }],
+        "consumables": [
+          {
+            "id": "item_medkit"
+          },
+          {
+            "id": "item_antirad"
+          }
+        ],
         "consumable_count": 3
       },
       "master": {
         "primary": [
-          { "id": "aek971", "weight": 2 },
-          { "id": "ak74" }
+          {
+            "id": "item_aek971",
+            "weight": 2
+          },
+          {
+            "id": "item_ak74"
+          }
         ],
-        "secondary": [{ "id": "stechkin_aps" }],
-        "armor": [{ "id": "combat_armor" }],
-        "helmet": [{ "id": "tactical_helmet" }],
+        "secondary": [
+          {
+            "id": "item_stechkin_aps"
+          }
+        ],
+        "armor": [
+          {
+            "id": "item_combat_armor"
+          }
+        ],
+        "helmet": [
+          {
+            "id": "item_tactical_helmet"
+          }
+        ],
         "ammo_boxes": 4,
         "secondary_ammo_boxes": 2,
-        "consumables": [{ "id": "medkit" }, { "id": "antirad" }],
+        "consumables": [
+          {
+            "id": "item_medkit"
+          },
+          {
+            "id": "item_antirad"
+          }
+        ],
         "consumable_count": 4
       },
       "legend": {
         "primary": [
-          { "id": "aek971" },
-          { "id": "svd" }
+          {
+            "id": "item_aek971"
+          },
+          {
+            "id": "item_svd"
+          }
         ],
-        "secondary": [{ "id": "stechkin_aps" }],
+        "secondary": [
+          {
+            "id": "item_stechkin_aps"
+          }
+        ],
         "armor": [
-          { "id": "combat_armor" },
-          { "id": "heavy_rig" }
+          {
+            "id": "item_combat_armor"
+          },
+          {
+            "id": "item_heavy_rig"
+          }
         ],
-        "helmet": [{ "id": "tactical_helmet" }],
+        "helmet": [
+          {
+            "id": "item_tactical_helmet"
+          }
+        ],
         "ammo_boxes": 4,
         "secondary_ammo_boxes": 2,
-        "consumables": [{ "id": "medkit" }, { "id": "antirad" }],
+        "consumables": [
+          {
+            "id": "item_medkit"
+          },
+          {
+            "id": "item_antirad"
+          }
+        ],
         "consumable_count": 5
       }
     },
     "squads": [
-      { "ranks": ["experienced", "novice", "novice"], "goal": "patrol", "formation": "column", "weight": 3 },
-      { "ranks": ["veteran", "experienced", "novice"], "goal": "patrol", "formation": "line", "weight": 3 },
-      { "ranks": ["experienced"], "goal": "scavenge", "formation": "loose", "weight": 2 },
-      { "ranks": ["master", "veteran", "experienced", "novice"], "goal": "patrol", "formation": "wedge", "weight": 2 },
-      { "ranks": ["legend", "master", "veteran", "experienced"], "goal": "patrol", "formation": "wedge", "weight": 1 }
+      {
+        "ranks": [
+          "experienced",
+          "novice",
+          "novice"
+        ],
+        "goal": "patrol",
+        "formation": "column",
+        "weight": 3
+      },
+      {
+        "ranks": [
+          "veteran",
+          "experienced",
+          "novice"
+        ],
+        "goal": "patrol",
+        "formation": "line",
+        "weight": 3
+      },
+      {
+        "ranks": [
+          "experienced"
+        ],
+        "goal": "scavenge",
+        "formation": "loose",
+        "weight": 2
+      },
+      {
+        "ranks": [
+          "master",
+          "veteran",
+          "experienced",
+          "novice"
+        ],
+        "goal": "patrol",
+        "formation": "wedge",
+        "weight": 2
+      },
+      {
+        "ranks": [
+          "legend",
+          "master",
+          "veteran",
+          "experienced"
+        ],
+        "goal": "patrol",
+        "formation": "wedge",
+        "weight": 1
+      }
     ]
   }
 ]

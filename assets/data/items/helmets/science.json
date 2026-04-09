@@ -1,6 +1,6 @@
 [
   {
-    "id": "respirator",
+    "id": "item_respirator",
     "data": {
       "type": "armor",
       "slot": "helmet",
@@ -18,18 +18,18 @@
     "base_price": 1500,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.9
       },
       {
-        "faction": "institute",
+        "faction": "faction_institute",
         "price_multiplier": 1.0
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "cbrn_mask",
+    "id": "item_cbrn_mask",
     "data": {
       "type": "armor",
       "slot": "helmet",
@@ -47,11 +47,11 @@
     "base_price": 6000,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.85
       },
       {
-        "faction": "institute",
+        "faction": "faction_institute",
         "price_multiplier": 0.95
       }
     ],

@@ -1,6 +1,6 @@
 [
   {
-    "id": "steel_helmet",
+    "id": "item_steel_helmet",
     "data": {
       "type": "armor",
       "slot": "helmet",
@@ -17,12 +17,15 @@
     },
     "base_price": 1000,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.9 }
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 0.9
+      }
     ],
     "rarity": "common"
   },
   {
-    "id": "combat_helmet",
+    "id": "item_combat_helmet",
     "data": {
       "type": "armor",
       "slot": "helmet",
@@ -39,8 +42,14 @@
     },
     "base_price": 2000,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.95 },
-      { "faction": "syndicate", "price_multiplier": 1.05 }
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.05
+      }
     ],
     "rarity": "common"
   }
