@@ -31,7 +31,7 @@ use cordon_core::world::narrative::{
 use cordon_data::catalog::GameData;
 use cordon_data::gamedata::GameDataResource;
 
-use super::condition::{WorldView, evaluate};
+use super::condition::WorldView;
 use super::consequence::{StartQuestRequest, WorldMut, apply};
 use super::state::{ActiveQuest, CompletedQuest, QuestLog};
 
@@ -287,7 +287,7 @@ fn collect_objective_transitions(
             stage_started_at: Some(active.stage_started_at),
         };
 
-        if evaluate(condition, &view) {
+        if view.evaluate(condition) {
             out.push((index, on_success.clone()));
         } else if timed_out {
             match on_failure {
@@ -535,7 +535,7 @@ pub fn dispatch_on_condition(
             stage_started_at: None,
         };
         for (trigger, cond) in &triggers {
-            if evaluate(cond, &view) {
+            if view.evaluate(cond) {
                 now_true.insert(trigger.id.clone());
                 // Rising edge only: fire if the condition
                 // was not true last frame.
@@ -588,7 +588,7 @@ fn try_fire_trigger(
                 now,
                 stage_started_at: None,
             };
-            evaluate(cond, &view)
+            view.evaluate(cond)
         }
     };
     if !eligible {
