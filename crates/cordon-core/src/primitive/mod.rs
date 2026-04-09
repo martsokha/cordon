@@ -33,7 +33,7 @@ pub use self::loyalty::Loyalty;
 pub use self::pool::{Health, Hunger, Pool, PoolKind, Stamina};
 pub use self::rank::Rank;
 pub use self::rarity::Rarity;
-pub use self::relation::Relation;
+pub use self::relation::{Relation, RelationDelta};
 pub use self::resistances::Resistances;
 pub use self::tier::Tier;
 pub use self::time::{Day, GameTime};

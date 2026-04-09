@@ -23,7 +23,7 @@ use crate::entity::bunker::Upgrade;
 use crate::entity::faction::Faction;
 use crate::entity::npc::NpcTemplate;
 use crate::item::{Item, ItemCategory, StashScope};
-use crate::primitive::{Credits, Id, Relation};
+use crate::primitive::{Credits, Id, Relation, RelationDelta};
 use crate::world::area::Area;
 
 /// A boolean condition over world state.
@@ -100,7 +100,7 @@ pub enum Consequence {
     /// Shift the player's standing with a faction.
     StandingChange {
         faction: Id<Faction>,
-        delta: Relation,
+        delta: RelationDelta,
     },
     /// Credit the player with currency.
     GiveCredits(Credits),

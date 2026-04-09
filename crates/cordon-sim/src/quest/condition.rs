@@ -101,7 +101,7 @@ mod tests {
     use bevy_yarnspinner::prelude::YarnValue;
     use cordon_core::entity::faction::Faction;
     use cordon_core::entity::player::PlayerState;
-    use cordon_core::primitive::{Credits, GameTime, Id, Relation};
+    use cordon_core::primitive::{Credits, GameTime, Id, Relation, RelationDelta};
     use cordon_core::world::narrative::{ObjectiveCondition, Quest, QuestStage};
 
     use super::{WorldView, evaluate, yarn_value_matches};
@@ -143,7 +143,7 @@ mod tests {
     fn faction_standing_at_threshold() {
         let mut p = player(&["garrison"]);
         if let Some(s) = p.standing_mut(&Id::<Faction>::new("garrison")) {
-            s.apply(Relation::new(50));
+            s.apply(RelationDelta::new(50));
         }
         let log = QuestLog::default();
         let cond = ObjectiveCondition::FactionStanding {

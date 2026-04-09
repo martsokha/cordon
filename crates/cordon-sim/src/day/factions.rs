@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 
 use cordon_core::entity::player::PlayerState;
-use cordon_core::primitive::{Id, Relation};
+use cordon_core::primitive::{Id, RelationDelta};
 use cordon_core::world::area::Area;
 use cordon_core::world::narrative::{ActiveEvent, Event};
 
@@ -44,8 +44,8 @@ pub fn tick_factions(
             && let Some(standing) = player.standing_mut(faction)
         {
             let current = standing.value();
-            let delta = -(current as f32 * 0.3) as i8;
-            standing.apply(Relation::new(delta));
+            let delta = -(current as f32 * 0.3) as i16;
+            standing.apply(RelationDelta::new(delta));
         }
     }
 }
