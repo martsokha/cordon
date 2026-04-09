@@ -45,6 +45,49 @@ pub struct FactionStandingsPanel;
 #[derive(Component)]
 pub struct FactionStandingsHeading;
 
+/// Shared first-fill + rebuild helper used by
+/// [`refresh_quest_list`] and [`refresh_faction_standings`].
+///
+/// Returns the panel entity when the caller should rebuild —
+/// either because `dirty == true` (a watched resource changed)
+/// or because the panel currently has no data children beyond
+/// its heading row (first-fill). In the rebuild case the
+/// helper has already despawned the data children, so the
+/// caller can start from a clean slate.
+///
+/// Returns `None` when the panel hasn't been spawned yet or
+/// neither trigger fired — in which case the caller does
+/// nothing.
+fn prepare_panel_rebuild<P: Component, H: Component>(
+    commands: &mut Commands,
+    panel_q: &Query<(Entity, Option<&Children>), With<P>>,
+    heading_q: &Query<(), With<H>>,
+    dirty: bool,
+) -> Option<Entity> {
+    let (panel_entity, panel_children) = panel_q.single().ok()?;
+    let non_heading_count = panel_children
+        .map(|children| {
+            children
+                .iter()
+                .filter(|c| heading_q.get(*c).is_err())
+                .count()
+        })
+        .unwrap_or(0);
+    let needs_first_fill = non_heading_count == 0;
+    if !dirty && !needs_first_fill {
+        return None;
+    }
+    if let Some(children) = panel_children {
+        for child in children.iter() {
+            if heading_q.get(child).is_ok() {
+                continue;
+            }
+            commands.entity(child).despawn();
+        }
+    }
+    Some(panel_entity)
+}
+
 pub struct IntelUiPlugin;
 
 impl Plugin for IntelUiPlugin {
@@ -186,31 +229,11 @@ fn refresh_quest_list(
     panel_q: Query<(Entity, Option<&Children>), With<QuestListPanel>>,
     heading_q: Query<(), With<QuestListHeading>>,
 ) {
-    let Ok((panel_entity, panel_children)) = panel_q.single() else {
+    let Some(panel_entity) =
+        prepare_panel_rebuild(&mut commands, &panel_q, &heading_q, log.is_changed())
+    else {
         return;
     };
-    let non_heading_count = panel_children
-        .map(|children| {
-            children
-                .iter()
-                .filter(|c| heading_q.get(*c).is_err())
-                .count()
-        })
-        .unwrap_or(0);
-    let needs_first_fill = non_heading_count == 0;
-    if !log.is_changed() && !needs_first_fill {
-        return;
-    }
-
-    // Despawn every child except the heading row.
-    if let Some(children) = panel_children {
-        for child in children.iter() {
-            if heading_q.get(child).is_ok() {
-                continue;
-            }
-            commands.entity(child).despawn();
-        }
-    }
 
     let font = font.0.clone();
     let catalog = &data.0;
@@ -318,34 +341,11 @@ fn refresh_faction_standings(
     panel_q: Query<(Entity, Option<&Children>), With<FactionStandingsPanel>>,
     heading_q: Query<(), With<FactionStandingsHeading>>,
 ) {
-    let Ok((panel_entity, panel_children)) = panel_q.single() else {
+    let Some(panel_entity) =
+        prepare_panel_rebuild(&mut commands, &panel_q, &heading_q, player.is_changed())
+    else {
         return;
     };
-    // "Needs first fill" == the panel exists but has only the
-    // heading (or nothing). Any data rows mean we've populated
-    // at least once and only need to rebuild on real changes.
-    let non_heading_count = panel_children
-        .map(|children| {
-            children
-                .iter()
-                .filter(|c| heading_q.get(*c).is_err())
-                .count()
-        })
-        .unwrap_or(0);
-    let needs_first_fill = non_heading_count == 0;
-    if !player.is_changed() && !needs_first_fill {
-        return;
-    }
-
-    // Despawn every child except the heading row.
-    if let Some(children) = panel_children {
-        for child in children.iter() {
-            if heading_q.get(child).is_ok() {
-                continue;
-            }
-            commands.entity(child).despawn();
-        }
-    }
 
     let font = font.0.clone();
 

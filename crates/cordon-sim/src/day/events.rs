@@ -1,7 +1,9 @@
 //! Event scheduling and resolution.
 //!
 //! Pure functions over `Vec<ActiveEvent>` and the loaded `EventDef`
-//! catalog. Called from the day-cycle systems in [`crate::day`].
+//! catalog. Called from the day-cycle systems in [`crate::day`]
+//! (daily probability rolls) and the quest consequence applier
+//! (on-demand instantiation via [`spawn_event_instance`]).
 
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::{Day, Id};
@@ -50,28 +52,48 @@ pub fn roll_daily_events<R: Rng>(
             continue;
         }
 
-        let duration = if def.min_duration == def.max_duration {
-            def.min_duration
-        } else {
-            rng.random_range(def.min_duration..=def.max_duration)
-        };
+        active.push(spawn_event_instance(def, faction_ids, day, rng));
+    }
+}
 
-        let involved_factions = pick_involved_factions(&def.involved_factions, faction_ids, rng);
+/// Build a fresh [`ActiveEvent`] from a definition, rolling a
+/// random duration in `[min_duration, max_duration]`, picking
+/// the involved factions from the def's list (or from the
+/// world list if empty), and picking a target area from the
+/// def's list (or `None` for zone-wide events).
+///
+/// Used both by [`roll_daily_events`] (after its probability
+/// roll succeeds) and by the quest `TriggerEvent` consequence
+/// applier (which bypasses probability but still wants
+/// randomness on the instance parameters). Keeping both sites
+/// on the same helper means the two paths cannot drift.
+pub fn spawn_event_instance<R: Rng>(
+    def: &EventDef,
+    faction_ids: &[Id<Faction>],
+    day: Day,
+    rng: &mut R,
+) -> ActiveEvent {
+    let duration = if def.min_duration == def.max_duration {
+        def.min_duration
+    } else {
+        rng.random_range(def.min_duration..=def.max_duration)
+    };
 
-        let target_area = if def.target_areas.is_empty() {
-            None
-        } else {
-            let idx = rng.random_range(0..def.target_areas.len());
-            Some(def.target_areas[idx].clone())
-        };
+    let involved_factions = pick_involved_factions(&def.involved_factions, faction_ids, rng);
 
-        active.push(ActiveEvent {
-            def_id: def.id.clone(),
-            day_started: day,
-            duration_days: duration,
-            involved_factions,
-            target_area,
-        });
+    let target_area = if def.target_areas.is_empty() {
+        None
+    } else {
+        let idx = rng.random_range(0..def.target_areas.len());
+        Some(def.target_areas[idx].clone())
+    };
+
+    ActiveEvent {
+        def_id: def.id.clone(),
+        day_started: day,
+        duration_days: duration,
+        involved_factions,
+        target_area,
     }
 }
 

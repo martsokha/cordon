@@ -13,6 +13,8 @@
 //! the caller's world directly.
 
 use bevy::prelude::*;
+use bevy_prng::WyRand;
+use cordon_core::entity::faction::Faction;
 use cordon_core::entity::player::PlayerState;
 use cordon_core::item::ItemInstance;
 use cordon_core::primitive::{GameTime, Id};
@@ -21,12 +23,23 @@ use cordon_core::world::narrative::consequence::Consequence;
 use cordon_core::world::narrative::quest::Quest;
 use cordon_data::catalog::GameData;
 
+use crate::day::events::spawn_event_instance;
+
 /// Live references the applier may mutate in place.
+///
+/// `rng` and `faction_pool` are threaded through so
+/// consequences that need randomness (e.g.
+/// [`TriggerEvent`](Consequence::TriggerEvent)) can build
+/// realistic instances through the shared
+/// [`spawn_event_instance`] helper instead of hardcoding
+/// def-minimum values.
 pub struct WorldMut<'a> {
     pub player: &'a mut PlayerState,
     pub events: &'a mut Vec<ActiveEvent>,
     pub data: &'a GameData,
     pub now: GameTime,
+    pub rng: &'a mut WyRand,
+    pub faction_pool: &'a [Id<Faction>],
 }
 
 /// Message emitted by the applier whenever a consequence asks
@@ -103,18 +116,14 @@ pub fn apply(
                 warn!("TriggerEvent: unknown event `{}`", event_id.as_str());
                 return;
             };
-            // The day-cycle system owns the normal event roll; a
-            // consequence-driven fire bypasses probability and
-            // duration rolling by using the def's minimum values
-            // directly. Designers wanting randomness can express
-            // it via multiple consequence variants.
-            world.events.push(ActiveEvent {
-                def_id: def.id.clone(),
-                day_started: world.now.day,
-                duration_days: def.min_duration,
-                involved_factions: def.involved_factions.clone(),
-                target_area: def.target_areas.first().cloned(),
-            });
+            // Share the same instancing helper the day-cycle
+            // roll uses so the two paths can never drift on
+            // duration / faction / target-area randomness.
+            // Consequence-driven fires still bypass the
+            // probability roll because the caller has already
+            // decided the event should happen.
+            let instance = spawn_event_instance(def, world.faction_pool, world.now.day, world.rng);
+            world.events.push(instance);
         }
 
         Consequence::StartQuest(quest_id) => {

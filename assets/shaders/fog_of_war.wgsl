@@ -176,5 +176,30 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     // the colour is irrelevant.
     alpha = alpha * (1.0 - visible);
 
+    // ---- Edge-to-black falloff. The playable rectangle ends
+    // at ±MAP_EXTENT on both axes; without a falloff the fog
+    // stops abruptly at a hard line where the mesh ends. We
+    // want the world to *feel* like it closes off, so add a
+    // wide fade band along the perimeter that drives alpha
+    // toward 1.0 and colour toward pure black. The band
+    // overrides live visibility — a squad at the very edge
+    // still sees its immediate neighbourhood, but the last
+    // few hundred units of the map are always dark.
+    //
+    // `edge_fade = 0` deep inside the map, `1` at the rim.
+    // Computed from the minimum distance to the four edges,
+    // normalised against EDGE_BAND_WIDTH and smoothed with a
+    // smoothstep for a nice gradient.
+    let edge_band_width = 600.0;
+    let dx = MAP_EXTENT - abs(world.x);
+    let dy = MAP_EXTENT - abs(world.y);
+    let dist_to_edge = min(dx, dy);
+    let edge_fade = 1.0 - smoothstep(0.0, edge_band_width, dist_to_edge);
+    // Drive colour toward pure black and alpha toward fully
+    // opaque as we approach the edge. Both use the same
+    // factor so the transition reads as a single curve.
+    color = mix(color, vec3<f32>(0.0, 0.0, 0.0), edge_fade);
+    alpha = max(alpha, edge_fade);
+
     return vec4<f32>(color, clamp(alpha, 0.0, 1.0));
 }

@@ -19,7 +19,11 @@
 
 use std::collections::HashSet;
 
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use bevy_prng::WyRand;
+use bevy_rand::prelude::GlobalRng;
+use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::{GameTime, Id};
 use cordon_core::world::event::Event;
 use cordon_core::world::narrative::consequence::Consequence;
@@ -32,6 +36,45 @@ use cordon_data::gamedata::GameDataResource;
 use super::condition::{WorldView, evaluate};
 use super::consequence::{StartQuestRequest, WorldMut, apply};
 use super::state::{ActiveQuest, CompletedQuest, QuestLog};
+
+/// Read-only bundle for quest-dispatch systems.
+///
+/// Every trigger dispatcher reads the same world slice —
+/// quest log, catalog, clock, player, events — and mutates
+/// only the quest log. Bundling them as a derive
+/// [`SystemParam`] keeps the parameter list stable across
+/// dispatchers and avoids `ResMut<Player>` / `ResMut<EventLog>`
+/// claims that would block parallelism with other systems.
+#[derive(SystemParam)]
+pub struct QuestDispatchCtx<'w> {
+    pub log: ResMut<'w, QuestLog>,
+    pub data: Res<'w, GameDataResource>,
+    pub clock: Res<'w, GameClock>,
+    pub player: Res<'w, Player>,
+    pub events: Res<'w, EventLog>,
+}
+
+/// Mutable bundle used by [`drive_active_quests`] — the only
+/// system that may mutate player + event state, because it
+/// runs the consequence applier when a quest reaches an
+/// `Outcome` stage. Separate from [`QuestDispatchCtx`] so the
+/// dispatchers can keep read-only access to player/events and
+/// run in parallel with other read-only systems.
+///
+/// Also carries the faction index (for
+/// [`spawn_event_instance`](crate::day::events::spawn_event_instance))
+/// so consequence-driven event fires can roll real random
+/// instances instead of hardcoding def-minimum values.
+#[derive(SystemParam)]
+pub struct QuestEngineCtx<'w> {
+    pub log: ResMut<'w, QuestLog>,
+    pub data: Res<'w, GameDataResource>,
+    pub clock: Res<'w, GameClock>,
+    pub player: ResMut<'w, Player>,
+    pub events: ResMut<'w, EventLog>,
+    pub factions: Res<'w, crate::resources::FactionIndex>,
+    pub start_quest_tx: MessageWriter<'w, StartQuestRequest>,
+}
 use crate::day::DayRolled;
 use crate::resources::{EventLog, GameClock, Player};
 
@@ -118,16 +161,10 @@ pub fn advance_after_talk(
 /// `Talk` stages are *not* touched — the Yarn bridge owns them.
 /// `Outcome` stages are collected here and applied afterwards to
 /// avoid holding aliasing borrows across the apply step.
-pub fn drive_active_quests(
-    mut log: ResMut<QuestLog>,
-    clock: Res<GameClock>,
-    data: Res<GameDataResource>,
-    mut player: ResMut<Player>,
-    mut events: ResMut<EventLog>,
-    mut start_quest_tx: MessageWriter<StartQuestRequest>,
-) {
-    let now = clock.0;
-    let catalog = &data.0;
+pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand, With<GlobalRng>>) {
+    let now = ctx.clock.0;
+    let catalog = &ctx.data.0;
+    let faction_pool: Vec<Id<Faction>> = ctx.factions.0.iter().map(|(id, _)| id.clone()).collect();
 
     // --- 1. Quest-wide time limits.
     // A quest whose elapsed time exceeds `time_limit_minutes`
@@ -135,7 +172,8 @@ pub fn drive_active_quests(
     // stage with `success: false`), so the applier picks it
     // up below like any other completion. Quests without a
     // failure stage or without a time limit are left alone.
-    let timed_out: Vec<(Id<Quest>, Id<QuestStage>)> = log
+    let timed_out: Vec<(Id<Quest>, Id<QuestStage>)> = ctx
+        .log
         .active
         .iter()
         .filter_map(|active| {
@@ -144,14 +182,15 @@ pub fn drive_active_quests(
             if now.minutes_since(active.started_at) < limit {
                 return None;
             }
-            let fail_stage = def.stages.iter().find(|s| {
-                matches!(s.kind, QuestStageKind::Outcome { success: false, .. })
-            })?;
+            let fail_stage = def
+                .stages
+                .iter()
+                .find(|s| matches!(s.kind, QuestStageKind::Outcome { success: false, .. }))?;
             Some((active.def_id.clone(), fail_stage.id.clone()))
         })
         .collect();
     for (quest_id, fail_stage) in timed_out {
-        if let Some(active) = log.active_instance_mut(&quest_id) {
+        if let Some(active) = ctx.log.active_instance_mut(&quest_id) {
             info!(
                 "quest `{}` exceeded time limit, jumping to `{}`",
                 quest_id.as_str(),
@@ -166,9 +205,9 @@ pub fn drive_active_quests(
     // also borrows `log`. Collect the transitions first, apply
     // them in a second pass.
     let objective_transitions =
-        collect_objective_transitions(&log, &player.0, &events.0, catalog, now);
+        collect_objective_transitions(&ctx.log, &ctx.player.0, &ctx.events.0, catalog, now);
     for (index, next_stage) in objective_transitions {
-        if let Some(active) = log.active.get_mut(index) {
+        if let Some(active) = ctx.log.active.get_mut(index) {
             active.advance_to(next_stage, now);
         }
     }
@@ -181,25 +220,27 @@ pub fn drive_active_quests(
     // starts through the message channel don't disturb the
     // resolution — though in practice StartQuest is deferred
     // to a later system, so this is defence in depth).
-    let to_complete: Vec<Id<Quest>> = log
+    let to_complete: Vec<Id<Quest>> = ctx
+        .log
         .active
         .iter()
         .filter_map(|active| {
             let def = catalog.quests.get(&active.def_id)?;
             let stage = def.stage(&active.current_stage)?;
-            matches!(stage.kind, QuestStageKind::Outcome { .. })
-                .then(|| active.def_id.clone())
+            matches!(stage.kind, QuestStageKind::Outcome { .. }).then(|| active.def_id.clone())
         })
         .collect();
     for def_id in to_complete {
         complete_quest(
-            &mut log,
+            &mut ctx.log,
             catalog,
             &def_id,
             now,
-            &mut player.0,
-            &mut events.0,
-            &mut start_quest_tx,
+            &mut ctx.player.0,
+            &mut ctx.events.0,
+            &faction_pool,
+            &mut rng,
+            &mut ctx.start_quest_tx,
         );
     }
 }
@@ -267,7 +308,6 @@ fn collect_objective_transitions(
     out
 }
 
-/// Apply an Outcome stage's consequences, move the quest record
 /// Apply an `Outcome` stage's consequences, then move the
 /// quest record from `active` to `completed`. Looks the quest
 /// up by [`def_id`](Id<Quest>) rather than by `Vec` index so
@@ -280,6 +320,8 @@ fn complete_quest(
     now: GameTime,
     player: &mut cordon_core::entity::player::PlayerState,
     events: &mut Vec<cordon_core::world::event::ActiveEvent>,
+    faction_pool: &[Id<Faction>],
+    rng: &mut WyRand,
     start_quest_tx: &mut MessageWriter<StartQuestRequest>,
 ) {
     // Resolve the active instance by def_id. Cloning the
@@ -314,6 +356,8 @@ fn complete_quest(
         events,
         data: catalog,
         now,
+        rng,
+        faction_pool,
     };
     for consequence in &consequences {
         apply(consequence, &mut world, start_quest_tx);
@@ -344,14 +388,12 @@ fn complete_quest(
 /// application and turn them into fresh `ActiveQuest` entries.
 /// Runs after [`drive_active_quests`] each frame.
 pub fn process_start_quest_requests(
-    mut log: ResMut<QuestLog>,
-    data: Res<GameDataResource>,
-    clock: Res<GameClock>,
+    mut ctx: QuestDispatchCtx,
     mut requests: MessageReader<StartQuestRequest>,
 ) {
-    let now = clock.0;
+    let now = ctx.clock.0;
     for req in requests.read() {
-        start_quest(&mut log, &data.0, &req.quest, now);
+        start_quest(&mut ctx.log, &ctx.data.0, &req.quest, now);
     }
 }
 
@@ -361,15 +403,9 @@ pub fn process_start_quest_requests(
 /// once — [`GameClock`] is inserted by `init_world_resources`
 /// on `OnEnter(AppState::Playing)`, after `GameDataResource`
 /// is already live, so all sim state is ready by then.
-pub fn dispatch_on_game_start(
-    mut log: ResMut<QuestLog>,
-    data: Res<GameDataResource>,
-    clock: Res<GameClock>,
-    player: Res<Player>,
-    events: Res<EventLog>,
-) {
-    let now = clock.0;
-    let catalog = &data.0;
+pub fn dispatch_on_game_start(mut ctx: QuestDispatchCtx) {
+    let now = ctx.clock.0;
+    let catalog = &ctx.data.0;
     let triggers: Vec<_> = catalog
         .triggers
         .values()
@@ -377,22 +413,22 @@ pub fn dispatch_on_game_start(
         .cloned()
         .collect();
     for trigger in triggers {
-        try_fire_trigger(&mut log, catalog, &trigger, now, &player.0, &events.0);
+        try_fire_trigger(
+            &mut ctx.log,
+            catalog,
+            &trigger,
+            now,
+            &ctx.player.0,
+            &ctx.events.0,
+        );
     }
 }
 
 /// Fire `OnDay` triggers whose target day matches the new day.
-pub fn dispatch_on_day(
-    mut log: ResMut<QuestLog>,
-    data: Res<GameDataResource>,
-    clock: Res<GameClock>,
-    player: Res<Player>,
-    events: Res<EventLog>,
-    mut rolled: MessageReader<DayRolled>,
-) {
+pub fn dispatch_on_day(mut ctx: QuestDispatchCtx, mut rolled: MessageReader<DayRolled>) {
+    let now = ctx.clock.0;
+    let catalog = &ctx.data.0;
     for ev in rolled.read() {
-        let catalog = &data.0;
-        let now = clock.0;
         let triggers: Vec<_> = catalog
             .triggers
             .values()
@@ -400,7 +436,14 @@ pub fn dispatch_on_day(
             .cloned()
             .collect();
         for trigger in triggers {
-            try_fire_trigger(&mut log, catalog, &trigger, now, &player.0, &events.0);
+            try_fire_trigger(
+                &mut ctx.log,
+                catalog,
+                &trigger,
+                now,
+                &ctx.player.0,
+                &ctx.events.0,
+            );
         }
     }
 }
@@ -416,17 +459,10 @@ pub fn dispatch_on_day(
 /// instances of the same event is intentionally skipped —
 /// quest triggers are about kind-level "this has started
 /// happening in the world", not instance counts.
-pub fn dispatch_on_event(
-    mut log: ResMut<QuestLog>,
-    data: Res<GameDataResource>,
-    clock: Res<GameClock>,
-    player: Res<Player>,
-    events: Res<EventLog>,
-    mut previous: Local<HashSet<Id<Event>>>,
-) {
-    let catalog = &data.0;
-    let now = clock.0;
-    let current: HashSet<_> = events.0.iter().map(|e| e.def_id.clone()).collect();
+pub fn dispatch_on_event(mut ctx: QuestDispatchCtx, mut previous: Local<HashSet<Id<Event>>>) {
+    let catalog = &ctx.data.0;
+    let now = ctx.clock.0;
+    let current: HashSet<_> = ctx.events.0.iter().map(|e| e.def_id.clone()).collect();
     // Newly-active events are in `current` but not `previous`.
     let new_events: Vec<_> = current.difference(&*previous).cloned().collect();
     *previous = current;
@@ -435,13 +471,18 @@ pub fn dispatch_on_event(
         let triggers: Vec<_> = catalog
             .triggers
             .values()
-            .filter(
-                |t| matches!(&t.kind, QuestTriggerKind::OnEvent(id) if id == &event_id),
-            )
+            .filter(|t| matches!(&t.kind, QuestTriggerKind::OnEvent(id) if id == &event_id))
             .cloned()
             .collect();
         for trigger in triggers {
-            try_fire_trigger(&mut log, catalog, &trigger, now, &player.0, &events.0);
+            try_fire_trigger(
+                &mut ctx.log,
+                catalog,
+                &trigger,
+                now,
+                &ctx.player.0,
+                &ctx.events.0,
+            );
         }
     }
 }
@@ -459,15 +500,11 @@ pub fn dispatch_on_event(
 /// so this rising-edge mechanism matters most for
 /// repeatable condition triggers.
 pub fn dispatch_on_condition(
-    mut log: ResMut<QuestLog>,
-    data: Res<GameDataResource>,
-    clock: Res<GameClock>,
-    player: Res<Player>,
-    events: Res<EventLog>,
+    mut ctx: QuestDispatchCtx,
     mut previously_true: Local<HashSet<Id<QuestTrigger>>>,
 ) {
-    let catalog = &data.0;
-    let now = clock.0;
+    let catalog = &ctx.data.0;
+    let now = ctx.clock.0;
     // Evaluate every OnCondition trigger. This is an
     // immutable borrow of `log` inside the view, so the
     // eligibility list is computed before any mutations.
@@ -484,9 +521,9 @@ pub fn dispatch_on_condition(
     let mut to_fire: Vec<_> = Vec::new();
     {
         let view = WorldView {
-            player: &player.0,
-            events: &events.0,
-            quests: &log,
+            player: &ctx.player.0,
+            events: &ctx.events.0,
+            quests: &ctx.log,
         };
         for (trigger, cond) in &triggers {
             if evaluate(cond, &view) {
@@ -502,7 +539,14 @@ pub fn dispatch_on_condition(
     *previously_true = now_true;
 
     for trigger in to_fire {
-        try_fire_trigger(&mut log, catalog, &trigger, now, &player.0, &events.0);
+        try_fire_trigger(
+            &mut ctx.log,
+            catalog,
+            &trigger,
+            now,
+            &ctx.player.0,
+            &ctx.events.0,
+        );
     }
 }
 
