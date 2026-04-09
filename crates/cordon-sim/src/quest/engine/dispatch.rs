@@ -143,6 +143,16 @@ pub fn process_start_quest_requests(
 /// once — [`GameClock`] is inserted by `init_world_resources`
 /// on `OnEnter(AppState::Playing)`, after `GameDataResource`
 /// is already live, so all sim state is ready by then.
+///
+/// # Re-eval semantics
+///
+/// An `OnGameStart` trigger whose
+/// [`requires`](QuestTriggerDef::requires) evaluates false
+/// here is **discarded** — there is no second game start to
+/// watch for. The idiom "the trigger waits for its requires
+/// to become true later" only applies to
+/// [`OnCondition`](QuestTriggerKind::OnCondition); authors
+/// who want that semantic should use a condition trigger.
 pub fn dispatch_on_game_start(mut ctx: QuestDispatchCtx) {
     let now = ctx.clock.0;
     // Clone the matching trigger list out of the catalog before
@@ -162,6 +172,16 @@ pub fn dispatch_on_game_start(mut ctx: QuestDispatchCtx) {
 }
 
 /// Fire `OnDay` triggers whose target day matches the new day.
+///
+/// # Re-eval semantics
+///
+/// An `OnDay(d)` trigger whose
+/// [`requires`](QuestTriggerDef::requires) evaluates false on
+/// day `d` is **discarded** — the day passed, the trigger
+/// does not get a second look on day `d+1`. Authors who need
+/// "fire on day 3 if condition X is true, otherwise on the
+/// first day X becomes true" should express that with two
+/// triggers: one `OnDay(3)` and one `OnCondition(X)`.
 pub fn dispatch_on_day(mut ctx: QuestDispatchCtx, mut rolled: MessageReader<DayRolled>) {
     let now = ctx.clock.0;
     // Collect the day values so the reader borrow is released
@@ -193,6 +213,18 @@ pub fn dispatch_on_day(mut ctx: QuestDispatchCtx, mut rolled: MessageReader<DayR
 /// instances of the same event is intentionally skipped —
 /// quest triggers are about kind-level "this has started
 /// happening in the world", not instance counts.
+///
+/// # Re-eval semantics
+///
+/// An `OnEvent(e)` trigger whose
+/// [`requires`](QuestTriggerDef::requires) evaluates false
+/// on a given firing is skipped on *that* firing only. Because
+/// [`try_fire_trigger`](QuestDispatchCtx::try_fire_trigger)
+/// does not latch `fired_triggers` on requires-failure, the
+/// trigger remains eligible to fire the next time the event
+/// transitions from inactive → active. Authors effectively
+/// get "fire when the event next happens with the condition
+/// holding" for free.
 pub fn dispatch_on_event(mut ctx: QuestDispatchCtx, mut previous: Local<HashSet<Id<Event>>>) {
     let now = ctx.clock.0;
     let current: HashSet<_> = ctx.events.0.iter().map(|e| e.def_id.clone()).collect();
@@ -216,12 +248,20 @@ pub fn dispatch_on_event(mut ctx: QuestDispatchCtx, mut previous: Local<HashSet<
 }
 
 /// Fire `OnCondition` triggers every frame, on the rising
-/// edge of their condition. A `Local<HashSet<Id<QuestTrigger>>>`
-/// of triggers whose condition was `true` on the previous
-/// frame suppresses re-firing while the condition remains
-/// true — without this, a trigger gated on
-/// `FactionStanding { min_standing: Neutral }` would fire
-/// every single frame for the entire game.
+/// edge of their *composite* eligibility: both the
+/// [`OnCondition`](QuestTriggerKind::OnCondition) kind
+/// condition AND any trigger-level
+/// [`requires`](QuestTriggerDef::requires) gate. A
+/// `Local<HashSet>` remembers which triggers were eligible on
+/// the previous frame so the rising edge suppresses re-firing
+/// while the composite stays true.
+///
+/// Gating on the composite matters: if the kind condition
+/// goes true before `requires` does (or vice versa), the
+/// trigger must still fire on the frame they finally align.
+/// Keying the rising edge on the kind alone would lose that
+/// case — the kind would be "already seen" by the time
+/// `requires` caught up.
 ///
 /// Non-repeatable triggers additionally latch via
 /// [`QuestLog::fired_triggers`] inside
@@ -230,7 +270,7 @@ pub fn dispatch_on_event(mut ctx: QuestDispatchCtx, mut previous: Local<HashSet<
 /// condition triggers.
 pub fn dispatch_on_condition(
     mut ctx: QuestDispatchCtx,
-    mut previously_true: Local<HashSet<Id<QuestTrigger>>>,
+    mut previously_eligible: Local<HashSet<Id<QuestTrigger>>>,
 ) {
     let now = ctx.clock.0;
     // Evaluate every OnCondition trigger. The eligibility list
@@ -247,8 +287,8 @@ pub fn dispatch_on_condition(
         })
         .collect();
 
-    let mut now_true: HashSet<Id<QuestTrigger>> = HashSet::new();
-    let mut to_fire: Vec<_> = Vec::new();
+    let mut eligible_now: HashSet<Id<QuestTrigger>> = HashSet::new();
+    let mut to_fire: Vec<QuestTriggerDef> = Vec::new();
     {
         let view = WorldView {
             player: &ctx.player.0,
@@ -261,17 +301,26 @@ pub fn dispatch_on_condition(
             stage_started_at: None,
         };
         for (trigger, cond) in &triggers {
-            if view.evaluate(cond) {
-                now_true.insert(trigger.id.clone());
-                // Rising edge only: fire if the condition
-                // was not true last frame.
-                if !previously_true.contains(&trigger.id) {
-                    to_fire.push(trigger.clone());
-                }
+            // Composite eligibility: both the kind condition
+            // and the trigger's own `requires` (if any) must
+            // currently be true.
+            if !view.evaluate(cond) {
+                continue;
+            }
+            if let Some(req) = &trigger.requires
+                && !view.evaluate(req)
+            {
+                continue;
+            }
+            eligible_now.insert(trigger.id.clone());
+            // Rising edge only: fire if the trigger was not
+            // eligible last frame.
+            if !previously_eligible.contains(&trigger.id) {
+                to_fire.push(trigger.clone());
             }
         }
     }
-    *previously_true = now_true;
+    *previously_eligible = eligible_now;
 
     for trigger in to_fire {
         ctx.try_fire_trigger(&trigger, now);

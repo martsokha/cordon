@@ -22,17 +22,47 @@ impl IdMarker for QuestTrigger {}
 /// Stored in a table parallel to the quest definitions. A single
 /// quest may have multiple triggers (e.g. "start on day 3" AND
 /// "start when the player reaches Friendly with the Garrison").
+///
+/// # Re-evaluation semantics
+///
+/// Each variant has its own rule for what happens when the
+/// trigger's moment arrives but its [`requires`](QuestTriggerDef::requires)
+/// gate is not yet satisfied:
+///
+/// - [`OnGameStart`](Self::OnGameStart): discarded. There is
+///   no second game start.
+/// - [`OnDay`](Self::OnDay): discarded. The day passed.
+/// - [`OnEvent`](Self::OnEvent): skipped on *this* firing, but
+///   eligible again the next time the event transitions from
+///   inactive to active. Effectively "fire when the event
+///   next happens *and* the condition holds".
+/// - [`OnCondition`](Self::OnCondition): keeps watching. The
+///   rising edge is keyed on the composite `kind ∧ requires`,
+///   so the trigger fires the next frame both become true
+///   simultaneously — even if `kind` was already true first.
+///
+/// Authors who want a day / game-start trigger to wait for
+/// additional prerequisites should express that as an
+/// `OnCondition` with the full compound condition instead of
+/// relying on `requires` re-evaluation.
 #[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum QuestTriggerKind {
-    /// Fire on the very first tick of a new game.
+    /// Fire on the very first tick of a new game. Discards on
+    /// `requires`-failure — see type-level docs.
     OnGameStart,
-    /// Fire on the named day.
+    /// Fire on the named day. Discards on `requires`-failure —
+    /// see type-level docs.
     OnDay(Day),
-    /// Fire when the given event fires.
+    /// Fire each time the given event transitions from
+    /// inactive to active. `requires`-failure is a skip, not a
+    /// latch — the next firing gets another chance.
     OnEvent(Id<Event>),
-    /// Fire when the given condition first becomes true.
+    /// Fire on the rising edge of `kind ∧ requires` (see
+    /// type-level docs). Plain `OnCondition(cond)` with no
+    /// `requires` is just "fire when `cond` first becomes
+    /// true".
     OnCondition(ObjectiveCondition),
 }
 
