@@ -9,9 +9,9 @@
 use bevy::log::warn;
 use bevy_yarnspinner::prelude::YarnValue;
 use cordon_core::entity::player::PlayerState;
-use cordon_core::primitive::GameTime;
+use cordon_core::primitive::{GameTime, Id};
 use cordon_core::world::narrative::{
-    ActiveEvent, ObjectiveCondition, QuestFlagPredicate, QuestFlagValue,
+    ActiveEvent, ObjectiveCondition, Quest, QuestFlagPredicate, QuestFlagValue,
 };
 
 use super::state::QuestLog;
@@ -66,40 +66,7 @@ impl<'a> WorldView<'a> {
                 quest,
                 key,
                 predicate,
-            } => {
-                // Active quest first, then most-recent completed
-                // instance. Completed-quest fallback lets later
-                // quests branch on how an earlier one ended.
-                let value = self
-                    .quests
-                    .active_instance(quest)
-                    .and_then(|a| a.flags.get(key))
-                    .or_else(|| {
-                        self.quests
-                            .completed
-                            .iter()
-                            .rev()
-                            .find(|c| &c.def_id == quest)
-                            .and_then(|c| c.flags.get(key))
-                    });
-                match (predicate, value) {
-                    // `IsSet` is true iff any value is present.
-                    (QuestFlagPredicate::IsSet, v) => v.is_some(),
-                    (_, None) => false,
-                    (QuestFlagPredicate::Equals(expected), Some(v)) => {
-                        yarn_value_equals(v, expected)
-                    }
-                    (QuestFlagPredicate::NotEquals(expected), Some(v)) => {
-                        !yarn_value_equals(v, expected)
-                    }
-                    (QuestFlagPredicate::GreaterThan(threshold), Some(v)) => {
-                        yarn_value_as_number(v).is_some_and(|n| n > *threshold)
-                    }
-                    (QuestFlagPredicate::LessThan(threshold), Some(v)) => {
-                        yarn_value_as_number(v).is_some_and(|n| n < *threshold)
-                    }
-                }
-            }
+            } => self.evaluate_quest_flag(quest, key, predicate),
 
             // NPC-template conditions are stubs until the template
             // → live-entity resolution story lands (#104/#105).
@@ -144,6 +111,52 @@ impl<'a> WorldView<'a> {
             ObjectiveCondition::AllOf(conds) => conds.iter().all(|c| self.evaluate(c)),
             ObjectiveCondition::AnyOf(conds) => conds.iter().any(|c| self.evaluate(c)),
             ObjectiveCondition::Not(inner) => !self.evaluate(inner),
+        }
+    }
+
+    /// Evaluate a [`QuestFlag`](ObjectiveCondition::QuestFlag)
+    /// condition. Pulled out of [`evaluate`](Self::evaluate)
+    /// because the predicate-and-value matrix is the longest
+    /// arm in the evaluator and obscured the rest of the match.
+    ///
+    /// Flag lookup reads the active instance first, then falls
+    /// back to the most recent completed quest with the same
+    /// def id — the completed-fallback is how later quests
+    /// branch on how an earlier one ended.
+    fn evaluate_quest_flag(
+        &self,
+        quest: &Id<Quest>,
+        key: &str,
+        predicate: &QuestFlagPredicate,
+    ) -> bool {
+        let value = self
+            .quests
+            .active_instance(quest)
+            .and_then(|a| a.flags.get(key))
+            .or_else(|| {
+                self.quests
+                    .completed
+                    .iter()
+                    .rev()
+                    .find(|c| &c.def_id == quest)
+                    .and_then(|c| c.flags.get(key))
+            });
+        match (predicate, value) {
+            // `IsSet` is the only predicate that cares about
+            // presence rather than value — handle it before the
+            // `None` fallthrough below.
+            (QuestFlagPredicate::IsSet, v) => v.is_some(),
+            (_, None) => false,
+            (QuestFlagPredicate::Equals(expected), Some(v)) => yarn_value_equals(v, expected),
+            (QuestFlagPredicate::NotEquals(expected), Some(v)) => {
+                !yarn_value_equals(v, expected)
+            }
+            (QuestFlagPredicate::GreaterThan(threshold), Some(v)) => {
+                yarn_value_as_number(v).is_some_and(|n| n > *threshold)
+            }
+            (QuestFlagPredicate::LessThan(threshold), Some(v)) => {
+                yarn_value_as_number(v).is_some_and(|n| n < *threshold)
+            }
         }
     }
 }
