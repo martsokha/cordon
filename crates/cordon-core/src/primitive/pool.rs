@@ -69,6 +69,28 @@ impl PoolKind for Stamina {}
 pub struct Hunger;
 impl PoolKind for Hunger {}
 
+/// Marker for an accumulated-radiation pool.
+///
+/// Unlike health / stamina / hunger which drain from full, a
+/// radiation pool *accumulates* from zero: NPCs spawn with
+/// `current = 0` and gain rads from contaminated areas, food,
+/// or carried radioactive artifacts. Anti-rad pills and
+/// radiation-scrubber relics drain the pool back down. Spawn
+/// these with [`Pool::empty`] instead of [`Pool::full`].
+#[derive(
+    Debug,
+    Default,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize
+)]
+pub struct Radiation;
+impl PoolKind for Radiation {}
+
 /// A bounded `(current, max)` resource.
 ///
 /// The only way to mutate the inner fields is through methods that
@@ -98,9 +120,20 @@ pub struct Pool<K: PoolKind> {
 }
 
 impl<K: PoolKind> Pool<K> {
-    /// Create a full pool at [`K::DEFAULT_MAX`].
+    /// Create a full pool at [`K::DEFAULT_MAX`]. For pools
+    /// that drain from full (health, stamina, hunger).
     pub fn full() -> Self {
         Self::with_max(K::DEFAULT_MAX)
+    }
+
+    /// Create an empty pool at [`K::DEFAULT_MAX`]. For pools
+    /// that accumulate from zero (radiation).
+    pub fn empty() -> Self {
+        Self {
+            current: 0,
+            max: K::DEFAULT_MAX,
+            _marker: PhantomData,
+        }
     }
 
     /// Create a full pool with an explicit max.

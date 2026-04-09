@@ -21,6 +21,10 @@ pub mod day;
 /// Death and corpse lifecycle.
 pub mod death;
 
+/// Effect dispatcher: ActiveEffects tick, OnHit/OnHpLow/Periodic
+/// relic-trigger wiring, and the TimedEffect → pool handler.
+pub mod effects;
+
 /// Looting: alive NPCs pull items from nearby corpses.
 pub mod loot;
 

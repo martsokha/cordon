@@ -14,8 +14,10 @@ use cordon_core::entity::name::NpcName;
 use cordon_core::entity::npc::{Npc, Personality, Role};
 use cordon_core::entity::perk::Perk;
 use cordon_core::item::Loadout;
+use cordon_core::item::{Item, TimedEffect};
 use cordon_core::primitive::{
-    Credits, Experience, Health, Hunger, Id, Loyalty, Pool, Stamina, Trust, Uid,
+    Credits, Experience, GameTime, Health, Hunger, Id, Loyalty, Pool, Radiation, Stamina, Trust,
+    Uid,
 };
 
 /// Health pool component (current + max HP).
@@ -26,6 +28,51 @@ pub type StaminaPool = Pool<Stamina>;
 
 /// Hunger pool component. At max = fully satiated, at 0 = starving.
 pub type HungerPool = Pool<Hunger>;
+
+/// Radiation pool component. Accumulates from zero. Unlike
+/// health/stamina/hunger which drain from full, this fills up
+/// from contaminated areas, food, and radioactive artifacts,
+/// and gets drained back down by anti-rad items.
+pub type RadiationPool = Pool<Radiation>;
+
+/// Per-entity list of currently-active [`TimedEffect`]s.
+///
+/// Populated by the effect dispatcher and drained as each
+/// entry's duration expires. Instant effects never land here —
+/// they apply synchronously at insertion time inside the
+/// dispatcher. See [`crate::effects`] for the systems.
+#[derive(Component, Debug, Default)]
+pub struct ActiveEffects {
+    pub effects: Vec<ActiveEffect>,
+}
+
+/// One active timed effect entry.
+#[derive(Debug, Clone)]
+pub struct ActiveEffect {
+    /// The effect payload. Its `duration` is the *total*
+    /// lifetime; the tick compares against elapsed minutes to
+    /// decide when to stop.
+    pub effect: TimedEffect,
+    /// How this effect got here. Used to prune relic-sourced
+    /// effects when the relic is no longer equipped.
+    pub source: ActiveEffectSource,
+    /// Minute the effect was added.
+    pub started_at: GameTime,
+    /// Minute of the last applied tick.
+    pub last_tick_at: GameTime,
+}
+
+/// Where an [`ActiveEffect`] came from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ActiveEffectSource {
+    /// A one-shot trigger (OnHit, OnHpLow) or a future
+    /// consumable/throwable path. Never cancelled by
+    /// equipment changes.
+    OneShot,
+    /// A periodic relic trigger. Cancelled if the relic is
+    /// unequipped.
+    PeriodicRelic(Id<Item>),
+}
 
 /// Baseline pool caps before any equipment bonuses.
 ///
@@ -109,6 +156,8 @@ pub struct NpcBundle {
     pub hp: Hp,
     pub stamina: StaminaPool,
     pub hunger: HungerPool,
+    pub radiation: RadiationPool,
+    pub active_effects: ActiveEffects,
     pub base_maxes: BaseMaxes,
     pub loadout: Loadout,
     pub wealth: Credits,

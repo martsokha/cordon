@@ -8,11 +8,6 @@
           "target": "Health",
           "value": 15.0,
           "duration": "instant"
-        },
-        {
-          "target": "Bleeding",
-          "value": 1.0,
-          "duration": 5
         }
       ],
       "use_time": 1,
@@ -40,11 +35,6 @@
           "target": "Health",
           "value": 50.0,
           "duration": "instant"
-        },
-        {
-          "target": "Bleeding",
-          "value": 1.0,
-          "duration": 10
         }
       ],
       "use_time": 2,

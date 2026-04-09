@@ -18,6 +18,7 @@ use crate::behavior::BehaviorPlugin;
 use crate::combat::CombatPlugin;
 use crate::day::DayCyclePlugin;
 use crate::death::DeathPlugin;
+use crate::effects::EffectsPlugin;
 use crate::loot::LootPlugin;
 use crate::quest::QuestPlugin;
 use crate::resources::{GameClock, SquadIdIndex, UidAllocator};
@@ -46,8 +47,14 @@ pub enum SimSet {
     Formation,
     /// Apply `MovementTarget` to `Transform`.
     Movement,
-    /// Fire weapons, apply damage, emit `ShotFired`.
+    /// Fire weapons, apply damage, emit `ShotFired` and
+    /// `NpcDamaged`.
     Combat,
+    /// Effect dispatch and active-effect ticking. Runs after
+    /// combat so it can react to `NpcDamaged` messages, and
+    /// before death handling so an `OnHpLow` heal can pull a
+    /// carrier back from zero HP in the same frame.
+    Effects,
     /// Tag dead NPCs, despawn corpses.
     Death,
     /// Adjacent looters pull items from corpses.
@@ -74,6 +81,7 @@ impl Plugin for CordonSimPlugin {
                 SimSet::Formation,
                 SimSet::Movement,
                 SimSet::Combat,
+                SimSet::Effects,
                 SimSet::Death,
                 SimSet::Loot,
             )
@@ -96,6 +104,7 @@ impl Plugin for CordonSimPlugin {
             BehaviorPlugin,
             SquadPlugin,
             CombatPlugin,
+            EffectsPlugin,
             DeathPlugin,
             LootPlugin,
             RelicSpawnPlugin,
@@ -130,8 +139,9 @@ pub mod prelude {
     pub use crate::combat::ShotFired;
     pub use crate::components::{
         BaseMaxes, Employment, FactionId, Hp, HungerPool, NpcAttributes, NpcBundle, NpcMarker,
-        Perks, RelicHome, RelicMarker, SquadActivity, SquadBundle, SquadFacing, SquadHomePosition,
-        SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints, StaminaPool,
+        Perks, RadiationPool, RelicHome, RelicMarker, SquadActivity, SquadBundle, SquadFacing,
+        SquadHomePosition, SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
+        StaminaPool,
     };
     pub use crate::day::DayRolled;
     pub use crate::death::{CorpseRemoved, NpcDied};

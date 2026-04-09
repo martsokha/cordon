@@ -21,26 +21,31 @@ use serde::{Deserialize, Serialize};
 use crate::primitive::{Distance, Duration};
 
 /// Live resources that timed effects modify.
+///
+/// Every variant corresponds to a per-entity numeric pool that
+/// the effect dispatcher can mutate. Area effects (smoke clouds,
+/// acid puddles) and status flags (bleeding, poison) don't live
+/// here — they'd need different data shapes and their own
+/// mechanisms, and will land alongside whichever feature
+/// introduces them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ResourceTarget {
-    /// Current HP.
+    /// Current HP. Positive values heal; negative values drain.
     Health,
     /// Current stamina.
     Stamina,
     /// Current hunger (higher = more sated).
     Hunger,
-    /// Current radiation level carried by the character. Negative
-    /// values reduce rads, positive increase.
+    /// Current radiation level carried by the character.
+    /// Negative values reduce rads (anti-rad pills), positive
+    /// increase (contaminated food, radioactive artifacts).
     RadiationLevel,
-    /// Instantaneous damage dealt to the target (grenades, direct
-    /// hits). Positive values deal damage.
+    /// Instantaneous damage dealt to the target (grenades,
+    /// direct hits). Positive values deal damage. Distinct
+    /// from [`Health`](Self::Health) with a negative value so
+    /// "damage" and "healing" read distinctly at the call
+    /// site.
     Damage,
-    /// Stops bleeding while the effect is active.
-    Bleeding,
-    /// Removes poison/toxin effects while the effect is active.
-    Poison,
-    /// Obscures vision in an area (smoke grenades).
-    Smoke,
 }
 
 /// Persistent stats that passive modifiers touch while their source

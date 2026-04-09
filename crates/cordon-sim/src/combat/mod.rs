@@ -154,8 +154,29 @@ pub struct CombatPlugin;
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<ShotFired>();
+        app.add_message::<NpcDamaged>();
         app.add_systems(Update, resolve_combat.in_set(SimSet::Combat));
     }
+}
+
+/// Emitted by [`resolve_combat`] for each hit that applied damage.
+///
+/// Carries `prev_hp` so downstream systems (effect dispatcher,
+/// death handler) can detect HP crossings without needing their
+/// own previous-state tracking. Fires once per hit, not per
+/// shooter — a burst that lands 5 hits in one frame produces
+/// 5 messages.
+#[derive(Message, Debug, Clone, Copy)]
+pub struct NpcDamaged {
+    /// The entity that took damage.
+    pub target: Entity,
+    /// Amount actually applied via `hp.deplete` (which saturates
+    /// at 0 — so this is `min(dealt, prev_hp)`).
+    pub dealt: u32,
+    /// HP immediately before the depletion. Let subscribers
+    /// compute ratios (`prev / max`) or detect crossings
+    /// (`prev > threshold && new <= threshold`).
+    pub prev_hp: u32,
 }
 
 /// One pending hit produced by the shooter loop and applied to the
@@ -353,6 +374,7 @@ fn resolve_combat(
     time: Res<Time>,
     game_data: Res<GameDataResource>,
     mut shots: MessageWriter<ShotFired>,
+    mut damaged: MessageWriter<NpcDamaged>,
     mut sets: ParamSet<(
         // Read-only snapshot pass.
         Query<(Entity, &Transform, &Loadout), (With<Hp>, Without<Dead>)>,
@@ -447,11 +469,21 @@ fn resolve_combat(
         }
     }
 
-    // Pass 2: apply HP damage.
+    // Pass 2: apply HP damage and emit one NpcDamaged per hit.
+    // Capturing prev_hp before deplete lets the effect dispatcher
+    // detect HP-crossing triggers (e.g. OnHpLow) without having
+    // to store its own prev-hp state anywhere.
     let mut targets_apply = sets.p2();
     for hit in hits {
         if let Ok(mut hp) = targets_apply.get_mut(hit.target) {
+            let prev_hp = hp.current();
             hp.deplete(hit.dealt);
+            let dealt = prev_hp.saturating_sub(hp.current());
+            damaged.write(NpcDamaged {
+                target: hit.target,
+                dealt,
+                prev_hp,
+            });
         }
     }
 }
