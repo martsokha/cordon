@@ -118,10 +118,7 @@ struct PeriodicEntry {
 /// The query filters `Without<Dead>` because dead entities don't
 /// get new triggers (the frame's already resolved).
 fn dispatch_pool_triggers(
-    mut messages: ParamSet<(
-        MessageReader<NpcPoolChanged>,
-        MessageWriter<NpcPoolChanged>,
-    )>,
+    mut messages: ParamSet<(MessageReader<NpcPoolChanged>, MessageWriter<NpcPoolChanged>)>,
     data: Res<GameDataResource>,
     clock: Res<GameClock>,
     mut targets: Query<
@@ -189,9 +186,7 @@ fn trigger_matches(trigger: &EffectTrigger, event: &NpcPoolChanged) -> bool {
     }
     match trigger {
         // OnHit: any HP decrease.
-        EffectTrigger::OnHit => {
-            event.pool == ResourceTarget::Health && event.current < event.prev
-        }
+        EffectTrigger::OnHit => event.pool == ResourceTarget::Health && event.current < event.prev,
         EffectTrigger::OnLowHealth => {
             event.pool == ResourceTarget::Health && crossed_low(event, max, HP_LOW_THRESHOLD)
         }
@@ -199,8 +194,7 @@ fn trigger_matches(trigger: &EffectTrigger, event: &NpcPoolChanged) -> bool {
             event.pool == ResourceTarget::Health && crossed_high(event, max, HP_HIGH_THRESHOLD)
         }
         EffectTrigger::OnLowStamina => {
-            event.pool == ResourceTarget::Stamina
-                && crossed_low(event, max, STAMINA_LOW_THRESHOLD)
+            event.pool == ResourceTarget::Stamina && crossed_low(event, max, STAMINA_LOW_THRESHOLD)
         }
         EffectTrigger::OnHighStamina => {
             event.pool == ResourceTarget::Stamina
@@ -523,7 +517,13 @@ fn apply_pool_delta(
             }
         }
         ResourceTarget::Stamina => {
-            emit_signed(entity, ResourceTarget::Stamina, stamina, value, pool_changed);
+            emit_signed(
+                entity,
+                ResourceTarget::Stamina,
+                stamina,
+                value,
+                pool_changed,
+            );
         }
         ResourceTarget::Corruption => {
             emit_signed(

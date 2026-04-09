@@ -93,9 +93,7 @@ fn spawn_relics_on_day_rollover(
         .items
         .iter()
         .filter_map(|(id, def)| match &def.data {
-            ItemData::Relic(relic) => {
-                Some((id.clone(), def.rarity.weight(), def, relic))
-            }
+            ItemData::Relic(relic) => Some((id.clone(), def.rarity.weight(), def, relic)),
             _ => None,
         })
         .collect();

@@ -110,17 +110,14 @@ pub fn spawn_event_instance<R: Rng>(
         overrides.involved_factions.clone()
     };
 
-    let target_area = overrides
-        .target_area
-        .clone()
-        .or_else(|| {
-            if def.target_areas.is_empty() {
-                None
-            } else {
-                let idx = rng.random_range(0..def.target_areas.len());
-                Some(def.target_areas[idx].clone())
-            }
-        });
+    let target_area = overrides.target_area.clone().or_else(|| {
+        if def.target_areas.is_empty() {
+            None
+        } else {
+            let idx = rng.random_range(0..def.target_areas.len());
+            Some(def.target_areas[idx].clone())
+        }
+    });
 
     ActiveEvent {
         def_id: def.id.clone(),

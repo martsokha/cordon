@@ -82,8 +82,7 @@ mod tests {
 
     #[test]
     fn predicate_equals_parses() {
-        let p: QuestFlagPredicate =
-            serde_json::from_str(r#"{ "equals": "accept" }"#).unwrap();
+        let p: QuestFlagPredicate = serde_json::from_str(r#"{ "equals": "accept" }"#).unwrap();
         assert!(matches!(
             p,
             QuestFlagPredicate::Equals(QuestFlagValue::String(ref s)) if s == "accept"
@@ -92,8 +91,7 @@ mod tests {
 
     #[test]
     fn predicate_greater_than_parses() {
-        let p: QuestFlagPredicate =
-            serde_json::from_str(r#"{ "greater_than": 10.0 }"#).unwrap();
+        let p: QuestFlagPredicate = serde_json::from_str(r#"{ "greater_than": 10.0 }"#).unwrap();
         assert!(matches!(p, QuestFlagPredicate::GreaterThan(v) if v == 10.0));
     }
 

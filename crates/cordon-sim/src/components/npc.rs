@@ -13,8 +13,7 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NpcName;
 use cordon_core::entity::npc::{Npc, Personality, Role};
 use cordon_core::entity::perk::Perk;
-use cordon_core::item::Loadout;
-use cordon_core::item::TimedEffect;
+use cordon_core::item::{Loadout, TimedEffect};
 use cordon_core::primitive::{
     Corruption, Credits, Experience, GameTime, Health, Id, Loyalty, Pool, Stamina, Trust, Uid,
 };

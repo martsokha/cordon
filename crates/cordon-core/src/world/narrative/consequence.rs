@@ -256,4 +256,3 @@ mod tests {
         assert_eq!(q.scope, crate::item::StashScope::Main);
     }
 }
-

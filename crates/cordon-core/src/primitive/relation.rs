@@ -112,6 +112,7 @@ impl RelationDelta {
 
 impl std::ops::Neg for RelationDelta {
     type Output = Self;
+
     fn neg(self) -> Self {
         Self(-self.0)
     }

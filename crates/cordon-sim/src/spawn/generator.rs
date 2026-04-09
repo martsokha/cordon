@@ -237,7 +237,10 @@ pub fn roll_population_top_up<R: Rng>(
         // lookup: the HashMap is keyed by archetype id
         // (`archetype_garrison`) which differs from the faction
         // id string after the category-prefix rename.
-        let arch = loadout_ctx.archetypes.values().find(|a| a.faction == faction);
+        let arch = loadout_ctx
+            .archetypes
+            .values()
+            .find(|a| a.faction == faction);
         let Some(arch) = arch else { continue };
 
         // Pick a squad template from this faction's pool.

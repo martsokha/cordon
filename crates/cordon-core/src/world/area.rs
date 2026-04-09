@@ -71,7 +71,10 @@ impl AreaKind {
     /// True for [`AreaKind::AnomalyField`] and [`AreaKind::Anchor`]
     /// only.
     pub fn is_anomaly(&self) -> bool {
-        matches!(self, AreaKind::AnomalyField { .. } | AreaKind::Anchor { .. })
+        matches!(
+            self,
+            AreaKind::AnomalyField { .. } | AreaKind::Anchor { .. }
+        )
     }
 
     /// Creature density tier, where it applies.

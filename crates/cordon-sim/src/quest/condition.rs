@@ -148,9 +148,7 @@ impl<'a> WorldView<'a> {
             (QuestFlagPredicate::IsSet, v) => v.is_some(),
             (_, None) => false,
             (QuestFlagPredicate::Equals(expected), Some(v)) => yarn_value_equals(v, expected),
-            (QuestFlagPredicate::NotEquals(expected), Some(v)) => {
-                !yarn_value_equals(v, expected)
-            }
+            (QuestFlagPredicate::NotEquals(expected), Some(v)) => !yarn_value_equals(v, expected),
             (QuestFlagPredicate::GreaterThan(threshold), Some(v)) => {
                 yarn_value_as_number(v).is_some_and(|n| n > *threshold)
             }
@@ -343,12 +341,16 @@ mod tests {
             flags: HashMap::new(),
         });
         let v = view(&p, &log);
-        assert!(v.evaluate(&ObjectiveCondition::QuestActive(Id::<Quest>::new(
-            "mainline"
-        ))));
-        assert!(!v.evaluate(&ObjectiveCondition::QuestActive(Id::<Quest>::new(
-            "sidequest"
-        ))));
+        assert!(
+            v.evaluate(&ObjectiveCondition::QuestActive(Id::<Quest>::new(
+                "mainline"
+            )))
+        );
+        assert!(
+            !v.evaluate(&ObjectiveCondition::QuestActive(Id::<Quest>::new(
+                "sidequest"
+            )))
+        );
     }
 
     #[test]
