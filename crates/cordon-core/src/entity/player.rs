@@ -204,9 +204,15 @@ impl PlayerState {
 
     /// Insert an item instance into the requested scope.
     ///
-    /// For [`StashScope::Any`], main is preferred and hidden is
-    /// used as overflow. Returns `Err(instance)` when every
-    /// targeted stash is full.
+    /// - [`Main`](StashScope::Main): main only; fails when
+    ///   full.
+    /// - [`Hidden`](StashScope::Hidden): hidden only; fails
+    ///   when full.
+    /// - [`Any`](StashScope::Any): main first, hidden as
+    ///   overflow; fails only when both are full.
+    ///
+    /// Returns `Err(instance)` with the original item when
+    /// every targeted stash is full.
     pub fn add_item(
         &mut self,
         instance: ItemInstance,

@@ -36,7 +36,7 @@ impl Plugin for QuestBridgePlugin {
         app.init_resource::<DialogueInFlight>();
         app.add_systems(
             Update,
-            bridge::enqueue_talk_visitors.run_if(in_state(PlayingState::Bunker)),
+            bridge::enqueue_talk_dialogue.run_if(in_state(PlayingState::Bunker)),
         );
         app.add_observer(bridge::on_dialogue_completed);
     }

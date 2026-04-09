@@ -3,7 +3,7 @@
 //! the laptop map.
 
 mod cctv;
-mod dialogue;
+pub mod dialogue;
 mod input;
 pub mod room;
 mod visitor;

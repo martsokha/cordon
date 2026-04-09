@@ -123,7 +123,6 @@ fn debug_push_visitor(keys: Res<ButtonInput<KeyCode>>, mut queue: ResMut<Visitor
         display_name: "Garrison Soldier".to_string(),
         faction: Id::<Faction>::new("garrison"),
         yarn_node: "Visitor_Garrison_Greeting".to_string(),
-        quest: None,
     });
     info!("debug: queued test visitor");
 }

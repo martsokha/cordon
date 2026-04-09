@@ -255,7 +255,6 @@ fn refresh_quest_list(
             ))
             .id();
         commands.entity(panel_entity).add_child(empty);
-        return;
     }
 
     for active in &log.active {
@@ -322,6 +321,62 @@ fn refresh_quest_list(
                 "quest `{}` active without a giver; intel UI can still render it",
                 def_id
             );
+        }
+    }
+
+    // ---- Completed quests. Show the last MAX_COMPLETED
+    // entries under a subheading so the player can review
+    // what's happened recently. Tail-biased (most-recent
+    // first) because an emerging history reads better that
+    // way than chronologically forward.
+    const MAX_COMPLETED: usize = 5;
+    if !log.completed.is_empty() {
+        let heading_text = l10n
+            .as_deref()
+            .map(|l| l10n_or(l, "intel-quest-log-completed", "RECENT"))
+            .unwrap_or_else(|| "RECENT".to_string());
+        let heading = commands
+            .spawn((
+                Text::new(heading_text),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 11.0,
+                    ..default()
+                },
+                TextColor(Color::srgba(0.55, 0.55, 0.45, 0.9)),
+                Node {
+                    margin: UiRect::top(Val::Px(12.0)),
+                    ..default()
+                },
+            ))
+            .id();
+        commands.entity(panel_entity).add_child(heading);
+
+        for done in log.completed.iter().rev().take(MAX_COMPLETED) {
+            let def_id = done.def_id.as_str();
+            let title_key = format!("quest-{def_id}");
+            let title = l10n
+                .as_deref()
+                .map(|l| l10n_or(l, &title_key, def_id))
+                .unwrap_or_else(|| def_id.to_string());
+            let marker = if done.success { "✓" } else { "✗" };
+            let color = if done.success {
+                Color::srgba(0.55, 0.80, 0.60, 0.85)
+            } else {
+                Color::srgba(0.80, 0.55, 0.45, 0.85)
+            };
+            let row = commands
+                .spawn((
+                    Text::new(format!("[{marker}] {title}")),
+                    TextFont {
+                        font: font.clone(),
+                        font_size: 10.0,
+                        ..default()
+                    },
+                    TextColor(color),
+                ))
+                .id();
+            commands.entity(panel_entity).add_child(row);
         }
     }
 }

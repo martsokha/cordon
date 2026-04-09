@@ -25,6 +25,7 @@ settlement-role-market = Market
 # Intel tab
 intel-quest-log = QUEST LOG
 intel-quest-log-empty = No active quests.
+intel-quest-log-completed = RECENT
 intel-faction-standings = FACTION STANDINGS
 intel-recent-events = RECENT EVENTS
 intel-events-empty = No events.
