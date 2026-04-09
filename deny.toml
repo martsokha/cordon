@@ -22,6 +22,11 @@ confidence-threshold = 0.8
 private = { ignore = false, registries = [] }
 unused-allowed-license = "warn"
 
+# Only licenses actually encountered in the current dep tree.
+# cargo-deny warns about unused entries here; adding a new
+# allowance without a matching crate would re-introduce the
+# warning. When a dep upgrade brings in a new licence, expand
+# this list then — do not pre-seed speculative entries.
 allow = [
     "MIT",
     "MIT-0",
@@ -30,21 +35,35 @@ allow = [
     "BSD-2-Clause",
     "BSD-3-Clause",
     "ISC",
-    "MPL-2.0",
     "Unicode-3.0",
     "Unlicense",
     "BSL-1.0",
     "CC0-1.0",
     "Zlib",
-    "OpenSSL",
-    "bzip2-1.0.6",
-    "CDLA-Permissive-2.0",
 ]
 
-exceptions = []
+exceptions = [
+    # `epaint_default_fonts` ships default UI fonts (Ubuntu,
+    # Hack, Noto, Emoji) whose font files carry OFL-1.1 and
+    # Ubuntu-font-1.0 in addition to the crate's own MIT /
+    # Apache-2.0. Both are OSI-approved free-software font
+    # licenses (the OFL is explicitly FSF Free/Libre per the
+    # cargo-deny report). Scoping the allowance to this one
+    # crate keeps the global licence list clean — no new
+    # dependency can sneak OFL-1.1 in without tripping the
+    # check again.
+    { allow = ["OFL-1.1", "Ubuntu-font-1.0"], crate = "epaint_default_fonts" },
+]
 
 [bans]
-multiple-versions = "warn"
+# Version-splits are the norm in the Bevy + winit + egui +
+# rand ecosystems we depend on: dozens of transitive crates
+# land at different versions across the tree because upstream
+# crates don't all rev together. We can't fix those from our
+# side, and the noise drowns out real signals. `allow` makes
+# the check unconditional; `wildcards` and the explicit deny
+# list below still catch the things we *do* care about.
+multiple-versions = "allow"
 wildcards = "deny"
 highlight = "all"
 

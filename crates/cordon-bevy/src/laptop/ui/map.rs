@@ -16,6 +16,15 @@ pub struct ZoomLabel;
 pub struct TimeLabel;
 
 #[derive(Component)]
+pub struct MoneyLabel;
+
+/// The faint `+` reticle centered on the map view. Rendered as
+/// `MapOnlyUi` so it hides on other laptop tabs and on the bunker
+/// view (where no UI element carries the `MapOnlyUi` marker).
+#[derive(Component)]
+pub struct Crosshair;
+
+#[derive(Component)]
 pub struct TooltipPanel;
 
 #[derive(Component)]
@@ -34,14 +43,13 @@ pub enum TooltipContent {
     Area {
         faction_icon: String,
         name: String,
-        creatures: String,
-        creatures_tier: Tier,
-        radiation: String,
-        radiation_tier: Tier,
+        kind_label: String,
+        role: Option<String>,
+        creatures: Option<(String, Tier)>,
+        radiation: Option<(String, Tier)>,
         hazard_image: Option<String>,
         hazard_count: u8,
-        loot: String,
-        loot_tier: Tier,
+        loot: Option<(String, Tier)>,
     },
     Npc {
         faction_icon: String,
@@ -50,11 +58,57 @@ pub enum TooltipContent {
         rank: String,
         status: String,
     },
+    Relic {
+        name: String,
+        /// Pre-resolved relic icon handle. Preloaded into
+        /// `RelicIconAssets` on laptop entry so the hover system
+        /// doesn't touch `asset_server` on every tick.
+        icon: Handle<Image>,
+        origin: String,
+        rarity: String,
+        /// Pre-formatted lines like `"Ballistic: +20"` / `"Health: +2 max"`.
+        passives: Vec<String>,
+        /// Number of reactive effects (OnHit / OnHpLow / Periodic).
+        triggered_count: usize,
+    },
 }
 
 /// Marker for UI elements that should only show on the Map tab.
 #[derive(Component)]
 pub struct MapOnlyUi;
+
+/// Root panel for the player-squad roster in the top-left corner
+/// of the map. Populated lazily once the fog of war has picked the
+/// player's squads.
+#[derive(Component)]
+pub struct SquadRosterPanel;
+
+/// One row inside [`SquadRosterPanel`], representing a single
+/// player squad.
+#[derive(Component)]
+pub struct SquadRosterRow {
+    /// Which squad this row represents. Currently unused by any
+    /// system but kept as the row's identity so future interactions
+    /// (click-to-focus, squad reassignment) can resolve the squad
+    /// from the row entity without re-looking it up.
+    #[allow(dead_code)]
+    pub squad: Entity,
+}
+
+/// One slot box inside a [`SquadRosterRow`]. Stores the NPC entity
+/// so a lightweight update system can recolor the box when that
+/// NPC dies without rebuilding the panel. An `Option` because rows
+/// are padded to a fixed width ([`SQUAD_ROSTER_MAX_SLOTS`]) — slots
+/// beyond the live member count hold `None` and render as empty.
+#[derive(Component)]
+pub struct SquadRosterSlot {
+    pub npc: Option<Entity>,
+}
+
+/// Every row is padded out to this many slots. Real squads in
+/// this project never exceed 5 members; anything larger would need
+/// a different UI treatment anyway.
+const SQUAD_ROSTER_MAX_SLOTS: usize = 5;
 
 fn tier_color(t: &Tier) -> Color {
     match t {
@@ -79,14 +133,27 @@ impl Plugin for MapUiPlugin {
         );
         app.add_systems(
             Update,
-            (
-                follow_cursor,
-                update_tooltip,
-                update_zoom_label,
-                update_time_label,
-            )
+            (follow_cursor, update_tooltip, update_zoom_label)
                 .run_if(in_state(PlayingState::Laptop))
                 .run_if(resource_equals(LaptopTab::Map)),
+        );
+        // Tab-bar HUD labels update across every tab.
+        app.add_systems(
+            Update,
+            (update_time_label, update_money_label).run_if(in_state(PlayingState::Laptop)),
+        );
+        // Squad roster: build once the fog-of-war picks player
+        // squads; update per-box color every frame as members die
+        // or the selection changes; handle clicks to select an NPC.
+        app.add_systems(
+            Update,
+            (
+                build_squad_roster,
+                handle_roster_click,
+                update_squad_roster_state,
+            )
+                .chain()
+                .run_if(in_state(PlayingState::Laptop)),
         );
     }
 }
@@ -107,12 +174,15 @@ fn update_map_ui_visibility(
             Visibility::Hidden
         };
     }
-    for mut vis in &mut world_q {
-        *vis = if visible {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        };
+    // When leaving the Map tab, hide every world entity. On *entry*
+    // we deliberately don't force them visible — the fog-of-war
+    // system ([`laptop::fog::apply_fog`]) owns per-entity visibility
+    // based on player squad line-of-sight, and blindly showing
+    // everything here would un-fog the map for one frame.
+    if !visible {
+        for mut vis in &mut world_q {
+            *vis = Visibility::Hidden;
+        }
     }
 }
 
@@ -129,7 +199,35 @@ pub fn cursor_world_pos(
         .ok()
 }
 
+/// Build the top-left squad roster panel. Shell-only at spawn
+/// time — the rows are filled in by [`build_squad_roster`] once
+/// the fog system has picked the player's squads.
+///
+/// The panel itself has no background; each row carries its own
+/// dark background with internal padding, so separate rows read as
+/// distinct cards stacked with a gap between them.
+fn spawn_squad_roster(commands: &mut Commands) {
+    commands.spawn((
+        MapOnlyUi,
+        SquadRosterPanel,
+        Node {
+            position_type: PositionType::Absolute,
+            // Clear of the 32px tab bar with generous margin so the
+            // roster doesn't crowd the top-left corner.
+            top: Val::Px(60.0),
+            left: Val::Px(60.0),
+            flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(8.0),
+            ..default()
+        },
+        GlobalZIndex(95),
+        Visibility::Hidden,
+    ));
+}
+
 pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
+    spawn_squad_roster(commands);
+
     // Tooltip panel with a single Text root + TextSpan children
     commands
         .spawn((
@@ -207,20 +305,22 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.4)),
     ));
 
-    // Time display
+    // Crosshair — faint `+` centered on the map. Tagged MapOnlyUi
+    // so it shows only when the Map tab is active; also spawned in
+    // laptop UI (not bunker UI) so the bunker view never sees it.
     commands.spawn((
         MapOnlyUi,
-        TimeLabel,
+        Crosshair,
         Node {
             position_type: PositionType::Absolute,
-            left: Val::Px(16.0),
-            top: Val::Px(48.0),
+            left: Val::Percent(49.0),
+            top: Val::Percent(48.0),
             ..default()
         },
-        Text::new("Day 1  08:00"),
+        Text::new("+"),
         TextFont {
             font: font.clone(),
-            font_size: 12.0,
+            font_size: 20.0,
             ..default()
         },
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5)),
@@ -238,13 +338,29 @@ fn follow_cursor(
         .and_then(|w| w.cursor_position())
         .unwrap_or_default();
     let visible = !matches!(*tooltip, TooltipContent::Hidden);
+    let target_vis = if visible {
+        Visibility::Visible
+    } else {
+        Visibility::Hidden
+    };
     for (mut node, mut vis) in &mut panel_q {
+        // Visibility change-guarded to avoid dirtying the UI
+        // layout pipeline every frame.
+        if *vis != target_vis {
+            *vis = target_vis;
+        }
         if visible {
-            *vis = Visibility::Visible;
-            node.left = Val::Px(cursor.x + 16.0);
-            node.top = Val::Px(cursor.y + 16.0);
-        } else {
-            *vis = Visibility::Hidden;
+            // The Node has to update when the cursor moves, but
+            // change-guarding the assignment keeps the layout pass
+            // idle when the cursor is stationary.
+            let new_left = Val::Px(cursor.x + 16.0);
+            let new_top = Val::Px(cursor.y + 16.0);
+            if node.left != new_left {
+                node.left = new_left;
+            }
+            if node.top != new_top {
+                node.top = new_top;
+            }
         }
     }
 }
@@ -274,42 +390,71 @@ fn update_tooltip(
         }
     }
 
-    // Extract data before mutating
+    // Extract data before mutating. Two icon-source shapes supported:
+    //
+    // - `hazard_path`: an asset-server path string, used by the area
+    //   tooltip for its hazard pips. Resolved to a handle here each
+    //   tick since there are only a handful of hazard images and
+    //   the load is cached internally.
+    // - `relic_handle`: a pre-resolved [`Handle<Image>`] handed in
+    //   by the hover system from `RelicIconAssets` so the hot path
+    //   doesn't touch the asset server or allocate a path string.
     let header_text;
-    let hazard_img: Option<String>;
-    let hazard_n: u8;
+    let hazard_path: Option<String>;
+    let hazard_count: u8;
+    let relic_handle: Option<Handle<Image>>;
+    // Per-icon size in px. Hazard icons are a row of small 14px
+    // pips; relic splashes are a single larger image.
+    let icon_size: f32;
     let spans: Vec<(String, Color)>;
 
     match &*tooltip {
         TooltipContent::Hidden => {
             header_text = String::new();
-            hazard_img = None;
-            hazard_n = 0;
+            hazard_path = None;
+            hazard_count = 0;
+            relic_handle = None;
+            icon_size = 14.0;
             spans = vec![];
         }
         TooltipContent::Area {
             faction_icon,
             name,
+            kind_label,
+            role,
             creatures,
-            creatures_tier,
             radiation,
-            radiation_tier,
             hazard_image,
-            hazard_count,
+            hazard_count: count,
             loot,
-            loot_tier,
         } => {
             header_text = format!("{faction_icon} {name}");
-            hazard_img = hazard_image.clone();
-            hazard_n = *hazard_count;
-            spans = vec![
-                ("Creatures: ".into(), COLOR_LABEL),
-                (creatures.clone(), tier_color(creatures_tier)),
-                ("\nRadiation: ".into(), COLOR_LABEL),
-                (radiation.clone(), tier_color(radiation_tier)),
-                ("\nLoot: ".into(), COLOR_LABEL),
-                (loot.clone(), tier_color(loot_tier)),
-            ];
+            hazard_path = hazard_image.clone();
+            hazard_count = *count;
+            relic_handle = None;
+            icon_size = 14.0;
+            // First line is always the archetype label, optionally
+            // followed by the role for Settlements ("Settlement —
+            // Market"). Stat rows are added only when the archetype
+            // carries that field.
+            let kind_line = match role {
+                Some(r) => format!("{kind_label} — {r}"),
+                None => kind_label.clone(),
+            };
+            let mut s: Vec<(String, Color)> = vec![(kind_line, Color::srgba(0.7, 0.7, 0.7, 1.0))];
+            if let Some((label, tier)) = creatures {
+                s.push(("\nCreatures: ".into(), COLOR_LABEL));
+                s.push((label.clone(), tier_color(tier)));
+            }
+            if let Some((label, tier)) = radiation {
+                s.push(("\nRadiation: ".into(), COLOR_LABEL));
+                s.push((label.clone(), tier_color(tier)));
+            }
+            if let Some((label, tier)) = loot {
+                s.push(("\nLoot: ".into(), COLOR_LABEL));
+                s.push((label.clone(), tier_color(tier)));
+            }
+            spans = s;
         }
         TooltipContent::Npc {
             faction_icon,
@@ -319,8 +464,10 @@ fn update_tooltip(
             status,
         } => {
             header_text = format!("{faction_icon} {name}");
-            hazard_img = None;
-            hazard_n = 0;
+            hazard_path = None;
+            hazard_count = 0;
+            relic_handle = None;
+            icon_size = 14.0;
             spans = vec![
                 ("Faction: ".into(), COLOR_LABEL),
                 (faction.clone(), Color::srgb(0.7, 0.7, 0.7)),
@@ -330,6 +477,41 @@ fn update_tooltip(
                 (status.clone(), COLOR_LABEL),
             ];
         }
+        TooltipContent::Relic {
+            name,
+            icon,
+            origin,
+            rarity,
+            passives,
+            triggered_count,
+        } => {
+            header_text = name.clone();
+            hazard_path = None;
+            hazard_count = 0;
+            relic_handle = Some(icon.clone());
+            icon_size = 32.0;
+            let mut s: Vec<(String, Color)> = vec![
+                ("Origin: ".into(), COLOR_LABEL),
+                (origin.clone(), Color::srgb(0.3, 0.9, 1.0)),
+                ("\nRarity: ".into(), COLOR_LABEL),
+                (rarity.clone(), Color::srgb(0.8, 0.8, 0.6)),
+            ];
+            for line in passives {
+                s.push(("\n".into(), COLOR_LABEL));
+                s.push((line.clone(), Color::srgb(0.6, 0.9, 0.6)));
+            }
+            if *triggered_count > 0 {
+                s.push(("\n+ ".into(), COLOR_LABEL));
+                s.push((
+                    format!(
+                        "{triggered_count} reactive effect{}",
+                        if *triggered_count == 1 { "" } else { "s" }
+                    ),
+                    Color::srgb(0.9, 0.7, 0.3),
+                ));
+            }
+            spans = s;
+        }
     }
 
     // Update header text
@@ -337,7 +519,9 @@ fn update_tooltip(
         text.0 = header_text.clone();
     }
 
-    // Update hazard icons
+    // Update icon row: either N hazard pips (area tooltip) or a
+    // single larger relic icon (relic tooltip). At most one source
+    // is populated per frame.
     if let Ok((icons_entity, icon_children)) = icons_q.single() {
         if let Some(children) = icon_children {
             for child in children.iter() {
@@ -345,9 +529,18 @@ fn update_tooltip(
             }
         }
         commands.entity(icons_entity).detach_all_children();
-        if let Some(path) = &hazard_img {
-            let img: Handle<Image> = asset_server.load(path.clone());
-            for _ in 0..hazard_n {
+
+        let (image_handle, count): (Option<Handle<Image>>, u8) = if let Some(handle) = relic_handle
+        {
+            (Some(handle), 1)
+        } else if let Some(path) = &hazard_path {
+            (Some(asset_server.load(path.clone())), hazard_count)
+        } else {
+            (None, 0)
+        };
+
+        if let Some(img) = image_handle {
+            for _ in 0..count {
                 let icon = commands
                     .spawn((
                         ImageNode {
@@ -355,8 +548,8 @@ fn update_tooltip(
                             ..default()
                         },
                         Node {
-                            width: Val::Px(14.0),
-                            height: Val::Px(14.0),
+                            width: Val::Px(icon_size),
+                            height: Val::Px(icon_size),
                             ..default()
                         },
                     ))
@@ -396,23 +589,217 @@ fn update_tooltip(
 
 fn update_zoom_label(
     target: Res<CameraTarget>,
-    mut label_q: Query<&mut Text, (With<ZoomLabel>, Without<TooltipRoot>, Without<TimeLabel>)>,
+    mut label_q: Query<
+        &mut Text,
+        (
+            With<ZoomLabel>,
+            Without<TooltipRoot>,
+            Without<TimeLabel>,
+            Without<MoneyLabel>,
+        ),
+    >,
 ) {
     use crate::laptop::input::{ZOOM_MAX, ZOOM_MIN};
     let t = (target.zoom - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN);
     let level = ((1.0 - t) * 3.0 + 1.0).clamp(1.0, 4.0);
+    let new_text = format!("x{level:.1}");
     for mut text in &mut label_q {
-        text.0 = format!("x{level:.1}");
+        // Change-guard so the text-layout pipeline doesn't rebuild
+        // every frame while the zoom is stationary.
+        if text.0 != new_text {
+            text.0 = new_text.clone();
+        }
     }
 }
 
 fn update_time_label(
     clock: Option<Res<GameClock>>,
-    mut label_q: Query<&mut Text, (With<TimeLabel>, Without<TooltipRoot>, Without<ZoomLabel>)>,
+    mut label_q: Query<
+        &mut Text,
+        (
+            With<TimeLabel>,
+            Without<TooltipRoot>,
+            Without<ZoomLabel>,
+            Without<MoneyLabel>,
+        ),
+    >,
 ) {
     let Some(clock) = clock else { return };
     let t = &clock.0;
+    let new_text = format!("Day {}  {}", t.day.value(), t.time_str());
     for mut text in &mut label_q {
-        text.0 = format!("Day {}  {}", t.day.value(), t.time_str());
+        if text.0 != new_text {
+            text.0 = new_text.clone();
+        }
+    }
+}
+
+fn update_money_label(
+    player: Option<Res<cordon_sim::resources::Player>>,
+    mut label_q: Query<
+        &mut Text,
+        (
+            With<MoneyLabel>,
+            Without<TooltipRoot>,
+            Without<ZoomLabel>,
+            Without<TimeLabel>,
+        ),
+    >,
+) {
+    let Some(player) = player else { return };
+    let credits = player.0.credits.value();
+    let new_text = format!("{credits} ¢");
+    for mut text in &mut label_q {
+        if text.0 != new_text {
+            text.0 = new_text.clone();
+        }
+    }
+}
+
+/// Filled slot whose NPC is alive.
+const ROSTER_BOX_ALIVE: Color = Color::srgba(0.7, 0.85, 0.55, 0.9);
+/// Slot whose NPC has died (corpse still lingering). Dimmed and
+/// desaturated red.
+const ROSTER_BOX_DEAD: Color = Color::srgba(0.35, 0.18, 0.18, 0.85);
+/// Empty slot — either the squad was spawned with fewer members
+/// than the max, or an earlier member died and their corpse has
+/// since been despawned. Rendered as a faint outlined placeholder.
+const ROSTER_BOX_EMPTY: Color = Color::srgba(0.10, 0.10, 0.12, 0.85);
+/// Slot highlight when this NPC is the currently selected one —
+/// mirrors the on-map selection ring color.
+const ROSTER_BOX_SELECTED: Color = Color::srgba(1.0, 0.9, 0.3, 1.0);
+
+/// Build the squad roster rows once [`PlayerSquads`] is populated.
+/// Idempotent — rebuilds only when the panel's children are empty.
+/// A full rebuild on every player-squad change keeps the code
+/// simple; at three squads of five members this is cheap.
+fn build_squad_roster(
+    mut commands: Commands,
+    player_squads: Res<crate::laptop::fog::PlayerSquads>,
+    panel_q: Query<(Entity, Option<&Children>), With<SquadRosterPanel>>,
+    squads: Query<&cordon_sim::components::SquadMembers>,
+) {
+    let Ok((panel_entity, panel_children)) = panel_q.single() else {
+        return;
+    };
+    let already_built = panel_children.map(|c| !c.is_empty()).unwrap_or(false);
+    if already_built {
+        return;
+    }
+    if player_squads.0.is_empty() {
+        return;
+    }
+
+    // Sort squad entities for a stable row order — otherwise HashSet
+    // iteration would shuffle the rows every time we rebuilt.
+    let mut ordered: Vec<Entity> = player_squads.0.iter().copied().collect();
+    ordered.sort_by_key(|e| e.to_bits());
+
+    for squad_entity in ordered {
+        let Ok(members) = squads.get(squad_entity) else {
+            continue;
+        };
+        let row = commands
+            .spawn((
+                SquadRosterRow {
+                    squad: squad_entity,
+                },
+                Node {
+                    flex_direction: FlexDirection::Row,
+                    column_gap: Val::Px(5.0),
+                    padding: UiRect::all(Val::Px(6.0)),
+                    ..default()
+                },
+                BackgroundColor(Color::srgba(0.04, 0.04, 0.08, 0.88)),
+            ))
+            .id();
+
+        // Fill slot boxes up to the fixed max. Live members
+        // occupy the first N; the remainder are empty placeholders
+        // (npc: None) so rows always have the same width.
+        for i in 0..SQUAD_ROSTER_MAX_SLOTS {
+            let npc_opt = members.0.get(i).copied();
+            let slot = commands
+                .spawn((
+                    SquadRosterSlot { npc: npc_opt },
+                    Button,
+                    Node {
+                        width: Val::Px(26.0),
+                        height: Val::Px(26.0),
+                        ..default()
+                    },
+                    BackgroundColor(ROSTER_BOX_EMPTY),
+                ))
+                .id();
+            commands.entity(row).add_child(slot);
+        }
+
+        commands.entity(panel_entity).add_child(row);
+    }
+}
+
+/// Recolor each roster box based on its NPC's current state:
+/// alive → green, dead → dark red, despawned → near-black. Also
+/// applies a yellow highlight when this slot is the selected NPC
+/// so the panel mirrors the on-map selection ring.
+fn update_squad_roster_state(
+    selected: Res<crate::laptop::SelectedNpc>,
+    mut slots: Query<(&SquadRosterSlot, &mut BackgroundColor)>,
+    npcs: Query<Option<&cordon_sim::behavior::Dead>, With<cordon_sim::components::NpcMarker>>,
+) {
+    for (slot, mut bg) in &mut slots {
+        let (base, is_selected) = match slot.npc {
+            None => (ROSTER_BOX_EMPTY, false),
+            Some(npc) => {
+                let base = match npcs.get(npc) {
+                    Ok(None) => ROSTER_BOX_ALIVE,
+                    Ok(Some(_)) => ROSTER_BOX_DEAD,
+                    Err(_) => ROSTER_BOX_EMPTY,
+                };
+                (base, selected.0 == Some(npc))
+            }
+        };
+        let target = if is_selected {
+            ROSTER_BOX_SELECTED
+        } else {
+            base
+        };
+        // Change-guard the write so a stable roster doesn't dirty
+        // the UI's change-detection cascade every frame.
+        if bg.0 != target {
+            bg.0 = target;
+        }
+    }
+}
+
+/// Clicking a roster slot selects that NPC and smoothly centers
+/// the camera on them. Clicking the already-selected slot toggles
+/// the selection *and* the camera follow off. The camera follow
+/// piggybacks on [`CameraTarget::following`], which
+/// `apply_camera` lerp-follows each frame. The controller's
+/// camera-moving systems (keyboard pan, drag pan, edge scroll)
+/// break follow on motion via `snapshot_follow`, so the lock
+/// ends naturally when the player pans away. Zoom leaves
+/// follow intact.
+fn handle_roster_click(
+    interactions: Query<(&Interaction, &SquadRosterSlot), Changed<Interaction>>,
+    mut selected: ResMut<crate::laptop::SelectedNpc>,
+    mut camera_target: ResMut<CameraTarget>,
+) {
+    for (interaction, slot) in &interactions {
+        if *interaction != Interaction::Pressed {
+            continue;
+        }
+        // Empty slots are non-interactive.
+        let Some(npc) = slot.npc else {
+            continue;
+        };
+        if selected.0 == Some(npc) {
+            selected.0 = None;
+            camera_target.following = None;
+        } else {
+            selected.0 = Some(npc);
+            camera_target.following = Some(npc);
+        }
     }
 }

@@ -4,7 +4,7 @@
     "faction": "devoted",
     "ranks": {
       "novice": {
-        "primary": [{ "id": "toz34" }, { "id": "pmm" }],
+        "primary": [{ "id": "toz34" }, { "id": "pm" }],
         "armor": [{ "id": "leather_jacket" }],
         "helmet": [{ "id": "balaclava" }],
         "ammo_boxes": 2,
@@ -12,8 +12,8 @@
         "consumable_count": 2
       },
       "experienced": {
-        "primary": [{ "id": "toz34" }, { "id": "stechkin" }, { "id": "saiga12" }],
-        "secondary": [{ "id": "pmm" }],
+        "primary": [{ "id": "toz34" }, { "id": "pm" }, { "id": "saiga12" }],
+        "secondary": [{ "id": "pm" }],
         "armor": [{ "id": "leather_jacket" }, { "id": "reinforced_coat" }],
         "helmet": [{ "id": "balaclava" }],
         "ammo_boxes": 2,
@@ -23,7 +23,7 @@
       },
       "veteran": {
         "primary": [{ "id": "saiga12", "weight": 2 }, { "id": "ak74" }],
-        "secondary": [{ "id": "stechkin" }],
+        "secondary": [{ "id": "pm" }],
         "armor": [{ "id": "reinforced_coat" }],
         "helmet": [{ "id": "balaclava" }, { "id": "steel_helmet" }],
         "ammo_boxes": 3,
@@ -33,7 +33,7 @@
       },
       "master": {
         "primary": [{ "id": "saiga12" }, { "id": "ak74" }],
-        "secondary": [{ "id": "stechkin" }],
+        "secondary": [{ "id": "pm" }],
         "armor": [{ "id": "reinforced_coat" }, { "id": "tactical_vest" }],
         "helmet": [{ "id": "steel_helmet" }],
         "ammo_boxes": 3,
@@ -43,7 +43,7 @@
       },
       "legend": {
         "primary": [{ "id": "ak74" }, { "id": "saiga12" }],
-        "secondary": [{ "id": "stechkin" }],
+        "secondary": [{ "id": "pm" }],
         "armor": [{ "id": "tactical_vest" }],
         "helmet": [{ "id": "steel_helmet" }],
         "ammo_boxes": 4,

@@ -11,7 +11,7 @@
 //! - [`engagement`] — vision-shared hostile selection + per-member targets
 //! - [`goals`]      — Hold timer expiry → next goal-driven activity
 //! - [`formation`]  — formation slot positioning + Protect follow + arrival
-//! - [`lifecycle`]  — drop dead members, promote leaders, despawn dead squads
+//! - [`lifecycle`]  — drop despawned members, promote leaders, despawn empty squads
 //! - [`commands`]   — player → sim command boundary (the only mutation path)
 
 mod commands;
@@ -25,11 +25,6 @@ use bevy::prelude::*;
 pub use commands::{Owned, SquadCommand};
 
 use crate::plugin::SimSet;
-
-const SQUAD_WALK_SPEED: f32 = 30.0;
-const ENGAGE_WALK_SPEED: f32 = 38.0;
-const PATROL_HOLD_SECS: f32 = 6.0;
-const ARRIVED_DIST: f32 = 12.0;
 
 pub struct SquadPlugin;
 

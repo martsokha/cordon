@@ -1,0 +1,16 @@
+{
+  "id": "devoted",
+  "recruitable": false,
+  "rank_scheme": "religious",
+  "buys": ["relic", "consumable", "document"],
+  "sells": ["relic", "consumable"],
+  "namepool": "zone",
+  "color": "#7A3F8C",
+  "spawn_weight": 15,
+  "relations": [
+    ["garrison", -70],
+    ["syndicate", -70],
+    ["institute", -70],
+    ["drifters", -70]
+  ]
+}

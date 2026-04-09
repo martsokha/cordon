@@ -1,0 +1,69 @@
+[
+  {
+    "id": "leather_jacket",
+    "data": {
+      "type": "armor",
+      "slot": "suit",
+      "resistances": {
+        "ballistic": 3,
+        "radiation": 0,
+        "chemical": 0,
+        "thermal": 1,
+        "electric": 0,
+        "gravitational": 0
+      },
+      "inventory_slots": 2,
+      "relic_slots": 0
+    },
+    "base_price": 500,
+    "suppliers": [
+      { "faction": "drifters", "price_multiplier": 0.9 },
+      { "faction": "syndicate", "price_multiplier": 1.0 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "raincoat",
+    "data": {
+      "type": "armor",
+      "slot": "suit",
+      "resistances": {
+        "ballistic": 2,
+        "radiation": 1,
+        "chemical": 3,
+        "thermal": 1,
+        "electric": 0,
+        "gravitational": 0
+      },
+      "inventory_slots": 2,
+      "relic_slots": 0
+    },
+    "base_price": 700,
+    "suppliers": [
+      { "faction": "drifters", "price_multiplier": 0.85 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "reinforced_coat",
+    "data": {
+      "type": "armor",
+      "slot": "suit",
+      "resistances": {
+        "ballistic": 8,
+        "radiation": 1,
+        "chemical": 1,
+        "thermal": 2,
+        "electric": 0,
+        "gravitational": 0
+      },
+      "inventory_slots": 3,
+      "relic_slots": 1
+    },
+    "base_price": 2500,
+    "suppliers": [
+      { "faction": "syndicate", "price_multiplier": 1.0 }
+    ],
+    "rarity": "common"
+  }
+]

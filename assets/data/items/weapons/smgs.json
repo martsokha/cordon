@@ -1,0 +1,65 @@
+[
+  {
+    "id": "kedr",
+    "data": {
+      "type": "weapon",
+      "caliber": "9x18mm",
+      "fire_modes": [
+        "Semi",
+        "Auto"
+      ],
+      "fire_rate": 14.0,
+      "accuracy": 0.55,
+      "magazine": 20,
+      "reload_secs": 2.4,
+      "range": 200.0,
+      "suppressed": false,
+      "added_damage": 1
+    },
+    "base_price": 3500,
+    "suppliers": [
+      {
+        "faction": "syndicate",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "drifters",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "pp19_bizon",
+    "data": {
+      "type": "weapon",
+      "caliber": "9x18mm",
+      "fire_modes": [
+        "Semi",
+        {
+          "Burst": 3
+        },
+        "Auto"
+      ],
+      "fire_rate": 12.0,
+      "accuracy": 0.65,
+      "magazine": 64,
+      "reload_secs": 3.2,
+      "range": 240.0,
+      "suppressed": false,
+      "added_damage": 2
+    },
+    "base_price": 5500,
+    "suppliers": [
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "uncommon"
+  }
+]

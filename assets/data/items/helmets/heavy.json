@@ -1,0 +1,69 @@
+[
+  {
+    "id": "tactical_helmet",
+    "data": {
+      "type": "armor",
+      "slot": "helmet",
+      "resistances": {
+        "ballistic": 12,
+        "radiation": 2,
+        "chemical": 0,
+        "thermal": 0,
+        "electric": 0,
+        "gravitational": 0
+      },
+      "inventory_slots": 0,
+      "relic_slots": 0
+    },
+    "base_price": 3500,
+    "suppliers": [
+      { "faction": "syndicate", "price_multiplier": 0.95 },
+      { "faction": "garrison", "price_multiplier": 1.1 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "exohelmet",
+    "data": {
+      "type": "armor",
+      "slot": "helmet",
+      "resistances": {
+        "ballistic": 14,
+        "radiation": 2,
+        "chemical": 1,
+        "thermal": 1,
+        "electric": 1,
+        "gravitational": 0
+      },
+      "inventory_slots": 0,
+      "relic_slots": 0
+    },
+    "base_price": 6000,
+    "suppliers": [
+      { "faction": "syndicate", "price_multiplier": 1.0 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "military_exohelmet",
+    "data": {
+      "type": "armor",
+      "slot": "helmet",
+      "resistances": {
+        "ballistic": 18,
+        "radiation": 3,
+        "chemical": 2,
+        "thermal": 2,
+        "electric": 2,
+        "gravitational": 1
+      },
+      "inventory_slots": 0,
+      "relic_slots": 0
+    },
+    "base_price": 12000,
+    "suppliers": [
+      { "faction": "garrison", "price_multiplier": 1.0 }
+    ],
+    "rarity": "rare"
+  }
+]

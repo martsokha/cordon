@@ -1,0 +1,61 @@
+[
+  {
+    "id": "pm",
+    "data": {
+      "type": "weapon",
+      "caliber": "9x18mm",
+      "fire_modes": [
+        "Semi"
+      ],
+      "fire_rate": 2.5,
+      "accuracy": 0.55,
+      "magazine": 8,
+      "reload_secs": 1.8,
+      "range": 180.0,
+      "suppressed": false,
+      "added_damage": 0
+    },
+    "base_price": 800,
+    "suppliers": [
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.0
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "stechkin_aps",
+    "data": {
+      "type": "weapon",
+      "caliber": "9x18mm",
+      "fire_modes": [
+        "Semi",
+        "Auto"
+      ],
+      "fire_rate": 12.0,
+      "accuracy": 0.45,
+      "magazine": 20,
+      "reload_secs": 2.2,
+      "range": 220.0,
+      "suppressed": false,
+      "added_damage": 2
+    },
+    "base_price": 1800,
+    "suppliers": [
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.0
+      }
+    ],
+    "rarity": "uncommon"
+  }
+]

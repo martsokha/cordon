@@ -10,7 +10,7 @@ use cordon_core::primitive::Id;
 use cordon_core::world::area::{Area, AreaDef};
 use cordon_core::world::event::{Event, EventDef};
 use cordon_core::world::loot::LootTables;
-use cordon_core::world::narrative::quest::{Quest, QuestDef};
+use cordon_core::world::narrative::quest::{Quest, QuestDef, QuestTrigger, QuestTriggerDef};
 
 /// The read-only game database.
 ///
@@ -38,6 +38,9 @@ pub struct GameData {
     pub events: HashMap<Id<Event>, EventDef>,
     /// Quest definitions keyed by quest ID.
     pub quests: HashMap<Id<Quest>, QuestDef>,
+    /// Quest trigger rules keyed by trigger ID. Each trigger
+    /// references the quest it starts via [`QuestTriggerDef::quest`].
+    pub triggers: HashMap<Id<QuestTrigger>, QuestTriggerDef>,
     /// Name pools keyed by pool ID.
     pub name_pools: HashMap<Id<NamePoolMarker>, NamePool>,
     /// Loot tables keyed by area ID.

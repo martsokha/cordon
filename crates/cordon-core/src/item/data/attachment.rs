@@ -15,6 +15,4 @@ pub struct AttachmentData {
     pub compatible_weapons: Vec<Id<Item>>,
     /// Accuracy modifier when attached (additive, e.g., +0.05).
     pub accuracy_modifier: f32,
-    /// Recoil modifier when attached (additive, e.g., -0.1).
-    pub recoil_modifier: f32,
 }

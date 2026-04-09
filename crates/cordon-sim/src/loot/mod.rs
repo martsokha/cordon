@@ -2,16 +2,23 @@
 //! their own general pouch.
 
 use bevy::prelude::*;
-use cordon_core::item::{ItemData, Loadout};
+use cordon_core::item::{Item, ItemData, Loadout};
+use cordon_core::primitive::{Experience, Id};
 use cordon_data::gamedata::GameDataResource;
 
 use crate::behavior::{CombatTarget, Dead, LootState};
-use crate::components::{LoadoutComp, NpcMarker, Xp};
-use crate::events::ItemLooted;
+use crate::components::NpcMarker;
 use crate::plugin::SimSet;
+use crate::tuning::{LOOT_INTERVAL_SECS, LOOT_REACH};
 
-const LOOT_REACH: f32 = 12.0;
-const LOOT_INTERVAL_SECS: f32 = 0.4;
+/// A looter pulled an item from a corpse into their general
+/// pouch.
+#[derive(Message, Debug, Clone)]
+pub struct ItemLooted {
+    pub looter: Entity,
+    pub corpse: Entity,
+    pub item: Id<Item>,
+}
 
 pub struct LootPlugin;
 
@@ -28,7 +35,7 @@ impl Plugin for LootPlugin {
 /// Insert a `LootState` for alive non-combat NPCs standing on a corpse.
 fn try_start_looting(
     mut commands: Commands,
-    corpses: Query<(Entity, &Transform, &LoadoutComp), With<Dead>>,
+    corpses: Query<(Entity, &Transform, &Loadout), With<Dead>>,
     alive: Query<
         (Entity, &Transform, &CombatTarget),
         (With<NpcMarker>, Without<Dead>, Without<LootState>),
@@ -37,7 +44,7 @@ fn try_start_looting(
     let corpse_snapshot: Vec<(Entity, Vec2)> = corpses
         .iter()
         .filter_map(|(entity, t, loadout)| {
-            if loadout.0.is_empty() {
+            if loadout.is_empty() {
                 return None;
             }
             Some((entity, t.translation.truncate()))
@@ -83,10 +90,16 @@ fn drive_loot(
     mut commands: Commands,
     mut looted: MessageWriter<ItemLooted>,
     mut looters: Query<
-        (Entity, &Xp, &CombatTarget, &mut LootState, &mut LoadoutComp),
+        (
+            Entity,
+            &Experience,
+            &CombatTarget,
+            &mut LootState,
+            &mut Loadout,
+        ),
         Without<Dead>,
     >,
-    mut corpses: Query<&mut LoadoutComp, With<Dead>>,
+    mut corpses: Query<&mut Loadout, With<Dead>>,
 ) {
     let items = &game_data.0.items;
     let dt = time.delta_secs();
@@ -115,14 +128,13 @@ fn drive_loot(
                 continue;
             };
             corpse_loadout
-                .0
                 .primary
                 .take()
-                .or_else(|| corpse_loadout.0.secondary.take())
-                .or_else(|| corpse_loadout.0.helmet.take())
-                .or_else(|| corpse_loadout.0.armor.take())
-                .or_else(|| corpse_loadout.0.relics.pop())
-                .or_else(|| corpse_loadout.0.general.pop())
+                .or_else(|| corpse_loadout.secondary.take())
+                .or_else(|| corpse_loadout.helmet.take())
+                .or_else(|| corpse_loadout.armor.take())
+                .or_else(|| corpse_loadout.relics.pop())
+                .or_else(|| corpse_loadout.general.pop())
         };
         let Some(item) = item_taken else {
             commands.entity(entity).remove::<LootState>();
@@ -130,7 +142,6 @@ fn drive_loot(
         };
 
         let armor_data = looter_loadout
-            .0
             .armor
             .as_ref()
             .and_then(|inst| items.get(&inst.def_id))
@@ -138,9 +149,9 @@ fn drive_loot(
                 ItemData::Armor(a) => Some(a),
                 _ => None,
             });
-        let capacity = Loadout::general_capacity(xp.rank(), armor_data);
+        let capacity = Loadout::general_capacity(xp.npc_rank(), armor_data);
         let item_id = item.def_id.clone();
-        let _ = looter_loadout.0.add_to_general(item, capacity);
+        let _ = looter_loadout.add_to_general(item, capacity);
         looted.write(ItemLooted {
             looter: entity,
             corpse: corpse_entity,

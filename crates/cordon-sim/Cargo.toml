@@ -30,5 +30,10 @@ bevy = { workspace = true }
 bevy_rand = { workspace = true }
 bevy_prng = { workspace = true }
 
+# Dialogue runtime — quest flags use `YarnValue` so the sim can
+# round-trip variables to/from the dialogue runner without an
+# intermediate conversion layer.
+bevy_yarnspinner = { workspace = true }
+
 # Randomness
 rand = { workspace = true }

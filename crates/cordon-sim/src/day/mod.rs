@@ -16,9 +16,17 @@ use cordon_data::gamedata::GameDataResource;
 
 use crate::day::events::{expire_events, roll_daily_events};
 use crate::day::factions::tick_factions;
-use crate::events::DayRolled;
 use crate::plugin::SimSet;
 use crate::resources::{AreaStates, EventLog, FactionIndex, GameClock, Player};
+
+/// In-game day advanced. Fires exactly once per day rollover
+/// from [`detect_day_rollover`]; per-day work (daily event
+/// rolls, faction reactions, event expiry) runs as separate
+/// systems gated on this message.
+#[derive(Message, Debug, Clone, Copy)]
+pub struct DayRolled {
+    pub new_day: Day,
+}
 
 pub struct DayCyclePlugin;
 
@@ -71,10 +79,13 @@ fn roll_today_events(
     mut rng: Single<&mut WyRand, With<GlobalRng>>,
 ) {
     let event_defs: Vec<_> = game_data.0.events.values().cloned().collect();
+    // Events don't care about spawn weights — strip them down to just
+    // the ids for `roll_daily_events`.
+    let faction_ids: Vec<_> = factions.0.iter().map(|(id, _)| id.clone()).collect();
     roll_daily_events(
         &mut events.0,
         &event_defs,
-        &factions.0,
+        &faction_ids,
         clock.0.day,
         &mut **rng,
     );

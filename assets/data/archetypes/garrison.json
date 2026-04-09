@@ -4,8 +4,8 @@
     "faction": "garrison",
     "ranks": {
       "novice": {
-        "primary": [{ "id": "aks74u", "weight": 2 }, { "id": "ak74" }],
-        "secondary": [{ "id": "pmm" }],
+        "primary": [{ "id": "ak74", "weight": 2 }, { "id": "kedr" }],
+        "secondary": [{ "id": "pm" }],
         "armor": [{ "id": "tactical_vest" }],
         "helmet": [{ "id": "steel_helmet" }],
         "ammo_boxes": 2,
@@ -14,18 +14,18 @@
         "consumable_count": 2
       },
       "experienced": {
-        "primary": [{ "id": "ak74", "weight": 2 }, { "id": "aks74u" }],
-        "secondary": [{ "id": "pmm" }],
+        "primary": [{ "id": "ak74", "weight": 2 }, { "id": "aek971" }],
+        "secondary": [{ "id": "pm" }],
         "armor": [{ "id": "tactical_vest" }, { "id": "combat_armor" }],
-        "helmet": [{ "id": "steel_helmet" }, { "id": "tactical_helmet" }],
+        "helmet": [{ "id": "steel_helmet" }, { "id": "combat_helmet" }],
         "ammo_boxes": 3,
         "secondary_ammo_boxes": 1,
         "consumables": [{ "id": "bandage" }, { "id": "medkit" }],
         "consumable_count": 3
       },
       "veteran": {
-        "primary": [{ "id": "ak74", "weight": 2 }, { "id": "rpk74" }],
-        "secondary": [{ "id": "stechkin" }],
+        "primary": [{ "id": "aek971", "weight": 2 }, { "id": "akm" }],
+        "secondary": [{ "id": "stechkin_aps" }],
         "armor": [{ "id": "combat_armor" }],
         "helmet": [{ "id": "tactical_helmet" }],
         "ammo_boxes": 3,
@@ -34,8 +34,8 @@
         "consumable_count": 3
       },
       "master": {
-        "primary": [{ "id": "rpk74" }, { "id": "ak74" }, { "id": "svd" }],
-        "secondary": [{ "id": "stechkin" }],
+        "primary": [{ "id": "akm" }, { "id": "aek971" }, { "id": "svd" }],
+        "secondary": [{ "id": "stechkin_aps" }],
         "armor": [{ "id": "combat_armor", "weight": 2 }, { "id": "heavy_rig" }],
         "helmet": [{ "id": "tactical_helmet" }],
         "ammo_boxes": 4,
@@ -44,10 +44,10 @@
         "consumable_count": 4
       },
       "legend": {
-        "primary": [{ "id": "svd", "weight": 2 }, { "id": "rpk74" }],
-        "secondary": [{ "id": "stechkin" }],
-        "armor": [{ "id": "heavy_rig" }],
-        "helmet": [{ "id": "tactical_helmet" }],
+        "primary": [{ "id": "svd", "weight": 2 }, { "id": "akm" }],
+        "secondary": [{ "id": "stechkin_aps" }],
+        "armor": [{ "id": "heavy_rig" }, { "id": "military_exoskeleton" }],
+        "helmet": [{ "id": "military_exohelmet" }],
         "ammo_boxes": 4,
         "secondary_ammo_boxes": 2,
         "consumables": [{ "id": "medkit" }, { "id": "antirad" }],

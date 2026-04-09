@@ -27,8 +27,6 @@ pub struct WeaponData {
     pub fire_rate: f32,
     /// Base accuracy (0.0–1.0). Higher = tighter spread.
     pub accuracy: f32,
-    /// Recoil per shot (0.0–1.0). Higher = more spread over sustained fire.
-    pub recoil: f32,
     /// Magazine capacity in rounds.
     pub magazine: u32,
     /// Time to reload a fresh magazine, in seconds.

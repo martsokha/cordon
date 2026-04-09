@@ -57,6 +57,13 @@ fn hazard_type_to_float(h: &HazardType) -> f32 {
     }
 }
 
+/// Marker for the 2D visual mesh of an anomaly zone. Distinct from
+/// [`AnomalyZone`] (which is the sim-side LOS blocker) because the
+/// fog-of-war system hides the *visual* without touching the
+/// underlying sim component.
+#[derive(Component)]
+pub struct AnomalyVisual;
+
 pub fn spawn(
     commands: &mut Commands,
     game_data: &GameDataResource,
@@ -64,12 +71,13 @@ pub fn spawn(
     anomaly_mats: &mut ResMut<Assets<AnomalyMaterial>>,
 ) {
     for area in game_data.0.areas.values() {
-        if let Some(hazard) = &area.danger.hazard {
+        if let Some(hazard) = area.kind.hazard() {
             let x = area.location.x;
             let y = area.location.y;
             let r = area.radius.value() * 1.2;
             commands.spawn((
                 AnomalyZone { radius: r },
+                AnomalyVisual,
                 Mesh2d(meshes.add(Circle::new(r))),
                 MeshMaterial2d(anomaly_mats.add(AnomalyMaterial {
                     hazard_type: hazard_type_to_float(&hazard.kind),
@@ -77,7 +85,10 @@ pub fn spawn(
                     _padding1: 0.0,
                     _padding2: 0.0,
                 })),
-                Transform::from_xyz(x, y, 3.0),
+                // Above the fog overlay (z=4.5) and clouds
+                // (z=5.0) so the shader effects render on top
+                // of the mist instead of being darkened by it.
+                Transform::from_xyz(x, y, 8.5),
             ));
         }
     }

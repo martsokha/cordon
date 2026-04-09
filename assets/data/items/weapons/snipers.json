@@ -1,0 +1,110 @@
+[
+  {
+    "id": "mosin_nagant",
+    "data": {
+      "type": "weapon",
+      "caliber": "7.62x54r",
+      "fire_modes": [
+        "Semi"
+      ],
+      "fire_rate": 0.8,
+      "accuracy": 0.92,
+      "magazine": 5,
+      "reload_secs": 5.0,
+      "range": 240.0,
+      "suppressed": false,
+      "added_damage": 10
+    },
+    "base_price": 6000,
+    "suppliers": [
+      {
+        "faction": "drifters",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "garrison",
+        "price_multiplier": 1.0
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "svd",
+    "data": {
+      "type": "weapon",
+      "caliber": "7.62x54r",
+      "fire_modes": [
+        "Semi"
+      ],
+      "fire_rate": 1.5,
+      "accuracy": 0.95,
+      "magazine": 10,
+      "reload_secs": 4.0,
+      "range": 220.0,
+      "suppressed": false,
+      "added_damage": 8
+    },
+    "base_price": 18000,
+    "suppliers": [
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.9
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "svu",
+    "data": {
+      "type": "weapon",
+      "caliber": "7.62x54r",
+      "fire_modes": [
+        "Semi"
+      ],
+      "fire_rate": 1.6,
+      "accuracy": 0.93,
+      "magazine": 10,
+      "reload_secs": 4.0,
+      "range": 210.0,
+      "suppressed": false,
+      "added_damage": 8
+    },
+    "base_price": 17000,
+    "suppliers": [
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.95
+      },
+      {
+        "faction": "syndicate",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "sv98",
+    "data": {
+      "type": "weapon",
+      "caliber": "7.62x54r",
+      "fire_modes": [
+        "Semi"
+      ],
+      "fire_rate": 1.0,
+      "accuracy": 0.97,
+      "magazine": 10,
+      "reload_secs": 4.2,
+      "range": 260.0,
+      "suppressed": false,
+      "added_damage": 12
+    },
+    "base_price": 22000,
+    "suppliers": [
+      {
+        "faction": "garrison",
+        "price_multiplier": 0.9
+      }
+    ],
+    "rarity": "rare"
+  }
+]

@@ -1,32 +1,24 @@
 //! Per-squad ECS components.
 //!
-//! Squads are Bevy entities tying together a faction, a goal, a
-//! formation, and a list of member entities. Members back-reference
-//! their squad through [`SquadMembership`].
+//! `Goal` and `Formation` derive `Component` directly in
+//! cordon-core, so they're attached to squad entities without a
+//! wrapper. This module holds the squad marker, the position /
+//! facing / waypoints live state, leader + member entity lists,
+//! the short-term activity state machine, and the `SquadBundle`
+//! glue.
 
 use bevy::prelude::*;
-use cordon_core::entity::faction::Faction;
 use cordon_core::entity::squad::{Formation, Goal, Squad};
-use cordon_core::primitive::{Id, Uid};
+use cordon_core::primitive::Uid;
+
+use super::npc::FactionId;
 
 /// Marker that this entity is a squad.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct SquadMarker;
 
-/// Stable runtime identifier for the squad.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct SquadId(pub Uid<Squad>);
-
-#[derive(Component, Debug, Clone)]
-pub struct SquadFaction(pub Id<Faction>);
-
-#[derive(Component, Debug, Clone)]
-pub struct SquadGoal(pub Goal);
-
-#[derive(Component, Debug, Clone, Copy)]
-pub struct SquadFormation(pub Formation);
-
-/// Last known facing direction for formation rotation. Default is +Y.
+/// Last known facing direction for formation rotation. Default
+/// is +Y.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct SquadFacing(pub Vec2);
 
@@ -36,22 +28,22 @@ impl Default for SquadFacing {
     }
 }
 
-/// Patrol/scavenge waypoints inside the goal area + the index of the
-/// next one to visit. Empty for non-patrol goals.
+/// Patrol/scavenge waypoints inside the goal area + the index
+/// of the next one to visit. Empty for non-patrol goals.
 #[derive(Component, Debug, Clone, Default)]
 pub struct SquadWaypoints {
     pub points: Vec<Vec2>,
     pub next: u8,
 }
 
-/// Initial spawn position for the squad, used by the visual layer to
-/// place freshly-spawned members at the right map coordinate before
-/// the formation system takes over.
+/// Initial spawn position for the squad, used by the visual
+/// layer to place freshly-spawned members at the right map
+/// coordinate before the formation system takes over.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct SquadHomePosition(pub Vec2);
 
-/// The current leader's entity. Promoted to highest-rank survivor
-/// when the previous leader dies.
+/// The current leader's entity. Promoted to highest-rank
+/// survivor when the previous leader dies.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct SquadLeader(pub Entity);
 
@@ -77,10 +69,10 @@ impl Default for SquadActivity {
 #[derive(Bundle)]
 pub struct SquadBundle {
     pub marker: SquadMarker,
-    pub id: SquadId,
-    pub faction: SquadFaction,
-    pub goal: SquadGoal,
-    pub formation: SquadFormation,
+    pub id: Uid<Squad>,
+    pub faction: FactionId,
+    pub goal: Goal,
+    pub formation: Formation,
     pub facing: SquadFacing,
     pub waypoints: SquadWaypoints,
     pub home: SquadHomePosition,
@@ -93,10 +85,10 @@ impl SquadBundle {
     pub fn from_squad(squad: Squad, leader: Entity, members: Vec<Entity>, home: Vec2) -> Self {
         Self {
             marker: SquadMarker,
-            id: SquadId(squad.id),
-            faction: SquadFaction(squad.faction),
-            goal: SquadGoal(squad.goal),
-            formation: SquadFormation(squad.formation),
+            id: squad.id,
+            faction: FactionId(squad.faction),
+            goal: squad.goal,
+            formation: squad.formation,
             facing: SquadFacing(Vec2::new(squad.facing[0], squad.facing[1])),
             waypoints: SquadWaypoints {
                 points: squad

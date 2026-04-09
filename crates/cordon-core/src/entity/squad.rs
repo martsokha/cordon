@@ -11,6 +11,7 @@
 //! commits to engaging, every member targets that hostile *squad*
 //! (each picking their own nearest enemy from it).
 
+use bevy::prelude::Component;
 use serde::{Deserialize, Serialize};
 
 use super::faction::Faction;
@@ -48,7 +49,8 @@ pub struct Squad {
 
 /// Long-term reason a squad exists. Survives leader death and is the
 /// only "memory" the squad has between activities.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
+#[derive(Component, Serialize, Deserialize)]
 pub enum Goal {
     /// No orders. Hold position or wander loosely.
     Idle,
@@ -68,7 +70,8 @@ pub enum Goal {
 ///
 /// Combat overrides formation choice (members spread out or focus on
 /// targets), but the squad reverts to its formation when combat ends.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Component, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Formation {
     /// Members in a row perpendicular to facing.

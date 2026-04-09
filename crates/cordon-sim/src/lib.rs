@@ -21,14 +21,15 @@ pub mod day;
 /// Death and corpse lifecycle.
 pub mod death;
 
-/// Sim → game events emitted on the boundary.
-pub mod events;
-
 /// Looting: alive NPCs pull items from nearby corpses.
 pub mod loot;
 
 /// Bevy plugin entry point.
 pub mod plugin;
+
+/// Runtime quest state, condition evaluation, consequence
+/// application, and trigger dispatch.
+pub mod quest;
 
 /// Top-level Bevy resources owned by cordon-sim.
 pub mod resources;
@@ -39,3 +40,7 @@ pub mod spawn;
 /// Squad behavior: engagement, formation, goals, lifecycle, and the
 /// player command boundary.
 pub mod squad;
+
+/// Gameplay tuning knobs — distances, timings, thresholds,
+/// probabilities. One place to tune the sim from.
+pub mod tuning;

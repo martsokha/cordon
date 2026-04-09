@@ -1,26 +1,5 @@
 # Items & Economy
 
-## Item Condition
-
-Every item has a condition value from **0.0** (destroyed) to **1.0** (factory new). Condition directly affects price and performance.
-
-- **0.0 – 0.1**: non-functional junk. Repair required. Can scam buyers who don't inspect.
-- **0.1 – 0.4**: functional but unreliable. Jams, reduced protection, poor accuracy.
-- **0.4 – 0.7**: standard working condition. Most Zone gear lives here.
-- **0.7 – 0.9**: well-maintained. Reliable.
-- **0.9 – 1.0**: like new or modified. Premium price. Rare.
-
-Price scales exponentially with condition — low-condition gear is nearly worthless:
-- 1.0 = 100% of base price
-- 0.75 ≈ 50% of base price
-- 0.5 ≈ 25% of base price
-- 0.25 ≈ 5% of base price
-
-This means buying a 0.5 weapon cheap and sending it out for repair is a real trade strategy.
-
-Condition degrades with use (runner equipment) and over time in poor storage.
-You can't repair items yourself. You send them out to faction workshops via runners. The Garrison and Mercenaries offer weapon repair, the Institute handles relics. Cost and turnaround depend on your standing with the faction. Better standing = cheaper, faster repairs.
-
 ## Stock & Suppliers
 
 There are no unlock tiers. What you can sell depends on **who supplies you**. Build relationships with factions, find reliable Drifters, hire the right runners, and your inventory grows naturally.
@@ -242,11 +221,10 @@ Armor has two slots: **helmet** and **suit**. A scavenger wearing a leather jack
 | Mirage | 25000 | Deep-Zone scavenging, the Devoted | Very Rare | Bends light around the holder. Near-invisibility. Mercenaries will kill for this. |
 | Hearthstone | 50000 | The Core only | Legendary | Radiates warmth and calm. Full healing properties. The Devoted consider it holy. |
 
-**Relic conditions:**
+**Relic states:**
 - **Stable**: contained properly, safe to store and sell
 - **Unstable**: not contained, degrades over time, may harm handler
 - **Inert**: depleted or damaged, minimal value (sold as curiosity)
-- **Counterfeit**: fake, no properties. Requires inspection to detect.
 
 ### Documents & Intel
 
@@ -274,13 +252,12 @@ Armor has two slots: **helmet** and **suit**. A scavenger wearing a leather jack
 ## Price System
 
 ### Base Price
-Every item has a base price that represents its "neutral" market value. Prices listed above are base prices at condition 1.0 (or default for items without wear).
+Every item has a base price that represents its "neutral" market value. Prices listed above are base prices before world-state modifiers apply.
 
 ### Price Modifiers
 
 | Factor | Effect | Example |
 |--------|--------|---------|
-| **Condition** | Exponential price scaling | A 0.5 rifle is worth ~25% of a 1.0, a 0.75 is worth ~50% |
 | **Supply** | More supply → lower price | Ammo glut after a convoy raid = cheap rifle rounds |
 | **Demand** | More demand → higher price | Surge incoming = medkit prices spike |
 | **Faction control** | Faction dominance shifts prices | The Order controls the area = their gear is common, Collective gear is rare |
@@ -292,23 +269,12 @@ Every item has a base price that represents its "neutral" market value. Prices l
 
 ```
 final_price = base_price
-  × condition²           (0.0 – 1.0, squared)
   × supply_modifier     (0.5 – 1.5)
   × demand_modifier     (0.5 – 2.0)
   × faction_modifier    (0.8 – 1.2)
   × event_modifier      (0.5 – 3.0)
   × reputation_modifier (0.9 – 1.1)
 ```
-
-## Item Authenticity
-
-Some items can be counterfeit or defective:
-- **Fake relics**: look real but have no properties (or harmful ones)
-- **Broken weapons**: fire once then jam. Sold by scammers.
-- **Expired meds**: reduced effectiveness
-- **Doctored documents**: planted by factions to mislead
-
-Player can invest in inspection tools to detect fakes. Selling fakes (knowingly or not) damages reputation.
 
 ## Customer Complaints
 

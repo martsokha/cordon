@@ -5,7 +5,7 @@ use bevy::prelude::*;
 
 use super::FpsCamera;
 use crate::PlayingState;
-use crate::bunker::CameraMode;
+use crate::bunker::{CameraMode, VisitorState};
 
 const MOVE_SPEED: f32 = 4.0;
 const LOOK_SENSITIVITY: f32 = 0.003;
@@ -18,7 +18,11 @@ impl Plugin for ControllerPlugin {
             Update,
             (fps_look, fps_move)
                 .run_if(in_state(PlayingState::Bunker))
-                .run_if(|mode: Res<CameraMode>| matches!(*mode, CameraMode::Free)),
+                .run_if(|mode: Res<CameraMode>| matches!(*mode, CameraMode::Free))
+                // Freeze look/move only once a visitor is `Inside`
+                // and dialogue is running. While `Knocking` the
+                // player should still be able to walk to the desk.
+                .run_if(|state: Res<VisitorState>| !matches!(*state, VisitorState::Inside { .. })),
         );
     }
 }
@@ -43,7 +47,9 @@ fn fps_look(
 
 fn fps_move(
     keys: Res<ButtonInput<KeyCode>>,
-    time: Res<Time>,
+    // Player walking speed must stay real-time so fast-forwarding
+    // the sim doesn't also rocket the player around the bunker.
+    time: Res<Time<Real>>,
     mut camera_q: Query<&mut Transform, With<FpsCamera>>,
 ) {
     let mut input = Vec2::ZERO;

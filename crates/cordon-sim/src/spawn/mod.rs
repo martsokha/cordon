@@ -11,23 +11,35 @@
 
 pub mod generator;
 pub mod loadout;
+pub mod relics;
 
 use std::collections::HashMap;
 
 use bevy::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::GlobalRng;
+use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NamePool;
 use cordon_core::entity::npc::Npc as NpcData;
-use cordon_core::primitive::Uid;
+use cordon_core::primitive::{Id, Uid};
 use cordon_data::gamedata::GameDataResource;
 use rand::{Rng, RngExt};
 
-use crate::components::{NpcBundle, NpcId, SquadBundle, SquadMembership};
-use crate::resources::{FactionIndex, GameClock, SquadIdIndex, UidAllocator};
+use crate::components::{NpcMarker, SquadBundle, SquadMembership};
+use crate::resources::{FactionIndex, FactionSettlements, GameClock, SquadIdIndex, UidAllocator};
 use crate::spawn::generator::{
     DefaultNpcGenerator, LoadoutContext, NpcGenerator, roll_population_top_up,
 };
+use crate::tuning::{SPAWN_DAY_END, SPAWN_DAY_START};
+
+/// A fresh squad just entered the world. Currently declared
+/// but not wired up — reserved as a seed for future spawn →
+/// visual/audio hooks.
+#[derive(Message, Debug, Clone)]
+pub struct SquadSpawned {
+    pub entity: Entity,
+    pub faction: Id<Faction>,
+}
 
 /// Per-day spawn schedule: a list of `(day_progress, chunk_size)`
 /// pairs picked at the start of each in-game day. Each entry fires
@@ -59,10 +71,12 @@ pub fn spawn_population(
     clock: Res<GameClock>,
     mut uids: ResMut<UidAllocator>,
     factions: Res<FactionIndex>,
+    settlements: Res<FactionSettlements>,
     game_data: Res<GameDataResource>,
     mut squad_index: ResMut<SquadIdIndex>,
+    mut squad_spawned: MessageWriter<SquadSpawned>,
     mut rng: Single<&mut WyRand, With<GlobalRng>>,
-    alive_npcs: Query<(), With<NpcId>>,
+    alive_npcs: Query<(), With<NpcMarker>>,
 ) {
     let data = &game_data.0;
 
@@ -131,19 +145,16 @@ pub fn spawn_population(
 
     // Pass 1: spawn NPC entities, mapping their uid → entity.
     let mut uid_to_entity: HashMap<Uid<NpcData>, Entity> = HashMap::with_capacity(spawn.npcs.len());
-    for npc in spawn.npcs {
-        let uid = npc.id;
-        let entity = commands.spawn(NpcBundle::from_npc(npc)).id();
+    for bundle in spawn.npcs {
+        let uid = bundle.id;
+        let entity = commands.spawn(bundle).id();
         uid_to_entity.insert(uid, entity);
     }
 
-    // Pre-collect the area centres so we can pick a home position per
-    // squad without re-borrowing rng.
-    let area_centres: Vec<Vec2> = data
-        .areas
-        .values()
-        .map(|a| Vec2::new(a.location.x, a.location.y))
-        .collect();
+    // Settlement centres per faction come from the pre-built
+    // [`FactionSettlements`] resource (built once at world init in
+    // the bevy layer) so we don't walk all areas every spawn wave.
+    let faction_settlements = &settlements.0;
 
     // Pass 2: spawn squads, resolving member uids → entities, and tag
     // each member with a SquadMembership component pointing back at
@@ -162,9 +173,10 @@ pub fn spawn_population(
             None => member_entities[0],
         };
 
-        let home = pick_home_position(&area_centres, &mut **rng);
+        let home = pick_faction_home(faction_settlements, &squad.faction, &mut **rng);
 
         let squad_uid = squad.id;
+        let squad_faction = squad.faction.clone();
         let squad_entity = commands
             .spawn(SquadBundle::from_squad(
                 squad,
@@ -181,6 +193,14 @@ pub fn spawn_population(
                 slot: slot_idx as u8,
             });
         }
+
+        // Notify downstream systems that a squad just entered the
+        // world. Emitted after the membership tags are set so any
+        // reader pulling squad members sees a consistent state.
+        squad_spawned.write(SquadSpawned {
+            entity: squad_entity,
+            faction: squad_faction,
+        });
     }
 }
 
@@ -206,19 +226,16 @@ fn plan_daily_waves<R: Rng>(deficit: u32, now_progress: f32, rng: &mut R) -> Vec
     let first_size = base + if extra > 0 { 1 } else { 0 };
     waves.push((now_progress, first_size));
 
-    // 06:00 = 0.25, 21:00 = 0.875.
-    const DAY_START: f32 = 0.25;
-    const DAY_END: f32 = 0.875;
-    let lower = now_progress.clamp(DAY_START, DAY_END);
+    let lower = now_progress.clamp(SPAWN_DAY_START, SPAWN_DAY_END);
     for i in 1..n {
         let chunk = base + if i < extra { 1 } else { 0 };
         if chunk == 0 {
             continue;
         }
-        let t = if lower >= DAY_END {
+        let t = if lower >= SPAWN_DAY_END {
             (now_progress + 0.001 * i as f32).min(0.9999)
         } else {
-            rng.random_range(lower..DAY_END)
+            rng.random_range(lower..SPAWN_DAY_END)
         };
         waves.push((t, chunk));
     }
@@ -227,9 +244,18 @@ fn plan_daily_waves<R: Rng>(deficit: u32, now_progress: f32, rng: &mut R) -> Vec
     waves
 }
 
-/// Pick a random area centre with a small jitter, used as a squad's
-/// initial spawn position.
-fn pick_home_position<R: Rng>(centres: &[Vec2], rng: &mut R) -> Vec2 {
+/// Pick a random Settlement centre belonging to `faction`, with a
+/// small jitter, used as a squad's initial spawn position. If the
+/// faction has no settlements (e.g., a faction defined in data but
+/// with no held areas), fall back to the origin.
+fn pick_faction_home<R: Rng>(
+    settlements: &HashMap<Id<Faction>, Vec<Vec2>>,
+    faction: &Id<Faction>,
+    rng: &mut R,
+) -> Vec2 {
+    let Some(centres) = settlements.get(faction) else {
+        return Vec2::ZERO;
+    };
     if centres.is_empty() {
         return Vec2::ZERO;
     }

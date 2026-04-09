@@ -13,6 +13,7 @@
 //!   namepools/      → Vec<NamePool>
 //!   perks/          → Vec<PerkDef>
 //!   quests/         → Vec<QuestDef>
+//!   triggers/       → Vec<QuestTriggerDef>
 //!   upgrades/       → Vec<UpgradeDef>
 //! ```
 
@@ -32,7 +33,7 @@ use cordon_core::primitive::Id;
 use cordon_core::world::area::AreaDef;
 use cordon_core::world::event::EventDef;
 use cordon_core::world::loot::LootTables;
-use cordon_core::world::narrative::quest::QuestDef;
+use cordon_core::world::narrative::quest::{QuestDef, QuestTriggerDef};
 
 use crate::catalog::GameData;
 
@@ -80,6 +81,7 @@ struct LoadingFolders {
     namepools: Handle<LoadedFolder>,
     perks: Handle<LoadedFolder>,
     quests: Handle<LoadedFolder>,
+    triggers: Handle<LoadedFolder>,
     upgrades: Handle<LoadedFolder>,
 }
 
@@ -93,6 +95,7 @@ impl LoadingFolders {
             && server.is_loaded_with_dependencies(&self.namepools)
             && server.is_loaded_with_dependencies(&self.perks)
             && server.is_loaded_with_dependencies(&self.quests)
+            && server.is_loaded_with_dependencies(&self.triggers)
             && server.is_loaded_with_dependencies(&self.upgrades)
     }
 }
@@ -140,6 +143,7 @@ fn start_loading(mut commands: Commands, server: Res<AssetServer>) {
         namepools: server.load_folder("data/namepools"),
         perks: server.load_folder("data/perks"),
         quests: server.load_folder("data/quests"),
+        triggers: server.load_folder("data/triggers"),
         upgrades: server.load_folder("data/upgrades"),
     });
 }
@@ -171,12 +175,15 @@ fn assemble_game_data<S: FreelyMutableState>(
     });
     let perks = parse_folder(&loading.perks, &folders, &raw, |d: &PerkDef| d.id.clone());
     let quests = parse_folder(&loading.quests, &folders, &raw, |d: &QuestDef| d.id.clone());
+    let triggers = parse_folder(&loading.triggers, &folders, &raw, |d: &QuestTriggerDef| {
+        d.id.clone()
+    });
     let upgrades = parse_folder(&loading.upgrades, &folders, &raw, |d: &UpgradeDef| {
         d.id.clone()
     });
 
     info!(
-        "Game data loaded: {} areas, {} archetypes, {} events, {} factions, {} items, {} namepools, {} perks, {} quests, {} upgrades",
+        "Game data loaded: {} areas, {} archetypes, {} events, {} factions, {} items, {} namepools, {} perks, {} quests, {} triggers, {} upgrades",
         areas.len(),
         archetypes.len(),
         events.len(),
@@ -185,6 +192,7 @@ fn assemble_game_data<S: FreelyMutableState>(
         name_pools.len(),
         perks.len(),
         quests.len(),
+        triggers.len(),
         upgrades.len(),
     );
 
@@ -197,6 +205,7 @@ fn assemble_game_data<S: FreelyMutableState>(
         name_pools,
         perks,
         quests,
+        triggers,
         upgrades,
         loot_tables: LootTables::default(),
     }));
@@ -205,7 +214,21 @@ fn assemble_game_data<S: FreelyMutableState>(
     *next_state = NextState::Pending(ready.0.clone());
 }
 
+/// Either a single definition or an array of them. Asset files can
+/// use whichever shape reads best — one file per definition for
+/// cleanly scoped records (factions), or an array per file for
+/// tightly related groups (items of the same type).
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+enum OneOrMany<T> {
+    One(T),
+    Many(Vec<T>),
+}
+
 /// Parse all JSON files in a loaded folder into a keyed HashMap.
+///
+/// Each file may contain either a single definition object or an
+/// array of definitions; the loader accepts both shapes.
 fn parse_folder<T, M>(
     handle: &Handle<LoadedFolder>,
     folders: &Assets<LoadedFolder>,
@@ -224,8 +247,11 @@ where
         let Some(json) = raw.get(&file_handle.clone().typed::<RawJson>()) else {
             continue;
         };
-        match serde_json::from_slice::<Vec<T>>(&json.0) {
-            Ok(defs) => {
+        match serde_json::from_slice::<OneOrMany<T>>(&json.0) {
+            Ok(OneOrMany::One(def)) => {
+                map.insert(key(&def), def);
+            }
+            Ok(OneOrMany::Many(defs)) => {
                 for def in defs {
                     map.insert(key(&def), def);
                 }

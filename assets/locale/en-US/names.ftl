@@ -1,40 +1,4 @@
-# Slavic first names
-name-sergei = Sergei
-name-ivan = Ivan
-name-dmitri = Dmitri
-name-oleg = Oleg
-name-yuri = Yuri
-name-viktor = Viktor
-name-anton = Anton
-name-pavel = Pavel
-name-nikolai = Nikolai
-name-alexei = Alexei
-name-grigori = Grigori
-name-boris = Boris
-name-konstantin = Konstantin
-name-mikhail = Mikhail
-name-vadim = Vadim
-name-semyon = Semyon
-
-# Slavic surnames
-name-volkov = Volkov
-name-petrov = Petrov
-name-sokolov = Sokolov
-name-kuznetsov = Kuznetsov
-name-morozov = Morozov
-name-novikov = Novikov
-name-popov = Popov
-name-lebedev = Lebedev
-name-kozlov = Kozlov
-name-smirnov = Smirnov
-name-ivanov = Ivanov
-name-zaytsev = Zaytsev
-name-orlov = Orlov
-name-baranov = Baranov
-name-voronov = Voronov
-name-tarasov = Tarasov
-
-# Western first names
+# First names
 name-james = James
 name-marcus = Marcus
 name-eric = Eric
@@ -47,8 +11,12 @@ name-stefan = Stefan
 name-wolf = Wolf
 name-rolf = Rolf
 name-klaus = Klaus
+name-arthur = Arthur
+name-walter = Walter
+name-felix = Felix
+name-otto = Otto
 
-# Western surnames
+# Surnames
 name-hoffman = Hoffman
 name-weber = Weber
 name-hartmann = Hartmann
@@ -61,6 +29,10 @@ name-stone = Stone
 name-brenner = Brenner
 name-richter = Richter
 name-lang = Lang
+name-keller = Keller
+name-fischer = Fischer
+name-bauer = Bauer
+name-vogel = Vogel
 
 # Aliases
 alias-viper = Viper

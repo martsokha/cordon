@@ -1,0 +1,47 @@
+[
+  {
+    "id": "balaclava",
+    "data": {
+      "type": "armor",
+      "slot": "helmet",
+      "resistances": {
+        "ballistic": 1,
+        "radiation": 1,
+        "chemical": 1,
+        "thermal": 1,
+        "electric": 1,
+        "gravitational": 1
+      },
+      "inventory_slots": 0,
+      "relic_slots": 0
+    },
+    "base_price": 100,
+    "suppliers": [
+      { "faction": "drifters", "price_multiplier": 0.8 },
+      { "faction": "syndicate", "price_multiplier": 1.0 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "cloth_mask",
+    "data": {
+      "type": "armor",
+      "slot": "helmet",
+      "resistances": {
+        "ballistic": 0,
+        "radiation": 1,
+        "chemical": 2,
+        "thermal": 0,
+        "electric": 0,
+        "gravitational": 0
+      },
+      "inventory_slots": 0,
+      "relic_slots": 0
+    },
+    "base_price": 60,
+    "suppliers": [
+      { "faction": "drifters", "price_multiplier": 0.8 }
+    ],
+    "rarity": "common"
+  }
+]

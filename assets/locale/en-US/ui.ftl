@@ -5,58 +5,36 @@ tier-medium = Medium
 tier-high = High
 tier-veryhigh = Very High
 
-# Environment labels
-env-outdoor = Outdoor
-env-indoor = Indoor
-env-underground = Underground
-
 # Hazard labels
 hazard-chemical = Chemical
 hazard-thermal = Thermal
 hazard-electric = Electric
 hazard-gravitational = Gravitational
 
-# Area tooltip
-area-tooltip =
-    { $name }
-    { $environment }
-    Creatures: { $creatures }  Radiation: { $radiation }  Hostility: { $hostility }
-    Hazards: { $hazards }
-    Loot: { $loot }
-    Faction: { $faction }
+# Area archetype labels
+areakind-settlement = Settlement
+areakind-wasteland = Wasteland
+areakind-mutant-lair = Mutant Lair
+areakind-anomaly-field = Anomaly Field
+areakind-anchor = Anchor
 
-# Rank titles: {scheme}-{tier}
-rank-military-1 = Grunt
-rank-military-2 = Soldier
-rank-military-3 = Veteran
-rank-military-4 = Officer
-rank-military-5 = Commander
+# Settlement role labels
+settlement-role-outpost = Outpost
+settlement-role-market = Market
 
-rank-loose-1 = Rookie
-rank-loose-2 = Seasoned
-rank-loose-3 = Hardened
-rank-loose-4 = Boss
-rank-loose-5 = Legend
+# Intel tab
+intel-quest-log = QUEST LOG
+intel-quest-log-empty = No active quests.
+intel-quest-log-completed = RECENT
+intel-faction-standings = FACTION STANDINGS
+intel-recent-events = RECENT EVENTS
+intel-events-empty = No events.
 
-rank-religious-1 = Pilgrim
-rank-religious-2 = Acolyte
-rank-religious-3 = Keeper
-rank-religious-4 = Prophet
-rank-religious-5 = Ascended
-
-rank-academic-1 = Recruit
-rank-academic-2 = Researcher
-rank-academic-3 = Senior
-rank-academic-4 = Director
-rank-academic-5 = Council
-
-# Faction names
-faction-garrison = The Garrison
-faction-syndicate = The Syndicate
-faction-order = The Order
-faction-collective = The Collective
-faction-mercenaries = Mercenaries
-faction-institute = The Institute
-faction-devoted = The Devoted
-faction-drifters = Drifters
-faction-none = Unclaimed
+# Faction standing buckets. Mirror `Relation::is_*` helpers in
+# `cordon-core/src/primitive/relation.rs` — if the thresholds
+# there change, update the descriptive text here to match.
+standing-hostile = Hostile
+standing-unfriendly = Unfriendly
+standing-neutral = Neutral
+standing-friendly = Friendly
+standing-allied = Allied

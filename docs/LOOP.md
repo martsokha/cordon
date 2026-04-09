@@ -26,7 +26,7 @@ The core of the game. Scavengers arrive one at a time (like Papers, Please).
 
 For each customer:
 - They approach your counter with a request (buy, sell, or barter)
-- You see their appearance, faction patch, gear condition, demeanor
+- You see their appearance, faction patch, gear, demeanor
 - You can: **accept**, **counter-offer**, **refuse**, or **negotiate**
 - Some bring gossip, warnings, or jobs
 - Some are lying, desperate, or dangerous
@@ -35,7 +35,7 @@ For each customer:
 - Drag items to/from the counter
 - Adjust prices with sliders or manual input
 - Read NPC mood/trust indicators
-- Optional: inspect items for quality/authenticity (fake relics, broken weapons)
+- Optional: inspect items for quality
 
 ### 3. Evening: Consequences
 

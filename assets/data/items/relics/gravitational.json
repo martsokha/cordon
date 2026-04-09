@@ -1,0 +1,173 @@
+[
+  {
+    "id": "heavy_pebble",
+    "data": {
+      "type": "relic",
+      "origin": "gravitational",
+      "passive": [
+        { "target": "GravitationalResistance", "value": 20.0 }
+      ]
+    },
+    "base_price": 350,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.1 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "pull_nugget",
+    "data": {
+      "type": "relic",
+      "origin": "gravitational",
+      "passive": [
+        { "target": "GravitationalResistance", "value": 25.0 }
+      ]
+    },
+    "base_price": 400,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "drifters", "price_multiplier": 1.05 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "warp_shard",
+    "data": {
+      "type": "relic",
+      "origin": "gravitational",
+      "passive": [
+        { "target": "GravitationalResistance", "value": 30.0 }
+      ]
+    },
+    "base_price": 450,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.1 }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "grav_core",
+    "data": {
+      "type": "relic",
+      "origin": "gravitational",
+      "passive": [
+        { "target": "GravitationalResistance", "value": 40.0 },
+        { "target": "MaxHealth", "value": 8.0 }
+      ]
+    },
+    "base_price": 950,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "devoted", "price_multiplier": 0.9 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "fold_stone",
+    "data": {
+      "type": "relic",
+      "origin": "gravitational",
+      "passive": [
+        { "target": "GravitationalResistance", "value": 45.0 },
+        { "target": "BallisticResistance", "value": 5.0 }
+      ]
+    },
+    "base_price": 1050,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.05 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "mass_seed",
+    "data": {
+      "type": "relic",
+      "origin": "gravitational",
+      "passive": [
+        { "target": "GravitationalResistance", "value": 50.0 },
+        { "target": "MaxStamina", "value": -5.0 }
+      ]
+    },
+    "base_price": 1100,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "drifters", "price_multiplier": 0.95 }
+    ],
+    "rarity": "uncommon"
+  },
+  {
+    "id": "singularity_fragment",
+    "data": {
+      "type": "relic",
+      "origin": "gravitational",
+      "passive": [
+        { "target": "GravitationalResistance", "value": 60.0 },
+        { "target": "MaxHealth", "value": 15.0 }
+      ],
+      "triggered": [
+        {
+          "trigger": { "periodic": 4 },
+          "effect": {
+            "target": "Health",
+            "value": 2.0,
+            "duration": { "secs": 1 }
+          }
+        }
+      ]
+    },
+    "base_price": 2200,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "devoted", "price_multiplier": 0.85 }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "void_heart",
+    "data": {
+      "type": "relic",
+      "origin": "gravitational",
+      "passive": [
+        { "target": "GravitationalResistance", "value": 70.0 },
+        { "target": "MaxStamina", "value": -10.0 }
+      ],
+      "triggered": [
+        {
+          "trigger": "on_hit",
+          "effect": {
+            "target": "Health",
+            "value": 12.0,
+            "duration": "instant"
+          }
+        }
+      ]
+    },
+    "base_price": 2500,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "syndicate", "price_multiplier": 1.0 }
+    ],
+    "rarity": "rare"
+  },
+  {
+    "id": "anchor_relic",
+    "data": {
+      "type": "relic",
+      "origin": "gravitational",
+      "passive": [
+        { "target": "GravitationalResistance", "value": 80.0 },
+        { "target": "BallisticResistance", "value": 10.0 },
+        { "target": "MaxHealth", "value": 20.0 }
+      ]
+    },
+    "base_price": 2800,
+    "suppliers": [
+      { "faction": "institute", "price_multiplier": 1.0 },
+      { "faction": "devoted", "price_multiplier": 0.85 }
+    ],
+    "rarity": "rare"
+  }
+]

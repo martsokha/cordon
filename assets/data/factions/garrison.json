@@ -1,0 +1,16 @@
+{
+  "id": "garrison",
+  "recruitable": false,
+  "rank_scheme": "military",
+  "buys": ["weapon", "ammo", "armor"],
+  "sells": ["weapon", "ammo"],
+  "namepool": "zone",
+  "color": "#6B8C4D",
+  "spawn_weight": 25,
+  "relations": [
+    ["syndicate", -60],
+    ["institute", 40],
+    ["devoted", -70],
+    ["drifters", -30]
+  ]
+}

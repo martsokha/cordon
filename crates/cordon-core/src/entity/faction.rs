@@ -23,16 +23,16 @@ impl IdMarker for Faction {}
 #[serde(rename_all = "lowercase")]
 pub enum RankScheme {
     /// Grunt, Soldier, Veteran, Officer, Commander.
-    /// Used by the Order, Garrison.
+    /// Used by the Garrison.
     Military,
     /// Rookie, Seasoned, Hardened, Boss, Legend.
-    /// Used by Drifters, Syndicate, Mercenaries.
+    /// Used by Drifters and the Syndicate.
     Loose,
     /// Pilgrim, Acolyte, Keeper, Prophet, Ascended.
     /// Used by the Devoted.
     Religious,
     /// Recruit, Researcher, Senior, Director, Council.
-    /// Used by the Collective, Institute.
+    /// Used by the Institute.
     Academic,
 }
 
@@ -43,7 +43,8 @@ pub enum RankScheme {
 /// from localization files, not stored here.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FactionDef {
-    /// Unique identifier and localization key (e.g., `"order"`, `"drifters"`).
+    /// Unique identifier and localization key (e.g., `"garrison"`,
+    /// `"drifters"`).
     pub id: Id<Faction>,
     /// Whether NPCs from this faction can be recruited as runners/guards.
     pub recruitable: bool,
@@ -55,6 +56,16 @@ pub struct FactionDef {
     pub sells: Vec<ItemCategory>,
     /// Name pool ID used to generate NPC names for this faction.
     pub namepool: Id<NamePoolMarker>,
+    /// Display color for this faction as a hex string (e.g.
+    /// `"#6B8C4D"`). Used to tint settlement disks, NPC dots, and
+    /// corpse markers on the map so a faction's footprint is
+    /// recognizable at a glance. Parsed once at game-data load.
+    pub color: String,
+    /// Relative weight used when the daily spawner picks which
+    /// faction a fresh squad belongs to. Higher weights spawn more
+    /// often. Treat the values as relative — if garrison=25 and
+    /// institute=5, garrison spawns five times as often.
+    pub spawn_weight: u32,
     /// Base relations with other factions.
     pub relations: Vec<(Id<Faction>, Relation)>,
 }

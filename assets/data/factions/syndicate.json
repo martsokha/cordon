@@ -1,0 +1,16 @@
+{
+  "id": "syndicate",
+  "recruitable": true,
+  "rank_scheme": "loose",
+  "buys": ["weapon", "relic", "tech"],
+  "sells": ["weapon", "consumable", "attachment"],
+  "namepool": "aliases",
+  "color": "#A8442A",
+  "spawn_weight": 25,
+  "relations": [
+    ["garrison", -60],
+    ["institute", -30],
+    ["devoted", -70],
+    ["drifters", 30]
+  ]
+}

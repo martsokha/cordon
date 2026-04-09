@@ -82,6 +82,23 @@ impl GameTime {
     pub fn is_day(&self) -> bool {
         self.hour >= 6 && self.hour < 21
     }
+
+    /// Total minutes elapsed since the first moment of [`Day::FIRST`]
+    /// at 00:00. Used for cheap duration arithmetic — subtract two
+    /// snapshots to get the difference in minutes.
+    pub fn total_minutes(&self) -> u64 {
+        let days = (self.day.value() - 1) as u64;
+        days * 24 * 60 + self.hour as u64 * 60 + self.minute as u64
+    }
+
+    /// Game-minutes elapsed from `earlier` to `self`. Returns 0 if
+    /// `earlier` is in the future of `self` (clock running
+    /// backwards is not expected but handled defensively).
+    pub fn minutes_since(&self, earlier: GameTime) -> u32 {
+        let now = self.total_minutes();
+        let then = earlier.total_minutes();
+        now.saturating_sub(then).min(u32::MAX as u64) as u32
+    }
 }
 
 impl Default for GameTime {

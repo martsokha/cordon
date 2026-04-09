@@ -21,6 +21,11 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
+# Game engine — cordon-core derives ECS traits (Component, Bundle,
+# Resource) so runtime components and save-game shapes share one
+# definition. Systems and app wiring stay out of this crate.
+bevy = { workspace = true }
+
 # (De)serialization
 serde = { workspace = true }
 
@@ -34,3 +39,6 @@ thiserror = { workspace = true }
 uuid = { workspace = true }
 jiff = { workspace = true }
 semver = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
