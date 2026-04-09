@@ -16,7 +16,7 @@
 mod environment;
 pub(crate) mod fog;
 mod hover;
-mod input;
+pub(crate) mod input;
 pub(crate) mod map;
 pub(crate) mod npcs;
 mod ui;

@@ -6,6 +6,7 @@
 //! - **F2** — push a hardcoded test visitor onto the queue
 //! - **F3** — toggle map fog of war
 //! - **F4** — cycle time-scale (1× → 4× → 16× → 64× → 1×)
+//! - **F5** — toggle map edge-scroll panning
 //!
 //! The entire module is gated behind `cfg(debug_assertions)` at
 //! the `mod debug;` declaration in `main.rs`, so nothing in here
@@ -25,6 +26,7 @@ use cordon_core::primitive::Id;
 
 use crate::bunker::{Visitor, VisitorQueue};
 use crate::laptop::fog::FogEnabled;
+use crate::laptop::input::EdgeScrollEnabled;
 
 pub struct DebugPlugin;
 
@@ -52,6 +54,7 @@ impl Plugin for DebugPlugin {
                 toggle_inspector,
                 debug_push_visitor,
                 cheat_toggle_fog,
+                cheat_toggle_edge_scroll,
                 cheat_cycle_time_scale,
                 apply_time_scale,
             ),
@@ -111,6 +114,18 @@ fn cheat_toggle_fog(keys: Res<ButtonInput<KeyCode>>, mut fog: ResMut<FogEnabled>
     }
     fog.enabled = !fog.enabled;
     info!("cheat: fog {}", if fog.enabled { "on" } else { "off" });
+}
+
+/// F5 → toggle map edge-scroll panning. Off by default. The
+/// real toggle will live in a settings menu later; this cheat
+/// lets us exercise the feature during development without
+/// touching code.
+fn cheat_toggle_edge_scroll(keys: Res<ButtonInput<KeyCode>>, mut edge: ResMut<EdgeScrollEnabled>) {
+    if !keys.just_pressed(KeyCode::F5) {
+        return;
+    }
+    edge.0 = !edge.0;
+    info!("cheat: edge-scroll {}", if edge.0 { "on" } else { "off" });
 }
 
 /// F2 → push a hardcoded test visitor onto the queue. Stand-in for

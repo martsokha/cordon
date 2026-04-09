@@ -13,6 +13,7 @@ use cordon_sim::components::{NpcMarker, SquadMembership};
 use super::NpcAssets;
 use crate::PlayingState;
 use crate::laptop::LaptopCamera;
+use crate::laptop::input::CameraTarget;
 use crate::laptop::ui::map::cursor_world_pos;
 
 /// Currently-selected NPC entity. `None` means nothing is
@@ -33,10 +34,23 @@ pub(super) fn handle_npc_click(
     mouse: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window>,
     cameras: Query<(&Camera, &GlobalTransform), With<LaptopCamera>>,
+    interactions: Query<&Interaction>,
     dots: Query<(Entity, &Transform, &Visibility), With<NpcMarker>>,
     mut selected: ResMut<SelectedNpc>,
+    mut camera_target: ResMut<CameraTarget>,
 ) {
     if !mouse.just_pressed(MouseButton::Left) {
+        return;
+    }
+    // Swallow the click when it's on a UI element so clicking
+    // a tab-bar button or a roster slot doesn't leak through
+    // to deselect/refollow an NPC. Any interaction reporting
+    // Pressed or Hovered this frame means the cursor is over
+    // pickable UI.
+    if interactions
+        .iter()
+        .any(|i| matches!(i, Interaction::Pressed | Interaction::Hovered))
+    {
         return;
     }
     let Some(cursor_world) = cursor_world_pos(&windows, &cameras) else {
@@ -57,10 +71,22 @@ pub(super) fn handle_npc_click(
         }
     }
 
+    // Clicking an NPC selects and follows it; clicking the
+    // same NPC a second time clears both. Clicking empty
+    // space is a no-op — an active follow is only broken by
+    // explicit camera movement (WASD / drag / edge-scroll),
+    // not by a miss. This matches the expectation "I'm
+    // watching Ivan, don't unlock until I pan away."
     match closest {
-        Some((entity, _)) if selected.0 == Some(entity) => selected.0 = None,
-        Some((entity, _)) => selected.0 = Some(entity),
-        None => selected.0 = None,
+        Some((entity, _)) if selected.0 == Some(entity) => {
+            selected.0 = None;
+            camera_target.following = None;
+        }
+        Some((entity, _)) => {
+            selected.0 = Some(entity);
+            camera_target.following = Some(entity);
+        }
+        None => {}
     }
 }
 

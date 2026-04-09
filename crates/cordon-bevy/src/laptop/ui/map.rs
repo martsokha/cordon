@@ -775,10 +775,12 @@ fn update_squad_roster_state(
 /// Clicking a roster slot selects that NPC and smoothly centers
 /// the camera on them. Clicking the already-selected slot toggles
 /// the selection *and* the camera follow off. The camera follow
-/// piggybacks on [`CameraTarget::following`], which the existing
-/// `apply_camera` system already lerp-follows each frame; the
-/// controller clears `following` on any arrow-key pan, so the
-/// follow breaks naturally when the player wants to look elsewhere.
+/// piggybacks on [`CameraTarget::following`], which
+/// `apply_camera` lerp-follows each frame. The controller's
+/// camera-moving systems (keyboard pan, drag pan, edge scroll)
+/// break follow on motion via `snapshot_follow`, so the lock
+/// ends naturally when the player pans away. Zoom leaves
+/// follow intact.
 fn handle_roster_click(
     interactions: Query<(&Interaction, &SquadRosterSlot), Changed<Interaction>>,
     mut selected: ResMut<crate::laptop::SelectedNpc>,
