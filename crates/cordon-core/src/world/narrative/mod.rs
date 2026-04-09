@@ -17,10 +17,11 @@ mod flag;
 mod quest;
 mod trigger;
 
-pub use self::consequence::{Consequence, ObjectiveCondition};
+pub use self::consequence::{ConditionalConsequence, Consequence, ObjectiveCondition};
 pub use self::event::{ActiveEvent, Event, EventCategory, EventDef};
 pub use self::flag::{QuestFlagPredicate, QuestFlagValue};
 pub use self::quest::{
-    Quest, QuestCategory, QuestDef, QuestStage, QuestStageDef, QuestStageKind, TalkBranch,
+    BranchArm, Quest, QuestCategory, QuestDef, QuestStage, QuestStageDef, QuestStageKind,
+    TalkBranch,
 };
 pub use self::trigger::{QuestTrigger, QuestTriggerDef, QuestTriggerKind};

@@ -116,17 +116,25 @@ pub fn start_quest(
 }
 
 /// After a Yarn dialogue tied to a `Talk` stage finishes, jump
-/// to the branch whose `choice` matches the supplied value, or
-/// to the stage's `fallback` if nothing matches. Call this from
-/// the cordon-bevy dialogue bridge.
+/// to the first eligible branch whose `choice` matches the
+/// supplied value, or to the stage's `fallback` if nothing
+/// matches. Call this from the cordon-bevy dialogue bridge.
+///
+/// A branch is *eligible* when its [`requires`](TalkBranch::requires)
+/// guard is absent or evaluates true against the current world
+/// view. Inelegible branches are skipped during selection, so
+/// authors can express "you can only take this branch if you
+/// also carry the medkit" without teaching Yarn the rule.
 pub fn advance_after_talk(
     log: &mut QuestLog,
     data: &GameData,
+    player: &cordon_core::entity::player::PlayerState,
+    events: &[cordon_core::world::narrative::ActiveEvent],
     quest: &Id<Quest>,
     choice: Option<&str>,
     now: GameTime,
 ) {
-    let Some(active) = log.active_instance_mut(quest) else {
+    let Some(active) = log.active_instance(quest) else {
         return;
     };
     let Some(def) = data.quests.get(&active.def_id) else {
@@ -141,15 +149,33 @@ pub fn advance_after_talk(
     else {
         return;
     };
+    // Build a view with the stage clock so any guards that
+    // reference `Wait` or other stage-scoped checks still work.
+    let view = WorldView {
+        player,
+        events,
+        quests: log,
+        now,
+        stage_started_at: Some(active.stage_started_at),
+    };
     let next = match choice {
         Some(c) => branches
             .iter()
+            .filter(|b| {
+                b.requires
+                    .as_ref()
+                    .map(|cond| view.evaluate(cond))
+                    .unwrap_or(true)
+            })
             .find(|b| b.choice == c)
             .map(|b| b.next_stage.clone())
             .unwrap_or_else(|| fallback.clone()),
         None => fallback.clone(),
     };
-    active.advance_to(next, now);
+    // Mutable re-borrow now that evaluation is done.
+    if let Some(active) = log.active_instance_mut(quest) {
+        active.advance_to(next, now);
+    }
 }
 
 /// Drive every active quest that is currently on an `Objective`
@@ -176,8 +202,8 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
         .iter()
         .filter_map(|active| {
             let def = catalog.quests.get(&active.def_id)?;
-            let limit = def.time_limit_minutes?;
-            if now.minutes_since(active.started_at) < limit {
+            let limit = def.time_limit?;
+            if now.minutes_since(active.started_at) < limit.minutes() {
                 return None;
             }
             let fail_stage = def
@@ -210,7 +236,20 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
         }
     }
 
-    // --- 3. Outcome stages: apply consequences and complete.
+    // --- 3. Branch stages: pick the first eligible arm or
+    // fall through. Same collect-then-apply split so the
+    // evaluator's immutable borrow of `log` is released before
+    // the mutable advance. Run in the same frame as entry so
+    // Branch behaves as a silent fork, not a wait state.
+    let branch_transitions =
+        collect_branch_transitions(&ctx.log, &ctx.player.0, &ctx.events.0, catalog, now);
+    for (index, next_stage) in branch_transitions {
+        if let Some(active) = ctx.log.active.get_mut(index) {
+            active.advance_to(next_stage, now);
+        }
+    }
+
+    // --- 4. Outcome stages: apply consequences and complete.
     // Collect the def_ids of quests whose current stage is an
     // Outcome, then resolve each by def_id at completion time.
     // Identifying by def_id rather than by index survives any
@@ -263,7 +302,7 @@ fn collect_objective_transitions(
         };
         let QuestStageKind::Objective {
             condition,
-            timeout_minutes,
+            timeout,
             on_success,
             on_failure,
         } = &stage.kind
@@ -272,8 +311,8 @@ fn collect_objective_transitions(
         };
 
         let elapsed = now.minutes_since(active.stage_started_at);
-        let timed_out = timeout_minutes
-            .map(|limit| elapsed >= limit)
+        let timed_out = timeout
+            .map(|limit| elapsed >= limit.minutes())
             .unwrap_or(false);
 
         // Per-iteration view: each active quest has its own
@@ -308,6 +347,49 @@ fn collect_objective_transitions(
                 }
             }
         }
+    }
+    out
+}
+
+/// Walk the active list and decide which quests currently on a
+/// `Branch` stage should advance this frame. The first arm
+/// whose [`when`](cordon_core::world::narrative::BranchArm::when)
+/// evaluates true wins; if nothing matches, the stage's
+/// `fallback` is taken. Branch transitions are evaluated on
+/// entry and take effect the same frame — Branch never waits.
+fn collect_branch_transitions(
+    log: &QuestLog,
+    player: &cordon_core::entity::player::PlayerState,
+    events: &[cordon_core::world::narrative::ActiveEvent],
+    catalog: &GameData,
+    now: GameTime,
+) -> Vec<(usize, Id<QuestStage>)> {
+    let mut out = Vec::new();
+    for (index, active) in log.active.iter().enumerate() {
+        let Some(def) = catalog.quests.get(&active.def_id) else {
+            continue;
+        };
+        let Some(stage) = def.stage(&active.current_stage) else {
+            continue;
+        };
+        let QuestStageKind::Branch { arms, fallback } = &stage.kind else {
+            continue;
+        };
+
+        let view = WorldView {
+            player,
+            events,
+            quests: log,
+            now,
+            stage_started_at: Some(active.stage_started_at),
+        };
+
+        let next = arms
+            .iter()
+            .find(|arm| view.evaluate(&arm.when))
+            .map(|arm| arm.next_stage.clone())
+            .unwrap_or_else(|| fallback.clone());
+        out.push((index, next));
     }
     out
 }
@@ -350,11 +432,40 @@ fn complete_quest(
     let success = *success;
     let outcome_stage = active.current_stage.clone();
     let started_at = active.started_at;
+    let stage_started_at = active.stage_started_at;
     let flags = active.flags.clone();
-    let consequences = consequences.clone();
+    let bundles = consequences.clone();
 
-    // Apply before moving records so consequences can reference
-    // the still-active quest (e.g. chained `StartQuest`).
+    // First pass: decide which conditional bundles are eligible
+    // by evaluating their guards against the live world view.
+    // Done before touching the mutable `WorldMut` so the guard
+    // evaluation can borrow `log` + `events` immutably.
+    let eligible: Vec<&Vec<Consequence>> = {
+        let view = WorldView {
+            player,
+            events,
+            quests: log,
+            now,
+            stage_started_at: Some(stage_started_at),
+        };
+        bundles
+            .iter()
+            .filter(|b| {
+                b.when
+                    .as_ref()
+                    .map(|cond| view.evaluate(cond))
+                    .unwrap_or(true)
+            })
+            .map(|b| &b.apply)
+            .collect()
+    };
+    // Flatten the eligible bundles into a single consequence
+    // list the applier can walk without re-checking guards.
+    let to_apply: Vec<Consequence> =
+        eligible.into_iter().flatten().cloned().collect();
+
+    // Second pass: apply. Mutable `WorldMut` now, immutable
+    // borrows from the eligibility pass are released.
     let mut world = WorldMut {
         player,
         events,
@@ -363,7 +474,7 @@ fn complete_quest(
         rng,
         faction_pool,
     };
-    for consequence in &consequences {
+    for consequence in &to_apply {
         apply(consequence, &mut world, start_quest_tx);
     }
 
@@ -664,8 +775,10 @@ fn warn_on_stub_consequences(catalog: &GameData) {
             let QuestStageKind::Outcome { consequences, .. } = &stage.kind else {
                 continue;
             };
-            for consequence in consequences {
-                count(consequence);
+            for bundle in consequences {
+                for consequence in &bundle.apply {
+                    count(consequence);
+                }
             }
         }
     }
@@ -716,7 +829,22 @@ fn validate_stage_references(def: &QuestDef) {
                         fallback.as_str()
                     );
                 }
+                // Duplicate choice strings silently shadow —
+                // serde is happy to let you have two branches
+                // keyed by "accept" but the engine only ever
+                // reaches the first. Flag it so authors catch
+                // the typo at load time.
+                let mut seen_choices: HashSet<&str> = HashSet::new();
                 for branch in branches {
+                    if !seen_choices.insert(branch.choice.as_str()) {
+                        warn!(
+                            "quest `{}` stage `{}` has duplicate TalkBranch choice `{}` — \
+                             only the first matching branch will ever be taken",
+                            def.id.as_str(),
+                            stage.id.as_str(),
+                            branch.choice
+                        );
+                    }
                     if !ids.contains(&branch.next_stage) {
                         warn!(
                             "quest `{}` stage `{}` branch `{}` → unknown stage `{}`",
@@ -750,6 +878,26 @@ fn validate_stage_references(def: &QuestDef) {
                         stage.id.as_str(),
                         on_failure.as_str()
                     );
+                }
+            }
+            QuestStageKind::Branch { arms, fallback } => {
+                if !ids.contains(fallback) {
+                    warn!(
+                        "quest `{}` stage `{}` branch fallback → unknown stage `{}`",
+                        def.id.as_str(),
+                        stage.id.as_str(),
+                        fallback.as_str()
+                    );
+                }
+                for (i, arm) in arms.iter().enumerate() {
+                    if !ids.contains(&arm.next_stage) {
+                        warn!(
+                            "quest `{}` stage `{}` branch arm #{i} → unknown stage `{}`",
+                            def.id.as_str(),
+                            stage.id.as_str(),
+                            arm.next_stage.as_str()
+                        );
+                    }
                 }
             }
             QuestStageKind::Outcome { .. } => {}

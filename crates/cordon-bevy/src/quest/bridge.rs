@@ -32,7 +32,7 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::Id;
 use cordon_core::world::narrative::{Quest, QuestStageKind};
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::plugin::prelude::{GameClock, QuestLog};
+use cordon_sim::plugin::prelude::{EventLog, GameClock, Player, QuestLog};
 use cordon_sim::quest::engine::advance_after_talk;
 
 use crate::bunker::dialogue::StartDialogue;
@@ -161,6 +161,8 @@ pub fn on_dialogue_completed(
     mut log: ResMut<QuestLog>,
     data: Res<GameDataResource>,
     clock: Res<GameClock>,
+    player: Res<Player>,
+    events: Res<EventLog>,
     mut in_flight: ResMut<DialogueInFlight>,
     runner_q: Query<&DialogueRunner>,
 ) {
@@ -204,6 +206,8 @@ pub fn on_dialogue_completed(
     advance_after_talk(
         &mut log,
         &data.0,
+        &player.0,
+        &events.0,
         &quest_id,
         captured_choice.as_deref(),
         clock.0,

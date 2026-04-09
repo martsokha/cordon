@@ -3,80 +3,59 @@
   "category": "tutorial",
   "giver": "garrison_lieutenant",
   "giver_faction": "garrison",
-  "time_limit_minutes": null,
   "stages": [
     {
       "id": "intro",
-      "kind": {
-        "talk": {
-          "npc": "garrison_lieutenant",
-          "yarn_node": "first_contact.intro",
-          "branches": [
-            { "choice": "accept", "next_stage": "outcome_accept" },
-            { "choice": "neutral", "next_stage": "outcome_neutral" },
-            { "choice": "refuse", "next_stage": "outcome_refuse" }
-          ],
-          "fallback": "outcome_refuse"
-        }
-      }
+      "kind": "talk",
+      "npc": "garrison_lieutenant",
+      "yarn_node": "first_contact.intro",
+      "branches": [
+        { "choice": "accept", "next_stage": "outcome_accept" },
+        { "choice": "neutral", "next_stage": "outcome_neutral" },
+        { "choice": "refuse", "next_stage": "outcome_refuse" }
+      ],
+      "fallback": "outcome_refuse"
     },
     {
       "id": "outcome_accept",
-      "kind": {
-        "outcome": {
-          "success": true,
-          "consequences": [
+      "kind": "outcome",
+      "success": true,
+      "consequences": [
+        {
+          "apply": [
             { "give_credits": 200 },
             { "give_player_xp": 50 },
-            {
-              "standing_change": {
-                "faction": "garrison",
-                "delta": 15
-              }
-            },
-            {
-              "standing_change": {
-                "faction": "syndicate",
-                "delta": -5
-              }
-            }
+            { "standing_change": { "faction": "garrison", "delta": 15 } },
+            { "standing_change": { "faction": "syndicate", "delta": -5 } }
           ]
         }
-      }
+      ]
     },
     {
       "id": "outcome_neutral",
-      "kind": {
-        "outcome": {
-          "success": true,
-          "consequences": [
+      "kind": "outcome",
+      "success": true,
+      "consequences": [
+        {
+          "apply": [
             { "give_credits": 100 },
             { "give_player_xp": 25 },
-            {
-              "standing_change": {
-                "faction": "garrison",
-                "delta": 5
-              }
-            }
+            { "standing_change": { "faction": "garrison", "delta": 5 } }
           ]
         }
-      }
+      ]
     },
     {
       "id": "outcome_refuse",
-      "kind": {
-        "outcome": {
-          "success": false,
-          "consequences": [
-            {
-              "standing_change": {
-                "faction": "garrison",
-                "delta": -10
-              }
-            }
+      "kind": "outcome",
+      "success": false,
+      "consequences": [
+        {
+          "apply": [
+            { "standing_change": { "faction": "garrison", "delta": -10 } }
           ]
         }
-      }
+      ]
     }
   ],
   "repeatable": false

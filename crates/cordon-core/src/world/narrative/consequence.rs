@@ -101,6 +101,28 @@ pub enum ObjectiveCondition {
     Not(Box<ObjectiveCondition>),
 }
 
+/// A bundle of [`Consequence`]s with an optional guard.
+///
+/// Used inside [`QuestStageKind::Outcome`](super::QuestStageKind::Outcome)
+/// so a single terminal stage can fork its rewards on world
+/// state without needing a separate `Outcome` stage per arm.
+///
+/// Evaluation: when `when` is `None` the `apply` list always
+/// fires; otherwise the condition is checked (with the Outcome
+/// stage's clock as the stage context) and the list fires only
+/// if the guard evaluates true. Guards are independent — every
+/// matching arm runs, in order, so bundles compose.
+#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct ConditionalConsequence {
+    /// Guard condition. `None` means the bundle always fires.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub when: Option<ObjectiveCondition>,
+    /// The consequences to apply when the guard passes.
+    pub apply: Vec<Consequence>,
+}
+
 /// A mutation applied to world state.
 ///
 /// Fired by quest outcomes, quest stage transitions, choice
