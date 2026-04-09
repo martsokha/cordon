@@ -7,6 +7,7 @@
 
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::{Day, Id};
+use cordon_core::world::area::Area;
 use cordon_core::world::narrative::{ActiveEvent, EventCategory, EventDef};
 use rand::{Rng, RngExt};
 
@@ -52,46 +53,79 @@ pub fn roll_daily_events<R: Rng>(
             continue;
         }
 
-        active.push(spawn_event_instance(def, faction_ids, day, rng));
+        active.push(spawn_event_instance(
+            def,
+            faction_ids,
+            day,
+            &EventOverrides::default(),
+            rng,
+        ));
     }
 }
 
-/// Build a fresh [`ActiveEvent`] from a definition, rolling a
-/// random duration in `[min_duration, max_duration]`, picking
-/// the involved factions from the def's list (or from the
-/// world list if empty), and picking a target area from the
-/// def's list (or `None` for zone-wide events).
+/// Optional overrides for the fields [`spawn_event_instance`]
+/// would otherwise randomize. Used by the quest `TriggerEvent`
+/// consequence applier to pin specific values while letting the
+/// rest fall through to the def's rng path.
 ///
-/// Used both by [`roll_daily_events`] (after its probability
-/// roll succeeds) and by the quest `TriggerEvent` consequence
-/// applier (which bypasses probability but still wants
-/// randomness on the instance parameters). Keeping both sites
-/// on the same helper means the two paths cannot drift.
+/// [`Default`] gives "no overrides" — the call site the daily
+/// roll uses.
+#[derive(Debug, Default)]
+pub struct EventOverrides {
+    /// Pin the target area. `None` rolls from the def.
+    pub target_area: Option<Id<Area>>,
+    /// Pin the involved factions. Empty rolls from the def.
+    pub involved_factions: Vec<Id<Faction>>,
+    /// Pin the duration in days. `None` rolls in
+    /// `def.min_duration..=def.max_duration`.
+    pub duration_days: Option<u8>,
+}
+
+/// Build a fresh [`ActiveEvent`] from a definition.
+///
+/// For each of `duration_days`, `involved_factions`, and
+/// `target_area`, the caller-supplied `overrides` win; unset
+/// override fields fall through to the def-driven rng path.
+/// The daily roll passes [`EventOverrides::default`] so the
+/// roll path and the quest-consequence path share one code path
+/// and can't drift on instance construction.
 pub fn spawn_event_instance<R: Rng>(
     def: &EventDef,
     faction_ids: &[Id<Faction>],
     day: Day,
+    overrides: &EventOverrides,
     rng: &mut R,
 ) -> ActiveEvent {
-    let duration = if def.min_duration == def.max_duration {
-        def.min_duration
+    let duration_days = overrides.duration_days.unwrap_or_else(|| {
+        if def.min_duration == def.max_duration {
+            def.min_duration
+        } else {
+            rng.random_range(def.min_duration..=def.max_duration)
+        }
+    });
+
+    let involved_factions = if overrides.involved_factions.is_empty() {
+        pick_involved_factions(&def.involved_factions, faction_ids, rng)
     } else {
-        rng.random_range(def.min_duration..=def.max_duration)
+        overrides.involved_factions.clone()
     };
 
-    let involved_factions = pick_involved_factions(&def.involved_factions, faction_ids, rng);
-
-    let target_area = if def.target_areas.is_empty() {
-        None
-    } else {
-        let idx = rng.random_range(0..def.target_areas.len());
-        Some(def.target_areas[idx].clone())
-    };
+    let target_area = overrides
+        .target_area
+        .clone()
+        .or_else(|| {
+            if def.target_areas.is_empty() {
+                None
+            } else {
+                let idx = rng.random_range(0..def.target_areas.len());
+                Some(def.target_areas[idx].clone())
+            }
+        });
 
     ActiveEvent {
         def_id: def.id.clone(),
         day_started: day,
-        duration_days: duration,
+        duration_days,
         involved_factions,
         target_area,
     }

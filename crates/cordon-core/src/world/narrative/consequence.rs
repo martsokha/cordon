@@ -24,7 +24,7 @@ use crate::entity::bunker::Upgrade;
 use crate::entity::faction::Faction;
 use crate::entity::npc::NpcTemplate;
 use crate::item::{ItemCategory, ItemQuery};
-use crate::primitive::{Credits, Duration, Id, Relation, RelationDelta};
+use crate::primitive::{Credits, Duration, Experience, Id, Relation, RelationDelta};
 use crate::world::area::Area;
 
 /// A boolean condition over world state.
@@ -129,30 +129,77 @@ pub enum Consequence {
     /// with a warning if the stash runs out.
     TakeItem(ItemQuery),
     /// Fire an event by its definition ID.
-    TriggerEvent(Id<Event>),
+    ///
+    /// Authors can optionally override the fields that the daily
+    /// roll would normally randomize — `target_area`,
+    /// `involved_factions`, and `duration_days`. An omitted
+    /// override falls through to the def's own rng path, so a
+    /// minimal `{ "trigger_event": { "event": "surge" } }` stays
+    /// valid. Fields that are always author-authoritative on the
+    /// def side (category, probability, consequences, chain
+    /// events) are not overridable here.
+    TriggerEvent {
+        /// Which event def to spawn.
+        event: Id<Event>,
+        /// Override for `ActiveEvent::target_area`. `None` falls
+        /// through to the def's `target_areas` rng pick.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        target_area: Option<Id<Area>>,
+        /// Override for `ActiveEvent::involved_factions`. An
+        /// empty vec falls through to the def's `involved_factions`
+        /// rng pick. Non-empty values are used verbatim.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        involved_factions: Vec<Id<Faction>>,
+        /// Override for `ActiveEvent::duration_days`. `None`
+        /// falls through to a random roll in the def's
+        /// `min_duration..=max_duration` range.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        duration_days: Option<u8>,
+    },
     /// Start a quest manually (bypassing its trigger table).
     StartQuest(Id<Quest>),
     /// Unlock a bunker upgrade for purchase / installation.
     UnlockUpgrade(Id<Upgrade>),
-    /// Spawn a visitor from the given NPC template.
-    SpawnNpc(Id<NpcTemplate>),
-    /// Grant the player experience. Rank is derived from total XP.
-    GivePlayerXp(u32),
+    /// Spawn a visitor from the given NPC template, optionally
+    /// at a specific area. `at` = `None` defers to the template's
+    /// default spawn location (bunker visitor queue today; may
+    /// be a random area in the future).
+    SpawnNpc {
+        template: Id<NpcTemplate>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        at: Option<Id<Area>>,
+    },
+    /// Grant the player experience. Rank is derived from total
+    /// XP. Wraps [`Experience`] so the types line up with
+    /// `PlayerState::xp` and the intent is explicit at the call
+    /// site.
+    GivePlayerXp(Experience),
     /// Grant an NPC template experience. The sim resolves the
     /// template to one live instance (e.g. the quest's current
     /// giver) at apply time.
     GiveNpcXp {
         template: Id<NpcTemplate>,
-        amount: u32,
+        amount: Experience,
     },
     /// Shift the danger rating of an area, or the whole zone if
-    /// [`area`](Consequence::DangerModifier::area) is `None`.
-    DangerModifier { area: Option<Id<Area>>, delta: f32 },
+    /// [`area`](Consequence::DangerModifier::area) is `None`. A
+    /// non-`None` [`duration`](Consequence::DangerModifier::duration)
+    /// schedules automatic expiry; permanent when omitted.
+    DangerModifier {
+        area: Option<Id<Area>>,
+        delta: f32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        duration: Option<Duration>,
+    },
     /// Multiply market prices for an item category. Stacks
-    /// multiplicatively with other active modifiers.
+    /// multiplicatively with other active modifiers. A non-`None`
+    /// [`duration`](Consequence::PriceModifier::duration) schedules
+    /// automatic expiry; permanent when omitted.
     PriceModifier {
         category: ItemCategory,
         multiplier: f32,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        duration: Option<Duration>,
     },
 }
 

@@ -49,25 +49,19 @@ impl<'a> WorldView<'a> {
             ObjectiveCondition::HaveItem(q) => {
                 self.player.has_item(&q.item, q.resolved_count(), q.scope)
             }
-
             ObjectiveCondition::HaveCredits(amount) => self.player.credits.can_afford(*amount),
             ObjectiveCondition::FactionStanding {
                 faction,
                 min_standing,
             } => self.player.standing(faction) >= *min_standing,
-
             ObjectiveCondition::HaveUpgrade(upgrade) => self.player.has_upgrade(upgrade),
-
             ObjectiveCondition::EventActive(event) => {
                 self.events.iter().any(|e| &e.def_id == event)
             }
-
             ObjectiveCondition::QuestActive(quest) => self.quests.is_active(quest),
-
             ObjectiveCondition::QuestCompleted(quest) => {
                 self.quests.is_completed_successfully(quest)
             }
-
             ObjectiveCondition::QuestFlag {
                 quest,
                 key,

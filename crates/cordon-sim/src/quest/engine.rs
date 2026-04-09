@@ -652,7 +652,7 @@ fn warn_on_stub_consequences(catalog: &GameData) {
     let mut price_modifier = 0usize;
 
     let mut count = |c: &Consequence| match c {
-        Consequence::SpawnNpc(_) => spawn_npc += 1,
+        Consequence::SpawnNpc { .. } => spawn_npc += 1,
         Consequence::GiveNpcXp { .. } => give_npc_xp += 1,
         Consequence::DangerModifier { .. } => danger_modifier += 1,
         Consequence::PriceModifier { .. } => price_modifier += 1,
