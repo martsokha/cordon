@@ -682,7 +682,7 @@ fn build_squad_roster(
     let Ok((panel_entity, panel_children)) = panel_q.single() else {
         return;
     };
-    let already_built = panel_children.map(|c| c.len() > 0).unwrap_or(false);
+    let already_built = panel_children.map(|c| !c.is_empty()).unwrap_or(false);
     if already_built {
         return;
     }

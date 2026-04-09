@@ -41,7 +41,18 @@ allow = [
     "CDLA-Permissive-2.0",
 ]
 
-exceptions = []
+exceptions = [
+    # `epaint_default_fonts` ships default UI fonts (Ubuntu,
+    # Hack, Noto, Emoji) whose font files carry OFL-1.1 and
+    # Ubuntu-font-1.0 in addition to the crate's own MIT /
+    # Apache-2.0. Both are OSI-approved free-software font
+    # licenses (the OFL is explicitly FSF Free/Libre per the
+    # cargo-deny report). Scoping the allowance to this one
+    # crate keeps the global licence list clean — no new
+    # dependency can sneak OFL-1.1 in without tripping the
+    # check again.
+    { allow = ["OFL-1.1", "Ubuntu-font-1.0"], crate = "epaint_default_fonts" },
+]
 
 [bans]
 multiple-versions = "warn"

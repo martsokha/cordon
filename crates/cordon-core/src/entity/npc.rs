@@ -44,10 +44,11 @@ pub enum Role {
 /// Core personality trait affecting negotiation behavior
 /// (hidden from the player). Stored on entities as a field of
 /// `NpcAttributes`, not as its own component.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[derive(Serialize, Deserialize)]
 pub enum Personality {
     /// Careful, slow to trust, thorough negotiator.
+    #[default]
     Cautious,
     /// Confrontational, may escalate if refused.
     Aggressive,
@@ -59,10 +60,4 @@ pub enum Personality {
     Patient,
     /// Makes snap decisions, may accept bad deals.
     Impulsive,
-}
-
-impl Default for Personality {
-    fn default() -> Self {
-        Personality::Cautious
-    }
 }

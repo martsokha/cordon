@@ -1,10 +1,11 @@
 //! Per-frame visibility application.
 //!
-//! Builds the set of reveal circles from live player-squad members
-//! + the bunker, then walks every area / NPC / relic / anomaly
-//! visual and toggles `Visibility` based on whether it intersects
-//! any reveal. Visibility writes are change-guarded so a stable
-//! scene doesn't dirty Bevy's change detection cascade.
+//! Builds the set of reveal circles from live player-squad
+//! members and the always-on bunker circle, then walks every
+//! area / NPC / relic / anomaly visual and toggles
+//! `Visibility` based on whether it intersects any reveal.
+//! Visibility writes are change-guarded so a stable scene
+//! doesn't dirty Bevy's change detection cascade.
 
 use bevy::prelude::*;
 use cordon_sim::components::{NpcMarker, RelicMarker, SquadMembership};

@@ -111,11 +111,9 @@ fn interact(
     let pressed_esc = keys.just_pressed(KeyCode::Escape);
 
     // Exit CCTV fullscreen on E or Esc.
-    if matches!(*camera_mode, CameraMode::AtCctv { .. }) {
+    if let CameraMode::AtCctv { saved_transform } = *camera_mode {
         if pressed_e || pressed_esc {
-            if let CameraMode::AtCctv { saved_transform } = *camera_mode {
-                *camera_mode = CameraMode::Returning(saved_transform);
-            }
+            *camera_mode = CameraMode::Returning(saved_transform);
         }
         return;
     }
