@@ -6,7 +6,7 @@
       "slot": "suit",
       "resistances": {
         "ballistic": 6,
-        "radiation": 5,
+        "corruption": 5,
         "chemical": 5,
         "thermal": 3,
         "electric": 3,
@@ -31,7 +31,7 @@
       "slot": "suit",
       "resistances": {
         "ballistic": 4,
-        "radiation": 8,
+        "corruption": 8,
         "chemical": 7,
         "thermal": 5,
         "electric": 4,

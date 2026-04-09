@@ -6,7 +6,7 @@
       "slot": "helmet",
       "resistances": {
         "ballistic": 0,
-        "radiation": 3,
+        "corruption": 3,
         "chemical": 5,
         "thermal": 0,
         "electric": 0,
@@ -35,7 +35,7 @@
       "slot": "helmet",
       "resistances": {
         "ballistic": 2,
-        "radiation": 6,
+        "corruption": 6,
         "chemical": 8,
         "thermal": 3,
         "electric": 2,

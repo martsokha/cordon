@@ -110,7 +110,7 @@
             "id": "item_medkit"
           },
           {
-            "id": "item_antirad"
+            "id": "item_antidote"
           }
         ],
         "consumable_count": 3
@@ -149,7 +149,7 @@
             "id": "item_medkit"
           },
           {
-            "id": "item_antirad"
+            "id": "item_antidote"
           }
         ],
         "consumable_count": 4
@@ -185,7 +185,7 @@
             "id": "item_medkit"
           },
           {
-            "id": "item_antirad"
+            "id": "item_antidote"
           }
         ],
         "consumable_count": 4

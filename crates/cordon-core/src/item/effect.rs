@@ -29,6 +29,7 @@ use crate::primitive::{Distance, Duration};
 /// mechanisms, and will land alongside whichever feature
 /// introduces them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ResourceTarget {
     /// Current HP. Positive values heal; negative values drain.
     Health,
@@ -36,10 +37,11 @@ pub enum ResourceTarget {
     Stamina,
     /// Current hunger (higher = more sated).
     Hunger,
-    /// Current radiation level carried by the character.
-    /// Negative values reduce rads (anti-rad pills), positive
-    /// increase (contaminated food, radioactive artifacts).
-    RadiationLevel,
+    /// Accumulated corruption carried by the character.
+    /// Negative values scrub corruption (antidote pills,
+    /// scrubber relics), positive increase it (tainted food,
+    /// corrupted artifacts, corrupted area exposure).
+    Corruption,
     /// Instantaneous damage dealt to the target (grenades,
     /// direct hits). Positive values deal damage. Distinct
     /// from [`Health`](Self::Health) with a negative value so
@@ -51,6 +53,7 @@ pub enum ResourceTarget {
 /// Persistent stats that passive modifiers touch while their source
 /// is equipped or active.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum StatTarget {
     /// Flat addition to the carrier's max HP cap.
     MaxHealth,
@@ -60,7 +63,7 @@ pub enum StatTarget {
     MaxHunger,
     /// Flat addition to each resistance track.
     BallisticResistance,
-    RadiationResistance,
+    CorruptionResistance,
     ChemicalResistance,
     ThermalResistance,
     ElectricResistance,
@@ -131,7 +134,7 @@ mod tests {
     #[test]
     fn timed_effect_deserializes_without_aoe() {
         let json = r#"{
-            "target": "Health",
+            "target": "health",
             "value": 50.0,
             "duration": "instant"
         }"#;
@@ -145,7 +148,7 @@ mod tests {
     #[test]
     fn timed_effect_deserializes_with_minute_duration() {
         let json = r#"{
-            "target": "Bleeding",
+            "target": "corruption",
             "value": 1.0,
             "duration": 5
         }"#;

@@ -209,7 +209,7 @@ fn update_hover(
                     kind_label: i.kind_label.clone(),
                     role: i.role.clone(),
                     creatures: i.creatures.clone(),
-                    radiation: i.radiation.clone(),
+                    corruption: i.corruption.clone(),
                     hazard_image: i.hazard_image.clone(),
                     hazard_count: i.hazard_count,
                     loot: i.loot.clone(),

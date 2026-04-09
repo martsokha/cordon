@@ -6,7 +6,7 @@
       "origin": "thermal",
       "passive": [
         {
-          "target": "ThermalResistance",
+          "target": "thermal_resistance",
           "value": 20.0
         }
       ]
@@ -31,7 +31,7 @@
       "origin": "thermal",
       "passive": [
         {
-          "target": "ThermalResistance",
+          "target": "thermal_resistance",
           "value": 25.0
         }
       ]
@@ -56,7 +56,7 @@
       "origin": "thermal",
       "passive": [
         {
-          "target": "ThermalResistance",
+          "target": "thermal_resistance",
           "value": 30.0
         }
       ]
@@ -81,11 +81,11 @@
       "origin": "thermal",
       "passive": [
         {
-          "target": "ThermalResistance",
+          "target": "thermal_resistance",
           "value": 40.0
         },
         {
-          "target": "MaxStamina",
+          "target": "max_stamina",
           "value": 5.0
         }
       ]
@@ -110,11 +110,11 @@
       "origin": "thermal",
       "passive": [
         {
-          "target": "ThermalResistance",
+          "target": "thermal_resistance",
           "value": 45.0
         },
         {
-          "target": "ChemicalResistance",
+          "target": "chemical_resistance",
           "value": -10.0
         }
       ]
@@ -139,11 +139,11 @@
       "origin": "thermal",
       "passive": [
         {
-          "target": "ThermalResistance",
+          "target": "thermal_resistance",
           "value": 50.0
         },
         {
-          "target": "ElectricResistance",
+          "target": "electric_resistance",
           "value": 10.0
         }
       ]
@@ -168,11 +168,11 @@
       "origin": "thermal",
       "passive": [
         {
-          "target": "ThermalResistance",
+          "target": "thermal_resistance",
           "value": 60.0
         },
         {
-          "target": "MaxHealth",
+          "target": "max_health",
           "value": 10.0
         }
       ],
@@ -180,7 +180,7 @@
         {
           "trigger": "on_hit",
           "effect": {
-            "target": "Health",
+            "target": "health",
             "value": 6.0,
             "duration": 3
           }
@@ -207,11 +207,11 @@
       "origin": "thermal",
       "passive": [
         {
-          "target": "ThermalResistance",
+          "target": "thermal_resistance",
           "value": 70.0
         },
         {
-          "target": "ChemicalResistance",
+          "target": "chemical_resistance",
           "value": -15.0
         }
       ],
@@ -221,7 +221,7 @@
             "periodic": 3
           },
           "effect": {
-            "target": "Health",
+            "target": "health",
             "value": 3.0,
             "duration": 2
           }
@@ -248,11 +248,11 @@
       "origin": "thermal",
       "passive": [
         {
-          "target": "ThermalResistance",
+          "target": "thermal_resistance",
           "value": 80.0
         },
         {
-          "target": "MaxStamina",
+          "target": "max_stamina",
           "value": 15.0
         }
       ],
@@ -262,7 +262,7 @@
             "on_hp_low": 0.25
           },
           "effect": {
-            "target": "Health",
+            "target": "health",
             "value": 10.0,
             "duration": 4
           }

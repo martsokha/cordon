@@ -8,7 +8,7 @@
     "radius": 75.0,
     "kind": {
       "type": "wasteland",
-      "radiation": "verylow",
+      "corruption": "verylow",
       "loot": "low"
     }
   },
@@ -21,7 +21,7 @@
     "radius": 65.0,
     "kind": {
       "type": "wasteland",
-      "radiation": "verylow",
+      "corruption": "verylow",
       "loot": "verylow"
     }
   },
@@ -34,7 +34,7 @@
     "radius": 80.0,
     "kind": {
       "type": "wasteland",
-      "radiation": "verylow",
+      "corruption": "verylow",
       "loot": "low"
     }
   },
@@ -47,7 +47,7 @@
     "radius": 60.0,
     "kind": {
       "type": "wasteland",
-      "radiation": "low",
+      "corruption": "low",
       "loot": "low"
     }
   },
@@ -60,7 +60,7 @@
     "radius": 70.0,
     "kind": {
       "type": "wasteland",
-      "radiation": "low",
+      "corruption": "low",
       "loot": "medium"
     }
   },
@@ -73,7 +73,7 @@
     "radius": 85.0,
     "kind": {
       "type": "wasteland",
-      "radiation": "verylow",
+      "corruption": "verylow",
       "loot": "low"
     }
   }

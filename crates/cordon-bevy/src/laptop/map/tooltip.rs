@@ -74,7 +74,7 @@ pub fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
     };
 
     let creatures = area.kind.creatures().map(tier_label);
-    let radiation = area.kind.radiation().map(tier_label);
+    let corruption = area.kind.corruption().map(tier_label);
     let loot = area.kind.loot().map(tier_label);
     let (hazard_image, hazard_count_v) = match area.kind.hazard() {
         Some(h) => (Some(hazard_image(&h)), hazard_count(h.intensity)),
@@ -90,7 +90,7 @@ pub fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
         kind_label: l10n_or(l10n, kind_key, kind_key),
         role,
         creatures,
-        radiation,
+        corruption,
         hazard_image,
         hazard_count: hazard_count_v,
         loot,
@@ -135,7 +135,7 @@ pub fn build_relic_tooltip(
                 StatTarget::MaxStamina => ("stat-max-stamina", "Max Stamina"),
                 StatTarget::MaxHunger => ("stat-max-hunger", "Max Hunger"),
                 StatTarget::BallisticResistance => ("hazard-ballistic", "Ballistic"),
-                StatTarget::RadiationResistance => ("hazard-radiation", "Radiation"),
+                StatTarget::CorruptionResistance => ("hazard-corruption", "Corruption"),
                 StatTarget::ChemicalResistance => ("hazard-chemical", "Chemical"),
                 StatTarget::ThermalResistance => ("hazard-thermal", "Thermal"),
                 StatTarget::ElectricResistance => ("hazard-electric", "Electric"),

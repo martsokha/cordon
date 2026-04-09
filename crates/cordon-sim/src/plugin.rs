@@ -139,7 +139,7 @@ pub mod prelude {
     pub use crate::combat::ShotFired;
     pub use crate::components::{
         BaseMaxes, Employment, FactionId, Hp, HungerPool, NpcAttributes, NpcBundle, NpcMarker,
-        Perks, RadiationPool, RelicHome, RelicMarker, SquadActivity, SquadBundle, SquadFacing,
+        Perks, CorruptionPool, RelicHome, RelicMarker, SquadActivity, SquadBundle, SquadFacing,
         SquadHomePosition, SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
         StaminaPool,
     };

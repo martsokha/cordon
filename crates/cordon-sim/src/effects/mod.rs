@@ -24,7 +24,7 @@
 //! | `Damage` | `hp.deplete(value as u32)`. Distinct from `Health` by authorial intent. |
 //! | `Stamina` | `stamina.restore` / `deplete`. |
 //! | `Hunger`  | `hunger.restore` / `deplete`. |
-//! | `RadiationLevel` | `radiation.restore` for positive (gain rads), `deplete` for negative (scrubbing). |
+//! | `Corruption` | `corruption.restore` for positive (gain corruption), `deplete` for negative (scrubbing). |
 //!
 //! `Bleeding`, `Poison`, and `Smoke` were deleted from
 //! [`ResourceTarget`](cordon_core::item::ResourceTarget)
@@ -42,7 +42,7 @@ use cordon_data::gamedata::GameDataResource;
 use crate::behavior::Dead;
 use crate::combat::NpcDamaged;
 use crate::components::{
-    ActiveEffect, ActiveEffectSource, ActiveEffects, Hp, HungerPool, NpcMarker, RadiationPool,
+    ActiveEffect, ActiveEffectSource, ActiveEffects, Hp, HungerPool, NpcMarker, CorruptionPool,
     StaminaPool,
 };
 use crate::plugin::SimSet;
@@ -118,7 +118,7 @@ fn dispatch_damage_triggers(
             &mut Hp,
             &mut StaminaPool,
             &mut HungerPool,
-            &mut RadiationPool,
+            &mut CorruptionPool,
         ),
         Without<Dead>,
     >,
@@ -127,7 +127,7 @@ fn dispatch_damage_triggers(
     let items = &data.0.items;
 
     for event in damaged.read() {
-        let Ok((loadout, mut active, mut hp, mut stamina, mut hunger, mut radiation)) =
+        let Ok((loadout, mut active, mut hp, mut stamina, mut hunger, mut corruption)) =
             targets.get_mut(event.target)
         else {
             continue;
@@ -151,7 +151,7 @@ fn dispatch_damage_triggers(
                             &mut hp,
                             &mut stamina,
                             &mut hunger,
-                            &mut radiation,
+                            &mut corruption,
                         );
                     }
                     EffectTrigger::OnHpLow(ratio) => {
@@ -173,7 +173,7 @@ fn dispatch_damage_triggers(
                                 &mut hp,
                                 &mut stamina,
                                 &mut hunger,
-                                &mut radiation,
+                                &mut corruption,
                             );
                         }
                     }
@@ -300,7 +300,7 @@ fn fire_periodic_triggers(
             &mut Hp,
             &mut StaminaPool,
             &mut HungerPool,
-            &mut RadiationPool,
+            &mut CorruptionPool,
         ),
         Without<Dead>,
     >,
@@ -321,7 +321,7 @@ fn fire_periodic_triggers(
 
     for idx in &fires {
         let entry = periodic.entries[*idx].clone();
-        let Ok((mut active, mut hp, mut stamina, mut hunger, mut radiation)) =
+        let Ok((mut active, mut hp, mut stamina, mut hunger, mut corruption)) =
             carriers.get_mut(entry.entity)
         else {
             continue;
@@ -334,7 +334,7 @@ fn fire_periodic_triggers(
             &mut hp,
             &mut stamina,
             &mut hunger,
-            &mut radiation,
+            &mut corruption,
         );
     }
 
@@ -365,13 +365,13 @@ fn tick_active_effects(
             &mut Hp,
             &mut StaminaPool,
             &mut HungerPool,
-            &mut RadiationPool,
+            &mut CorruptionPool,
         ),
         Without<Dead>,
     >,
 ) {
     let now = clock.0;
-    for (mut active, mut hp, mut stamina, mut hunger, mut radiation) in &mut carriers {
+    for (mut active, mut hp, mut stamina, mut hunger, mut corruption) in &mut carriers {
         // Walk indices so we can `swap_remove` expired entries
         // without invalidating iteration. Read the fields we
         // need up-front so the outer borrow of `active` is
@@ -399,7 +399,7 @@ fn tick_active_effects(
                         &mut hp,
                         &mut stamina,
                         &mut hunger,
-                        &mut radiation,
+                        &mut corruption,
                     );
                 }
                 active.effects[i].last_tick_at = now;
@@ -433,10 +433,10 @@ fn apply_or_queue(
     hp: &mut Hp,
     stamina: &mut StaminaPool,
     hunger: &mut HungerPool,
-    radiation: &mut RadiationPool,
+    corruption: &mut CorruptionPool,
 ) {
     if effect.duration.is_instant() {
-        apply_pool_delta(effect.target, effect.value, hp, stamina, hunger, radiation);
+        apply_pool_delta(effect.target, effect.value, hp, stamina, hunger, corruption);
         return;
     }
     active.effects.push(ActiveEffect {
@@ -449,7 +449,7 @@ fn apply_or_queue(
 
 /// Apply a single `(target, value)` delta to the right pool.
 ///
-/// Positive values restore (heal, feed, gain rads), negative
+/// Positive values restore (heal, feed, gain corruption), negative
 /// values deplete. `Damage` is distinct from negative-`Health`
 /// by authorial intent — using it reads as "this is damage",
 /// using `Health` with a negative value reads as "this is a
@@ -460,14 +460,14 @@ fn apply_pool_delta(
     hp: &mut Hp,
     stamina: &mut StaminaPool,
     hunger: &mut HungerPool,
-    radiation: &mut RadiationPool,
+    corruption: &mut CorruptionPool,
 ) {
     match target {
         ResourceTarget::Health => apply_signed(hp, value),
         ResourceTarget::Damage => hp.deplete(value.abs() as u32),
         ResourceTarget::Stamina => apply_signed(stamina, value),
         ResourceTarget::Hunger => apply_signed(hunger, value),
-        ResourceTarget::RadiationLevel => apply_signed(radiation, value),
+        ResourceTarget::Corruption => apply_signed(corruption, value),
     }
 }
 

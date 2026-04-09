@@ -6,7 +6,7 @@
       "origin": "gravitational",
       "passive": [
         {
-          "target": "GravitationalResistance",
+          "target": "gravitational_resistance",
           "value": 20.0
         }
       ]
@@ -31,7 +31,7 @@
       "origin": "gravitational",
       "passive": [
         {
-          "target": "GravitationalResistance",
+          "target": "gravitational_resistance",
           "value": 25.0
         }
       ]
@@ -56,7 +56,7 @@
       "origin": "gravitational",
       "passive": [
         {
-          "target": "GravitationalResistance",
+          "target": "gravitational_resistance",
           "value": 30.0
         }
       ]
@@ -81,11 +81,11 @@
       "origin": "gravitational",
       "passive": [
         {
-          "target": "GravitationalResistance",
+          "target": "gravitational_resistance",
           "value": 40.0
         },
         {
-          "target": "MaxHealth",
+          "target": "max_health",
           "value": 8.0
         }
       ]
@@ -110,11 +110,11 @@
       "origin": "gravitational",
       "passive": [
         {
-          "target": "GravitationalResistance",
+          "target": "gravitational_resistance",
           "value": 45.0
         },
         {
-          "target": "BallisticResistance",
+          "target": "ballistic_resistance",
           "value": 5.0
         }
       ]
@@ -139,11 +139,11 @@
       "origin": "gravitational",
       "passive": [
         {
-          "target": "GravitationalResistance",
+          "target": "gravitational_resistance",
           "value": 50.0
         },
         {
-          "target": "MaxStamina",
+          "target": "max_stamina",
           "value": -5.0
         }
       ]
@@ -168,11 +168,11 @@
       "origin": "gravitational",
       "passive": [
         {
-          "target": "GravitationalResistance",
+          "target": "gravitational_resistance",
           "value": 60.0
         },
         {
-          "target": "MaxHealth",
+          "target": "max_health",
           "value": 15.0
         }
       ],
@@ -182,7 +182,7 @@
             "periodic": 2
           },
           "effect": {
-            "target": "Health",
+            "target": "health",
             "value": 2.0,
             "duration": 1
           }
@@ -209,11 +209,11 @@
       "origin": "gravitational",
       "passive": [
         {
-          "target": "GravitationalResistance",
+          "target": "gravitational_resistance",
           "value": 70.0
         },
         {
-          "target": "MaxStamina",
+          "target": "max_stamina",
           "value": -10.0
         }
       ],
@@ -221,7 +221,7 @@
         {
           "trigger": "on_hit",
           "effect": {
-            "target": "Health",
+            "target": "health",
             "value": 12.0,
             "duration": "instant"
           }
@@ -248,15 +248,15 @@
       "origin": "gravitational",
       "passive": [
         {
-          "target": "GravitationalResistance",
+          "target": "gravitational_resistance",
           "value": 80.0
         },
         {
-          "target": "BallisticResistance",
+          "target": "ballistic_resistance",
           "value": 10.0
         },
         {
-          "target": "MaxHealth",
+          "target": "max_health",
           "value": 20.0
         }
       ]

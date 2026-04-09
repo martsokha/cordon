@@ -3,7 +3,7 @@
 # Consumables
 item_bandage = Bandage
 item_medkit = Medkit
-item_antirad = Anti-rad
+item_antidote = Antidote
 item_ration = Ration
 
 # Chemical relics

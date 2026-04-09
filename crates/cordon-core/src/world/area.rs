@@ -52,7 +52,7 @@ pub enum AreaKind {
         role: SettlementRole,
     },
     /// Unaffiliated open ground with light loot scatter.
-    Wasteland { radiation: Tier, loot: Tier },
+    Wasteland { corruption: Tier, loot: Tier },
     /// Mutant-held area. Aggressive creatures, minor loot from
     /// what they've dragged in. (Reserved for the upcoming
     /// mutants faction — no current data uses this variant.)
@@ -62,7 +62,7 @@ pub enum AreaKind {
     AnomalyField {
         hazard: Hazard,
         creatures: Tier,
-        radiation: Tier,
+        corruption: Tier,
         loot: Tier,
     },
     /// A pre-existing hardened structure (vault, bunker, archive)
@@ -72,7 +72,7 @@ pub enum AreaKind {
     Anchor {
         hazard: Hazard,
         creatures: Tier,
-        radiation: Tier,
+        corruption: Tier,
         loot: Tier,
     },
 }
@@ -98,12 +98,12 @@ impl AreaKind {
         }
     }
 
-    /// Radiation tier, where it applies.
-    pub fn radiation(&self) -> Option<Tier> {
+    /// Corruption tier, where it applies.
+    pub fn corruption(&self) -> Option<Tier> {
         match self {
-            AreaKind::Wasteland { radiation, .. }
-            | AreaKind::AnomalyField { radiation, .. }
-            | AreaKind::Anchor { radiation, .. } => Some(*radiation),
+            AreaKind::Wasteland { corruption, .. }
+            | AreaKind::AnomalyField { corruption, .. }
+            | AreaKind::Anchor { corruption, .. } => Some(*corruption),
             _ => None,
         }
     }

@@ -13,7 +13,7 @@
         "intensity": "veryhigh"
       },
       "creatures": "high",
-      "radiation": "veryhigh",
+      "corruption": "veryhigh",
       "loot": "veryhigh"
     }
   },
@@ -31,7 +31,7 @@
         "intensity": "medium"
       },
       "creatures": "low",
-      "radiation": "low",
+      "corruption": "low",
       "loot": "high"
     }
   },
@@ -49,7 +49,7 @@
         "intensity": "medium"
       },
       "creatures": "medium",
-      "radiation": "low",
+      "corruption": "low",
       "loot": "high"
     }
   }

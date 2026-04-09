@@ -5,7 +5,7 @@
       "type": "consumable",
       "effects": [
         {
-          "target": "Health",
+          "target": "health",
           "value": 15.0,
           "duration": "instant"
         }
@@ -32,7 +32,7 @@
       "type": "consumable",
       "effects": [
         {
-          "target": "Health",
+          "target": "health",
           "value": 50.0,
           "duration": "instant"
         }
@@ -54,12 +54,12 @@
     "rarity": "common"
   },
   {
-    "id": "item_antirad",
+    "id": "item_antidote",
     "data": {
       "type": "consumable",
       "effects": [
         {
-          "target": "RadiationLevel",
+          "target": "corruption",
           "value": -5.0,
           "duration": 10
         }
@@ -86,7 +86,7 @@
       "type": "consumable",
       "effects": [
         {
-          "target": "Hunger",
+          "target": "hunger",
           "value": 60.0,
           "duration": "instant"
         }

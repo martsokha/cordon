@@ -6,7 +6,7 @@
       "slot": "suit",
       "resistances": {
         "ballistic": 20,
-        "radiation": 3,
+        "corruption": 3,
         "chemical": 1,
         "thermal": 2,
         "electric": 1,
@@ -31,7 +31,7 @@
       "slot": "suit",
       "resistances": {
         "ballistic": 25,
-        "radiation": 4,
+        "corruption": 4,
         "chemical": 3,
         "thermal": 3,
         "electric": 2,
@@ -60,7 +60,7 @@
       "slot": "suit",
       "resistances": {
         "ballistic": 28,
-        "radiation": 4,
+        "corruption": 4,
         "chemical": 3,
         "thermal": 3,
         "electric": 2,
@@ -89,7 +89,7 @@
       "slot": "suit",
       "resistances": {
         "ballistic": 35,
-        "radiation": 6,
+        "corruption": 6,
         "chemical": 5,
         "thermal": 5,
         "electric": 4,

@@ -30,7 +30,7 @@ pub use self::hazard::HazardType;
 pub use self::id::{Id, IdMarker};
 pub use self::location::Location;
 pub use self::loyalty::Loyalty;
-pub use self::pool::{Health, Hunger, Pool, PoolKind, Radiation, Stamina};
+pub use self::pool::{Health, Hunger, Pool, PoolKind, Corruption, Stamina};
 pub use self::rank::Rank;
 pub use self::rarity::Rarity;
 pub use self::relation::{Relation, RelationDelta};

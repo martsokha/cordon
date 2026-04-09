@@ -178,7 +178,7 @@ impl Resistances {
     {
         let mut acc: [i64; 6] = [
             self.ballistic as i64,
-            self.radiation as i64,
+            self.corruption as i64,
             self.chemical as i64,
             self.thermal as i64,
             self.electric as i64,
@@ -190,7 +190,7 @@ impl Resistances {
                 let value = modifier.value.round() as i64;
                 match modifier.target {
                     StatTarget::BallisticResistance => acc[0] += value,
-                    StatTarget::RadiationResistance => acc[1] += value,
+                    StatTarget::CorruptionResistance => acc[1] += value,
                     StatTarget::ChemicalResistance => acc[2] += value,
                     StatTarget::ThermalResistance => acc[3] += value,
                     StatTarget::ElectricResistance => acc[4] += value,
@@ -203,7 +203,7 @@ impl Resistances {
         let clamp = |n: i64| n.max(0) as u32;
         Resistances {
             ballistic: clamp(acc[0]),
-            radiation: clamp(acc[1]),
+            corruption: clamp(acc[1]),
             chemical: clamp(acc[2]),
             thermal: clamp(acc[3]),
             electric: clamp(acc[4]),

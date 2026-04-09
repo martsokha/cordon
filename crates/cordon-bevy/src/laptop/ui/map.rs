@@ -46,7 +46,7 @@ pub enum TooltipContent {
         kind_label: String,
         role: Option<String>,
         creatures: Option<(String, Tier)>,
-        radiation: Option<(String, Tier)>,
+        corruption: Option<(String, Tier)>,
         hazard_image: Option<String>,
         hazard_count: u8,
         loot: Option<(String, Tier)>,
@@ -423,7 +423,7 @@ fn update_tooltip(
             kind_label,
             role,
             creatures,
-            radiation,
+            corruption,
             hazard_image,
             hazard_count: count,
             loot,
@@ -446,8 +446,8 @@ fn update_tooltip(
                 s.push(("\nCreatures: ".into(), COLOR_LABEL));
                 s.push((label.clone(), tier_color(tier)));
             }
-            if let Some((label, tier)) = radiation {
-                s.push(("\nRadiation: ".into(), COLOR_LABEL));
+            if let Some((label, tier)) = corruption {
+                s.push(("\nCorruption: ".into(), COLOR_LABEL));
                 s.push((label.clone(), tier_color(tier)));
             }
             if let Some((label, tier)) = loot {

@@ -16,7 +16,7 @@ use cordon_core::entity::perk::Perk;
 use cordon_core::item::Loadout;
 use cordon_core::item::{Item, TimedEffect};
 use cordon_core::primitive::{
-    Credits, Experience, GameTime, Health, Hunger, Id, Loyalty, Pool, Radiation, Stamina, Trust,
+    Credits, Experience, GameTime, Health, Hunger, Id, Loyalty, Pool, Corruption, Stamina, Trust,
     Uid,
 };
 
@@ -29,11 +29,13 @@ pub type StaminaPool = Pool<Stamina>;
 /// Hunger pool component. At max = fully satiated, at 0 = starving.
 pub type HungerPool = Pool<Hunger>;
 
-/// Radiation pool component. Accumulates from zero. Unlike
+/// Corruption pool component. Accumulates from zero. Unlike
 /// health/stamina/hunger which drain from full, this fills up
-/// from contaminated areas, food, and radioactive artifacts,
-/// and gets drained back down by anti-rad items.
-pub type RadiationPool = Pool<Radiation>;
+/// from corrupted areas, tainted food, and carried artifacts
+/// that bleed Zone-stuff into their carrier, and drains back
+/// down when the carrier uses an antidote or equips a
+/// scrubber relic.
+pub type CorruptionPool = Pool<Corruption>;
 
 /// Per-entity list of currently-active [`TimedEffect`]s.
 ///
@@ -156,7 +158,7 @@ pub struct NpcBundle {
     pub hp: Hp,
     pub stamina: StaminaPool,
     pub hunger: HungerPool,
-    pub radiation: RadiationPool,
+    pub corruption: CorruptionPool,
     pub active_effects: ActiveEffects,
     pub base_maxes: BaseMaxes,
     pub loadout: Loadout,

@@ -69,14 +69,15 @@ impl PoolKind for Stamina {}
 pub struct Hunger;
 impl PoolKind for Hunger {}
 
-/// Marker for an accumulated-radiation pool.
+/// Marker for an accumulated-corruption pool.
 ///
 /// Unlike health / stamina / hunger which drain from full, a
-/// radiation pool *accumulates* from zero: NPCs spawn with
-/// `current = 0` and gain rads from contaminated areas, food,
-/// or carried radioactive artifacts. Anti-rad pills and
-/// radiation-scrubber relics drain the pool back down. Spawn
-/// these with [`Pool::empty`] instead of [`Pool::full`].
+/// corruption pool *accumulates* from zero: carriers spawn
+/// with `current = 0` and gain corruption from corrupted
+/// areas, tainted food, and carried artifacts that bleed
+/// Zone-stuff into the carrier. Antidote pills and scrubber
+/// relics drain the pool back down. Spawn with [`Pool::empty`]
+/// instead of [`Pool::full`].
 #[derive(
     Debug,
     Default,
@@ -88,8 +89,8 @@ impl PoolKind for Hunger {}
     Serialize,
     Deserialize
 )]
-pub struct Radiation;
-impl PoolKind for Radiation {}
+pub struct Corruption;
+impl PoolKind for Corruption {}
 
 /// A bounded `(current, max)` resource.
 ///
@@ -127,7 +128,7 @@ impl<K: PoolKind> Pool<K> {
     }
 
     /// Create an empty pool at [`K::DEFAULT_MAX`]. For pools
-    /// that accumulate from zero (radiation).
+    /// that accumulate from zero (corruption).
     pub fn empty() -> Self {
         Self {
             current: 0,
