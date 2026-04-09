@@ -26,7 +26,8 @@ use bevy_rand::prelude::GlobalRng;
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::{GameTime, Id};
 use cordon_core::world::narrative::{
-    Consequence, Event, Quest, QuestDef, QuestStage, QuestStageKind, QuestTrigger, QuestTriggerKind,
+    Consequence, Event, Quest, QuestDef, QuestStage, QuestStageKind, QuestTrigger, QuestTriggerDef,
+    QuestTriggerKind,
 };
 use cordon_data::catalog::GameData;
 use cordon_data::gamedata::GameDataResource;
@@ -76,43 +77,82 @@ pub struct QuestEngineCtx<'w> {
 use crate::day::DayRolled;
 use crate::resources::{EventLog, GameClock, Player};
 
-/// Begin a new instance of `quest` if one isn't already active
-/// and the quest isn't marked non-repeatable + already completed.
-/// Returns the index of the newly-started quest within
-/// `log.active`, or `None` when the start was suppressed.
-pub fn start_quest(
-    log: &mut QuestLog,
-    data: &GameData,
-    quest: &Id<Quest>,
-    now: GameTime,
-) -> Option<usize> {
-    let Some(def) = data.quests.get(quest) else {
-        warn!("start_quest: unknown quest `{}`", quest.as_str());
-        return None;
-    };
-    if !def.repeatable {
-        if log.is_active(quest) {
+impl<'w> QuestDispatchCtx<'w> {
+    /// Begin a new instance of `quest` if one isn't already
+    /// active and the quest isn't marked non-repeatable +
+    /// already completed. Returns the index of the newly-started
+    /// quest within `log.active`, or `None` when the start was
+    /// suppressed.
+    ///
+    /// Method on [`QuestDispatchCtx`] (rather than a free
+    /// function taking `&mut QuestLog`) so every dispatcher and
+    /// the start-quest request processor can share the same
+    /// entry point without manually wiring `log` + `data` each
+    /// call.
+    pub fn start_quest(&mut self, quest: &Id<Quest>, now: GameTime) -> Option<usize> {
+        let Some(def) = self.data.0.quests.get(quest) else {
+            warn!("start_quest: unknown quest `{}`", quest.as_str());
             return None;
+        };
+        if !def.repeatable {
+            if self.log.is_active(quest) {
+                return None;
+            }
+            if self
+                .log
+                .completed
+                .iter()
+                .any(|c| &c.def_id == quest && c.success)
+            {
+                return None;
+            }
         }
-        if log
-            .completed
-            .iter()
-            .any(|c| &c.def_id == quest && c.success)
-        {
+        let Some(entry) = def.entry_stage() else {
+            warn!(
+                "start_quest: quest `{}` has no stages, skipping",
+                quest.as_str()
+            );
             return None;
+        };
+        let active = ActiveQuest::new(quest.clone(), entry.id.clone(), now);
+        self.log.active.push(active);
+        info!("quest `{}` started", quest.as_str());
+        Some(self.log.active.len() - 1)
+    }
+
+    /// Evaluate a trigger's `requires` clause against world
+    /// state and, if eligible, [`start_quest`](Self::start_quest)
+    /// its target. Handles the repeat-guard via
+    /// [`QuestLog::fired_triggers`].
+    pub fn try_fire_trigger(&mut self, trigger: &QuestTriggerDef, now: GameTime) {
+        if !trigger.repeatable && self.log.fired_triggers.contains(&trigger.id) {
+            return;
+        }
+        // Scope the immutable borrow of `log` so the mutable
+        // `start_quest` call below is free of aliasing. The
+        // eligibility check is pure, so this split is just a
+        // borrow shuffle — behaviour is identical to a single
+        // pass.
+        let eligible = match &trigger.requires {
+            None => true,
+            Some(cond) => {
+                let view = WorldView {
+                    player: &self.player.0,
+                    events: &self.events.0,
+                    quests: &self.log,
+                    now,
+                    stage_started_at: None,
+                };
+                view.evaluate(cond)
+            }
+        };
+        if !eligible {
+            return;
+        }
+        if self.start_quest(&trigger.quest, now).is_some() {
+            self.log.fired_triggers.insert(trigger.id.clone());
         }
     }
-    let Some(entry) = def.entry_stage() else {
-        warn!(
-            "start_quest: quest `{}` has no stages, skipping",
-            quest.as_str()
-        );
-        return None;
-    };
-    let active = ActiveQuest::new(quest.clone(), entry.id.clone(), now);
-    log.active.push(active);
-    info!("quest `{}` started", quest.as_str());
-    Some(log.active.len() - 1)
 }
 
 /// After a Yarn dialogue tied to a `Talk` stage finishes, jump
@@ -507,8 +547,13 @@ pub fn process_start_quest_requests(
     mut requests: MessageReader<StartQuestRequest>,
 ) {
     let now = ctx.clock.0;
-    for req in requests.read() {
-        start_quest(&mut ctx.log, &ctx.data.0, &req.quest, now);
+    // Collect first to release the message reader borrow before
+    // the mutable `ctx.start_quest` call — start_quest writes to
+    // ctx.log and doesn't touch the reader, but decoupling makes
+    // the borrow structure obvious.
+    let quests: Vec<Id<Quest>> = requests.read().map(|req| req.quest.clone()).collect();
+    for quest in quests {
+        ctx.start_quest(&quest, now);
     }
 }
 
@@ -520,45 +565,39 @@ pub fn process_start_quest_requests(
 /// is already live, so all sim state is ready by then.
 pub fn dispatch_on_game_start(mut ctx: QuestDispatchCtx) {
     let now = ctx.clock.0;
-    let catalog = &ctx.data.0;
-    let triggers: Vec<_> = catalog
+    // Clone the matching trigger list out of the catalog before
+    // the mutable `try_fire_trigger` call so the data borrow is
+    // released. Same pattern for every `dispatch_on_*` system.
+    let triggers: Vec<_> = ctx
+        .data
+        .0
         .triggers
         .values()
         .filter(|t| matches!(t.kind, QuestTriggerKind::OnGameStart))
         .cloned()
         .collect();
     for trigger in triggers {
-        try_fire_trigger(
-            &mut ctx.log,
-            catalog,
-            &trigger,
-            now,
-            &ctx.player.0,
-            &ctx.events.0,
-        );
+        ctx.try_fire_trigger(&trigger, now);
     }
 }
 
 /// Fire `OnDay` triggers whose target day matches the new day.
 pub fn dispatch_on_day(mut ctx: QuestDispatchCtx, mut rolled: MessageReader<DayRolled>) {
     let now = ctx.clock.0;
-    let catalog = &ctx.data.0;
-    for ev in rolled.read() {
-        let triggers: Vec<_> = catalog
+    // Collect the day values so the reader borrow is released
+    // before we touch `ctx` mutably inside try_fire_trigger.
+    let new_days: Vec<_> = rolled.read().map(|ev| ev.new_day).collect();
+    for day in new_days {
+        let triggers: Vec<_> = ctx
+            .data
+            .0
             .triggers
             .values()
-            .filter(|t| matches!(t.kind, QuestTriggerKind::OnDay(d) if d == ev.new_day))
+            .filter(|t| matches!(t.kind, QuestTriggerKind::OnDay(d) if d == day))
             .cloned()
             .collect();
         for trigger in triggers {
-            try_fire_trigger(
-                &mut ctx.log,
-                catalog,
-                &trigger,
-                now,
-                &ctx.player.0,
-                &ctx.events.0,
-            );
+            ctx.try_fire_trigger(&trigger, now);
         }
     }
 }
@@ -575,7 +614,6 @@ pub fn dispatch_on_day(mut ctx: QuestDispatchCtx, mut rolled: MessageReader<DayR
 /// quest triggers are about kind-level "this has started
 /// happening in the world", not instance counts.
 pub fn dispatch_on_event(mut ctx: QuestDispatchCtx, mut previous: Local<HashSet<Id<Event>>>) {
-    let catalog = &ctx.data.0;
     let now = ctx.clock.0;
     let current: HashSet<_> = ctx.events.0.iter().map(|e| e.def_id.clone()).collect();
     // Newly-active events are in `current` but not `previous`.
@@ -583,21 +621,16 @@ pub fn dispatch_on_event(mut ctx: QuestDispatchCtx, mut previous: Local<HashSet<
     *previous = current;
 
     for event_id in new_events {
-        let triggers: Vec<_> = catalog
+        let triggers: Vec<_> = ctx
+            .data
+            .0
             .triggers
             .values()
             .filter(|t| matches!(&t.kind, QuestTriggerKind::OnEvent(id) if id == &event_id))
             .cloned()
             .collect();
         for trigger in triggers {
-            try_fire_trigger(
-                &mut ctx.log,
-                catalog,
-                &trigger,
-                now,
-                &ctx.player.0,
-                &ctx.events.0,
-            );
+            ctx.try_fire_trigger(&trigger, now);
         }
     }
 }
@@ -618,12 +651,13 @@ pub fn dispatch_on_condition(
     mut ctx: QuestDispatchCtx,
     mut previously_true: Local<HashSet<Id<QuestTrigger>>>,
 ) {
-    let catalog = &ctx.data.0;
     let now = ctx.clock.0;
-    // Evaluate every OnCondition trigger. This is an
-    // immutable borrow of `log` inside the view, so the
-    // eligibility list is computed before any mutations.
-    let triggers: Vec<_> = catalog
+    // Evaluate every OnCondition trigger. The eligibility list
+    // is computed first (immutable borrow of `ctx.log` inside
+    // the view), then the rising-edge set is fired mutably.
+    let triggers: Vec<_> = ctx
+        .data
+        .0
         .triggers
         .values()
         .filter_map(|t| match &t.kind {
@@ -659,54 +693,7 @@ pub fn dispatch_on_condition(
     *previously_true = now_true;
 
     for trigger in to_fire {
-        try_fire_trigger(
-            &mut ctx.log,
-            catalog,
-            &trigger,
-            now,
-            &ctx.player.0,
-            &ctx.events.0,
-        );
-    }
-}
-
-/// Evaluate a trigger's [`requires`](QuestTriggerDef::requires)
-/// clause against world state and, if eligible, start its
-/// quest. Handles the repeat-guard via
-/// [`QuestLog::fired_triggers`].
-fn try_fire_trigger(
-    log: &mut QuestLog,
-    catalog: &GameData,
-    trigger: &cordon_core::world::narrative::QuestTriggerDef,
-    now: GameTime,
-    player: &cordon_core::entity::player::PlayerState,
-    events: &[cordon_core::world::narrative::ActiveEvent],
-) {
-    if !trigger.repeatable && log.fired_triggers.contains(&trigger.id) {
-        return;
-    }
-    // Scope the immutable borrow of `log` so the mutable
-    // `start_quest` call below is free of aliasing. The
-    // eligibility check is pure, so this split is just a borrow
-    // shuffle — behaviour is identical to a single pass.
-    let eligible = match &trigger.requires {
-        None => true,
-        Some(cond) => {
-            let view = WorldView {
-                player,
-                events,
-                quests: log,
-                now,
-                stage_started_at: None,
-            };
-            view.evaluate(cond)
-        }
-    };
-    if !eligible {
-        return;
-    }
-    if start_quest(log, catalog, &trigger.quest, now).is_some() {
-        log.fired_triggers.insert(trigger.id.clone());
+        ctx.try_fire_trigger(&trigger, now);
     }
 }
 
