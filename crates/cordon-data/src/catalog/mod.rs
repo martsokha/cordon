@@ -8,9 +8,10 @@ use cordon_core::entity::perk::{Perk, PerkDef};
 use cordon_core::item::{Item, ItemDef};
 use cordon_core::primitive::Id;
 use cordon_core::world::area::{Area, AreaDef};
-use cordon_core::world::event::{Event, EventDef};
 use cordon_core::world::loot::LootTables;
-use cordon_core::world::narrative::quest::{Quest, QuestDef, QuestTrigger, QuestTriggerDef};
+use cordon_core::world::narrative::{
+    Event, EventDef, Quest, QuestDef, QuestTrigger, QuestTriggerDef,
+};
 
 /// The read-only game database.
 ///

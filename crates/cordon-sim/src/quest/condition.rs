@@ -8,8 +8,7 @@
 
 use bevy_yarnspinner::prelude::YarnValue;
 use cordon_core::entity::player::PlayerState;
-use cordon_core::world::event::ActiveEvent;
-use cordon_core::world::narrative::consequence::ObjectiveCondition;
+use cordon_core::world::narrative::{ActiveEvent, ObjectiveCondition};
 
 use super::state::QuestLog;
 
@@ -103,8 +102,7 @@ mod tests {
     use cordon_core::entity::faction::Faction;
     use cordon_core::entity::player::PlayerState;
     use cordon_core::primitive::{Credits, GameTime, Id, Relation};
-    use cordon_core::world::narrative::consequence::ObjectiveCondition;
-    use cordon_core::world::narrative::quest::{Quest, QuestStage};
+    use cordon_core::world::narrative::{ObjectiveCondition, Quest, QuestStage};
 
     use super::{WorldView, evaluate, yarn_value_matches};
     use crate::quest::state::{ActiveQuest, CompletedQuest, QuestLog};

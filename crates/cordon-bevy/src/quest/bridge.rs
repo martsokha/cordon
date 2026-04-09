@@ -30,7 +30,7 @@ use bevy_yarnspinner::events::DialogueCompleted;
 use bevy_yarnspinner::prelude::{DialogueRunner, YarnValue};
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::Id;
-use cordon_core::world::narrative::quest::{Quest, QuestStageKind};
+use cordon_core::world::narrative::{Quest, QuestStageKind};
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::{GameClock, QuestLog};
 use cordon_sim::quest::engine::advance_after_talk;
@@ -62,7 +62,7 @@ const CHOICE_VAR: &str = "$quest_choice";
 /// Prefix used to filter which Yarn variables get captured back
 /// into the quest flag bag. Everything that matches is copied
 /// verbatim — later stages can then branch on them via
-/// [`ObjectiveCondition::QuestFlag`](cordon_core::world::narrative::consequence::ObjectiveCondition::QuestFlag).
+/// [`ObjectiveCondition::QuestFlag`](cordon_core::world::narrative::ObjectiveCondition::QuestFlag).
 const FLAG_PREFIX: &str = "$quest_";
 
 /// Dispatch `Talk` stages to the dialogue runner. For each

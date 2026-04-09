@@ -25,10 +25,8 @@ use bevy_prng::WyRand;
 use bevy_rand::prelude::GlobalRng;
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::{GameTime, Id};
-use cordon_core::world::event::Event;
-use cordon_core::world::narrative::consequence::Consequence;
-use cordon_core::world::narrative::quest::{
-    Quest, QuestDef, QuestStage, QuestStageKind, QuestTrigger, QuestTriggerKind,
+use cordon_core::world::narrative::{
+    Consequence, Event, Quest, QuestDef, QuestStage, QuestStageKind, QuestTrigger, QuestTriggerKind,
 };
 use cordon_data::catalog::GameData;
 use cordon_data::gamedata::GameDataResource;
@@ -251,7 +249,7 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
 fn collect_objective_transitions(
     log: &QuestLog,
     player: &cordon_core::entity::player::PlayerState,
-    events: &[cordon_core::world::event::ActiveEvent],
+    events: &[cordon_core::world::narrative::ActiveEvent],
     catalog: &GameData,
     now: GameTime,
 ) -> Vec<(usize, Id<QuestStage>)> {
@@ -319,7 +317,7 @@ fn complete_quest(
     def_id: &Id<Quest>,
     now: GameTime,
     player: &mut cordon_core::entity::player::PlayerState,
-    events: &mut Vec<cordon_core::world::event::ActiveEvent>,
+    events: &mut Vec<cordon_core::world::narrative::ActiveEvent>,
     faction_pool: &[Id<Faction>],
     rng: &mut WyRand,
     start_quest_tx: &mut MessageWriter<StartQuestRequest>,
@@ -557,10 +555,10 @@ pub fn dispatch_on_condition(
 fn try_fire_trigger(
     log: &mut QuestLog,
     catalog: &GameData,
-    trigger: &cordon_core::world::narrative::quest::QuestTriggerDef,
+    trigger: &cordon_core::world::narrative::QuestTriggerDef,
     now: GameTime,
     player: &cordon_core::entity::player::PlayerState,
-    events: &[cordon_core::world::event::ActiveEvent],
+    events: &[cordon_core::world::narrative::ActiveEvent],
 ) {
     if !trigger.repeatable && log.fired_triggers.contains(&trigger.id) {
         return;

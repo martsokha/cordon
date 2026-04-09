@@ -31,9 +31,8 @@ use cordon_core::entity::perk::PerkDef;
 use cordon_core::item::ItemDef;
 use cordon_core::primitive::Id;
 use cordon_core::world::area::AreaDef;
-use cordon_core::world::event::EventDef;
 use cordon_core::world::loot::LootTables;
-use cordon_core::world::narrative::quest::{QuestDef, QuestTriggerDef};
+use cordon_core::world::narrative::{EventDef, QuestDef, QuestTriggerDef};
 
 use crate::catalog::GameData;
 

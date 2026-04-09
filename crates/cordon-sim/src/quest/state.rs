@@ -17,7 +17,7 @@ use std::collections::{HashMap, HashSet};
 use bevy::prelude::*;
 use bevy_yarnspinner::prelude::YarnValue;
 use cordon_core::primitive::{GameTime, Id};
-use cordon_core::world::narrative::quest::{Quest, QuestStage, QuestTrigger};
+use cordon_core::world::narrative::{Quest, QuestStage, QuestTrigger};
 
 /// One in-progress quest instance.
 ///
@@ -120,7 +120,7 @@ impl QuestLog {
 
     /// Find the active instance of the given quest definition,
     /// if any. Quests are not expected to run in parallel (the
-    /// `repeatable` flag on [`QuestDef`](cordon_core::world::narrative::quest::QuestDef)
+    /// `repeatable` flag on [`QuestDef`](cordon_core::world::narrative::QuestDef)
     /// allows it but the lookup simply returns the first match).
     pub fn active_instance(&self, quest: &Id<Quest>) -> Option<&ActiveQuest> {
         self.active.iter().find(|q| &q.def_id == quest)

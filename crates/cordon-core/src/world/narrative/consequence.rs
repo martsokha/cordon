@@ -17,6 +17,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::event::Event;
 use super::quest::Quest;
 use crate::entity::bunker::Upgrade;
 use crate::entity::faction::Faction;
@@ -24,7 +25,6 @@ use crate::entity::npc::NpcTemplate;
 use crate::item::{Item, ItemCategory, StashScope};
 use crate::primitive::{Credits, Id, Relation};
 use crate::world::area::Area;
-use crate::world::event::Event;
 
 /// A boolean condition over world state.
 ///

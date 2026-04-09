@@ -7,7 +7,7 @@
 
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::{Day, Id};
-use cordon_core::world::event::{ActiveEvent, EventCategory, EventDef};
+use cordon_core::world::narrative::{ActiveEvent, EventCategory, EventDef};
 use rand::{Rng, RngExt};
 
 /// Roll for daily events using loaded event definitions.

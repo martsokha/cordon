@@ -18,9 +18,7 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::entity::player::PlayerState;
 use cordon_core::item::ItemInstance;
 use cordon_core::primitive::{GameTime, Id};
-use cordon_core::world::event::ActiveEvent;
-use cordon_core::world::narrative::consequence::Consequence;
-use cordon_core::world::narrative::quest::Quest;
+use cordon_core::world::narrative::{ActiveEvent, Consequence, Quest};
 use cordon_data::catalog::GameData;
 
 use crate::day::events::spawn_event_instance;
