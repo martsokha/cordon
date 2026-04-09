@@ -75,14 +75,15 @@ pub fn apply(
             world.player.credits -= *amount;
         }
 
-        Consequence::GiveItem { item, count, scope } => {
-            let Some(def) = world.data.item(item) else {
-                warn!("GiveItem: unknown item `{}`", item.as_str());
+        Consequence::GiveItem(q) => {
+            let Some(def) = world.data.item(&q.item) else {
+                warn!("GiveItem: unknown item `{}`", q.item.as_str());
                 return;
             };
-            for _ in 0..*count {
+            let count = q.resolved_count();
+            for _ in 0..count {
                 let instance = ItemInstance::new(def);
-                if let Err(dropped) = world.player.add_item(instance, *scope) {
+                if let Err(dropped) = world.player.add_item(instance, q.scope) {
                     warn!(
                         "GiveItem: stash full, dropped `{}` on the floor",
                         dropped.def_id.as_str()
@@ -92,19 +93,20 @@ pub fn apply(
             }
         }
 
-        Consequence::TakeItem { item, count, scope } => {
+        Consequence::TakeItem(q) => {
+            let count = q.resolved_count();
             let mut removed = 0u32;
-            for _ in 0..*count {
-                if world.player.remove_first(item, *scope).is_none() {
+            for _ in 0..count {
+                if world.player.remove_first(&q.item, q.scope).is_none() {
                     break;
                 }
                 removed += 1;
             }
-            if removed < *count {
+            if removed < count {
                 warn!(
                     "TakeItem: wanted {count}× `{}` in scope {:?}, only removed {removed}",
-                    item.as_str(),
-                    scope
+                    q.item.as_str(),
+                    q.scope
                 );
             }
         }

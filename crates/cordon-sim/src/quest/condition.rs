@@ -29,8 +29,8 @@ pub struct WorldView<'a> {
 /// lookups against the player state, event log, or quest log.
 pub fn evaluate(cond: &ObjectiveCondition, world: &WorldView<'_>) -> bool {
     match cond {
-        ObjectiveCondition::HaveItem { item, count, scope } => {
-            world.player.has_item(item, *count, *scope)
+        ObjectiveCondition::HaveItem(q) => {
+            world.player.has_item(&q.item, q.resolved_count(), q.scope)
         }
 
         ObjectiveCondition::HaveCredits(amount) => world.player.credits.can_afford(*amount),

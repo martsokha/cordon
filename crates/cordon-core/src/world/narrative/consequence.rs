@@ -22,7 +22,7 @@ use super::quest::Quest;
 use crate::entity::bunker::Upgrade;
 use crate::entity::faction::Faction;
 use crate::entity::npc::NpcTemplate;
-use crate::item::{Item, ItemCategory, StashScope};
+use crate::item::{ItemCategory, ItemQuery};
 use crate::primitive::{Credits, Id, Relation, RelationDelta};
 use crate::world::area::Area;
 
@@ -39,14 +39,9 @@ use crate::world::area::Area;
 #[serde(rename_all = "snake_case")]
 pub enum ObjectiveCondition {
     /// Player holds at least `count` of the given item def in
-    /// the scoped stash(es).
-    HaveItem {
-        item: Id<Item>,
-        #[serde(default = "default_item_count")]
-        count: u32,
-        #[serde(default)]
-        scope: StashScope,
-    },
+    /// the scoped stash(es). See [`ItemQuery`] for the field
+    /// layout and defaults.
+    HaveItem(ItemQuery),
     /// Player has at least this many credits.
     HaveCredits(Credits),
     /// Player's standing with the given faction is at least the
@@ -83,10 +78,6 @@ pub enum ObjectiveCondition {
     Not(Box<ObjectiveCondition>),
 }
 
-fn default_item_count() -> u32 {
-    1
-}
-
 /// A mutation applied to world state.
 ///
 /// Fired by quest outcomes, quest stage transitions, choice
@@ -106,28 +97,14 @@ pub enum Consequence {
     GiveCredits(Credits),
     /// Debit the player's currency.
     TakeCredits(Credits),
-    /// Place `count` copies of an item into the player's
-    /// stash in the given scope. Each copy is a fresh
-    /// [`ItemInstance`]; stacks do not merge. `count` defaults
-    /// to 1 when omitted.
-    GiveItem {
-        item: Id<Item>,
-        #[serde(default = "default_item_count")]
-        count: u32,
-        #[serde(default)]
-        scope: StashScope,
-    },
-    /// Remove up to `count` copies of an item from the
-    /// player's stash in the given scope. Removes the first
-    /// `count` matching instances; short-circuits with a
-    /// warning if the stash runs out. `count` defaults to 1.
-    TakeItem {
-        item: Id<Item>,
-        #[serde(default = "default_item_count")]
-        count: u32,
-        #[serde(default)]
-        scope: StashScope,
-    },
+    /// Place copies of an item into the player's stash. Each
+    /// copy is a fresh [`ItemInstance`](crate::item::ItemInstance);
+    /// stacks do not merge. See [`ItemQuery`] for field layout.
+    GiveItem(ItemQuery),
+    /// Remove copies of an item from the player's stash.
+    /// Removes the first N matching instances; short-circuits
+    /// with a warning if the stash runs out.
+    TakeItem(ItemQuery),
     /// Fire an event by its definition ID.
     TriggerEvent(Id<Event>),
     /// Start a quest manually (bypassing its trigger table).
@@ -155,3 +132,36 @@ pub enum Consequence {
         multiplier: f32,
     },
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Serde tuple variants of a single struct flatten into the
+    /// external tag's value position, so `GiveItem(ItemQuery)`
+    /// deserializes from the same shape an inline struct variant
+    /// would. This test pins that behaviour so a future refactor
+    /// can't silently break every item-bearing quest.
+    #[test]
+    fn give_item_tuple_variant_json_shape() {
+        let json = r#"{ "give_item": { "item": "medkit", "count": 3 } }"#;
+        let c: Consequence = serde_json::from_str(json).expect("parse give_item");
+        let Consequence::GiveItem(q) = c else {
+            panic!("expected GiveItem");
+        };
+        assert_eq!(q.item.as_str(), "medkit");
+        assert_eq!(q.resolved_count(), 3);
+    }
+
+    #[test]
+    fn have_item_with_defaults_parses() {
+        let json = r#"{ "have_item": { "item": "keycard" } }"#;
+        let c: ObjectiveCondition = serde_json::from_str(json).expect("parse have_item");
+        let ObjectiveCondition::HaveItem(q) = c else {
+            panic!("expected HaveItem");
+        };
+        assert_eq!(q.resolved_count(), 1);
+        assert_eq!(q.scope, crate::item::StashScope::Main);
+    }
+}
+
