@@ -96,9 +96,9 @@ fn update_hover(
     let npc_hit = 20.0 * scale;
     let relic_hit = 12.0 * scale;
 
-    // ---- Pass 1: find the new hover target. Priority is relic >
-    // NPC > area, so relics tucked inside dense anomaly zones
-    // stay tooltip-reachable even when NPCs cross the same pixel.
+    // Find the new hover target. Priority is relic > NPC > area,
+    // so relics tucked inside dense anomaly zones stay
+    // tooltip-reachable even when NPCs cross the same pixel.
     let mut new_target = HoverTarget::None;
 
     let mut closest_relic: Option<(Entity, f32)> = None;
@@ -144,14 +144,14 @@ fn update_hover(
         }
     }
 
-    // ---- Early out: target unchanged → don't touch the tooltip
-    // or any materials. Stationary-cursor hot path.
+    // Early out: target unchanged → don't touch the tooltip or
+    // any materials. Stationary-cursor hot path.
     if *last_target == new_target {
         return;
     }
 
-    // ---- Target changed. Repaint the *old* hovered area back to
-    // its base colour (if the previous target was an area), and
+    // Target changed. Repaint the *old* hovered area back to its
+    // base colour (if the previous target was an area), and
     // paint the *new* area with the hover colour (if the new
     // target is an area). All other areas keep whatever colour
     // they already had — no mass rewrite.
@@ -168,7 +168,7 @@ fn update_hover(
         m.color = COLOR_AREA_HOVER;
     }
 
-    // ---- Build the new tooltip content. This runs only on the
+    // Build the new tooltip content. This runs only on the
     // transition frame, so the string allocations here are cheap.
     *tooltip = match new_target {
         HoverTarget::None => TooltipContent::Hidden,
@@ -209,9 +209,7 @@ fn update_hover(
                     kind_label: i.kind_label.clone(),
                     role: i.role.clone(),
                     creatures: i.creatures.clone(),
-                    radiation: i.radiation.clone(),
-                    hazard_image: i.hazard_image.clone(),
-                    hazard_count: i.hazard_count,
+                    corruption: i.corruption.clone(),
                     loot: i.loot.clone(),
                 };
             }

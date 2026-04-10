@@ -20,21 +20,32 @@ homepage = { workspace = true }
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
+[features]
+default = ["steam"]
+steam = ["dep:bevy-steamworks"]
+
 [dependencies]
 # Internal crates
-cordon-core = { workspace = true }
-cordon-data = { workspace = true }
-cordon-sim = { workspace = true }
+cordon-core = { workspace = true, features = [] }
+cordon-data = { workspace = true, features = [] }
+cordon-sim = { workspace = true, features = [] }
 
 # Game engine
-bevy = { workspace = true }
-bevy-inspector-egui = { workspace = true }
-rand = { workspace = true }
+bevy = { workspace = true, features = [] }
+bevy-inspector-egui = { workspace = true, features = [] }
+rand = { workspace = true, features = [] }
 
-# Localization
-bevy_fluent = { workspace = true }
-fluent_content = { workspace = true }
-unic-langid = { workspace = true }
+# Localization and dialogue
+bevy_fluent = { workspace = true, features = [] }
+fluent_content = { workspace = true, features = [] }
+unic-langid = { workspace = true, features = [] }
+bevy_yarnspinner = { workspace = true, features = [] }
 
-# Dialogue
-bevy_yarnspinner = { workspace = true }
+# Physics
+avian3d = { workspace = true, features = [] }
+
+# Derive macros
+strum = { workspace = true, features = [] }
+
+# Steam (optional: run without via --no-default-features)
+bevy-steamworks = { version = "0.16", optional = true, features = [] }

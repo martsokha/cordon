@@ -1,37 +1,43 @@
 [
   {
-    "id": "the_vault",
-    "location": { "x": -540.0, "y": -1410.0 },
+    "id": "area_the_vault",
+    "location": {
+      "x": -540.0,
+      "y": -1410.0
+    },
     "radius": 60.0,
     "kind": {
       "type": "anchor",
-      "hazard": { "kind": "electric", "intensity": "veryhigh" },
       "creatures": "high",
-      "radiation": "veryhigh",
+      "corruption": "veryhigh",
       "loot": "veryhigh"
     }
   },
   {
-    "id": "data_archive",
-    "location": { "x": 90.0, "y": -1080.0 },
+    "id": "area_data_archive",
+    "location": {
+      "x": 90.0,
+      "y": -1080.0
+    },
     "radius": 80.0,
     "kind": {
       "type": "anchor",
-      "hazard": { "kind": "electric", "intensity": "medium" },
       "creatures": "low",
-      "radiation": "low",
+      "corruption": "low",
       "loot": "high"
     }
   },
   {
-    "id": "catacombs",
-    "location": { "x": -1230.0, "y": -1230.0 },
+    "id": "area_catacombs",
+    "location": {
+      "x": -1230.0,
+      "y": -1230.0
+    },
     "radius": 72.0,
     "kind": {
       "type": "anchor",
-      "hazard": { "kind": "gravitational", "intensity": "medium" },
       "creatures": "medium",
-      "radiation": "low",
+      "corruption": "low",
       "loot": "high"
     }
   }

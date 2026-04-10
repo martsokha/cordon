@@ -9,7 +9,7 @@
 
 use bevy::prelude::*;
 use bevy_fluent::prelude::*;
-use cordon_core::primitive::{HazardType, Tier};
+use cordon_core::primitive::Tier;
 use cordon_core::world::area::{AreaDef, AreaKind, SettlementRole};
 use cordon_sim::behavior::{CombatTarget, MovementTarget};
 
@@ -36,23 +36,6 @@ fn tier_key(t: &Tier) -> &'static str {
 pub fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
     let tier_label =
         |t: Tier| -> (String, Tier) { (l10n_or(l10n, tier_key(&t), &format!("{:?}", t)), t) };
-    let hazard_image = |h: &cordon_core::world::area::Hazard| -> String {
-        match h.kind {
-            HazardType::Chemical => "icons/hazards/chemical.png".to_string(),
-            HazardType::Thermal => "icons/hazards/thermal.png".to_string(),
-            HazardType::Electric => "icons/hazards/electric.png".to_string(),
-            HazardType::Gravitational => "icons/hazards/gravitational.png".to_string(),
-        }
-    };
-    let hazard_count = |t: Tier| -> u8 {
-        match t {
-            Tier::VeryLow => 1,
-            Tier::Low => 2,
-            Tier::Medium => 3,
-            Tier::High => 4,
-            Tier::VeryHigh => 5,
-        }
-    };
 
     let kind_key = match &area.kind {
         AreaKind::Settlement { .. } => "areakind-settlement",
@@ -74,26 +57,19 @@ pub fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
     };
 
     let creatures = area.kind.creatures().map(tier_label);
-    let radiation = area.kind.radiation().map(tier_label);
+    let corruption = area.kind.corruption().map(tier_label);
     let loot = area.kind.loot().map(tier_label);
-    let (hazard_image, hazard_count_v) = match area.kind.hazard() {
-        Some(h) => (Some(hazard_image(&h)), hazard_count(h.intensity)),
-        None => (None, 0),
-    };
 
     AreaTooltipInfo {
         faction_icon: faction_icon_str(area.kind.faction().map(|f| f.as_str())).to_string(),
-        name: l10n_or(
-            l10n,
-            &format!("area-{}", area.id.as_str()),
-            area.id.as_str(),
-        ),
+        // FTL keys mirror the raw ID 1:1 after the category-
+        // prefix rename, so we pass the id string straight
+        // through instead of formatting a `area-` prefix.
+        name: l10n_or(l10n, area.id.as_str(), area.id.as_str()),
         kind_label: l10n_or(l10n, kind_key, kind_key),
         role,
         creatures,
-        radiation,
-        hazard_image,
-        hazard_count: hazard_count_v,
+        corruption,
         loot,
     }
 }
@@ -110,16 +86,9 @@ pub fn build_relic_tooltip(
     data: &cordon_core::item::RelicData,
 ) -> TooltipContent {
     use cordon_core::item::{PassiveModifier, StatTarget};
-    use cordon_core::primitive::{HazardType, Rarity};
+    use cordon_core::primitive::Rarity;
 
-    let name = l10n_or(l10n, &format!("item-{}", def.id.as_str()), def.id.as_str());
-    let origin_key = match data.origin {
-        HazardType::Chemical => "hazard-chemical",
-        HazardType::Thermal => "hazard-thermal",
-        HazardType::Electric => "hazard-electric",
-        HazardType::Gravitational => "hazard-gravitational",
-    };
-    let origin = l10n_or(l10n, origin_key, origin_key);
+    let name = l10n_or(l10n, def.id.as_str(), def.id.as_str());
     let rarity_key = match def.rarity {
         Rarity::Common => "rarity-common",
         Rarity::Uncommon => "rarity-uncommon",
@@ -134,13 +103,8 @@ pub fn build_relic_tooltip(
             let (stat_key, fallback) = match target {
                 StatTarget::MaxHealth => ("stat-max-health", "Max HP"),
                 StatTarget::MaxStamina => ("stat-max-stamina", "Max Stamina"),
-                StatTarget::MaxHunger => ("stat-max-hunger", "Max Hunger"),
-                StatTarget::BallisticResistance => ("hazard-ballistic", "Ballistic"),
-                StatTarget::RadiationResistance => ("hazard-radiation", "Radiation"),
-                StatTarget::ChemicalResistance => ("hazard-chemical", "Chemical"),
-                StatTarget::ThermalResistance => ("hazard-thermal", "Thermal"),
-                StatTarget::ElectricResistance => ("hazard-electric", "Electric"),
-                StatTarget::GravitationalResistance => ("hazard-gravitational", "Gravitational"),
+                StatTarget::BallisticResistance => ("resistance-ballistic", "Ballistic"),
+                StatTarget::CorruptionResistance => ("resistance-corruption", "Corruption"),
             };
             let label = l10n_or(l10n, stat_key, fallback);
             let sign = if *value >= 0.0 { "+" } else { "" };
@@ -156,7 +120,6 @@ pub fn build_relic_tooltip(
     TooltipContent::Relic {
         name,
         icon,
-        origin,
         rarity,
         passives,
         triggered_count: data.triggered.len(),

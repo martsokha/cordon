@@ -11,6 +11,7 @@ mod def;
 mod effect;
 mod instance;
 mod loadout;
+mod query;
 mod scope;
 mod stash;
 
@@ -21,10 +22,12 @@ pub use self::data::{
 };
 pub use self::def::{Item, ItemDef, Supplier};
 pub use self::effect::{
-    EffectDuration, EffectTrigger, PassiveModifier, ResourceTarget, StatTarget, TimedEffect,
-    TriggeredEffect,
+    CORRUPTION_HIGH_THRESHOLD, CORRUPTION_LOW_THRESHOLD, EffectTrigger, HP_HIGH_THRESHOLD,
+    HP_LOW_THRESHOLD, PERIODIC_INTERVAL_MINUTES, PassiveModifier, ResourceTarget,
+    STAMINA_HIGH_THRESHOLD, STAMINA_LOW_THRESHOLD, StatTarget, TimedEffect, TriggeredEffect,
 };
 pub use self::instance::ItemInstance;
 pub use self::loadout::{BASE_GENERAL_SLOTS, Loadout, MAX_RELIC_SLOTS};
+pub use self::query::ItemQuery;
 pub use self::scope::StashScope;
 pub use self::stash::Stash;

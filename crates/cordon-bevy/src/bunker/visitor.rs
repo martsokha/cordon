@@ -158,11 +158,11 @@ fn despawn_preview_on_leave_knocking(
 /// in-bunker sprite and the antechamber preview sprite.
 fn faction_color(visitor: &Visitor) -> Color {
     match visitor.faction.as_str() {
-        "garrison" => Color::srgb(0.42, 0.55, 0.30),
-        "syndicate" => Color::srgb(0.66, 0.27, 0.16),
-        "institute" => Color::srgb(0.23, 0.55, 0.62),
-        "devoted" => Color::srgb(0.48, 0.25, 0.55),
-        "drifters" => Color::srgb(0.62, 0.48, 0.31),
+        "faction_garrison" => Color::srgb(0.42, 0.55, 0.30),
+        "faction_syndicate" => Color::srgb(0.66, 0.27, 0.16),
+        "faction_institute" => Color::srgb(0.23, 0.55, 0.62),
+        "faction_devoted" => Color::srgb(0.48, 0.25, 0.55),
+        "faction_drifters" => Color::srgb(0.62, 0.48, 0.31),
         _ => Color::srgb(0.6, 0.6, 0.6),
     }
 }

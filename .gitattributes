@@ -1,0 +1,8 @@
+# Treat model and asset files as binary so git doesn't try to
+# diff or merge them as text.
+*.dae binary
+*.fbx binary
+*.glb binary
+*.gltf binary
+*.tif binary
+*.psd binary

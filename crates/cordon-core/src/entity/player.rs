@@ -172,7 +172,7 @@ impl PlayerState {
 
     /// Whether the base has a generator (prevents power outages).
     pub fn has_power(&self) -> bool {
-        self.has_upgrade(&Id::<Upgrade>::new("generator"))
+        self.has_upgrade(&Id::<Upgrade>::new("upgrade_generator"))
     }
 
     /// Total count of a given item definition across the requested

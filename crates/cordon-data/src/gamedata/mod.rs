@@ -31,9 +31,8 @@ use cordon_core::entity::perk::PerkDef;
 use cordon_core::item::ItemDef;
 use cordon_core::primitive::Id;
 use cordon_core::world::area::AreaDef;
-use cordon_core::world::event::EventDef;
 use cordon_core::world::loot::LootTables;
-use cordon_core::world::narrative::quest::{QuestDef, QuestTriggerDef};
+use cordon_core::world::narrative::{EventDef, QuestDef, QuestTriggerDef};
 
 use crate::catalog::GameData;
 
@@ -196,7 +195,7 @@ fn assemble_game_data<S: FreelyMutableState>(
         upgrades.len(),
     );
 
-    commands.insert_resource(GameDataResource(GameData {
+    let catalog = GameData {
         areas,
         archetypes,
         events,
@@ -208,7 +207,12 @@ fn assemble_game_data<S: FreelyMutableState>(
         triggers,
         upgrades,
         loot_tables: LootTables::default(),
-    }));
+    };
+    // Run the integrity pass before the resource is visible to
+    // the rest of the app. Dangling references surface here as
+    // warnings instead of runtime mysteries.
+    catalog.validate();
+    commands.insert_resource(GameDataResource(catalog));
     commands.remove_resource::<LoadingFolders>();
     commands.remove_resource::<ReadyState<S>>();
     *next_state = NextState::Pending(ready.0.clone());

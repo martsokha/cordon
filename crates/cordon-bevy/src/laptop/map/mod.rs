@@ -62,9 +62,7 @@ pub struct AreaTooltipInfo {
     /// For Settlements: the role label ("Outpost" / "Market").
     pub role: Option<String>,
     pub creatures: Option<(String, Tier)>,
-    pub radiation: Option<(String, Tier)>,
-    pub hazard_image: Option<String>,
-    pub hazard_count: u8,
+    pub corruption: Option<(String, Tier)>,
     pub loot: Option<(String, Tier)>,
 }
 

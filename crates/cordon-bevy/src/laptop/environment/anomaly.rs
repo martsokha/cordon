@@ -4,16 +4,16 @@ use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
 use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dPlugin};
-use cordon_core::primitive::{HazardType, Tier};
+use cordon_core::primitive::Tier;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::behavior::AnomalyZone;
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct AnomalyMaterial {
     #[uniform(0)]
-    pub hazard_type: f32,
-    #[uniform(0)]
     pub intensity: f32,
+    #[uniform(0)]
+    pub _padding0: f32,
     #[uniform(0)]
     pub _padding1: f32,
     #[uniform(0)]
@@ -48,15 +48,6 @@ fn tier_to_intensity(t: &Tier) -> f32 {
     }
 }
 
-fn hazard_type_to_float(h: &HazardType) -> f32 {
-    match h {
-        HazardType::Chemical => 0.0,
-        HazardType::Thermal => 1.0,
-        HazardType::Electric => 2.0,
-        HazardType::Gravitational => 3.0,
-    }
-}
-
 /// Marker for the 2D visual mesh of an anomaly zone. Distinct from
 /// [`AnomalyZone`] (which is the sim-side LOS blocker) because the
 /// fog-of-war system hides the *visual* without touching the
@@ -71,25 +62,29 @@ pub fn spawn(
     anomaly_mats: &mut ResMut<Assets<AnomalyMaterial>>,
 ) {
     for area in game_data.0.areas.values() {
-        if let Some(hazard) = area.kind.hazard() {
-            let x = area.location.x;
-            let y = area.location.y;
-            let r = area.radius.value() * 1.2;
-            commands.spawn((
-                AnomalyZone { radius: r },
-                AnomalyVisual,
-                Mesh2d(meshes.add(Circle::new(r))),
-                MeshMaterial2d(anomaly_mats.add(AnomalyMaterial {
-                    hazard_type: hazard_type_to_float(&hazard.kind),
-                    intensity: tier_to_intensity(&hazard.intensity),
-                    _padding1: 0.0,
-                    _padding2: 0.0,
-                })),
-                // Above the fog overlay (z=4.5) and clouds
-                // (z=5.0) so the shader effects render on top
-                // of the mist instead of being darkened by it.
-                Transform::from_xyz(x, y, 8.5),
-            ));
+        if !area.kind.is_anomaly() {
+            continue;
         }
+        let Some(corruption) = area.kind.corruption() else {
+            continue;
+        };
+        let x = area.location.x;
+        let y = area.location.y;
+        let r = area.radius.value() * 1.2;
+        commands.spawn((
+            AnomalyZone { radius: r },
+            AnomalyVisual,
+            Mesh2d(meshes.add(Circle::new(r))),
+            MeshMaterial2d(anomaly_mats.add(AnomalyMaterial {
+                intensity: tier_to_intensity(&corruption),
+                _padding0: 0.0,
+                _padding1: 0.0,
+                _padding2: 0.0,
+            })),
+            // Above the fog overlay (z=4.5) and clouds (z=5.0) so
+            // the shader effects render on top of the mist instead
+            // of being darkened by it.
+            Transform::from_xyz(x, y, 8.5),
+        ));
     }
 }

@@ -39,7 +39,7 @@ The Garrison controls access to the Zone. You need to pay them to look the other
 | Bandages | 100 | Drifters, Garrison | Always needed. High volume. |
 | Medkit | 500 | Garrison, Institute | Standard healing. Demand spikes after firefights. |
 | Military medkit | 1200 | Garrison, Mercenaries | Superior quality. Order and Mercenaries pay premium. |
-| Anti-radiation pills | 400 | Institute, Garrison | Essential for deep-Zone runs. Expires in 10 days. Demand surges before predicted surges. |
+| Antidoteiation pills | 400 | Institute, Garrison | Essential for deep-Zone runs. Expires in 10 days. Demand surges before predicted surges. |
 | Painkillers | 250 | Drifters, Garrison | Common, steady demand. |
 | Blood coagulant | 450 | Institute | Stops bleeding fast. Runners and soldiers want these. Expires in 7 days. |
 | Mental blockers | 700 | Institute | Rare. Demand spikes during psychic disturbances. Only the Institute manufactures them. Expires in 5 days. |
@@ -190,7 +190,7 @@ Armor has two slots: **helmet** and **suit**. A scavenger wearing a leather jack
 | Leather jacket | 500 | Drifters | Minimal protection. The Zone's "starter armor." |
 | Reinforced coat | 1500 | Drifters, Syndicate | Improvised plating. Better than nothing. |
 | Tactical vest | 3000 | Garrison, Mercenaries | Stops small caliber. Military standard. |
-| Hazard suit | 5500 | Institute, Garrison | Radiation/chemical protection. Essential for hazardous sectors. |
+| Hazard suit | 5500 | Institute, Garrison | Corruption/chemical protection. Essential for hazardous sectors. |
 | Combat armor | 8000 | Garrison, Mercenaries | Full ballistic protection. Heavy. Order and Mercenary standard. |
 | Heavy rig | 15000 | Garrison (rare), Mercenaries | Exoskeleton-class. Maximum protection. Extremely rare and heavy. |
 | Stealth suit | 7000 | Mercenaries (rare) | Reduced detection. Mercenary specialty. Runners dream of these. |
@@ -210,10 +210,10 @@ Armor has two slots: **helmet** and **suit**. A scavenger wearing a leather jack
 
 | Item | Base Price | Supplier | Rarity | Notes |
 |------|-----------|----------|--------|-------|
-| Glowstone | 1500 | Drifters, scavenged | Common | Faint luminescence. Minor radiation absorption. |
+| Glowstone | 1500 | Drifters, scavenged | Common | Faint luminescence. Minor corruption absorption. |
 | Ember | 2000 | Drifters, scavenged | Common | Warm to the touch. Minor healing properties. |
 | Thorn | 1800 | Drifters, scavenged | Common | Jagged crystalline growth. Minor ballistic resistance. |
-| Dusklight | 4000 | Scavenged, Collective | Uncommon | Shifts between light and dark. Moderate radiation absorption. |
+| Dusklight | 4000 | Scavenged, Collective | Uncommon | Shifts between light and dark. Moderate corruption absorption. |
 | Whisperer | 5000 | Scavenged, the Devoted | Uncommon | Emits faint sound. Mental resistance properties. The Devoted prize these. |
 | Pulse | 5500 | Scavenged | Uncommon | Rhythmic energy discharge. Enhances stamina/endurance. |
 | Hollow | 10000 | Deep-Zone scavenging | Rare | A void in the shape of a stone. Absorbs damage. Extremely valuable. |

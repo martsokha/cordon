@@ -1,16 +1,16 @@
 {
-  "id": "syndicate",
+  "id": "faction_syndicate",
   "recruitable": true,
   "rank_scheme": "loose",
   "buys": ["weapon", "relic", "tech"],
   "sells": ["weapon", "consumable", "attachment"],
-  "namepool": "aliases",
+  "namepool": "namepool_aliases",
   "color": "#A8442A",
   "spawn_weight": 25,
   "relations": [
-    ["garrison", -60],
-    ["institute", -30],
-    ["devoted", -70],
-    ["drifters", 30]
+    ["faction_garrison", -60],
+    ["faction_institute", -30],
+    ["faction_devoted", -70],
+    ["faction_drifters", 30]
   ]
 }

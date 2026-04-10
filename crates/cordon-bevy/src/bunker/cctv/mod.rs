@@ -83,6 +83,7 @@ pub struct CctvImage(pub Handle<Image>);
 /// and the shared image asset on first bunker entry.
 fn spawn_cctv(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     spawned: Option<Res<CctvImage>>,
     mut images: ResMut<Assets<Image>>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -105,7 +106,12 @@ fn spawn_cctv(
     let image_handle = images.add(image);
     commands.insert_resource(CctvImage(image_handle.clone()));
 
-    antechamber::spawn(&mut commands, &mut meshes, &mut std_materials);
+    antechamber::spawn(
+        &mut commands,
+        &mut meshes,
+        &mut std_materials,
+        &asset_server,
+    );
     spawn_cctv_camera(&mut commands, image_handle.clone());
     spawn_cctv_monitor(
         &mut commands,

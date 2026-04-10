@@ -80,7 +80,14 @@ fn preload_relic_icons(
     let mut handles = HashMap::new();
     for (id, def) in &game_data.0.items {
         if matches!(def.data, cordon_core::item::ItemData::Relic(_)) {
-            let path = format!("icons/relics/{}.png", id.as_str());
+            // Icon filenames are intentionally *not* prefixed with
+            // `item_` — they live in `icons/relics/<short>.png`
+            // where `<short>` is the id with the `item_` prefix
+            // stripped. Filesystem paths don't need the prefix for
+            // disambiguation (the directory scopes them) and not
+            // renaming every PNG file is the right trade.
+            let short = id.as_str().strip_prefix("item_").unwrap_or(id.as_str());
+            let path = format!("icons/relics/{short}.png");
             handles.insert(id.clone(), asset_server.load(path));
         }
     }

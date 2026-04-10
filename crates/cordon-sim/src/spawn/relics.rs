@@ -1,11 +1,11 @@
 //! Relic spawning and pickup.
 //!
 //! **Spawning**: triggered once per in-game day by the [`DayRolled`]
-//! message. For each area with a hazard, the system counts live
+//! message. For each anomaly-bearing area the system counts live
 //! relics anchored to that area and tops up toward a capacity
-//! determined by the anomaly's intensity tier. Candidate relic defs
-//! are filtered by [`RelicData::origin`] matching the area's hazard
-//! kind, then weighted by [`Rarity`].
+//! determined by the area's corruption tier. Every relic def is a
+//! candidate — there's no longer a hazard-type match — weighted by
+//! [`Rarity`].
 //!
 //! **Pickup**: squads on a [`Goal::Scavenge`] walking near a relic
 //! transfer the [`ItemInstance`] into the squad leader's loadout if
@@ -24,7 +24,7 @@ use bevy_prng::WyRand;
 use bevy_rand::prelude::GlobalRng;
 use cordon_core::entity::squad::Goal;
 use cordon_core::item::{Item, ItemData, ItemDef, ItemInstance, Loadout, RelicData};
-use cordon_core::primitive::{HazardType, Id, Tier};
+use cordon_core::primitive::{Id, Tier};
 use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
 use rand::{Rng, RngExt};
@@ -61,9 +61,9 @@ impl Plugin for RelicSpawnPlugin {
     }
 }
 
-/// Per-area relic cap, indexed by hazard intensity tier.
-fn cap_for_intensity(intensity: Tier) -> u32 {
-    match intensity {
+/// Per-area relic cap, indexed by the area's corruption tier.
+fn cap_for_corruption(tier: Tier) -> u32 {
+    match tier {
         Tier::VeryLow => 1,
         Tier::Low => 2,
         Tier::Medium => 3,
@@ -87,36 +87,32 @@ fn spawn_relics_on_day_rollover(
         *counts.entry(home.0.clone()).or_insert(0) += 1;
     }
 
-    // Index relic defs by origin hazard. Each entry is the def id,
-    // the rolled weight contribution, and the full def.
-    let mut by_origin: HashMap<HazardType, Vec<(Id<Item>, u32, &ItemDef, &RelicData)>> =
-        HashMap::new();
-    for (id, def) in &data.items {
-        let ItemData::Relic(relic) = &def.data else {
-            continue;
-        };
-        by_origin.entry(relic.origin).or_default().push((
-            id.clone(),
-            def.rarity.weight(),
-            def,
-            relic,
-        ));
+    // Every relic def is a candidate — spawning is no longer
+    // hazard-typed. Weight is rarity's weight contribution.
+    let candidates: Vec<(Id<Item>, u32, &ItemDef, &RelicData)> = data
+        .items
+        .iter()
+        .filter_map(|(id, def)| match &def.data {
+            ItemData::Relic(relic) => Some((id.clone(), def.rarity.weight(), def, relic)),
+            _ => None,
+        })
+        .collect();
+    if candidates.is_empty() {
+        return;
     }
 
     for area in data.areas.values() {
-        let Some(hazard) = area.kind.hazard() else {
-            continue;
-        };
-        let cap = cap_for_intensity(hazard.intensity);
-        let current = counts.get(&area.id).copied().unwrap_or(0);
-        if current >= cap {
+        // Only anomaly-bearing areas host relics (Wasteland also
+        // has a corruption tier but it's not a relic site).
+        if !area.kind.is_anomaly() {
             continue;
         }
-
-        let Some(candidates) = by_origin.get(&hazard.kind) else {
+        let Some(corruption) = area.kind.corruption() else {
             continue;
         };
-        if candidates.is_empty() {
+        let cap = cap_for_corruption(corruption);
+        let current = counts.get(&area.id).copied().unwrap_or(0);
+        if current >= cap {
             continue;
         }
 
@@ -128,7 +124,7 @@ fn spawn_relics_on_day_rollover(
             if rng.random::<f32>() >= RELIC_SPAWN_PROBABILITY {
                 continue;
             }
-            let Some((_id, _w, def, _relic)) = pick_weighted(candidates, rng) else {
+            let Some((_id, _w, def, _relic)) = pick_weighted(&candidates, rng) else {
                 continue;
             };
             spawn_one(&mut commands, area, def, rng);

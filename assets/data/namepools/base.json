@@ -1,32 +1,71 @@
 [
   {
-    "id": "zone",
+    "id": "namepool_zone",
     "format": "firstsurname",
     "names": [
-      "name-james", "name-marcus", "name-eric", "name-karl",
-      "name-frank", "name-hans", "name-leon", "name-max",
-      "name-stefan", "name-wolf", "name-rolf", "name-klaus",
-      "name-arthur", "name-walter", "name-felix", "name-otto"
+      "name-james",
+      "name-marcus",
+      "name-eric",
+      "name-karl",
+      "name-frank",
+      "name-hans",
+      "name-leon",
+      "name-max",
+      "name-stefan",
+      "name-wolf",
+      "name-rolf",
+      "name-klaus",
+      "name-arthur",
+      "name-walter",
+      "name-felix",
+      "name-otto"
     ],
     "surnames": [
-      "name-hoffman", "name-weber", "name-hartmann", "name-krause",
-      "name-schultz", "name-becker", "name-walker", "name-frost",
-      "name-stone", "name-brenner", "name-richter", "name-lang",
-      "name-keller", "name-fischer", "name-bauer", "name-vogel"
+      "name-hoffman",
+      "name-weber",
+      "name-hartmann",
+      "name-krause",
+      "name-schultz",
+      "name-becker",
+      "name-walker",
+      "name-frost",
+      "name-stone",
+      "name-brenner",
+      "name-richter",
+      "name-lang",
+      "name-keller",
+      "name-fischer",
+      "name-bauer",
+      "name-vogel"
     ],
     "aliases": []
   },
   {
-    "id": "aliases",
+    "id": "namepool_aliases",
     "format": "alias",
     "names": [],
     "surnames": [],
     "aliases": [
-      "alias-viper", "alias-ghost", "alias-spark", "alias-patch",
-      "alias-razor", "alias-crow", "alias-needle", "alias-smoke",
-      "alias-flask", "alias-wire", "alias-hound", "alias-match",
-      "alias-dusk", "alias-grit", "alias-fuse", "alias-shade",
-      "alias-stitch", "alias-bolt", "alias-ash", "alias-pike"
+      "alias-viper",
+      "alias-ghost",
+      "alias-spark",
+      "alias-patch",
+      "alias-razor",
+      "alias-crow",
+      "alias-needle",
+      "alias-smoke",
+      "alias-flask",
+      "alias-wire",
+      "alias-hound",
+      "alias-match",
+      "alias-dusk",
+      "alias-grit",
+      "alias-fuse",
+      "alias-shade",
+      "alias-stitch",
+      "alias-bolt",
+      "alias-ash",
+      "alias-pike"
     ]
   }
 ]

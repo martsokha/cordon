@@ -15,7 +15,7 @@ use cordon_core::entity::player::PlayerState;
 use cordon_core::entity::squad::Squad;
 use cordon_core::primitive::{GameTime, Id, Uid};
 use cordon_core::world::area::{Area, AreaKind};
-use cordon_core::world::event::ActiveEvent;
+use cordon_core::world::narrative::ActiveEvent;
 use cordon_data::gamedata::GameDataResource;
 
 /// Live state of an area in the world.

@@ -124,7 +124,10 @@ fn read_zoom(
 /// stored position.
 fn read_keyboard_pan(
     keys: Res<ButtonInput<KeyCode>>,
-    time: Res<Time>,
+    // Real time, not virtual: camera pan speed must not
+    // accelerate with the sim time cheat. 1× and 64× should
+    // both feel the same when the player nudges WASD.
+    time: Res<Time<Real>>,
     camera_q: Query<(&Transform, &Projection), With<Camera2d>>,
     mut target: ResMut<CameraTarget>,
 ) {
@@ -236,7 +239,8 @@ fn read_drag_pan(
 /// Motion breaks follow, same as keyboard pan and drag pan.
 fn read_edge_scroll(
     enabled: Res<EdgeScrollEnabled>,
-    time: Res<Time>,
+    // Real time, not virtual: see `read_keyboard_pan`.
+    time: Res<Time<Real>>,
     windows: Query<&Window>,
     camera_q: Query<(&Transform, &Projection), With<Camera2d>>,
     mut target: ResMut<CameraTarget>,

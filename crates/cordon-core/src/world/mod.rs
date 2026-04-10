@@ -1,16 +1,15 @@
 /// Area definitions loaded from config.
 pub mod area;
 
-/// Zone events: surges, faction wars, raids, and more.
-pub mod event;
-
 /// Loot tables: per-area weighted drop tables.
 pub mod loot;
 
 /// Runner missions: plans, outcomes, and results.
 pub mod mission;
 
-/// Quest and consequence definitions.
+/// Quests, events, triggers, and the shared condition/consequence
+/// vocabulary they all use. Submodules are private — callers
+/// import from the top-level `narrative` namespace.
 pub mod narrative;
 
 /// Price calculation with condition-squared scaling.

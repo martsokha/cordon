@@ -1,16 +1,15 @@
 [
   {
-    "id": "toz34",
+    "id": "item_toz34",
     "data": {
       "type": "weapon",
-      "caliber": "12gauge",
+      "caliber": "caliber_12gauge",
       "fire_modes": [
         "Semi"
       ],
       "fire_rate": 1.2,
       "accuracy": 0.5,
       "magazine": 2,
-      "reload_secs": 4.5,
       "range": 56.0,
       "suppressed": false,
       "added_damage": 0
@@ -18,28 +17,27 @@
     "base_price": 3200,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.85
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.0
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "saiga12",
+    "id": "item_saiga12",
     "data": {
       "type": "weapon",
-      "caliber": "12gauge",
+      "caliber": "caliber_12gauge",
       "fire_modes": [
         "Semi"
       ],
       "fire_rate": 3.0,
       "accuracy": 0.55,
       "magazine": 8,
-      "reload_secs": 3.2,
       "range": 72.0,
       "suppressed": false,
       "added_damage": 4
@@ -47,11 +45,11 @@
     "base_price": 6000,
     "suppliers": [
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 0.95
       },
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 1.05
       }
     ],

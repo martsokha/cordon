@@ -1,16 +1,15 @@
 [
   {
-    "id": "sks",
+    "id": "item_sks",
     "data": {
       "type": "weapon",
-      "caliber": "7.62x39mm",
+      "caliber": "caliber_762x39mm",
       "fire_modes": [
         "Semi"
       ],
       "fire_rate": 3.0,
       "accuracy": 0.7,
       "magazine": 10,
-      "reload_secs": 3.0,
       "range": 150.0,
       "suppressed": false,
       "added_damage": 2
@@ -18,21 +17,21 @@
     "base_price": 4000,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.9
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.0
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "aks74u",
+    "id": "item_aks74u",
     "data": {
       "type": "weapon",
-      "caliber": "5.45x39mm",
+      "caliber": "caliber_545x39mm",
       "fire_modes": [
         "Semi",
         "Auto"
@@ -40,7 +39,6 @@
       "fire_rate": 10.0,
       "accuracy": 0.6,
       "magazine": 30,
-      "reload_secs": 2.8,
       "range": 100.0,
       "suppressed": false,
       "added_damage": 0
@@ -48,21 +46,21 @@
     "base_price": 4500,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.95
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.05
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "akm",
+    "id": "item_akm",
     "data": {
       "type": "weapon",
-      "caliber": "7.62x39mm",
+      "caliber": "caliber_762x39mm",
       "fire_modes": [
         "Semi",
         "Auto"
@@ -70,7 +68,6 @@
       "fire_rate": 10.0,
       "accuracy": 0.68,
       "magazine": 30,
-      "reload_secs": 3.0,
       "range": 140.0,
       "suppressed": false,
       "added_damage": 4
@@ -78,25 +75,25 @@
     "base_price": 5500,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.95
       },
       {
-        "faction": "syndicate",
+        "faction": "faction_syndicate",
         "price_multiplier": 1.0
       },
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 1.05
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "ak74",
+    "id": "item_ak74",
     "data": {
       "type": "weapon",
-      "caliber": "5.45x39mm",
+      "caliber": "caliber_545x39mm",
       "fire_modes": [
         "Semi",
         "Auto"
@@ -104,7 +101,6 @@
       "fire_rate": 11.0,
       "accuracy": 0.7,
       "magazine": 30,
-      "reload_secs": 3.0,
       "range": 130.0,
       "suppressed": false,
       "added_damage": 4
@@ -112,17 +108,17 @@
     "base_price": 6500,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.9
       }
     ],
     "rarity": "common"
   },
   {
-    "id": "aek971",
+    "id": "item_aek971",
     "data": {
       "type": "weapon",
-      "caliber": "5.45x39mm",
+      "caliber": "caliber_545x39mm",
       "fire_modes": [
         "Semi",
         {
@@ -133,7 +129,6 @@
       "fire_rate": 13.0,
       "accuracy": 0.78,
       "magazine": 30,
-      "reload_secs": 2.8,
       "range": 150.0,
       "suppressed": false,
       "added_damage": 5
@@ -141,7 +136,7 @@
     "base_price": 12000,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.95
       }
     ],

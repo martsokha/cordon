@@ -1,9 +1,9 @@
 # Faction display names.
 #
 # Keys mirror the faction ids in `assets/data/factions/*.json`.
-faction-garrison = The Garrison
-faction-syndicate = The Syndicate
-faction-institute = The Institute
-faction-devoted = The Devoted
-faction-drifters = Drifters
-faction-none = Unclaimed
+faction_garrison = The Garrison
+faction_syndicate = The Syndicate
+faction_institute = The Institute
+faction_devoted = The Devoted
+faction_drifters = Drifters
+faction_none = Unclaimed

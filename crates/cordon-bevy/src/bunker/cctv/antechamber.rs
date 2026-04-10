@@ -31,11 +31,13 @@ const HALF_D: f32 = 2.0;
 const HEIGHT: f32 = 2.4;
 
 /// Build the antechamber: floor, four walls, ceiling, the door
-/// behind the visitor, and a single ceiling lamp.
+/// behind the visitor, a ceiling lamp, and some holding-room
+/// furniture.
 pub(super) fn spawn(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
+    asset_server: &AssetServer,
 ) {
     let wall_mat = materials.add(StandardMaterial {
         base_color: Color::srgb(0.18, 0.17, 0.15),
@@ -92,7 +94,113 @@ pub(super) fn spawn(
     ));
 
     spawn_door(commands, meshes, materials, center, hd, h);
+    spawn_front_door(commands, meshes, materials, center, hd, h);
     spawn_lamp(commands, center, h);
+    spawn_furniture(commands, asset_server, center, hw, hd, h);
+}
+
+/// Door on the front wall (+z) — the side facing the bunker
+/// interior. Mirrors the back door.
+fn spawn_front_door(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+    center: Vec3,
+    hd: f32,
+    h: f32,
+) {
+    let panel_mat = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.05, 0.05, 0.06),
+        perceptual_roughness: 0.6,
+        ..default()
+    });
+    let frame_mat = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.22, 0.20, 0.18),
+        perceptual_roughness: 0.5,
+        metallic: 0.4,
+        ..default()
+    });
+    let door_w = 0.9;
+    let door_h = 2.0;
+    let door_z = hd - 0.03;
+    let door_y = -h / 2.0 + door_h / 2.0;
+
+    commands.spawn((
+        Mesh3d(meshes.add(Cuboid::new(door_w + 0.1, door_h + 0.1, 0.04))),
+        MeshMaterial3d(frame_mat),
+        Transform::from_translation(center + Vec3::new(0.0, door_y, door_z - 0.005)),
+    ));
+    commands.spawn((
+        Mesh3d(meshes.add(Cuboid::new(door_w, door_h, 0.04))),
+        MeshMaterial3d(panel_mat),
+        Transform::from_translation(center + Vec3::new(0.0, door_y, door_z - 0.025)),
+    ));
+}
+
+/// Holding-room furniture: cold, functional, security-checkpoint
+/// feel. No comfort — visitors don't get that.
+fn spawn_furniture(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    center: Vec3,
+    hw: f32,
+    _hd: f32,
+    h: f32,
+) {
+    use std::f32::consts::FRAC_PI_2;
+
+    let floor = -h / 2.0;
+
+    let glb = |commands: &mut Commands, path: &str, pos: Vec3, rot: Quat| {
+        let scene: Handle<Scene> = asset_server.load(format!("{path}#Scene0"));
+        commands.spawn((
+            SceneRoot(scene),
+            Transform::from_translation(pos).with_rotation(rot),
+        ));
+    };
+
+    // Stool — the only seat a visitor gets.
+    glb(
+        commands,
+        "models/interior/WoodenStool.glb",
+        center + Vec3::new(0.6, floor, -0.5),
+        Quat::IDENTITY,
+    );
+    // Locker against the left wall — for confiscated gear.
+    glb(
+        commands,
+        "models/storage/Locker.glb",
+        center + Vec3::new(-hw + 0.3, floor, 0.0),
+        Quat::from_rotation_y(FRAC_PI_2),
+    );
+    // Metal rack on the right wall.
+    glb(
+        commands,
+        "models/storage/StorageRack_01.glb",
+        center + Vec3::new(hw - 0.3, floor, 0.0),
+        Quat::from_rotation_y(-FRAC_PI_2),
+    );
+    // Box on the rack.
+    glb(
+        commands,
+        "models/storage/Box_02.glb",
+        center + Vec3::new(hw - 0.4, floor + 0.6, 0.0),
+        Quat::from_rotation_y(0.2),
+    );
+    // Supply box on the floor.
+    glb(
+        commands,
+        "models/storage/Box_01.glb",
+        center + Vec3::new(-0.8, floor, 0.8),
+        Quat::from_rotation_y(0.4),
+    );
+    // Security panel at eye height.
+    glb(
+        commands,
+        "models/storage/ElectricBox_01.glb",
+        center + Vec3::new(hw - 0.05, 0.0, -0.8),
+        Quat::from_rotation_y(-FRAC_PI_2),
+    );
 }
 
 /// Recessed door panel + slim metallic frame on the back wall,

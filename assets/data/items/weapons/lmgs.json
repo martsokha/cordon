@@ -1,9 +1,9 @@
 [
   {
-    "id": "rpk74",
+    "id": "item_rpk74",
     "data": {
       "type": "weapon",
-      "caliber": "5.45x39mm",
+      "caliber": "caliber_545x39mm",
       "fire_modes": [
         "Semi",
         "Auto"
@@ -11,7 +11,6 @@
       "fire_rate": 12.0,
       "accuracy": 0.65,
       "magazine": 45,
-      "reload_secs": 5.5,
       "range": 160.0,
       "suppressed": false,
       "added_damage": 6
@@ -19,24 +18,23 @@
     "base_price": 9500,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.95
       }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "rpd",
+    "id": "item_rpd",
     "data": {
       "type": "weapon",
-      "caliber": "7.62x39mm",
+      "caliber": "caliber_762x39mm",
       "fire_modes": [
         "Auto"
       ],
       "fire_rate": 11.0,
       "accuracy": 0.6,
       "magazine": 100,
-      "reload_secs": 6.0,
       "range": 170.0,
       "suppressed": false,
       "added_damage": 7
@@ -44,28 +42,27 @@
     "base_price": 11000,
     "suppliers": [
       {
-        "faction": "drifters",
+        "faction": "faction_drifters",
         "price_multiplier": 0.95
       },
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 1.0
       }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "pkm",
+    "id": "item_pkm",
     "data": {
       "type": "weapon",
-      "caliber": "7.62x54r",
+      "caliber": "caliber_762x54r",
       "fire_modes": [
         "Auto"
       ],
       "fire_rate": 10.0,
       "accuracy": 0.65,
       "magazine": 100,
-      "reload_secs": 7.0,
       "range": 200.0,
       "suppressed": false,
       "added_damage": 10
@@ -73,7 +70,7 @@
     "base_price": 16000,
     "suppliers": [
       {
-        "faction": "garrison",
+        "faction": "faction_garrison",
         "price_multiplier": 0.95
       }
     ],

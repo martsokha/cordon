@@ -33,7 +33,7 @@ Upgrades are defined in config files. Each has prerequisites, a cost, and a sour
 | **magnifying_lens** | Magnifying Lens | Purchasable | counter_2 | Detect obvious fakes (broken weapons, expired meds). |
 | **relic_scanner** | Relic Scanner | Faction (Institute) | counter_2 | Detect fake relics. Identify relic stability. |
 | **advanced_toolkit** | Advanced Toolkit | Purchasable | magnifying_lens | Detect all fakes. Full item analysis. |
-| **geiger_counter** | Geiger Counter | Purchasable | — | Check radiation levels on items and people. |
+| **corruption_scanner** | Corruption Scanner | Purchasable | — | Check corruption levels on items and people. |
 | **scale** | Merchant's Scale | Purchasable | counter_2 | Weigh items for accurate pricing. Detect underweight ammo boxes. |
 | **ledger** | Ledger | Purchasable | — | Track profit/loss per day. Trade history with NPCs. |
 

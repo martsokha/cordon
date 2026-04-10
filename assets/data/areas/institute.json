@@ -1,31 +1,40 @@
 [
   {
-    "id": "research_lab",
-    "location": { "x": 240.0, "y": 990.0 },
+    "id": "area_research_lab",
+    "location": {
+      "x": 240.0,
+      "y": 990.0
+    },
     "radius": 75.0,
     "kind": {
       "type": "settlement",
-      "faction": "institute",
+      "faction": "faction_institute",
       "role": "outpost"
     }
   },
   {
-    "id": "institute_outpost",
-    "location": { "x": -180.0, "y": 90.0 },
+    "id": "area_institute_outpost",
+    "location": {
+      "x": -180.0,
+      "y": 90.0
+    },
     "radius": 67.5,
     "kind": {
       "type": "settlement",
-      "faction": "institute",
+      "faction": "faction_institute",
       "role": "outpost"
     }
   },
   {
-    "id": "observation_post",
-    "location": { "x": 1080.0, "y": 60.0 },
+    "id": "area_observation_post",
+    "location": {
+      "x": 1080.0,
+      "y": 60.0
+    },
     "radius": 70.0,
     "kind": {
       "type": "settlement",
-      "faction": "institute",
+      "faction": "faction_institute",
       "role": "outpost"
     }
   }

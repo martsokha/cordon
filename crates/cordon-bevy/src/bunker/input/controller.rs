@@ -1,5 +1,12 @@
-//! FPS camera controls: mouse look, WASD movement.
+//! FPS camera controls: mouse look, WASD movement with physics
+//! collision via avian3d's `move_and_slide`.
 
+use std::time::Duration;
+
+use avian3d::character_controller::move_and_slide::{
+    MoveAndSlide, MoveAndSlideConfig, MoveAndSlideHitResponse,
+};
+use avian3d::prelude::*;
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 
@@ -10,6 +17,9 @@ use crate::bunker::{CameraMode, VisitorState};
 const MOVE_SPEED: f32 = 4.0;
 const LOOK_SENSITIVITY: f32 = 0.003;
 
+pub(crate) const PLAYER_RADIUS: f32 = 0.3;
+pub(crate) const PLAYER_HEIGHT: f32 = 1.0;
+
 pub struct ControllerPlugin;
 
 impl Plugin for ControllerPlugin {
@@ -19,9 +29,6 @@ impl Plugin for ControllerPlugin {
             (fps_look, fps_move)
                 .run_if(in_state(PlayingState::Bunker))
                 .run_if(|mode: Res<CameraMode>| matches!(*mode, CameraMode::Free))
-                // Freeze look/move only once a visitor is `Inside`
-                // and dialogue is running. While `Knocking` the
-                // player should still be able to walk to the desk.
                 .run_if(|state: Res<VisitorState>| !matches!(*state, VisitorState::Inside { .. })),
         );
     }
@@ -47,10 +54,9 @@ fn fps_look(
 
 fn fps_move(
     keys: Res<ButtonInput<KeyCode>>,
-    // Player walking speed must stay real-time so fast-forwarding
-    // the sim doesn't also rocket the player around the bunker.
     time: Res<Time<Real>>,
-    mut camera_q: Query<&mut Transform, With<FpsCamera>>,
+    move_and_slide: MoveAndSlide,
+    mut camera_q: Query<(Entity, &Collider, &mut Transform), With<FpsCamera>>,
 ) {
     let mut input = Vec2::ZERO;
     if keys.pressed(KeyCode::KeyW) {
@@ -69,17 +75,30 @@ fn fps_move(
         return;
     }
 
-    for mut transform in &mut camera_q {
+    for (entity, collider, mut transform) in &mut camera_q {
         let forward = transform.forward().as_vec3();
         let right = transform.right().as_vec3();
         let flat_forward = Vec3::new(forward.x, 0.0, forward.z).normalize_or_zero();
         let flat_right = Vec3::new(right.x, 0.0, right.z).normalize_or_zero();
-        let movement = (flat_forward * input.y + flat_right * input.x).normalize_or_zero()
-            * MOVE_SPEED
-            * time.delta_secs();
-        transform.translation += movement;
-        // Player stays on their side: behind trade grate (z < 1.3), within walls
-        transform.translation.x = transform.translation.x.clamp(-1.8, 1.8);
-        transform.translation.z = transform.translation.z.clamp(-4.7, 1.3);
+        let velocity =
+            (flat_forward * input.y + flat_right * input.x).normalize_or_zero() * MOVE_SPEED;
+
+        let dt = Duration::from_secs_f32(time.delta_secs());
+        let config = MoveAndSlideConfig::default();
+        let filter = SpatialQueryFilter::default().with_excluded_entities([entity]);
+
+        let output = move_and_slide.move_and_slide(
+            collider,
+            transform.translation,
+            transform.rotation,
+            velocity,
+            dt,
+            &config,
+            &filter,
+            |_hit| MoveAndSlideHitResponse::Accept,
+        );
+
+        transform.translation = output.position;
+        transform.translation.y = 1.6;
     }
 }

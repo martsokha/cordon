@@ -260,14 +260,15 @@ fn refresh_quest_list(
     for active in &log.active {
         let def_id = active.def_id.as_str();
 
-        let title_key = format!("quest-{def_id}");
+        // FTL keys mirror the raw quest ID after the category-
+        // prefix rename; stage hints use `{quest_id}_stage_{stage_id}`.
         let title = l10n
             .as_deref()
-            .map(|l| l10n_or(l, &title_key, def_id))
+            .map(|l| l10n_or(l, def_id, def_id))
             .unwrap_or_else(|| def_id.to_string());
 
         let stage_id = active.current_stage.as_str();
-        let hint_key = format!("quest-{def_id}-stage-{stage_id}");
+        let hint_key = format!("{def_id}_stage_{stage_id}");
         let hint_text = l10n
             .as_deref()
             .map(|l| l10n_or(l, &hint_key, stage_id))
@@ -324,11 +325,11 @@ fn refresh_quest_list(
         }
     }
 
-    // ---- Completed quests. Show the last MAX_COMPLETED
-    // entries under a subheading so the player can review
-    // what's happened recently. Tail-biased (most-recent
-    // first) because an emerging history reads better that
-    // way than chronologically forward.
+    // Show the last MAX_COMPLETED completed entries under a
+    // subheading so the player can review what's happened
+    // recently. Tail-biased (most-recent first) because an
+    // emerging history reads better that way than
+    // chronologically forward.
     const MAX_COMPLETED: usize = 5;
     if !log.completed.is_empty() {
         let heading_text = l10n
@@ -354,10 +355,9 @@ fn refresh_quest_list(
 
         for done in log.completed.iter().rev().take(MAX_COMPLETED) {
             let def_id = done.def_id.as_str();
-            let title_key = format!("quest-{def_id}");
             let title = l10n
                 .as_deref()
-                .map(|l| l10n_or(l, &title_key, def_id))
+                .map(|l| l10n_or(l, def_id, def_id))
                 .unwrap_or_else(|| def_id.to_string());
             let marker = if done.success { "✓" } else { "✗" };
             let color = if done.success {
@@ -413,10 +413,9 @@ fn refresh_faction_standings(
 
     for (faction, standing) in rows {
         let id_str = faction.as_str();
-        let name_key = format!("faction-{id_str}");
         let display_name = l10n
             .as_deref()
-            .map(|l| l10n_or(l, &name_key, id_str))
+            .map(|l| l10n_or(l, id_str, id_str))
             .unwrap_or_else(|| id_str.to_string());
 
         let label_key = standing_label_key(standing);

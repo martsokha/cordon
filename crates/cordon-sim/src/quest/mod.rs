@@ -23,7 +23,6 @@ pub mod engine;
 pub mod state;
 
 use bevy::prelude::*;
-use cordon_data::gamedata::GameDataResource;
 
 pub use self::consequence::StartQuestRequest;
 pub use self::state::{ActiveQuest, CompletedQuest, QuestLog};
@@ -45,25 +44,18 @@ impl Plugin for QuestPlugin {
         app.init_resource::<QuestLog>();
         app.add_message::<StartQuestRequest>();
 
-        // One-shot systems: Bevy's `resource_added` run
-        // condition fires exactly once, on the frame the
-        // targeted resource first appears, so no `Local<bool>`
-        // latches are needed.
+        // Catalog validation lives in cordon-data now, running
+        // inline inside `assemble_game_data` before the
+        // `GameDataResource` is inserted — so no sim-side
+        // one-shot system is needed.
         //
-        // - Catalog validation runs as soon as game data is
-        //   loaded (`GameDataResource`), the earliest moment
-        //   stage references and consequence stubs can be
-        //   checked.
-        // - Game-start trigger dispatch runs once the sim is
-        //   fully bootstrapped (`GameClock`, inserted by
-        //   `init_world_resources` on `OnEnter(AppState::Playing)`
-        //   after the catalog is already live).
+        // Game-start trigger dispatch runs once the sim is
+        // fully bootstrapped (`GameClock`, inserted by
+        // `init_world_resources` on `OnEnter(AppState::Playing)`
+        // after the catalog is already live).
         app.add_systems(
             Update,
-            (
-                engine::validate_catalog.run_if(resource_added::<GameDataResource>),
-                engine::dispatch_on_game_start.run_if(resource_added::<GameClock>),
-            ),
+            engine::dispatch_on_game_start.run_if(resource_added::<GameClock>),
         );
 
         app.add_systems(

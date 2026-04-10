@@ -3,7 +3,7 @@
 //! Three distinct shapes, one vocabulary:
 //!
 //! - [`TimedEffect`]      — a fire-and-forget change to a live
-//!   resource, applied once (instant) or over a duration (per-second).
+//!   resource, applied once (instant) or over a duration (per-minute).
 //!   Produced by consumables and throwables.
 //! - [`PassiveModifier`]  — an always-on flat stat modifier, applied
 //!   while the source (relic) is equipped. Produced by relics.
@@ -18,60 +18,64 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::Distance;
+use crate::primitive::{Distance, Duration};
+
+/// HP fraction below which [`EffectTrigger::OnLowHealth`] fires.
+pub const HP_LOW_THRESHOLD: f32 = 0.2;
+/// HP fraction above which [`EffectTrigger::OnHighHealth`] fires.
+pub const HP_HIGH_THRESHOLD: f32 = 0.8;
+/// Stamina fraction below which [`EffectTrigger::OnLowStamina`] fires.
+pub const STAMINA_LOW_THRESHOLD: f32 = 0.2;
+/// Stamina fraction above which [`EffectTrigger::OnHighStamina`] fires.
+pub const STAMINA_HIGH_THRESHOLD: f32 = 0.8;
+/// Corruption fraction below which [`EffectTrigger::OnLowCorruption`] fires.
+pub const CORRUPTION_LOW_THRESHOLD: f32 = 0.2;
+/// Corruption fraction above which [`EffectTrigger::OnHighCorruption`] fires.
+pub const CORRUPTION_HIGH_THRESHOLD: f32 = 0.8;
+/// How often [`EffectTrigger::Periodic`] fires, in minutes.
+pub const PERIODIC_INTERVAL_MINUTES: u32 = 1;
 
 /// Live resources that timed effects modify.
+///
+/// Every variant corresponds to a per-entity numeric pool that
+/// the effect dispatcher can mutate. Area effects (smoke clouds,
+/// acid puddles) and status flags (bleeding, poison) don't live
+/// here — they'd need different data shapes and their own
+/// mechanisms, and will land alongside whichever feature
+/// introduces them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum ResourceTarget {
-    /// Current HP.
+    /// Current HP. Positive values heal; negative values drain.
     Health,
     /// Current stamina.
     Stamina,
-    /// Current hunger (higher = more sated).
-    Hunger,
-    /// Current radiation level carried by the character. Negative
-    /// values reduce rads, positive increase.
-    RadiationLevel,
-    /// Instantaneous damage dealt to the target (grenades, direct
-    /// hits). Positive values deal damage.
+    /// Accumulated corruption carried by the character.
+    /// Negative values scrub corruption (antidote pills,
+    /// scrubber relics), positive increase it (tainted food,
+    /// corrupted artifacts, corrupted area exposure).
+    Corruption,
+    /// Instantaneous damage dealt to the target (grenades,
+    /// direct hits). Positive values deal damage. Distinct
+    /// from [`Health`](Self::Health) with a negative value so
+    /// "damage" and "healing" read distinctly at the call
+    /// site.
     Damage,
-    /// Stops bleeding while the effect is active.
-    Bleeding,
-    /// Removes poison/toxin effects while the effect is active.
-    Poison,
-    /// Obscures vision in an area (smoke grenades).
-    Smoke,
 }
 
 /// Persistent stats that passive modifiers touch while their source
 /// is equipped or active.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum StatTarget {
     /// Flat addition to the carrier's max HP cap.
     MaxHealth,
     /// Flat addition to the carrier's max stamina cap.
     MaxStamina,
-    /// Flat addition to the carrier's max hunger cap.
-    MaxHunger,
-    /// Flat addition to each resistance track.
+    /// Flat addition to ballistic protection.
     BallisticResistance,
-    RadiationResistance,
-    ChemicalResistance,
-    ThermalResistance,
-    ElectricResistance,
-    GravitationalResistance,
-}
-
-/// How long a [`TimedEffect`] runs once fired.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EffectDuration {
-    /// Applied once, totally, at fire time. `value` is the total
-    /// amount (e.g. medkit: +50 HP instant).
-    Instant,
-    /// Applied per-second for `N` seconds. `value` is the per-second
-    /// rate (e.g. anti-rad pills: -5 rad/sec for 10 seconds).
-    Secs(u32),
+    /// Flat addition to corruption protection.
+    CorruptionResistance,
 }
 
 /// A timed change to a live resource.
@@ -82,10 +86,13 @@ pub enum EffectDuration {
 pub struct TimedEffect {
     /// The live resource this effect touches.
     pub target: ResourceTarget,
-    /// Amount applied. Instant: total. Secs(n): per-second rate.
+    /// Amount applied. Instant duration: total value. Non-instant:
+    /// per-minute rate.
     pub value: f32,
     /// How long the effect runs once fired.
-    pub duration: EffectDuration,
+    /// [`Duration::INSTANT`] applies [`value`](Self::value) once;
+    /// any non-instant duration applies it per minute for that long.
+    pub duration: Duration,
     /// Area of effect radius. `None` means single-target (self or
     /// direct hit). Only meaningful for throwables.
     #[serde(default)]
@@ -104,17 +111,32 @@ pub struct PassiveModifier {
 }
 
 /// When a [`TriggeredEffect`] fires.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+///
+/// All threshold variants are edge-triggered: they fire on the
+/// frame the carrier's pool crosses the threshold, not while it
+/// sits on the wrong side. Thresholds are fractions of the
+/// current max — relics don't know absolute HP numbers, and max
+/// pools move with equipment anyway.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EffectTrigger {
     /// Fires when the carrier takes damage.
     OnHit,
-    /// Fires edge-triggered when the carrier's HP drops below
-    /// `max * threshold` (0.0–1.0).
-    OnHpLow(f32),
-    /// Fires on a recurring tick every N seconds while the source is
-    /// equipped.
-    Periodic(u32),
+    /// Fires when HP drops below [`HP_LOW_THRESHOLD`].
+    OnLowHealth,
+    /// Fires when HP rises above [`HP_HIGH_THRESHOLD`].
+    OnHighHealth,
+    /// Fires when stamina drops below [`STAMINA_LOW_THRESHOLD`].
+    OnLowStamina,
+    /// Fires when stamina rises above [`STAMINA_HIGH_THRESHOLD`].
+    OnHighStamina,
+    /// Fires when corruption drops below [`CORRUPTION_LOW_THRESHOLD`].
+    OnLowCorruption,
+    /// Fires when corruption rises above [`CORRUPTION_HIGH_THRESHOLD`].
+    OnHighCorruption,
+    /// Fires every [`PERIODIC_INTERVAL_MINUTES`] minutes while
+    /// the source is equipped.
+    Periodic,
 }
 
 /// A reactive effect: when [`trigger`](Self::trigger) fires, the
@@ -132,42 +154,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn effect_duration_deserializes_instant() {
-        let json = r#""instant""#;
-        let d: EffectDuration = serde_json::from_str(json).unwrap();
-        assert_eq!(d, EffectDuration::Instant);
-    }
-
-    #[test]
-    fn effect_duration_deserializes_secs() {
-        let json = r#"{"secs": 10}"#;
-        let d: EffectDuration = serde_json::from_str(json).unwrap();
-        assert_eq!(d, EffectDuration::Secs(10));
-    }
-
-    #[test]
     fn timed_effect_deserializes_without_aoe() {
         let json = r#"{
-            "target": "Health",
+            "target": "health",
             "value": 50.0,
             "duration": "instant"
         }"#;
         let e: TimedEffect = serde_json::from_str(json).unwrap();
         assert_eq!(e.target, ResourceTarget::Health);
         assert_eq!(e.value, 50.0);
-        assert_eq!(e.duration, EffectDuration::Instant);
+        assert_eq!(e.duration, Duration::INSTANT);
         assert_eq!(e.aoe, None);
     }
 
     #[test]
-    fn timed_effect_deserializes_with_secs_duration() {
+    fn timed_effect_deserializes_with_minute_duration() {
         let json = r#"{
-            "target": "Bleeding",
+            "target": "corruption",
             "value": 1.0,
-            "duration": { "secs": 5 }
+            "duration": 5
         }"#;
         let e: TimedEffect = serde_json::from_str(json).unwrap();
-        assert_eq!(e.duration, EffectDuration::Secs(5));
+        assert_eq!(e.duration.minutes(), 5);
     }
 
     #[test]
@@ -188,7 +196,7 @@ mod tests {
             effect: TimedEffect {
                 target: ResourceTarget::Health,
                 value: 5.0,
-                duration: EffectDuration::Secs(3),
+                duration: Duration::from_minutes(3),
                 aoe: None,
             },
         };
@@ -198,17 +206,19 @@ mod tests {
     }
 
     #[test]
-    fn effect_trigger_on_hp_low_roundtrip() {
-        let t = EffectTrigger::OnHpLow(0.3);
+    fn effect_trigger_on_low_health_roundtrip() {
+        let t = EffectTrigger::OnLowHealth;
         let json = serde_json::to_string(&t).unwrap();
+        assert_eq!(json, "\"on_low_health\"");
         let parsed: EffectTrigger = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, t);
     }
 
     #[test]
     fn effect_trigger_periodic_roundtrip() {
-        let t = EffectTrigger::Periodic(10);
+        let t = EffectTrigger::Periodic;
         let json = serde_json::to_string(&t).unwrap();
+        assert_eq!(json, "\"periodic\"");
         let parsed: EffectTrigger = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed, t);
     }

@@ -1,5 +1,5 @@
 //! Generic `(current, max)` pool primitive used for HP, stamina,
-//! hunger, and any other bounded resource an NPC carries.
+//! corruption, and any other bounded resource an NPC carries.
 //!
 //! A pool is parameterized by a marker type implementing [`PoolKind`]
 //! so that an HP pool and a stamina pool are distinct types at
@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// Implementors are unit structs used only at the type level to
 /// distinguish different kinds of pool (e.g., [`Health`], [`Stamina`],
-/// [`Hunger`]). The trait carries per-kind constants so
+/// [`Corruption`]). The trait carries per-kind constants so
 /// [`Pool::full`] can produce a full pool at the right default
 /// without the caller knowing the kind.
 pub trait PoolKind: 'static + Send + Sync {
@@ -54,7 +54,15 @@ impl PoolKind for Health {}
 pub struct Stamina;
 impl PoolKind for Stamina {}
 
-/// Marker for a hunger pool.
+/// Marker for an accumulated-corruption pool.
+///
+/// Unlike health / stamina which drain from full, a corruption
+/// pool *accumulates* from zero: carriers spawn with
+/// `current = 0` and gain corruption from corrupted
+/// areas, tainted food, and carried artifacts that bleed
+/// Zone-stuff into the carrier. Antidote pills and scrubber
+/// relics drain the pool back down. Spawn with [`Pool::empty`]
+/// instead of [`Pool::full`].
 #[derive(
     Debug,
     Default,
@@ -66,8 +74,8 @@ impl PoolKind for Stamina {}
     Serialize,
     Deserialize
 )]
-pub struct Hunger;
-impl PoolKind for Hunger {}
+pub struct Corruption;
+impl PoolKind for Corruption {}
 
 /// A bounded `(current, max)` resource.
 ///
@@ -98,9 +106,20 @@ pub struct Pool<K: PoolKind> {
 }
 
 impl<K: PoolKind> Pool<K> {
-    /// Create a full pool at [`K::DEFAULT_MAX`].
+    /// Create a full pool at [`K::DEFAULT_MAX`]. For pools
+    /// that drain from full (health, stamina, hunger).
     pub fn full() -> Self {
         Self::with_max(K::DEFAULT_MAX)
+    }
+
+    /// Create an empty pool at [`K::DEFAULT_MAX`]. For pools
+    /// that accumulate from zero (corruption).
+    pub fn empty() -> Self {
+        Self {
+            current: 0,
+            max: K::DEFAULT_MAX,
+            _marker: PhantomData,
+        }
     }
 
     /// Create a full pool with an explicit max.

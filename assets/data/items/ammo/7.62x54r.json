@@ -1,31 +1,37 @@
 [
   {
-    "id": "7.62x54r",
+    "id": "item_762x54r_fmj",
     "data": {
       "type": "ammo",
-      "caliber": "7.62x54r",
+      "caliber": "caliber_762x54r",
       "damage": 60,
       "penetration": 20,
       "quantity": 20
     },
     "base_price": 280,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.9 }
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 0.9
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "7.62x54r_ap",
+    "id": "item_762x54r_ap",
     "data": {
       "type": "ammo",
-      "caliber": "7.62x54r",
+      "caliber": "caliber_762x54r",
       "damage": 55,
       "penetration": 32,
       "quantity": 20
     },
     "base_price": 480,
     "suppliers": [
-      { "faction": "garrison", "price_multiplier": 0.95 }
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 0.95
+      }
     ],
     "rarity": "rare"
   }

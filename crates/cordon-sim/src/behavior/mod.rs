@@ -10,7 +10,7 @@ use cordon_core::item::{ItemData, Loadout, PassiveModifier, StatTarget};
 use cordon_core::primitive::{GameTime, Rank};
 use cordon_data::gamedata::GameDataResource;
 
-use crate::components::{BaseMaxes, Hp, HungerPool, NpcMarker, StaminaPool};
+use crate::components::{BaseMaxes, HealthPool, NpcMarker, StaminaPool};
 use crate::plugin::SimSet;
 use crate::tuning::MAP_BOUND;
 
@@ -36,12 +36,14 @@ impl Default for MovementSpeed {
 #[derive(Component, Default, Debug, Clone, Copy)]
 pub struct CombatTarget(pub Option<Entity>);
 
-/// Per-NPC firing state: cooldown until next shot and reload progress.
-/// While `reload_secs > 0`, no shots fire.
+/// Per-NPC firing state: cooldown until next shot.
+///
+/// Reload is not modelled as a timed phase — magazines refill
+/// instantly from the general pouch when empty, and fire tempo is
+/// controlled entirely by the weapon's `fire_rate`.
 #[derive(Component, Default, Debug, Clone, Copy)]
 pub struct FireState {
     pub cooldown_secs: f32,
-    pub reload_secs: f32,
 }
 
 /// Per-NPC looting progress. Present only while the NPC is actively
@@ -60,14 +62,10 @@ pub struct Vision {
 }
 
 impl Vision {
-    /// Default vision: 120 base + 15 per rank tier above Novice + 25 if
-    /// the NPC's faction has military training.
-    pub fn for_npc(rank: Rank, is_military: bool) -> Self {
-        let from_rank = 120.0 + (rank.tier() as f32 - 1.0) * 15.0;
-        let from_faction = if is_military { 25.0 } else { 0.0 };
-        Self {
-            radius: from_rank + from_faction,
-        }
+    /// Default vision: 120 base + 15 per rank tier above Novice.
+    pub fn for_npc(rank: Rank) -> Self {
+        let radius = 120.0 + (rank.tier() as f32 - 1.0) * 15.0;
+        Self { radius }
     }
 }
 
@@ -114,8 +112,7 @@ pub fn move_npcs(
 }
 
 /// Recompute each NPC's pool maximums from their `BaseMaxes` plus
-/// any relic passive modifiers targeting `MaxHealth` / `MaxStamina`
-/// / `MaxHunger`.
+/// any relic passive modifiers targeting `MaxHealth` / `MaxStamina`.
 ///
 /// Runs on `Changed<Loadout>` so we only pay the cost for NPCs
 /// whose equipment just mutated. Keeping the base in a separate
@@ -130,22 +127,15 @@ pub fn move_npcs(
 pub fn sync_pool_maxes(
     game_data: Res<GameDataResource>,
     mut changed: Query<
-        (
-            &Loadout,
-            &BaseMaxes,
-            &mut Hp,
-            &mut StaminaPool,
-            &mut HungerPool,
-        ),
+        (&Loadout, &BaseMaxes, &mut HealthPool, &mut StaminaPool),
         (With<NpcMarker>, Changed<Loadout>),
     >,
 ) {
     let items = &game_data.0.items;
-    for (loadout, base, mut hp, mut stamina, mut hunger) in &mut changed {
+    for (loadout, base, mut hp, mut stamina) in &mut changed {
         // Sum each stat's contribution across all equipped relics.
         let mut dmax_hp: i32 = 0;
         let mut dmax_stamina: i32 = 0;
-        let mut dmax_hunger: i32 = 0;
         for inst in &loadout.relics {
             let Some(def) = items.get(&inst.def_id) else {
                 continue;
@@ -158,7 +148,6 @@ pub fn sync_pool_maxes(
                 match target {
                     StatTarget::MaxHealth => dmax_hp += v,
                     StatTarget::MaxStamina => dmax_stamina += v,
-                    StatTarget::MaxHunger => dmax_hunger += v,
                     _ => {}
                 }
             }
@@ -166,7 +155,6 @@ pub fn sync_pool_maxes(
 
         apply_effective_max(&mut hp, base.hp, dmax_hp);
         apply_effective_max(&mut stamina, base.stamina, dmax_stamina);
-        apply_effective_max(&mut hunger, base.hunger, dmax_hunger);
     }
 }
 

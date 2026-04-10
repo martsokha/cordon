@@ -39,7 +39,7 @@ impl ItemInstance {
     /// `count` semantics depend on the item type:
     /// - **Ammo**: rounds remaining in this box (starts full).
     /// - **Weapon**: rounds chambered in the magazine (starts at 0 — the
-    ///   loadout generator or a reload action fills it).
+    ///   loadout generator fills it, combat tops it up from pouches).
     /// - Everything else: stack size (default 1).
     pub fn new(def: &ItemDef) -> Self {
         let count = match &def.data {

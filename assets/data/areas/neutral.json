@@ -1,61 +1,79 @@
 [
   {
-    "id": "crossroads",
-    "location": { "x": 300.0, "y": 0.0 },
+    "id": "area_crossroads",
+    "location": {
+      "x": 300.0,
+      "y": 0.0
+    },
     "radius": 75.0,
     "kind": {
       "type": "wasteland",
-      "radiation": "verylow",
+      "corruption": "verylow",
       "loot": "low"
     }
   },
   {
-    "id": "old_highway",
-    "location": { "x": -180.0, "y": 360.0 },
+    "id": "area_old_highway",
+    "location": {
+      "x": -180.0,
+      "y": 360.0
+    },
     "radius": 65.0,
     "kind": {
       "type": "wasteland",
-      "radiation": "verylow",
+      "corruption": "verylow",
       "loot": "verylow"
     }
   },
   {
-    "id": "abandoned_village",
-    "location": { "x": 450.0, "y": -180.0 },
+    "id": "area_abandoned_village",
+    "location": {
+      "x": 450.0,
+      "y": -180.0
+    },
     "radius": 80.0,
     "kind": {
       "type": "wasteland",
-      "radiation": "verylow",
+      "corruption": "verylow",
       "loot": "low"
     }
   },
   {
-    "id": "forgotten_waypoint",
-    "location": { "x": -180.0, "y": -390.0 },
+    "id": "area_forgotten_waypoint",
+    "location": {
+      "x": -180.0,
+      "y": -390.0
+    },
     "radius": 60.0,
     "kind": {
       "type": "wasteland",
-      "radiation": "low",
+      "corruption": "low",
       "loot": "low"
     }
   },
   {
-    "id": "broken_bridge",
-    "location": { "x": 180.0, "y": -870.0 },
+    "id": "area_broken_bridge",
+    "location": {
+      "x": 180.0,
+      "y": -870.0
+    },
     "radius": 70.0,
     "kind": {
       "type": "wasteland",
-      "radiation": "low",
+      "corruption": "low",
       "loot": "medium"
     }
   },
   {
-    "id": "wind_farm_ruins",
-    "location": { "x": 1230.0, "y": -150.0 },
+    "id": "area_wind_farm_ruins",
+    "location": {
+      "x": 1230.0,
+      "y": -150.0
+    },
     "radius": 85.0,
     "kind": {
       "type": "wasteland",
-      "radiation": "verylow",
+      "corruption": "verylow",
       "loot": "low"
     }
   }

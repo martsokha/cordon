@@ -10,6 +10,8 @@ mod debug;
 mod laptop;
 mod locale;
 mod quest;
+#[cfg(feature = "steam")]
+pub mod steam;
 
 use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
@@ -55,10 +57,15 @@ fn main() {
         ready: AppState::Playing,
     })
     .add_plugins(locale::LocalePlugin)
+    .add_plugins(avian3d::PhysicsPlugins::default())
+    .insert_resource(avian3d::prelude::Gravity(Vec3::ZERO))
     .add_plugins(CordonSimPlugin)
     .add_plugins(bunker::BunkerPlugin)
     .add_plugins(laptop::LaptopPlugin)
     .add_plugins(quest::QuestBridgePlugin);
+
+    #[cfg(feature = "steam")]
+    app.add_plugins(steam::SteamPlugin);
 
     // Bootstrap the cordon-sim resource set on enter-play.
     // `init_world_resources` lives in cordon-sim — it knows how to

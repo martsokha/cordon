@@ -1,16 +1,16 @@
 {
-  "id": "drifters",
+  "id": "faction_drifters",
   "recruitable": true,
   "rank_scheme": "loose",
   "buys": ["consumable", "weapon", "ammo"],
   "sells": ["consumable", "throwable", "document"],
-  "namepool": "aliases",
+  "namepool": "namepool_aliases",
   "color": "#9E7B4F",
   "spawn_weight": 30,
   "relations": [
-    ["garrison", -30],
-    ["syndicate", 30],
-    ["institute", -10],
-    ["devoted", -70]
+    ["faction_garrison", -30],
+    ["faction_syndicate", 30],
+    ["faction_institute", -10],
+    ["faction_devoted", -70]
   ]
 }

@@ -1,16 +1,16 @@
 {
-  "id": "devoted",
+  "id": "faction_devoted",
   "recruitable": false,
   "rank_scheme": "religious",
   "buys": ["relic", "consumable", "document"],
   "sells": ["relic", "consumable"],
-  "namepool": "zone",
+  "namepool": "namepool_zone",
   "color": "#7A3F8C",
   "spawn_weight": 15,
   "relations": [
-    ["garrison", -70],
-    ["syndicate", -70],
-    ["institute", -70],
-    ["drifters", -70]
+    ["faction_garrison", -70],
+    ["faction_syndicate", -70],
+    ["faction_institute", -70],
+    ["faction_drifters", -70]
   ]
 }

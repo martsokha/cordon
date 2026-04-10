@@ -1,46 +1,47 @@
 [
   {
-    "id": "lab_field_suit",
+    "id": "item_lab_field_suit",
     "data": {
       "type": "armor",
       "slot": "suit",
       "resistances": {
         "ballistic": 6,
-        "radiation": 5,
-        "chemical": 5,
-        "thermal": 3,
-        "electric": 3,
-        "gravitational": 1
+        "corruption": 5
       },
       "inventory_slots": 3,
       "relic_slots": 2
     },
     "base_price": 5500,
     "suppliers": [
-      { "faction": "institute", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "uncommon"
   },
   {
-    "id": "cbrn_suit",
+    "id": "item_cbrn_suit",
     "data": {
       "type": "armor",
       "slot": "suit",
       "resistances": {
         "ballistic": 4,
-        "radiation": 8,
-        "chemical": 7,
-        "thermal": 5,
-        "electric": 4,
-        "gravitational": 2
+        "corruption": 8
       },
       "inventory_slots": 2,
       "relic_slots": 3
     },
     "base_price": 8000,
     "suppliers": [
-      { "faction": "drifters", "price_multiplier": 0.85 },
-      { "faction": "institute", "price_multiplier": 1.0 }
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.85
+      },
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      }
     ],
     "rarity": "uncommon"
   }

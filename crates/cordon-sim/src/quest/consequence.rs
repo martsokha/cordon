@@ -18,12 +18,10 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::entity::player::PlayerState;
 use cordon_core::item::ItemInstance;
 use cordon_core::primitive::{GameTime, Id};
-use cordon_core::world::event::ActiveEvent;
-use cordon_core::world::narrative::consequence::Consequence;
-use cordon_core::world::narrative::quest::Quest;
+use cordon_core::world::narrative::{ActiveEvent, Consequence, Quest};
 use cordon_data::catalog::GameData;
 
-use crate::day::events::spawn_event_instance;
+use crate::day::events::{EventOverrides, spawn_event_instance};
 
 /// Live references the applier may mutate in place.
 ///
@@ -77,14 +75,15 @@ pub fn apply(
             world.player.credits -= *amount;
         }
 
-        Consequence::GiveItem { item, count, scope } => {
-            let Some(def) = world.data.item(item) else {
-                warn!("GiveItem: unknown item `{}`", item.as_str());
+        Consequence::GiveItem(q) => {
+            let Some(def) = world.data.item(&q.item) else {
+                warn!("GiveItem: unknown item `{}`", q.item.as_str());
                 return;
             };
-            for _ in 0..*count {
+            let count = q.resolved_count();
+            for _ in 0..count {
                 let instance = ItemInstance::new(def);
-                if let Err(dropped) = world.player.add_item(instance, *scope) {
+                if let Err(dropped) = world.player.add_item(instance, q.scope) {
                     warn!(
                         "GiveItem: stash full, dropped `{}` on the floor",
                         dropped.def_id.as_str()
@@ -94,35 +93,51 @@ pub fn apply(
             }
         }
 
-        Consequence::TakeItem { item, count, scope } => {
+        Consequence::TakeItem(q) => {
+            let count = q.resolved_count();
             let mut removed = 0u32;
-            for _ in 0..*count {
-                if world.player.remove_first(item, *scope).is_none() {
+            for _ in 0..count {
+                if world.player.remove_first(&q.item, q.scope).is_none() {
                     break;
                 }
                 removed += 1;
             }
-            if removed < *count {
+            if removed < count {
                 warn!(
                     "TakeItem: wanted {count}× `{}` in scope {:?}, only removed {removed}",
-                    item.as_str(),
-                    scope
+                    q.item.as_str(),
+                    q.scope
                 );
             }
         }
 
-        Consequence::TriggerEvent(event_id) => {
-            let Some(def) = world.data.events.get(event_id) else {
-                warn!("TriggerEvent: unknown event `{}`", event_id.as_str());
+        Consequence::TriggerEvent {
+            event,
+            target_area,
+            involved_factions,
+            duration_days,
+        } => {
+            let Some(def) = world.data.events.get(event) else {
+                warn!("TriggerEvent: unknown event `{}`", event.as_str());
                 return;
             };
             // Share the same instancing helper the day-cycle
             // roll uses so the two paths can never drift on
             // duration / faction / target-area randomness.
-            // Consequence-driven fires still bypass the
-            // probability roll because the caller has already
-            // decided the event should happen.
-            let instance = spawn_event_instance(def, world.faction_pool, world.now.day, world.rng);
+            // Any consequence-supplied override pins its field;
+            // the rest falls through to the def-driven rng.
+            let overrides = EventOverrides {
+                target_area: target_area.clone(),
+                involved_factions: involved_factions.clone(),
+                duration_days: *duration_days,
+            };
+            let instance = spawn_event_instance(
+                def,
+                world.faction_pool,
+                world.now.day,
+                &overrides,
+                world.rng,
+            );
             world.events.push(instance);
         }
 
@@ -138,20 +153,27 @@ pub fn apply(
             }
         }
 
-        Consequence::SpawnNpc(template) => {
+        Consequence::SpawnNpc { template, at } => {
             // Visitor enqueueing lives in cordon-bevy's quest
             // bridge. The sim has no concept of "visitor
             // queue", so until the bridge observes a spawn
-            // request this is a loud no-op.
+            // request this is a loud no-op. The `at` override
+            // is captured in the warning so unwired calls
+            // surface the intended spawn location too.
+            let where_ = at
+                .as_ref()
+                .map(|a| a.as_str().to_string())
+                .unwrap_or_else(|| "default".to_string());
             warn!(
                 "STUB CONSEQUENCE `spawn_npc` fired — no visitor queue bridge yet. \
-                 Template `{}` will not appear in-game.",
-                template.as_str()
+                 Template `{}` at `{}` will not appear in-game.",
+                template.as_str(),
+                where_,
             );
         }
 
-        Consequence::GivePlayerXp(amount) => {
-            world.player.add_xp(*amount);
+        Consequence::GivePlayerXp(xp) => {
+            world.player.add_xp(xp.value());
         }
 
         Consequence::GiveNpcXp { template, amount } => {
@@ -159,34 +181,48 @@ pub fn apply(
             // in the behavior layer that does not exist yet.
             warn!(
                 "STUB CONSEQUENCE `give_npc_xp` fired — no template→entity resolver yet. \
-                 Template `{}` will not receive {amount} xp.",
-                template.as_str()
+                 Template `{}` will not receive {} xp.",
+                template.as_str(),
+                amount.value(),
             );
         }
 
-        Consequence::DangerModifier { area, delta } => {
+        Consequence::DangerModifier {
+            area,
+            delta,
+            duration,
+        } => {
             // `AreaStates` is a separate resource; routing
             // through the applier needs a dedicated message
-            // channel that does not exist yet.
+            // channel that does not exist yet. The duration
+            // override is included in the warning so the full
+            // intent surfaces before the bridge is wired.
             let target = area
                 .as_ref()
                 .map(|a| a.as_str().to_string())
                 .unwrap_or_else(|| "zone-wide".to_string());
+            let lifetime = duration
+                .map(|d| d.to_string())
+                .unwrap_or_else(|| "permanent".to_string());
             warn!(
                 "STUB CONSEQUENCE `danger_modifier` fired — no AreaStates bridge yet. \
-                 Area `{target}` will not receive danger delta {delta}."
+                 Area `{target}` will not receive danger delta {delta} (lifetime {lifetime})."
             );
         }
 
         Consequence::PriceModifier {
             category,
             multiplier,
+            duration,
         } => {
             // The trade loop is still a stub; no market
             // system to receive price shifts.
+            let lifetime = duration
+                .map(|d| d.to_string())
+                .unwrap_or_else(|| "permanent".to_string());
             warn!(
                 "STUB CONSEQUENCE `price_modifier` fired — no market system yet. \
-                 Category {category:?} will not be multiplied by {multiplier}."
+                 Category {category:?} will not be multiplied by {multiplier} (lifetime {lifetime})."
             );
         }
     }

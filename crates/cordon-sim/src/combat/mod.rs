@@ -16,7 +16,7 @@ use cordon_core::primitive::{Id, Resistances};
 use cordon_data::gamedata::GameDataResource;
 
 use crate::behavior::{CombatTarget, Dead, FireState};
-use crate::components::Hp;
+use crate::components::HealthPool;
 use crate::plugin::SimSet;
 
 /// A weapon discharged from `from` toward `to`. The visual layer
@@ -154,7 +154,42 @@ pub struct CombatPlugin;
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<ShotFired>();
+        app.add_message::<NpcPoolChanged>();
         app.add_systems(Update, resolve_combat.in_set(SimSet::Combat));
+    }
+}
+
+/// Emitted whenever an NPC's pool (`Health`, `Stamina`, or
+/// `Corruption`) changes value.
+///
+/// Produced by combat's damage apply and by the effect dispatcher
+/// whenever it mutates a pool via a timed effect or instant
+/// consumable. Downstream systems use this to detect threshold
+/// crossings (`prev > threshold && current <= threshold`) without
+/// storing their own previous-state tracking.
+///
+/// `pool` is never [`ResourceTarget::Damage`] — damage is
+/// normalised to a `Health` decrease before the event is written.
+#[derive(Message, Debug, Clone, Copy)]
+pub struct NpcPoolChanged {
+    /// The entity whose pool changed.
+    pub entity: Entity,
+    /// Which pool changed.
+    pub pool: cordon_core::item::ResourceTarget,
+    /// Pool current value before the change.
+    pub prev: u32,
+    /// Pool current value after the change.
+    pub current: u32,
+    /// Pool max at the time the event was emitted. Used to
+    /// compute threshold crossings without a second component
+    /// lookup in the subscriber.
+    pub max: u32,
+}
+
+impl NpcPoolChanged {
+    /// Signed delta `(current - prev)`. Negative = drain.
+    pub fn delta(&self) -> i32 {
+        self.current as i32 - self.prev as i32
     }
 }
 
@@ -184,7 +219,6 @@ struct WeaponStats {
     magazine: u32,
     /// Seconds per shot (`1.0 / fire_rate`), precomputed once.
     period: f32,
-    reload_secs: f32,
     range: f32,
     /// Damage dealt *after* target ballistic resistance has already
     /// been subtracted — precomputed so the shooter loop doesn't
@@ -196,7 +230,6 @@ struct WeaponStats {
 /// the shooter's components by the caller.
 struct ShooterOutcome {
     cooldown: f32,
-    reload: f32,
     shots_fired: u32,
     hit_target: Option<Entity>,
     /// True when the NPC ran out of ammo mid-frame and should drop
@@ -207,7 +240,7 @@ struct ShooterOutcome {
 /// Build the per-target snapshot used by the shooter loop so
 /// shooters don't need to query target components mutably.
 fn build_target_snapshot(
-    query: &Query<(Entity, &Transform, &Loadout), (With<Hp>, Without<Dead>)>,
+    query: &Query<(Entity, &Transform, &Loadout), (With<HealthPool>, Without<Dead>)>,
     items: &HashMap<Id<Item>, ItemDef>,
 ) -> HashMap<Entity, TargetInfo> {
     let mut m = HashMap::with_capacity(1024);
@@ -253,56 +286,44 @@ fn load_weapon_stats(
         caliber: weapon.caliber.clone(),
         magazine: weapon.magazine,
         period,
-        reload_secs: weapon.reload_secs,
         range: weapon.range.value(),
         dealt,
     })
 }
 
-/// Core frame simulation for a single shooter. Runs the reload →
-/// fire → catch-up loop against a shared `dt` budget and returns
-/// a [`ShooterOutcome`] the caller can flush into components.
+/// Core frame simulation for a single shooter. Runs the fire →
+/// catch-up loop against a shared `dt` budget and returns a
+/// [`ShooterOutcome`] the caller can flush into components.
 ///
 /// This is the interesting part of combat — split out of
 /// `resolve_combat` so the outer system is mostly plumbing. The
-/// `loadout` reference is mutable because reloads drain ammo
-/// pouches; everything else is local state.
+/// `loadout` reference is mutable because mag refills drain ammo
+/// pouches; everything else is local state. Fire tempo is
+/// controlled entirely by `WeaponStats::period`: when a mag runs
+/// dry the loop tops it up in place from the general pouch and
+/// keeps firing within the same `dt` budget.
 fn simulate_shooter_frame(
     dt: f32,
     target: Entity,
     loadout: &mut Loadout,
     stats: &WeaponStats,
     initial_cooldown: f32,
-    initial_reload: f32,
     initial_mag: u32,
     items: &HashMap<Id<Item>, ItemDef>,
 ) -> ShooterOutcome {
     let mut budget = dt;
     let mut cooldown = initial_cooldown;
-    let mut reload = initial_reload;
     let mut mag_live = initial_mag;
     let mut shots_fired: u32 = 0;
     let mut stop_targeting = false;
 
     while budget > 0.0 {
-        // --- Reload phase: consume budget until the reload timer
-        // drains. If budget runs out mid-reload, save the remainder
-        // for next frame and stop.
-        if reload > 0.0 {
-            let consumed = reload.min(budget);
-            reload -= consumed;
-            budget -= consumed;
-            if reload > 0.0 {
-                break;
-            }
-        }
-
-        // --- Empty-mag phase: kick off a reload if we can.
+        // --- Empty-mag phase: refill instantly from the general
+        // pouch if we can, otherwise drop the target.
         if mag_live == 0 {
-            let started = refill_magazine(loadout, items, &stats.caliber, stats.magazine);
-            if started {
+            let refilled = refill_magazine(loadout, items, &stats.caliber, stats.magazine);
+            if refilled {
                 mag_live = loadout.primary.as_ref().map(|w| w.count).unwrap_or(0);
-                reload = stats.reload_secs;
                 continue;
             }
             // No ammo pouches left → give up. Caller will drop
@@ -348,7 +369,6 @@ fn simulate_shooter_frame(
 
     ShooterOutcome {
         cooldown,
-        reload,
         shots_fired,
         hit_target: if shots_fired > 0 { Some(target) } else { None },
         stop_targeting,
@@ -368,9 +388,10 @@ fn resolve_combat(
     time: Res<Time>,
     game_data: Res<GameDataResource>,
     mut shots: MessageWriter<ShotFired>,
+    mut pool_changed: MessageWriter<NpcPoolChanged>,
     mut sets: ParamSet<(
         // Read-only snapshot pass.
-        Query<(Entity, &Transform, &Loadout), (With<Hp>, Without<Dead>)>,
+        Query<(Entity, &Transform, &Loadout), (With<HealthPool>, Without<Dead>)>,
         // Shooter mutation pass.
         Query<
             (
@@ -383,7 +404,7 @@ fn resolve_combat(
             Without<Dead>,
         >,
         // Target apply pass.
-        Query<&mut Hp, Without<Dead>>,
+        Query<&mut HealthPool, Without<Dead>>,
     )>,
 ) {
     let items = &game_data.0.items;
@@ -431,13 +452,11 @@ fn resolve_combat(
                 &mut loadout,
                 &stats,
                 fire_state.cooldown_secs,
-                fire_state.reload_secs,
                 mag_count,
                 items,
             );
 
             fire_state.cooldown_secs = outcome.cooldown;
-            fire_state.reload_secs = outcome.reload;
 
             if let Some(target) = outcome.hit_target {
                 // One tracer per shooter per frame (see comment
@@ -464,11 +483,22 @@ fn resolve_combat(
         }
     }
 
-    // Pass 2: apply HP damage.
+    // Pass 2: apply HP damage and emit one NpcPoolChanged per hit.
+    // Capturing prev before deplete lets the effect dispatcher
+    // detect threshold crossings (e.g. OnLowHealth) without having
+    // to store its own previous-state tracking.
     let mut targets_apply = sets.p2();
     for hit in hits {
         if let Ok(mut hp) = targets_apply.get_mut(hit.target) {
+            let prev = hp.current();
             hp.deplete(hit.dealt);
+            pool_changed.write(NpcPoolChanged {
+                entity: hit.target,
+                pool: cordon_core::item::ResourceTarget::Health,
+                prev,
+                current: hp.current(),
+                max: hp.max(),
+            });
         }
     }
 }

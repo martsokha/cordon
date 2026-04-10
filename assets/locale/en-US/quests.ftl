@@ -3,11 +3,11 @@
 # Keys mirror the quest IDs in `assets/data/quests/*.json`. The
 # intel UI reads these via `bevy_fluent` to render the quest log.
 
-quest-first_contact = First Contact
-quest-first_contact-desc = The Garrison lieutenant wants to know where your loyalties sit. Hear him out and decide.
+quest_first_contact = First Contact
+quest_first_contact_desc = The Garrison lieutenant wants to know where your loyalties sit. Hear him out and decide.
 
 # Stage hints shown under the quest title in the intel log.
-quest-first_contact-stage-intro = Meet the Garrison lieutenant at your bunker.
-quest-first_contact-stage-outcome_accept = You pledged yourself to the Garrison.
-quest-first_contact-stage-outcome_neutral = You kept your distance.
-quest-first_contact-stage-outcome_refuse = You sent him away empty-handed.
+quest_first_contact_stage_intro = Meet the Garrison lieutenant at your bunker.
+quest_first_contact_stage_outcome_accept = You pledged yourself to the Garrison.
+quest_first_contact_stage_outcome_neutral = You kept your distance.
+quest_first_contact_stage_outcome_refuse = You sent him away empty-handed.
