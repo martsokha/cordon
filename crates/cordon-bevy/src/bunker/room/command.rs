@@ -59,6 +59,12 @@ pub fn spawn(
         Vec3::new(-l.hw + 0.3, 0.0, 0.0), Quat::IDENTITY);
     glb(commands, asset_server, "models/interior/Cactus.glb",
         Vec3::new(-l.hw + 0.3, 0.25, 0.0), Quat::IDENTITY);
+    // Amp rack — comms equipment against the right wall.
+    glb(commands, asset_server, "models/storage/AmpRack_01.glb",
+        Vec3::new(l.hw - 0.3, 0.0, -0.8), Quat::from_rotation_y(-FRAC_PI_2));
+    // Filing cabinet behind the chair.
+    glb(commands, asset_server, "models/storage/Cabinet_01.glb",
+        Vec3::new(0.6, 0.0, l.desk_z - 0.8), Quat::IDENTITY);
     // Door button.
     commands.spawn((
         DoorButton,

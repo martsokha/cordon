@@ -9,7 +9,7 @@ pub fn spawn(
     commands: &mut Commands,
     asset_server: &AssetServer,
     meshes: &mut Assets<Mesh>,
-    mats: &mut Assets<StandardMaterial>,
+    _mats: &mut Assets<StandardMaterial>,
     pal: &Palette,
     l: &Layout,
 ) {
@@ -37,8 +37,13 @@ pub fn spawn(
         glb(commands, asset_server, "models/storage/Locker.glb",
             Vec3::new(-l.hw + 0.3, 0.0, 2.2 + 0.5 * i as f32), Quat::from_rotation_y(std::f32::consts::FRAC_PI_2));
     }
-    spawn_box(commands, meshes, mats.add(StandardMaterial {
-        base_color: Color::srgb(0.18, 0.18, 0.17),
-        perceptual_roughness: 0.6, metallic: 0.5, ..default()
-    }), Vec3::new(l.hw - 0.4, 0.3, 3.0), Vec3::new(0.7, 0.6, 1.0));
+    // Bag on the floor near the lockers.
+    glb(commands, asset_server, "models/storage/Bag_02.glb",
+        Vec3::new(-l.hw + 0.8, 0.0, 4.0), Quat::from_rotation_y(0.8));
+    // Barrel in the corner.
+    glb(commands, asset_server, "models/storage/Barrel_03.glb",
+        Vec3::new(l.hw - 0.4, 0.0, 4.2), Quat::IDENTITY);
+    // Box near lockers.
+    glb(commands, asset_server, "models/storage/Box_01.glb",
+        Vec3::new(-l.hw + 0.8, 0.0, 3.2), Quat::from_rotation_y(0.3));
 }

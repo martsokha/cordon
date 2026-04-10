@@ -50,9 +50,9 @@ pub struct InteractPrompt;
 #[derive(Component)]
 pub struct DoorButton;
 
-/// Camera zoomed to laptop. desk_z=1.0, screen at desk_z+0.12=1.12
-const LAPTOP_VIEW_POS: Vec3 = Vec3::new(0.0, 1.15, 0.5);
-const LAPTOP_VIEW_TARGET: Vec3 = Vec3::new(0.0, 0.90, 1.12);
+/// Camera zoomed to laptop. desk_z=1.0, laptop at y≈1.05.
+const LAPTOP_VIEW_POS: Vec3 = Vec3::new(0.0, 1.35, 0.5);
+const LAPTOP_VIEW_TARGET: Vec3 = Vec3::new(0.0, 1.10, 1.12);
 const CAMERA_LERP_SPEED: f32 = 6.0;
 
 #[derive(Resource, Clone)]

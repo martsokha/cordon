@@ -271,6 +271,13 @@ fn spawn_bunker(
     spawn_wall(&mut commands, &mut meshes, pal.concrete.clone(),
         Vec3::new(0.0, l.hh, l.back_z), Quat::IDENTITY, Vec2::new(l.hw, l.hh));
 
+    // Electric box on the corridor wall near the divider grate.
+    glb(&mut commands, &asset_server, "models/storage/ElectricBox_02.glb",
+        Vec3::new(l.hw - 0.05, 1.6, l.divider_z + 0.3), Quat::from_rotation_y(-FRAC_PI_2));
+    // Filing cabinet against the left corridor wall.
+    glb(&mut commands, &asset_server, "models/storage/Cabinet_02.glb",
+        Vec3::new(-l.hw + 0.3, 0.0, l.divider_z + 0.5), Quat::from_rotation_y(FRAC_PI_2));
+
     // ── Zones ───────────────────────────────────────────────
     entry::spawn(&mut commands, &asset_server, &mut meshes, &mut mats, &pal, &l);
     command::spawn(&mut commands, &asset_server, &mut meshes, &mut mats, &pal, &l);
