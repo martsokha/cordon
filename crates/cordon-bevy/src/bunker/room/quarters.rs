@@ -14,12 +14,12 @@ pub fn spawn(
     pal: &Palette,
     l: &Layout,
 ) {
-    let floor_half = Vec2::new(l.side_depth / 2.0, l.tj_len / 2.0);
+    let floor_half = Vec2::new(l.side_depth / 2.0, l.tj_len() / 2.0);
     spawn_floor_ceiling(
         commands,
         meshes,
         pal.concrete_dark.clone(),
-        Vec3::new(l.quarters_x_center, 0.0, l.tj_center),
+        Vec3::new(l.quarters_x_center(), 0.0, l.tj_center()),
         floor_half,
         l.h,
     );
@@ -28,25 +28,25 @@ pub fn spawn(
         commands,
         meshes,
         pal.concrete.clone(),
-        Vec3::new(l.quarters_x_max, l.hh, l.tj_center),
+        Vec3::new(l.quarters_x_max(), l.hh(), l.tj_center()),
         Quat::from_rotation_y(FRAC_PI_2),
-        Vec2::new(l.tj_len / 2.0, l.hh),
+        Vec2::new(l.tj_len() / 2.0, l.hh()),
     );
     spawn_wall(
         commands,
         meshes,
         pal.concrete.clone(),
-        Vec3::new(l.quarters_x_center, l.hh, l.tj_north),
+        Vec3::new(l.quarters_x_center(), l.hh(), l.tj_north),
         Quat::from_rotation_y(PI),
-        Vec2::new(l.side_depth / 2.0, l.hh),
+        Vec2::new(l.side_depth / 2.0, l.hh()),
     );
     spawn_wall(
         commands,
         meshes,
         pal.concrete.clone(),
-        Vec3::new(l.quarters_x_center, l.hh, l.back_z),
+        Vec3::new(l.quarters_x_center(), l.hh(), l.back_z),
         Quat::IDENTITY,
-        Vec2::new(l.side_depth / 2.0, l.hh),
+        Vec2::new(l.side_depth / 2.0, l.hh()),
     );
 
     // Wide sofa against the far wall.
@@ -54,7 +54,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/interior/WideSofa.glb",
-        Vec3::new(l.quarters_x_max - 0.5, 0.0, l.tj_center),
+        Vec3::new(l.quarters_x_max() - 0.5, 0.0, l.tj_center()),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
     // Pillow.
@@ -62,7 +62,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/interior/Pillow.glb",
-        Vec3::new(l.quarters_x_max - 0.5, 0.4, l.tj_center + 0.5),
+        Vec3::new(l.quarters_x_max() - 0.5, 0.4, l.tj_center() + 0.5),
         Quat::IDENTITY,
     );
     // Rug.
@@ -70,7 +70,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/interior/Rug.glb",
-        Vec3::new(l.quarters_x_center, 0.02, l.tj_center),
+        Vec3::new(l.quarters_x_center(), 0.02, l.tj_center()),
         Quat::IDENTITY,
     );
     // Small bookshelf (personal books).
@@ -78,7 +78,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/interior/SingleBookshelf.glb",
-        Vec3::new(l.quarters_x_max - 0.3, 0.0, l.back_z + 0.3),
+        Vec3::new(l.quarters_x_max() - 0.3, 0.0, l.back_z + 0.3),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
     // Suitcase — personal belongings.
@@ -86,7 +86,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/storage/Suitcase_01.glb",
-        Vec3::new(l.quarters_x_center - 0.3, 0.0, l.back_z + 0.3),
+        Vec3::new(l.quarters_x_center() - 0.3, 0.0, l.back_z + 0.3),
         Quat::from_rotation_y(0.4),
     );
     // Lamp next to the sofa.
@@ -94,7 +94,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/interior/Lamp1.glb",
-        Vec3::new(l.quarters_x_max - 0.3, 0.0, l.tj_center - 0.8),
+        Vec3::new(l.quarters_x_max() - 0.3, 0.0, l.tj_center() - 0.8),
         Quat::IDENTITY,
     );
     // A bit of life.
@@ -110,7 +110,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/interior/Pillow.glb",
-        Vec3::new(l.quarters_x_max - 0.5, 0.4, l.tj_center - 0.3),
+        Vec3::new(l.quarters_x_max() - 0.5, 0.4, l.tj_center() - 0.3),
         Quat::from_rotation_y(0.5),
     );
 }

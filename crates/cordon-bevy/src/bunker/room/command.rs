@@ -43,7 +43,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/interior/WoodenDinnerTable.glb",
-        Vec3::new(0.0, 0.0, l.desk_z),
+        Vec3::new(0.0, 0.0, l.desk_z()),
         Quat::IDENTITY,
     );
     // Chair.
@@ -51,7 +51,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/interior/WoodenChair.glb",
-        Vec3::new(0.0, 0.0, l.desk_z - 0.5),
+        Vec3::new(0.0, 0.0, l.desk_z() - 0.5),
         Quat::IDENTITY,
     );
     // Laptop with LaptopObject marker.
@@ -60,7 +60,7 @@ pub fn spawn(
         commands.spawn((
             LaptopObject,
             SceneRoot(scene),
-            Transform::from_xyz(0.0, 1.05, l.desk_z)
+            Transform::from_xyz(0.0, 1.05, l.desk_z())
                 .with_rotation(Quat::from_rotation_y(std::f32::consts::PI)),
         ));
     }
@@ -69,7 +69,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/interior/Mug.glb",
-        Vec3::new(-0.35, 1.05, l.desk_z + 0.05),
+        Vec3::new(-0.35, 1.05, l.desk_z() + 0.05),
         Quat::IDENTITY,
     );
     // Bin.
@@ -77,7 +77,7 @@ pub fn spawn(
         let scene: Handle<Scene> = asset_server.load("models/interior/Bin.glb#Scene0");
         commands.spawn((
             SceneRoot(scene),
-            Transform::from_xyz(-0.6, 0.0, l.desk_z - 0.2).with_scale(Vec3::splat(0.6)),
+            Transform::from_xyz(-0.6, 0.0, l.desk_z() - 0.2).with_scale(Vec3::splat(0.6)),
         ));
     }
     // One bookshelf per wall — spaced to avoid clipping.
@@ -100,7 +100,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/interior/Rug.glb",
-        Vec3::new(0.0, 0.02, l.desk_z - 0.3),
+        Vec3::new(0.0, 0.02, l.desk_z() - 0.3),
         Quat::IDENTITY,
     );
     // Cactus in a pot.
@@ -131,7 +131,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/storage/Cabinet_01.glb",
-        Vec3::new(0.6, 0.0, l.desk_z - 0.8),
+        Vec3::new(0.6, 0.0, l.desk_z() - 0.8),
         Quat::IDENTITY,
     );
     // Door button.
@@ -145,6 +145,6 @@ pub fn spawn(
             emissive: LinearRgba::BLACK,
             ..default()
         })),
-        Transform::from_xyz(0.28, 1.0, l.desk_z),
+        Transform::from_xyz(0.28, 1.0, l.desk_z()),
     ));
 }

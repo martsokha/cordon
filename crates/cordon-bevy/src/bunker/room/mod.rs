@@ -21,8 +21,8 @@ mod armory;
 mod command;
 mod entry;
 pub mod geometry;
+mod kitchen;
 mod quarters;
-mod utility;
 
 use avian3d::prelude::*;
 use bevy::light::GlobalAmbientLight;
@@ -83,57 +83,81 @@ impl Palette {
     }
 }
 
+/// Bunker dimensions. Only stores the primary constants; derived
+/// values are computed via methods so nothing can go stale.
 pub(crate) struct Layout {
+    /// Ceiling height.
     pub h: f32,
-    pub hh: f32,
+    /// Main corridor half-width (x extent from center).
     pub hw: f32,
+    /// Z of the front wall (stairs / entrance).
     pub front_z: f32,
+    /// Z of the trade grate.
     pub trade_z: f32,
+    /// Z of the office ↔ armory divider grate.
     pub divider_z: f32,
-    pub desk_z: f32,
+    /// Half-width of the grate opening.
     pub hole_half: f32,
+    /// Z of the north edge of the T-junction.
     pub tj_north: f32,
+    /// Z of the back wall (south edge of corridor + side rooms).
     pub back_z: f32,
+    /// How far each side room extends from the corridor wall.
     pub side_depth: f32,
-    pub side_door_width: f32, // visual frame width; collider gap is wider
-    pub tj_center: f32,
-    pub tj_len: f32,
-    pub util_x_min: f32,
-    pub util_x_center: f32,
-    pub quarters_x_max: f32,
-    pub quarters_x_center: f32,
+    /// Width of the side-room doorframe openings.
+    pub side_door_width: f32,
 }
 
 impl Layout {
     fn new() -> Self {
-        let h = 2.4;
-        let hw = 2.0;
-        let front_z = 5.0;
-        let trade_z = 1.5;
-        let tj_north = -3.0;
-        let back_z = -6.0;
-        let side_depth = 3.0;
-        let tj_center = (tj_north + back_z) / 2.0;
         Self {
-            h,
-            hh: h / 2.0,
-            hw,
-            front_z,
-            trade_z,
+            h: 2.4,
+            hw: 2.0,
+            front_z: 5.0,
+            trade_z: 1.5,
             divider_z: -1.5,
-            desk_z: trade_z - 0.5,
             hole_half: 0.6,
-            tj_north,
-            back_z,
-            side_depth,
+            tj_north: -3.0,
+            back_z: -6.0,
+            side_depth: 3.0,
             side_door_width: 1.6,
-            tj_center,
-            tj_len: tj_north - back_z,
-            util_x_min: -(hw + side_depth),
-            util_x_center: (-(hw + side_depth) + (-hw)) / 2.0,
-            quarters_x_max: hw + side_depth,
-            quarters_x_center: (hw + hw + side_depth) / 2.0,
         }
+    }
+
+    pub fn hh(&self) -> f32 {
+        self.h / 2.0
+    }
+
+    pub fn desk_z(&self) -> f32 {
+        self.trade_z - 0.5
+    }
+
+    pub fn tj_center(&self) -> f32 {
+        (self.tj_north + self.back_z) / 2.0
+    }
+
+    pub fn tj_len(&self) -> f32 {
+        self.tj_north - self.back_z
+    }
+
+    /// Kitchen (left): furthest x.
+    pub fn kitchen_x_min(&self) -> f32 {
+        -(self.hw + self.side_depth)
+    }
+
+    /// Kitchen (left): center x.
+    pub fn kitchen_x_center(&self) -> f32 {
+        (self.kitchen_x_min() + (-self.hw)) / 2.0
+    }
+
+    /// Quarters (right): furthest x.
+    pub fn quarters_x_max(&self) -> f32 {
+        self.hw + self.side_depth
+    }
+
+    /// Quarters (right): center x.
+    pub fn quarters_x_center(&self) -> f32 {
+        (self.hw + self.quarters_x_max()) / 2.0
     }
 }
 
@@ -168,7 +192,7 @@ fn spawn_bunker(
         &l,
     );
     armory::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
-    utility::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
+    kitchen::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
     quarters::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
 
     spawn_ui(&mut commands, fps_camera_entity);
@@ -184,7 +208,7 @@ fn spawn_camera(commands: &mut Commands, l: &Layout) -> Entity {
                 super::input::controller::PLAYER_RADIUS,
                 super::input::controller::PLAYER_HEIGHT,
             ),
-            Transform::from_xyz(0.0, 1.6, l.desk_z - 0.5)
+            Transform::from_xyz(0.0, 1.6, l.desk_z() - 0.5)
                 .looking_at(Vec3::new(0.0, 1.2, l.front_z), Vec3::Y),
             bevy::core_pipeline::tonemapping::Tonemapping::TonyMcMapface,
             // Subtle bloom on emissive surfaces.
@@ -219,25 +243,37 @@ fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &Layou
     let fixtures = [
         // Command post — ceiling lamp pulled 1m back from the desk
         // so it illuminates the room, not just the table surface.
-        LightFixture::ceiling(0.0, l.desk_z - 1.0, l.h, 120000.0, warm, true),
-        LightFixture::desk(Vec3::new(0.4, 0.95, l.desk_z - 0.15), 8000.0, warm),
-        LightFixture::screen(Vec3::new(0.0, 1.1, l.desk_z), 6000.0, screen_green),
+        LightFixture::ceiling(0.0, l.desk_z() - 1.0, l.h, 120000.0, warm, true),
+        LightFixture::desk(Vec3::new(0.4, 0.95, l.desk_z() - 0.15), 8000.0, warm),
+        LightFixture::screen(Vec3::new(0.0, 1.1, l.desk_z()), 6000.0, screen_green),
         // Entry
         LightFixture::ceiling(0.0, 3.0, l.h, 50000.0, cool, false),
         // Armory + T-junction — single light between them.
         LightFixture::ceiling(0.0, l.tj_north - 0.5, l.h, 50000.0, dim_cool, false),
-        // Utility
-        LightFixture::ceiling(l.util_x_center, l.tj_center, l.h, 45000.0, white, false),
+        // Kitchen
+        LightFixture::ceiling(
+            l.kitchen_x_center(),
+            l.tj_center(),
+            l.h,
+            45000.0,
+            white,
+            false,
+        ),
         // Quarters
         LightFixture::ceiling(
-            l.quarters_x_center,
-            l.tj_center,
+            l.quarters_x_center(),
+            l.tj_center(),
             l.h,
             15000.0,
             dim_warm,
             false,
         ),
-        LightFixture::standing(l.quarters_x_center, l.tj_center - 0.5, 18000.0, lamp_warm),
+        LightFixture::standing(
+            l.quarters_x_center(),
+            l.tj_center() - 0.5,
+            18000.0,
+            lamp_warm,
+        ),
     ];
 
     for fixture in &fixtures {
@@ -267,9 +303,9 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
         commands,
         meshes,
         pal.concrete.clone(),
-        Vec3::new(0.0, l.hh, l.front_z),
+        Vec3::new(0.0, l.hh(), l.front_z),
         Quat::from_rotation_y(PI),
-        Vec2::new(l.hw, l.hh),
+        Vec2::new(l.hw, l.hh()),
     );
 
     // Left wall + kitchen doorframe.
@@ -280,9 +316,9 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
             commands,
             meshes,
             pal.concrete.clone(),
-            Vec3::new(-l.hw, l.hh, cz),
+            Vec3::new(-l.hw, l.hh(), cz),
             Quat::from_rotation_y(FRAC_PI_2),
-            Vec2::new(len / 2.0, l.hh),
+            Vec2::new(len / 2.0, l.hh()),
         );
     }
     spawn_doorframe_x(
@@ -290,11 +326,11 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
         meshes,
         pal.concrete.clone(),
         -l.hw,
-        l.tj_center,
+        l.tj_center(),
         l.side_door_width,
     );
     {
-        let door_n = l.tj_center + l.side_door_width / 2.0;
+        let door_n = l.tj_center() + l.side_door_width / 2.0;
         let len = (l.tj_north - door_n).abs();
         let cz = (l.tj_north + door_n) / 2.0;
         if len > 0.1 {
@@ -302,14 +338,14 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
                 commands,
                 meshes,
                 pal.concrete.clone(),
-                Vec3::new(-l.hw, l.hh, cz),
+                Vec3::new(-l.hw, l.hh(), cz),
                 Quat::from_rotation_y(FRAC_PI_2),
-                Vec2::new(len / 2.0, l.hh),
+                Vec2::new(len / 2.0, l.hh()),
             );
         }
     }
     {
-        let door_s = l.tj_center - l.side_door_width / 2.0;
+        let door_s = l.tj_center() - l.side_door_width / 2.0;
         let len = (door_s - l.back_z).abs();
         let cz = (door_s + l.back_z) / 2.0;
         if len > 0.1 {
@@ -317,9 +353,9 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
                 commands,
                 meshes,
                 pal.concrete.clone(),
-                Vec3::new(-l.hw, l.hh, cz),
+                Vec3::new(-l.hw, l.hh(), cz),
                 Quat::from_rotation_y(FRAC_PI_2),
-                Vec2::new(len / 2.0, l.hh),
+                Vec2::new(len / 2.0, l.hh()),
             );
         }
     }
@@ -332,9 +368,9 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
             commands,
             meshes,
             pal.concrete.clone(),
-            Vec3::new(l.hw, l.hh, cz),
+            Vec3::new(l.hw, l.hh(), cz),
             Quat::from_rotation_y(-FRAC_PI_2),
-            Vec2::new(len / 2.0, l.hh),
+            Vec2::new(len / 2.0, l.hh()),
         );
     }
     spawn_doorframe_x(
@@ -342,11 +378,11 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
         meshes,
         pal.concrete.clone(),
         l.hw,
-        l.tj_center,
+        l.tj_center(),
         l.side_door_width,
     );
     {
-        let door_n = l.tj_center + l.side_door_width / 2.0;
+        let door_n = l.tj_center() + l.side_door_width / 2.0;
         let len = (l.tj_north - door_n).abs();
         let cz = (l.tj_north + door_n) / 2.0;
         if len > 0.1 {
@@ -354,14 +390,14 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
                 commands,
                 meshes,
                 pal.concrete.clone(),
-                Vec3::new(l.hw, l.hh, cz),
+                Vec3::new(l.hw, l.hh(), cz),
                 Quat::from_rotation_y(-FRAC_PI_2),
-                Vec2::new(len / 2.0, l.hh),
+                Vec2::new(len / 2.0, l.hh()),
             );
         }
     }
     {
-        let door_s = l.tj_center - l.side_door_width / 2.0;
+        let door_s = l.tj_center() - l.side_door_width / 2.0;
         let len = (door_s - l.back_z).abs();
         let cz = (door_s + l.back_z) / 2.0;
         if len > 0.1 {
@@ -369,9 +405,9 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
                 commands,
                 meshes,
                 pal.concrete.clone(),
-                Vec3::new(l.hw, l.hh, cz),
+                Vec3::new(l.hw, l.hh(), cz),
                 Quat::from_rotation_y(-FRAC_PI_2),
-                Vec2::new(len / 2.0, l.hh),
+                Vec2::new(len / 2.0, l.hh()),
             );
         }
     }
@@ -381,9 +417,9 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
         commands,
         meshes,
         pal.concrete.clone(),
-        Vec3::new(0.0, l.hh, l.back_z),
+        Vec3::new(0.0, l.hh(), l.back_z),
         Quat::IDENTITY,
-        Vec2::new(l.hw, l.hh),
+        Vec2::new(l.hw, l.hh()),
     );
 }
 
