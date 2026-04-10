@@ -1,0 +1,54 @@
+[
+  {
+    "id": "item_frag_grenade",
+    "data": {
+      "type": "throwable",
+      "effects": [
+        {
+          "target": "damage",
+          "value": 40.0,
+          "duration": "instant",
+          "aoe": 30.0
+        }
+      ]
+    },
+    "base_price": 120,
+    "suppliers": [
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.1
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_corruption_canister",
+    "data": {
+      "type": "throwable",
+      "effects": [
+        {
+          "target": "corruption",
+          "value": 15.0,
+          "duration": "instant",
+          "aoe": 40.0
+        }
+      ]
+    },
+    "base_price": 220,
+    "suppliers": [
+      {
+        "faction": "faction_institute",
+        "price_multiplier": 1.0
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.05
+      }
+    ],
+    "rarity": "uncommon"
+  }
+]

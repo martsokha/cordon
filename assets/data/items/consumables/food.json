@@ -1,0 +1,59 @@
+[
+  {
+    "id": "item_ration",
+    "data": {
+      "type": "consumable",
+      "effects": [
+        {
+          "target": "stamina",
+          "value": 60.0,
+          "duration": "instant"
+        }
+      ],
+      "spoil_days": 60
+    },
+    "base_price": 40,
+    "suppliers": [
+      {
+        "faction": "faction_garrison",
+        "price_multiplier": 0.9
+      },
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 1.0
+      }
+    ],
+    "rarity": "common"
+  },
+  {
+    "id": "item_tainted_ration",
+    "data": {
+      "type": "consumable",
+      "effects": [
+        {
+          "target": "stamina",
+          "value": 80.0,
+          "duration": "instant"
+        },
+        {
+          "target": "corruption",
+          "value": 8.0,
+          "duration": "instant"
+        }
+      ],
+      "spoil_days": 30
+    },
+    "base_price": 25,
+    "suppliers": [
+      {
+        "faction": "faction_drifters",
+        "price_multiplier": 0.85
+      },
+      {
+        "faction": "faction_syndicate",
+        "price_multiplier": 1.0
+      }
+    ],
+    "rarity": "common"
+  }
+]

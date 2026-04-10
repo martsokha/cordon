@@ -3,19 +3,20 @@
 use serde::{Deserialize, Serialize};
 
 use crate::item::effect::TimedEffect;
-use crate::primitive::Duration;
 
 /// Data for consumable items.
 ///
 /// Each effect carries its own duration. A medkit might have an
 /// instant heal effect and a timed anti-bleeding effect.
+///
+/// There is no `use_time` field — every consumable applies on the
+/// minute it's used. The sim's minute granularity is coarse enough
+/// that "this takes 2 minutes to apply" wouldn't be observable
+/// against the surrounding noise of combat ticks anyway.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConsumableData {
     /// Effects applied when consumed. Each has its own duration.
     pub effects: Vec<TimedEffect>,
-    /// Minutes to consume this item. [`Duration::INSTANT`] means
-    /// the item applies on click with no sim time elapsed.
-    pub use_time: Duration,
     /// Days until spoilage. `None` means it never spoils.
     pub spoil_days: Option<u32>,
 }

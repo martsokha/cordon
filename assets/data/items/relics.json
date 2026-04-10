@@ -3,7 +3,17 @@
     "id": "item_sludge_bead",
     "data": {
       "type": "relic",
-      "passive": []
+      "passive": [],
+      "triggered": [
+        {
+          "trigger": "periodic",
+          "effect": {
+            "target": "corruption",
+            "value": 1.0,
+            "duration": "instant"
+          }
+        }
+      ]
     },
     "base_price": 350,
     "suppliers": [

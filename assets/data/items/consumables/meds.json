@@ -10,7 +10,6 @@
           "duration": "instant"
         }
       ],
-      "use_time": 1,
       "spoil_days": null
     },
     "base_price": 30,
@@ -37,7 +36,6 @@
           "duration": "instant"
         }
       ],
-      "use_time": 2,
       "spoil_days": null
     },
     "base_price": 250,
@@ -64,7 +62,6 @@
           "duration": 10
         }
       ],
-      "use_time": 1,
       "spoil_days": 365
     },
     "base_price": 180,
@@ -75,33 +72,6 @@
       },
       {
         "faction": "faction_institute",
-        "price_multiplier": 1.0
-      }
-    ],
-    "rarity": "common"
-  },
-  {
-    "id": "item_ration",
-    "data": {
-      "type": "consumable",
-      "effects": [
-        {
-          "target": "stamina",
-          "value": 60.0,
-          "duration": "instant"
-        }
-      ],
-      "use_time": 1,
-      "spoil_days": 60
-    },
-    "base_price": 40,
-    "suppliers": [
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 0.9
-      },
-      {
-        "faction": "faction_drifters",
         "price_multiplier": 1.0
       }
     ],

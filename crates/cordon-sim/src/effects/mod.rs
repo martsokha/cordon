@@ -34,6 +34,12 @@
 //! different data shapes and will come back when their
 //! respective subsystems land.
 
+mod consume;
+mod corruption;
+mod throwable;
+
+pub use throwable::ThrowableImpact;
+
 use bevy::prelude::*;
 use cordon_core::item::{
     CORRUPTION_HIGH_THRESHOLD, CORRUPTION_LOW_THRESHOLD, EffectTrigger, HP_HIGH_THRESHOLD,
@@ -57,9 +63,19 @@ pub struct EffectsPlugin;
 impl Plugin for EffectsPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PeriodicTriggers>();
+        app.add_message::<ThrowableImpact>();
+        // Source systems run first so the events they emit are
+        // visible to dispatch_pool_triggers in the same frame.
+        // Periodic sync runs interleaved with the others — it
+        // only walks Changed<Loadout> entries so it's quiet in
+        // the steady state.
         app.add_systems(
             Update,
             (
+                throwable::npc_throw_grenades,
+                throwable::process_throwable_impacts,
+                consume::npc_auto_consume,
+                corruption::area_corruption_tick,
                 sync_periodic_triggers,
                 dispatch_pool_triggers,
                 fire_periodic_triggers,
@@ -451,7 +467,7 @@ fn tick_active_effects(
 /// own query, so this is a plain function, not a system or a
 /// method.
 #[allow(clippy::too_many_arguments)]
-fn apply_or_queue(
+pub(crate) fn apply_or_queue(
     entity: Entity,
     effect: TimedEffect,
     now: GameTime,
@@ -490,7 +506,7 @@ fn apply_or_queue(
 /// drain or cost" — but both emit as a `Health` pool change
 /// because the downstream bus only cares about which pool moved,
 /// not about authorial flavour.
-fn apply_pool_delta(
+pub(crate) fn apply_pool_delta(
     entity: Entity,
     target: ResourceTarget,
     value: f32,
