@@ -173,7 +173,6 @@ fn spawn_bunker(
     let fps_camera_entity = spawn_camera(&mut commands, &l);
     spawn_lighting(&mut commands, &asset_server, &l);
     spawn_corridor(&mut commands, &mut meshes, &pal, &l);
-    spawn_corridor_props(&mut commands, &asset_server, &l);
 
     entry::spawn(
         &mut commands,
@@ -420,27 +419,6 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
         Vec3::new(0.0, l.hh(), l.back_z),
         Quat::IDENTITY,
         Vec2::new(l.hw, l.hh()),
-    );
-}
-
-fn spawn_corridor_props(commands: &mut Commands, asset_server: &AssetServer, l: &Layout) {
-    use std::f32::consts::FRAC_PI_2;
-
-    use geometry::glb;
-
-    glb(
-        commands,
-        asset_server,
-        "models/storage/ElectricBox_02.glb",
-        Vec3::new(l.hw - 0.05, 1.6, l.divider_z + 0.3),
-        Quat::from_rotation_y(-FRAC_PI_2),
-    );
-    glb(
-        commands,
-        asset_server,
-        "models/storage/Cabinet_02.glb",
-        Vec3::new(-l.hw + 0.3, 0.0, l.divider_z + 0.5),
-        Quat::from_rotation_y(FRAC_PI_2),
     );
 }
 

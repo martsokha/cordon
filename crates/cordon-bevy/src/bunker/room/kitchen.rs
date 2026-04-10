@@ -99,13 +99,6 @@ pub fn spawn(
         Vec3::new(l.kitchen_x_min() + 0.4, shelf_surface, l.tj_center() + 0.3),
         Quat::from_rotation_y(FRAC_PI_2),
     );
-    glb(
-        commands,
-        asset_server,
-        "models/interior/Bowl.glb",
-        Vec3::new(l.kitchen_x_min() + 0.4, shelf_surface, l.tj_center() + 0.1),
-        Quat::from_rotation_y(FRAC_PI_2),
-    );
 
     // Electric box on the south wall at reasonable height.
     // Storage pack origins are at center, so offset by half-height.
@@ -113,7 +106,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/storage/ElectricBox_01.glb",
-        Vec3::new(l.kitchen_x_center() + 0.5, 1.2, l.back_z + 0.05),
+        Vec3::new(l.kitchen_x_center() + 0.5, 0.2, l.back_z + 0.05),
         Quat::IDENTITY,
     );
 
@@ -122,7 +115,7 @@ pub fn spawn(
         commands,
         asset_server,
         "models/storage/Barrel_02.glb",
-        Vec3::new(l.kitchen_x_center() - 0.5, 0.22, l.back_z + 0.4),
+        Vec3::new(l.kitchen_x_center() + 0.8, 0.22, l.tj_north - 0.4),
         Quat::IDENTITY,
     );
 

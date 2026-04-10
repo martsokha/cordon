@@ -76,13 +76,24 @@ pub fn spawn(
         Transform::from_xyz(0.0, l.h / 2.0, l.trade_z),
     ));
 
+    // Kitchen shelves on the visitor side of the trade grate,
+    // facing away from the player — hides the player's legs.
     glb(
         commands,
         asset_server,
-        "models/interior/WoodenStool.glb",
-        Vec3::new(0.0, 0.0, l.trade_z + 0.6),
+        "models/interior/KitchenShelves2.glb",
+        Vec3::new(0.52, 0.05, l.trade_z + 0.1),
         Quat::IDENTITY,
     );
+
+    glb(
+        commands,
+        asset_server,
+        "models/interior/KitchenShelves2.glb",
+        Vec3::new(-0.52, 0.05, l.trade_z + 0.1),
+        Quat::IDENTITY,
+    );
+
     // Lockers along the left wall.
     for i in 0..5 {
         glb(
@@ -116,5 +127,13 @@ pub fn spawn(
         "models/storage/Box_01.glb",
         Vec3::new(-l.hw + 0.8, 0.0, 3.2),
         Quat::from_rotation_y(0.3),
+    );
+    // Amp rack on the right wall (opposite lockers).
+    glb(
+        commands,
+        asset_server,
+        "models/storage/AmpRack_01.glb",
+        Vec3::new(l.hw - 0.3, 0.25, 3.0),
+        Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2),
     );
 }

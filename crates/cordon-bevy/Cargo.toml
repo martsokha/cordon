@@ -47,5 +47,5 @@ avian3d = { workspace = true, features = [] }
 # Derive macros
 strum = { workspace = true, features = [] }
 
-# Steam (optional — run without via --no-default-features)
+# Steam (optional: run without via --no-default-features)
 bevy-steamworks = { version = "0.16", optional = true, features = [] }

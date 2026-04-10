@@ -113,4 +113,19 @@ pub fn spawn(
         Vec3::new(l.quarters_x_max() - 0.5, 0.4, l.tj_center() - 0.3),
         Quat::from_rotation_y(0.5),
     );
+    // Cactus in a pot — the one living thing down here.
+    glb(
+        commands,
+        asset_server,
+        "models/interior/PlantPot1.glb",
+        Vec3::new(l.hw + 0.4, 0.0, l.tj_center() + 1.0),
+        Quat::IDENTITY,
+    );
+    glb(
+        commands,
+        asset_server,
+        "models/interior/Cactus.glb",
+        Vec3::new(l.hw + 0.4, 0.25, l.tj_center() + 1.0),
+        Quat::IDENTITY,
+    );
 }
