@@ -37,8 +37,8 @@ pub struct RoomPlugin;
 impl Plugin for RoomPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GlobalAmbientLight {
-            color: Color::srgb(1.0, 0.85, 0.65),
-            brightness: 120.0,
+            color: Color::srgb(0.9, 0.85, 0.70),
+            brightness: 80.0,
             ..default()
         });
         app.add_systems(
@@ -83,7 +83,6 @@ impl Palette {
     }
 }
 
-/// Layout constants shared by all zone modules.
 pub(crate) struct Layout {
     pub h: f32,
     pub hh: f32,
@@ -96,7 +95,7 @@ pub(crate) struct Layout {
     pub tj_north: f32,
     pub back_z: f32,
     pub side_depth: f32,
-    pub side_door_width: f32,
+    pub side_door_width: f32, // visual frame width; collider gap is wider
     pub tj_center: f32,
     pub tj_len: f32,
     pub util_x_min: f32,
@@ -127,7 +126,7 @@ impl Layout {
             tj_north,
             back_z,
             side_depth,
-            side_door_width: 1.2,
+            side_door_width: 1.6,
             tj_center,
             tj_len: tj_north - back_z,
             util_x_min: -(hw + side_depth),
@@ -144,14 +143,26 @@ fn spawn_bunker(
     mut meshes: ResMut<Assets<Mesh>>,
     mut mats: ResMut<Assets<StandardMaterial>>,
 ) {
-    use geometry::*;
-    use std::f32::consts::{FRAC_PI_2, PI};
-
     let pal = Palette::new(&mut mats);
     let l = Layout::new();
 
-    // ── Camera ──────────────────────────────────────────────
-    let fps_camera_entity = commands
+    let fps_camera_entity = spawn_camera(&mut commands, &l);
+    spawn_lighting(&mut commands, &asset_server, &l);
+    spawn_corridor(&mut commands, &mut meshes, &pal, &l);
+    spawn_corridor_props(&mut commands, &asset_server, &l);
+
+    entry::spawn(&mut commands, &asset_server, &mut meshes, &mut mats, &pal, &l);
+    command::spawn(&mut commands, &asset_server, &mut meshes, &mut mats, &pal, &l);
+    armory::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
+    utility::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
+    quarters::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
+
+    spawn_ui(&mut commands, fps_camera_entity);
+    commands.insert_resource(BunkerSpawned);
+}
+
+fn spawn_camera(commands: &mut Commands, l: &Layout) -> Entity {
+    commands
         .spawn((
             FpsCamera,
             Camera3d::default(),
@@ -161,72 +172,91 @@ fn spawn_bunker(
             ),
             Transform::from_xyz(0.0, 1.6, l.desk_z - 0.5)
                 .looking_at(Vec3::new(0.0, 1.2, l.front_z), Vec3::Y),
-        ))
-        .id();
-
-    // ── Lighting ────────────────────────────────────────────
-    for (z, intensity, range, shadows) in [
-        (l.desk_z, 140000.0, 14.0, true),
-        (3.0, 60000.0, 12.0, false),
-        (-2.0, 70000.0, 12.0, false),
-    ] {
-        commands.spawn((
-            PointLight {
-                intensity, range, shadows_enabled: shadows,
-                color: Color::srgb(1.0, 0.85, 0.55), ..default()
+            bevy::core_pipeline::tonemapping::Tonemapping::TonyMcMapface,
+            // Subtle bloom on emissive surfaces.
+            bevy::post_process::bloom::Bloom {
+                intensity: 0.08,
+                ..default()
             },
-            Transform::from_xyz(0.0, l.h - 0.15, z),
-        ));
-        glb(&mut commands, &asset_server, "models/interior/CeilingLamp.glb",
-            Vec3::new(0.0, l.h, z), Quat::IDENTITY);
-    }
-    commands.spawn((
-        PointLight { intensity: 25000.0, color: Color::srgb(1.0, 0.72, 0.40), range: 4.0, shadows_enabled: false, ..default() },
-        Transform::from_xyz(l.quarters_x_center, 1.4, l.tj_center - 0.5),
-    ));
-    glb(&mut commands, &asset_server, "models/interior/StandingLamp.glb",
-        Vec3::new(l.quarters_x_center, 0.0, l.tj_center - 0.5), Quat::IDENTITY);
-    commands.spawn((
-        PointLight { intensity: 8000.0, color: Color::srgb(0.5, 0.8, 0.5), range: 2.5, shadows_enabled: false, ..default() },
-        Transform::from_xyz(0.0, 1.1, l.desk_z),
-    ));
-    commands.spawn((
-        PointLight { intensity: 50000.0, color: Color::srgb(1.0, 0.9, 0.7), range: 8.0, shadows_enabled: false, ..default() },
-        Transform::from_xyz(l.util_x_center, l.h - 0.15, l.tj_center),
-    ));
-    glb(&mut commands, &asset_server, "models/interior/CeilingLamp.glb",
-        Vec3::new(l.util_x_center, l.h, l.tj_center), Quat::IDENTITY);
-    commands.spawn((
-        PointLight { intensity: 20000.0, color: Color::srgb(1.0, 0.75, 0.50), range: 5.0, shadows_enabled: false, ..default() },
-        Transform::from_xyz(l.quarters_x_center, l.h - 0.15, l.tj_center),
-    ));
-    glb(&mut commands, &asset_server, "models/interior/Lamp1.glb",
-        Vec3::new(0.4, 0.95, l.desk_z), Quat::IDENTITY);
+            // Fog — dark haze for depth.
+            bevy::pbr::DistanceFog {
+                color: Color::srgba(0.04, 0.04, 0.05, 1.0),
+                falloff: bevy::pbr::FogFalloff::Linear {
+                    start: 8.0,
+                    end: 16.0,
+                },
+                ..default()
+            },
+        ))
+        .id()
+}
 
-    // ── Main corridor: floor + ceiling ──────────────────────
+fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &Layout) {
+    use geometry::LightFixture;
+
+    let warm = Color::srgb(1.0, 0.82, 0.50);
+    let cool = Color::srgb(0.85, 0.9, 1.0);
+    let dim_cool = Color::srgb(0.8, 0.85, 0.95);
+    let white = Color::srgb(0.95, 0.95, 1.0);
+    let dim_warm = Color::srgb(1.0, 0.75, 0.45);
+    let lamp_warm = Color::srgb(1.0, 0.70, 0.35);
+    let screen_green = Color::srgb(0.4, 0.7, 0.4);
+
+    let fixtures = [
+        // Command post — ceiling lamp pulled 1m back from the desk
+        // so it illuminates the room, not just the table surface.
+        LightFixture::ceiling(0.0, l.desk_z - 1.0, l.h, 120000.0, warm, true),
+        LightFixture::desk(Vec3::new(0.4, 0.95, l.desk_z - 0.15), 8000.0, warm),
+        LightFixture::screen(Vec3::new(0.0, 1.1, l.desk_z), 6000.0, screen_green),
+        // Entry
+        LightFixture::ceiling(0.0, 3.0, l.h, 50000.0, cool, false),
+        // Armory + T-junction — single light between them.
+        LightFixture::ceiling(0.0, l.tj_north - 0.5, l.h, 50000.0, dim_cool, false),
+        // Utility
+        LightFixture::ceiling(l.util_x_center, l.tj_center, l.h, 45000.0, white, false),
+        // Quarters
+        LightFixture::ceiling(l.quarters_x_center, l.tj_center, l.h, 15000.0, dim_warm, false),
+        LightFixture::standing(l.quarters_x_center, l.tj_center - 0.5, 18000.0, lamp_warm),
+    ];
+
+    for fixture in &fixtures {
+        fixture.spawn(commands, asset_server);
+    }
+}
+
+fn spawn_corridor(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    pal: &Palette,
+    l: &Layout,
+) {
+    use geometry::*;
+    use std::f32::consts::{FRAC_PI_2, PI};
+
+    // Floor + ceiling.
     let main_center_z = (l.front_z + l.back_z) / 2.0;
     let main_floor_half = Vec2::new(l.hw, (l.front_z - l.back_z) / 2.0);
-    spawn_floor_ceiling(&mut commands, &mut meshes, pal.concrete_dark.clone(),
+    spawn_floor_ceiling(commands, meshes, pal.concrete_dark.clone(),
         Vec3::new(0.0, 0.0, main_center_z), main_floor_half, l.h);
 
-    // ── Main corridor: walls ────────────────────────────────
-    spawn_wall(&mut commands, &mut meshes, pal.concrete.clone(),
+    // Front wall.
+    spawn_wall(commands, meshes, pal.concrete.clone(),
         Vec3::new(0.0, l.hh, l.front_z), Quat::from_rotation_y(PI), Vec2::new(l.hw, l.hh));
 
     // Left wall + kitchen doorframe.
     {
         let len = l.front_z - l.tj_north;
         let cz = (l.front_z + l.tj_north) / 2.0;
-        spawn_wall(&mut commands, &mut meshes, pal.concrete.clone(),
+        spawn_wall(commands, meshes, pal.concrete.clone(),
             Vec3::new(-l.hw, l.hh, cz), Quat::from_rotation_y(FRAC_PI_2), Vec2::new(len / 2.0, l.hh));
     }
-    spawn_doorframe_x(&mut commands, &mut meshes, pal.concrete.clone(), -l.hw, l.tj_center, l.side_door_width);
+    spawn_doorframe_x(commands, meshes, pal.concrete.clone(), -l.hw, l.tj_center, l.side_door_width);
     {
         let door_n = l.tj_center + l.side_door_width / 2.0;
         let len = (l.tj_north - door_n).abs();
         let cz = (l.tj_north + door_n) / 2.0;
         if len > 0.1 {
-            spawn_wall(&mut commands, &mut meshes, pal.concrete.clone(),
+            spawn_wall(commands, meshes, pal.concrete.clone(),
                 Vec3::new(-l.hw, l.hh, cz), Quat::from_rotation_y(FRAC_PI_2), Vec2::new(len / 2.0, l.hh));
         }
     }
@@ -235,7 +265,7 @@ fn spawn_bunker(
         let len = (door_s - l.back_z).abs();
         let cz = (door_s + l.back_z) / 2.0;
         if len > 0.1 {
-            spawn_wall(&mut commands, &mut meshes, pal.concrete.clone(),
+            spawn_wall(commands, meshes, pal.concrete.clone(),
                 Vec3::new(-l.hw, l.hh, cz), Quat::from_rotation_y(FRAC_PI_2), Vec2::new(len / 2.0, l.hh));
         }
     }
@@ -244,16 +274,16 @@ fn spawn_bunker(
     {
         let len = l.front_z - l.tj_north;
         let cz = (l.front_z + l.tj_north) / 2.0;
-        spawn_wall(&mut commands, &mut meshes, pal.concrete.clone(),
+        spawn_wall(commands, meshes, pal.concrete.clone(),
             Vec3::new(l.hw, l.hh, cz), Quat::from_rotation_y(-FRAC_PI_2), Vec2::new(len / 2.0, l.hh));
     }
-    spawn_doorframe_x(&mut commands, &mut meshes, pal.concrete.clone(), l.hw, l.tj_center, l.side_door_width);
+    spawn_doorframe_x(commands, meshes, pal.concrete.clone(), l.hw, l.tj_center, l.side_door_width);
     {
         let door_n = l.tj_center + l.side_door_width / 2.0;
         let len = (l.tj_north - door_n).abs();
         let cz = (l.tj_north + door_n) / 2.0;
         if len > 0.1 {
-            spawn_wall(&mut commands, &mut meshes, pal.concrete.clone(),
+            spawn_wall(commands, meshes, pal.concrete.clone(),
                 Vec3::new(l.hw, l.hh, cz), Quat::from_rotation_y(-FRAC_PI_2), Vec2::new(len / 2.0, l.hh));
         }
     }
@@ -262,30 +292,27 @@ fn spawn_bunker(
         let len = (door_s - l.back_z).abs();
         let cz = (door_s + l.back_z) / 2.0;
         if len > 0.1 {
-            spawn_wall(&mut commands, &mut meshes, pal.concrete.clone(),
+            spawn_wall(commands, meshes, pal.concrete.clone(),
                 Vec3::new(l.hw, l.hh, cz), Quat::from_rotation_y(-FRAC_PI_2), Vec2::new(len / 2.0, l.hh));
         }
     }
 
     // Back wall.
-    spawn_wall(&mut commands, &mut meshes, pal.concrete.clone(),
+    spawn_wall(commands, meshes, pal.concrete.clone(),
         Vec3::new(0.0, l.hh, l.back_z), Quat::IDENTITY, Vec2::new(l.hw, l.hh));
+}
 
-    // Electric box on the corridor wall near the divider grate.
-    glb(&mut commands, &asset_server, "models/storage/ElectricBox_02.glb",
+fn spawn_corridor_props(commands: &mut Commands, asset_server: &AssetServer, l: &Layout) {
+    use geometry::glb;
+    use std::f32::consts::FRAC_PI_2;
+
+    glb(commands, asset_server, "models/storage/ElectricBox_02.glb",
         Vec3::new(l.hw - 0.05, 1.6, l.divider_z + 0.3), Quat::from_rotation_y(-FRAC_PI_2));
-    // Filing cabinet against the left corridor wall.
-    glb(&mut commands, &asset_server, "models/storage/Cabinet_02.glb",
+    glb(commands, asset_server, "models/storage/Cabinet_02.glb",
         Vec3::new(-l.hw + 0.3, 0.0, l.divider_z + 0.5), Quat::from_rotation_y(FRAC_PI_2));
+}
 
-    // ── Zones ───────────────────────────────────────────────
-    entry::spawn(&mut commands, &asset_server, &mut meshes, &mut mats, &pal, &l);
-    command::spawn(&mut commands, &asset_server, &mut meshes, &mut mats, &pal, &l);
-    armory::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
-    utility::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
-    quarters::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
-
-    // ── UI: interact prompt ─────────────────────────────────
+fn spawn_ui(commands: &mut Commands, fps_camera_entity: Entity) {
     commands.spawn((
         InteractPrompt,
         UiTargetCamera(fps_camera_entity),
@@ -300,6 +327,4 @@ fn spawn_bunker(
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.8)),
         Visibility::Hidden,
     ));
-
-    commands.insert_resource(BunkerSpawned);
 }
