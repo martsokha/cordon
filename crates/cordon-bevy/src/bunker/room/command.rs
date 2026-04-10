@@ -31,13 +31,13 @@ pub fn spawn(
         commands.spawn((
             LaptopObject,
             SceneRoot(scene),
-            Transform::from_xyz(0.0, 0.77, l.desk_z)
+            Transform::from_xyz(0.0, 1.05, l.desk_z)
                 .with_rotation(Quat::from_rotation_y(std::f32::consts::PI)),
         ));
     }
     // Mug.
     glb(commands, asset_server, "models/interior/Mug.glb",
-        Vec3::new(-0.35, 0.77, l.desk_z + 0.05), Quat::IDENTITY);
+        Vec3::new(-0.35, 1.05, l.desk_z + 0.05), Quat::IDENTITY);
     // Bin.
     {
         let scene: Handle<Scene> = asset_server.load("models/interior/Bin.glb#Scene0");
@@ -46,13 +46,11 @@ pub fn spawn(
             Transform::from_xyz(-0.6, 0.0, l.desk_z - 0.2).with_scale(Vec3::splat(0.6)),
         ));
     }
-    // Full bookshelves.
-    for z in [-0.6, 0.8] {
-        glb(commands, asset_server, "models/interior/Bookshelf.glb",
-            Vec3::new(-l.hw + 0.3, 0.0, z), Quat::from_rotation_y(FRAC_PI_2));
-        glb(commands, asset_server, "models/interior/Bookshelf.glb",
-            Vec3::new(l.hw - 0.3, 0.0, z), Quat::from_rotation_y(-FRAC_PI_2));
-    }
+    // One bookshelf per wall — spaced to avoid clipping.
+    glb(commands, asset_server, "models/interior/Bookshelf.glb",
+        Vec3::new(-l.hw + 0.3, 0.0, 0.0), Quat::from_rotation_y(FRAC_PI_2));
+    glb(commands, asset_server, "models/interior/Bookshelf.glb",
+        Vec3::new(l.hw - 0.3, 0.0, 0.0), Quat::from_rotation_y(-FRAC_PI_2));
     // Rug in front of the desk.
     glb(commands, asset_server, "models/interior/Rug.glb",
         Vec3::new(0.0, 0.02, l.desk_z - 0.3), Quat::IDENTITY);
@@ -70,6 +68,6 @@ pub fn spawn(
             perceptual_roughness: 0.4, metallic: 0.2,
             emissive: LinearRgba::BLACK, ..default()
         })),
-        Transform::from_xyz(0.28, 0.8, l.desk_z),
+        Transform::from_xyz(0.28, 1.0, l.desk_z),
     ));
 }

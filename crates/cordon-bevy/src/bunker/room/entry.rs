@@ -32,9 +32,10 @@ pub fn spawn(
 
     glb(commands, asset_server, "models/interior/WoodenStool.glb",
         Vec3::new(0.0, 0.0, l.trade_z + 0.6), Quat::IDENTITY);
+    // Lockers along the left wall.
     for i in 0..5 {
-        spawn_locker(commands, meshes, pal.metal_dark.clone(),
-            Vec3::new(-l.hw + 0.3, 0.0, 2.2 + 0.5 * i as f32));
+        glb(commands, asset_server, "models/storage/Locker.glb",
+            Vec3::new(-l.hw + 0.3, 0.0, 2.2 + 0.5 * i as f32), Quat::from_rotation_y(std::f32::consts::FRAC_PI_2));
     }
     spawn_box(commands, meshes, mats.add(StandardMaterial {
         base_color: Color::srgb(0.18, 0.18, 0.17),

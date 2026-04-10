@@ -95,19 +95,6 @@ pub fn spawn_grate_bars(
     ));
 }
 
-pub fn spawn_locker(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    mat: Handle<StandardMaterial>,
-    pos: Vec3,
-) {
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(0.45, 1.8, 0.4))),
-        MeshMaterial3d(mat),
-        Transform::from_xyz(pos.x, 0.9, pos.z),
-    ));
-}
-
 pub fn spawn_doorframe(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,

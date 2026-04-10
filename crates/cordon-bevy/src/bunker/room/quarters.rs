@@ -38,5 +38,20 @@ pub fn spawn(
         Vec3::new(l.quarters_x_max - 0.5, 0.4, l.tj_center + 0.5), Quat::IDENTITY);
     // Rug.
     glb(commands, asset_server, "models/interior/Rug.glb",
-        Vec3::new(l.quarters_x_center, 0.01, l.tj_center), Quat::IDENTITY);
+        Vec3::new(l.quarters_x_center, 0.02, l.tj_center), Quat::IDENTITY);
+    // Cabinet against the north wall.
+    glb(commands, asset_server, "models/interior/Cabinet1.glb",
+        Vec3::new(l.hw + 0.4, 0.0, l.tj_north - 0.3), Quat::IDENTITY);
+    // Small bookshelf (personal books).
+    glb(commands, asset_server, "models/interior/SingleBookshelf.glb",
+        Vec3::new(l.quarters_x_max - 0.3, 0.0, l.back_z + 0.3), Quat::from_rotation_y(-FRAC_PI_2));
+    // Vase with flowers on the cabinet.
+    glb(commands, asset_server, "models/interior/VaseFlowers1.glb",
+        Vec3::new(l.hw + 0.4, 0.85, l.tj_north - 0.3), Quat::IDENTITY);
+    // Coffee table next to the sofa.
+    glb(commands, asset_server, "models/interior/ModernCoffeeTable.glb",
+        Vec3::new(l.quarters_x_center, 0.0, l.tj_center + 0.8), Quat::IDENTITY);
+    // Game board on the coffee table (downtime).
+    glb(commands, asset_server, "models/interior/GameBoard.glb",
+        Vec3::new(l.quarters_x_center, 0.35, l.tj_center + 0.8), Quat::IDENTITY);
 }

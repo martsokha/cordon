@@ -42,4 +42,16 @@ pub fn spawn(
     // Kettle.
     glb(commands, asset_server, "models/interior/Kettle.glb",
         Vec3::new(l.util_x_min + 0.4, 0.9, l.tj_center + 0.3), Quat::from_rotation_y(FRAC_PI_2));
+    // Mug on the shelves.
+    glb(commands, asset_server, "models/interior/Mug.glb",
+        Vec3::new(l.util_x_min + 0.4, 0.9, l.tj_center), Quat::from_rotation_y(FRAC_PI_2));
+    // Second shelves on the right wall.
+    glb(commands, asset_server, "models/interior/KitchenShelves2.glb",
+        Vec3::new(l.util_x_center + 0.8, 0.0, l.back_z + 0.3), Quat::IDENTITY);
+    // Bowl on the second shelves.
+    glb(commands, asset_server, "models/interior/Bowl.glb",
+        Vec3::new(l.util_x_center + 0.8, 0.9, l.back_z + 0.3), Quat::IDENTITY);
+    // Bin in the corner.
+    glb(commands, asset_server, "models/interior/Bin.glb",
+        Vec3::new(l.util_x_center + 1.0, 0.0, l.tj_north - 0.3), Quat::IDENTITY);
 }

@@ -8,22 +8,26 @@ license, and where the converted files end up in `assets/`.
 | Asset | Source | License | Raw | Runtime |
 |---|---|---|---|---|
 | Low-Poly Furniture Pack | (itch.io) | See itch.io page | `raw/models/interior/*.fbx` | `assets/models/interior/*.glb` |
+| Low-Poly Storage Pack | [brokenvector (itch.io)](https://brokenvector.itch.io/low-poly-storage-pack) | See itch.io page | `raw/models/storage/*.dae` | `assets/models/storage/*.glb` |
 | Surveillance Camera | [oxygen3d (itch.io)](https://oxygen3d.itch.io/game-ready-surveillance-camera-asset) | See itch.io page | `raw/models/cctv/` | `assets/models/cctv/camera.glb` |
 
 ## Workflow
 
-Source FBX files and textures live in `raw/models/` (gitignored).
-The Blender conversion script exports `.glb` files into the
-matching path under `assets/models/`, which is what Bevy loads at
-runtime.
+Source models (.fbx, .dae) live in `raw/models/`. The Makefile
+converts them to .glb in `assets/models/` using assimp.
 
 ```sh
-blender --background --python scripts/convert_fbx_to_glb.py
+# Install assimp (one-time):
+brew install assimp
+
+# Convert all models:
+make models
+
+# Clean generated GLBs:
+make clean
 ```
 
-This walks `raw/models/` recursively and writes a `.glb` next to
-every `.fbx` under `assets/models/`. Textures referenced by the
-FBX are embedded into the GLB by Blender automatically.
+Only changed files are reconverted (Make tracks dependencies).
 
 To load a model in code:
 
@@ -35,22 +39,15 @@ commands.spawn(SceneRoot(scene));
 Directory layout:
 
 ```
-raw/                              ← gitignored source assets
+raw/                              ← source assets
   models/
-    interior/
-      Laptop.fbx
-      WoodenChair.fbx
-      ...
-    cctv/
-      camera.fbx
-      *.jpg
+    interior/*.fbx                ← low-poly furniture
+    storage/*.dae                 ← storage/industrial props
+    cctv/                         ← surveillance camera + textures
 
-assets/                           ← committed runtime assets
+assets/                           ← runtime assets (committed)
   models/
-    interior/
-      Laptop.glb                  ← loaded by Bevy
-      WoodenChair.glb
-      ...
-    cctv/
-      camera.glb
+    interior/*.glb
+    storage/*.glb
+    cctv/camera.glb
 ```

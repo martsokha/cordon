@@ -53,7 +53,6 @@ pub(crate) struct Palette {
     pub concrete_dark: Handle<StandardMaterial>,
     pub wood: Handle<StandardMaterial>,
     pub metal: Handle<StandardMaterial>,
-    pub metal_dark: Handle<StandardMaterial>,
 }
 
 impl Palette {
@@ -78,12 +77,6 @@ impl Palette {
                 base_color: Color::srgb(0.3, 0.28, 0.26),
                 perceptual_roughness: 0.5,
                 metallic: 0.6,
-                ..default()
-            }),
-            metal_dark: mats.add(StandardMaterial {
-                base_color: Color::srgb(0.22, 0.22, 0.21),
-                perceptual_roughness: 0.7,
-                metallic: 0.4,
                 ..default()
             }),
         }
@@ -208,7 +201,7 @@ fn spawn_bunker(
         Transform::from_xyz(l.quarters_x_center, l.h - 0.15, l.tj_center),
     ));
     glb(&mut commands, &asset_server, "models/interior/Lamp1.glb",
-        Vec3::new(0.4, 0.77, l.desk_z), Quat::IDENTITY);
+        Vec3::new(0.4, 0.95, l.desk_z), Quat::IDENTITY);
 
     // ── Main corridor: floor + ceiling ──────────────────────
     let main_center_z = (l.front_z + l.back_z) / 2.0;
