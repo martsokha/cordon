@@ -22,6 +22,7 @@ mod command;
 mod entry;
 pub mod geometry;
 mod kitchen;
+mod prop_registry;
 mod quarters;
 
 use avian3d::prelude::*;

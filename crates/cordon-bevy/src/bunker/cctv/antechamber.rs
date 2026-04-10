@@ -149,55 +149,55 @@ fn spawn_furniture(
 ) {
     use std::f32::consts::FRAC_PI_2;
 
+    use crate::bunker::room::geometry::{Prop, prop};
+
     let floor = -h / 2.0;
 
-    let glb = |commands: &mut Commands, path: &str, pos: Vec3, rot: Quat| {
-        let scene: Handle<Scene> = asset_server.load(format!("{path}#Scene0"));
-        commands.spawn((
-            SceneRoot(scene),
-            Transform::from_translation(pos).with_rotation(rot),
-        ));
-    };
-
     // Stool — the only seat a visitor gets.
-    glb(
+    prop(
         commands,
-        "models/interior/WoodenStool.glb",
+        asset_server,
+        Prop::WoodenStool,
         center + Vec3::new(0.6, floor, -0.5),
         Quat::IDENTITY,
     );
     // Locker against the left wall — for confiscated gear.
-    glb(
+    prop(
         commands,
-        "models/storage/Locker.glb",
+        asset_server,
+        Prop::Locker,
         center + Vec3::new(-hw + 0.3, floor, 0.0),
         Quat::from_rotation_y(FRAC_PI_2),
     );
     // Metal rack on the right wall.
-    glb(
+    prop(
         commands,
-        "models/storage/StorageRack_01.glb",
+        asset_server,
+        Prop::StorageRack01,
         center + Vec3::new(hw - 0.3, floor, 0.0),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
     // Box on the rack.
-    glb(
+    prop(
         commands,
-        "models/storage/Box_02.glb",
+        asset_server,
+        Prop::Box02,
         center + Vec3::new(hw - 0.4, floor + 0.6, 0.0),
         Quat::from_rotation_y(0.2),
     );
     // Supply box on the floor.
-    glb(
+    prop(
         commands,
-        "models/storage/Box_01.glb",
+        asset_server,
+        Prop::Box01,
         center + Vec3::new(-0.8, floor, 0.8),
         Quat::from_rotation_y(0.4),
     );
     // Security panel at eye height.
-    glb(
+    prop(
         commands,
-        "models/storage/ElectricBox_01.glb",
+        asset_server,
+        Prop::ElectricBox01,
         center + Vec3::new(hw - 0.05, 0.0, -0.8),
         Quat::from_rotation_y(-FRAC_PI_2),
     );

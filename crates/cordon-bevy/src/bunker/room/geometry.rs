@@ -91,15 +91,17 @@ impl LightFixture {
     }
 
     /// Spawn the fixture model (if any) and its point light.
+    ///
+    /// Fixtures use direct transform placement rather than [`prop`]'s
+    /// feet-center semantics because the light source anchor, not the
+    /// model base, is what matters for illumination.
     pub fn spawn(&self, commands: &mut Commands, asset_server: &AssetServer) {
         if !self.model.is_empty() {
-            glb(
-                commands,
-                asset_server,
-                self.model,
-                self.model_pos,
-                self.model_rot,
-            );
+            let scene: Handle<Scene> = asset_server.load(format!("{}#Scene0", self.model));
+            commands.spawn((
+                SceneRoot(scene),
+                Transform::from_translation(self.model_pos).with_rotation(self.model_rot),
+            ));
         }
         commands.spawn((
             PointLight {
@@ -110,6 +112,45 @@ impl LightFixture {
                 ..default()
             },
             Transform::from_translation(self.light_pos),
+        ));
+    }
+}
+
+pub use super::prop_registry::Prop;
+
+/// Spawn a registered prop at `pos`, where `pos` is the **feet-center**:
+/// the model's lateral AABB center sits at `pos.x`/`pos.z` and its
+/// lowest point sits at `pos.y`. Set `pos.y = 0.0` for floor props, or
+/// the shelf surface height for things that sit on a shelf.
+///
+/// If the prop's registry entry has `collider = true`, a sibling static
+/// collider is spawned matching the GLB's measured AABB. Rotation
+/// (around Y — which is all the rooms use) applies to both.
+pub fn prop(commands: &mut Commands, asset_server: &AssetServer, prop: Prop, pos: Vec3, rot: Quat) {
+    let def = prop.def();
+    let size = def.aabb_max - def.aabb_min;
+    let local_center = (def.aabb_min + def.aabb_max) * 0.5;
+    // Feet-center in model local space: lateral center at AABB center,
+    // y at AABB min.
+    let feet_local = Vec3::new(local_center.x, def.aabb_min.y, local_center.z);
+    // Offset the spawn so `feet_local` lands on `pos`.
+    let spawn_pos = pos - rot * feet_local;
+
+    let scene: Handle<Scene> = asset_server.load(format!("{}#Scene0", def.path));
+    commands.spawn((
+        SceneRoot(scene),
+        Transform::from_translation(spawn_pos).with_rotation(rot),
+    ));
+
+    if def.collider {
+        // AABB center in world space = spawn_pos + rot * local_center.
+        // Since rotation is around Y only for every room call, this
+        // simplifies, but we compute it generally to stay honest.
+        let collider_center = spawn_pos + rot * local_center;
+        commands.spawn((
+            RigidBody::Static,
+            Collider::cuboid(size.x, size.y, size.z),
+            Transform::from_translation(collider_center).with_rotation(rot),
         ));
     }
 }
@@ -287,13 +328,4 @@ pub fn spawn_stairs(
             Transform::from_xyz(0.0, step_y / 2.0, step_z),
         ));
     }
-}
-
-/// Spawn a GLB scene at a given position and rotation.
-pub fn glb(commands: &mut Commands, asset_server: &AssetServer, path: &str, pos: Vec3, rot: Quat) {
-    let scene: Handle<Scene> = asset_server.load(format!("{path}#Scene0"));
-    commands.spawn((
-        SceneRoot(scene),
-        Transform::from_translation(pos).with_rotation(rot),
-    ));
 }

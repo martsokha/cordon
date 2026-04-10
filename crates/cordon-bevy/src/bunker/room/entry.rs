@@ -78,62 +78,61 @@ pub fn spawn(
 
     // Kitchen shelves on the visitor side of the trade grate,
     // facing away from the player — hides the player's legs.
-    glb(
+    prop(
         commands,
         asset_server,
-        "models/interior/KitchenShelves2.glb",
-        Vec3::new(0.52, 0.05, l.trade_z + 0.1),
+        Prop::KitchenShelves2,
+        Vec3::new(0.52, 0.0, l.trade_z + 0.1),
         Quat::IDENTITY,
     );
-
-    glb(
+    prop(
         commands,
         asset_server,
-        "models/interior/KitchenShelves2.glb",
-        Vec3::new(-0.52, 0.05, l.trade_z + 0.1),
+        Prop::KitchenShelves2,
+        Vec3::new(-0.52, 0.0, l.trade_z + 0.1),
         Quat::IDENTITY,
     );
 
     // Lockers along the left wall.
     for i in 0..5 {
-        glb(
+        prop(
             commands,
             asset_server,
-            "models/storage/Locker.glb",
+            Prop::Locker,
             Vec3::new(-l.hw + 0.3, 0.0, 2.2 + 0.5 * i as f32),
             Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
         );
     }
     // Bag on the floor near the lockers.
-    glb(
+    prop(
         commands,
         asset_server,
-        "models/storage/Bag_02.glb",
+        Prop::Bag02,
         Vec3::new(-l.hw + 0.8, 0.0, 4.0),
         Quat::from_rotation_y(0.8),
     );
     // Barrel in the corner.
-    glb(
+    prop(
         commands,
         asset_server,
-        "models/storage/Barrel_03.glb",
+        Prop::Barrel03,
         Vec3::new(l.hw - 0.4, 0.0, 4.2),
         Quat::IDENTITY,
     );
     // Box near lockers.
-    glb(
+    prop(
         commands,
         asset_server,
-        "models/storage/Box_01.glb",
+        Prop::Box01,
         Vec3::new(-l.hw + 0.8, 0.0, 3.2),
         Quat::from_rotation_y(0.3),
     );
     // Amp rack on the right wall (opposite lockers).
-    glb(
+    prop(
         commands,
         asset_server,
-        "models/storage/AmpRack_01.glb",
-        Vec3::new(l.hw - 0.3, 0.25, 3.0),
+        Prop::AmpRack01,
+        Vec3::new(l.hw - 0.3, 0.0, 3.0),
         Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2),
     );
 }

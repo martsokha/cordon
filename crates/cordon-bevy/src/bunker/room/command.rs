@@ -38,41 +38,42 @@ pub fn spawn(
         0.12,
     );
 
-    // Dinner table as the command desk.
-    glb(
+    // Dinner table as the command desk. Table top is at y = 1.037.
+    const TABLE_TOP: f32 = 1.037;
+    prop(
         commands,
         asset_server,
-        "models/interior/WoodenDinnerTable.glb",
+        Prop::WoodenDinnerTable,
         Vec3::new(0.0, 0.0, l.desk_z()),
         Quat::IDENTITY,
     );
     // Chair.
-    glb(
+    prop(
         commands,
         asset_server,
-        "models/interior/WoodenChair.glb",
+        Prop::WoodenChair,
         Vec3::new(0.0, 0.0, l.desk_z() - 0.5),
         Quat::IDENTITY,
     );
-    // Laptop.
+    // Laptop — still custom-spawned so it gets the LaptopObject marker.
     {
         let scene: Handle<Scene> = asset_server.load("models/interior/Laptop.glb#Scene0");
         commands.spawn((
             LaptopObject,
             SceneRoot(scene),
-            Transform::from_xyz(0.0, 1.05, l.desk_z())
+            Transform::from_xyz(0.0, TABLE_TOP, l.desk_z())
                 .with_rotation(Quat::from_rotation_y(std::f32::consts::PI)),
         ));
     }
     // Mug.
-    glb(
+    prop(
         commands,
         asset_server,
-        "models/interior/Mug.glb",
-        Vec3::new(-0.35, 1.05, l.desk_z() + 0.05),
+        Prop::Mug,
+        Vec3::new(-0.35, TABLE_TOP, l.desk_z() + 0.05),
         Quat::IDENTITY,
     );
-    // Door button — raised above the table surface.
+    // Door button — sits on the table surface.
     commands.spawn((
         DoorButton,
         Mesh3d(meshes.add(Sphere::new(0.025))),
@@ -83,9 +84,9 @@ pub fn spawn(
             emissive: LinearRgba::BLACK,
             ..default()
         })),
-        Transform::from_xyz(0.35, 1.07, l.desk_z()),
+        Transform::from_xyz(0.35, TABLE_TOP + 0.03, l.desk_z()),
     ));
-    // Bin between the table legs.
+    // Bin between the table legs (scaled down; kept as raw spawn).
     {
         let scene: Handle<Scene> = asset_server.load("models/interior/Bin.glb#Scene0");
         commands.spawn((
@@ -95,37 +96,35 @@ pub fn spawn(
     }
     // Two bookshelves per wall, packed tight against the trade grate.
     for z in [l.trade_z - 0.85, l.trade_z - 2.2] {
-        // Right.
-        glb(
+        prop(
             commands,
             asset_server,
-            "models/interior/Bookshelf.glb",
+            Prop::Bookshelf,
             Vec3::new(-l.hw + 0.3, 0.0, z),
             Quat::from_rotation_y(FRAC_PI_2),
         );
-        // Left.
-        glb(
+        prop(
             commands,
             asset_server,
-            "models/interior/Bookshelf.glb",
+            Prop::Bookshelf,
             Vec3::new(l.hw - 0.3, 0.0, z),
             Quat::from_rotation_y(-FRAC_PI_2),
         );
     }
     // Rug in front of the desk.
-    glb(
+    prop(
         commands,
         asset_server,
-        "models/interior/Rug.glb",
-        Vec3::new(0.0, 0.02, l.desk_z() - 0.3),
+        Prop::Rug,
+        Vec3::new(0.0, 0.0, l.desk_z() - 0.3),
         Quat::IDENTITY,
     );
     // Filing cabinet behind the chair.
-    glb(
+    prop(
         commands,
         asset_server,
-        "models/storage/Cabinet_01.glb",
-        Vec3::new(0.6, 0.15, l.desk_z() - 0.8),
+        Prop::Cabinet01,
+        Vec3::new(0.6, 0.0, l.desk_z() - 0.8),
         Quat::IDENTITY,
     );
 }
