@@ -419,8 +419,8 @@ fn spawn_bunker(
         0.12,
     );
 
-    // Helper: spawn an FBX scene at a given position + rotation.
-    let fbx =
+    // Helper: spawn a GLB scene at a given position + rotation.
+    let glb =
         |commands: &mut Commands, asset_server: &AssetServer, path: &str, pos: Vec3, rot: Quat| {
             let scene: Handle<Scene> = asset_server.load(format!("{path}#Scene0"));
             commands.spawn((
@@ -432,7 +432,7 @@ fn spawn_bunker(
     // Storage zone: back_z to divider_z.
     // Bookshelves along both walls.
     for z in [-2.5, -4.0] {
-        fbx(
+        glb(
             &mut commands,
             &asset_server,
             "models/interior/Bookshelf.glb",
@@ -441,7 +441,7 @@ fn spawn_bunker(
         );
     }
     for z in [-2.5, -4.0] {
-        fbx(
+        glb(
             &mut commands,
             &asset_server,
             "models/interior/Bookshelf.glb",
@@ -459,7 +459,7 @@ fn spawn_bunker(
         spawn_box(&mut commands, &mut meshes, pal.crate_.clone(), pos, size);
     }
     // Kettle on a shelf in the back
-    fbx(
+    glb(
         &mut commands,
         &asset_server,
         "models/interior/Kettle.glb",
@@ -478,7 +478,7 @@ fn spawn_bunker(
     );
 
     // Chair behind desk — FBX model, facing player (toward +z)
-    fbx(
+    glb(
         &mut commands,
         &asset_server,
         "models/interior/WoodenChair.glb",
@@ -488,7 +488,7 @@ fn spawn_bunker(
 
     // Shelves in desk room — single bookshelves along the walls
     for z in [-0.6, 0.8] {
-        fbx(
+        glb(
             &mut commands,
             &asset_server,
             "models/interior/SingleBookshelf.glb",
@@ -497,7 +497,7 @@ fn spawn_bunker(
         );
     }
     for z in [-0.6, 0.8] {
-        fbx(
+        glb(
             &mut commands,
             &asset_server,
             "models/interior/SingleBookshelf.glb",
@@ -507,7 +507,7 @@ fn spawn_bunker(
     }
 
     // Laptop — FBX model on the desk, facing the player (toward -z)
-    fbx(
+    glb(
         &mut commands,
         &asset_server,
         "models/interior/Laptop.glb",
@@ -530,7 +530,7 @@ fn spawn_bunker(
     ));
 
     // Mug on desk, left of laptop
-    fbx(
+    glb(
         &mut commands,
         &asset_server,
         "models/interior/Mug.glb",
@@ -549,7 +549,7 @@ fn spawn_bunker(
 
     // Ceiling lamps — one at each point light position
     for z in [desk_z, -3.0, 3.0] {
-        fbx(
+        glb(
             &mut commands,
             &asset_server,
             "models/interior/CeilingLamp.glb",
@@ -559,7 +559,7 @@ fn spawn_bunker(
     }
 
     // Standing lamp in the desk corner (visual for the fill light)
-    fbx(
+    glb(
         &mut commands,
         &asset_server,
         "models/interior/StandingLamp.glb",
@@ -617,7 +617,7 @@ fn spawn_bunker(
     );
 
     // Stool on the visitor side of the trade counter
-    fbx(
+    glb(
         &mut commands,
         &asset_server,
         "models/interior/WoodenStool.glb",
