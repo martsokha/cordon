@@ -151,8 +151,22 @@ fn spawn_bunker(
     spawn_corridor(&mut commands, &mut meshes, &pal, &l);
     spawn_corridor_props(&mut commands, &asset_server, &l);
 
-    entry::spawn(&mut commands, &asset_server, &mut meshes, &mut mats, &pal, &l);
-    command::spawn(&mut commands, &asset_server, &mut meshes, &mut mats, &pal, &l);
+    entry::spawn(
+        &mut commands,
+        &asset_server,
+        &mut meshes,
+        &mut mats,
+        &pal,
+        &l,
+    );
+    command::spawn(
+        &mut commands,
+        &asset_server,
+        &mut meshes,
+        &mut mats,
+        &pal,
+        &l,
+    );
     armory::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
     utility::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
     quarters::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
@@ -215,7 +229,14 @@ fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &Layou
         // Utility
         LightFixture::ceiling(l.util_x_center, l.tj_center, l.h, 45000.0, white, false),
         // Quarters
-        LightFixture::ceiling(l.quarters_x_center, l.tj_center, l.h, 15000.0, dim_warm, false),
+        LightFixture::ceiling(
+            l.quarters_x_center,
+            l.tj_center,
+            l.h,
+            15000.0,
+            dim_warm,
+            false,
+        ),
         LightFixture::standing(l.quarters_x_center, l.tj_center - 0.5, 18000.0, lamp_warm),
     ];
 
@@ -224,40 +245,67 @@ fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &Layou
     }
 }
 
-fn spawn_corridor(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    pal: &Palette,
-    l: &Layout,
-) {
-    use geometry::*;
+fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Palette, l: &Layout) {
     use std::f32::consts::{FRAC_PI_2, PI};
+
+    use geometry::*;
 
     // Floor + ceiling.
     let main_center_z = (l.front_z + l.back_z) / 2.0;
     let main_floor_half = Vec2::new(l.hw, (l.front_z - l.back_z) / 2.0);
-    spawn_floor_ceiling(commands, meshes, pal.concrete_dark.clone(),
-        Vec3::new(0.0, 0.0, main_center_z), main_floor_half, l.h);
+    spawn_floor_ceiling(
+        commands,
+        meshes,
+        pal.concrete_dark.clone(),
+        Vec3::new(0.0, 0.0, main_center_z),
+        main_floor_half,
+        l.h,
+    );
 
     // Front wall.
-    spawn_wall(commands, meshes, pal.concrete.clone(),
-        Vec3::new(0.0, l.hh, l.front_z), Quat::from_rotation_y(PI), Vec2::new(l.hw, l.hh));
+    spawn_wall(
+        commands,
+        meshes,
+        pal.concrete.clone(),
+        Vec3::new(0.0, l.hh, l.front_z),
+        Quat::from_rotation_y(PI),
+        Vec2::new(l.hw, l.hh),
+    );
 
     // Left wall + kitchen doorframe.
     {
         let len = l.front_z - l.tj_north;
         let cz = (l.front_z + l.tj_north) / 2.0;
-        spawn_wall(commands, meshes, pal.concrete.clone(),
-            Vec3::new(-l.hw, l.hh, cz), Quat::from_rotation_y(FRAC_PI_2), Vec2::new(len / 2.0, l.hh));
+        spawn_wall(
+            commands,
+            meshes,
+            pal.concrete.clone(),
+            Vec3::new(-l.hw, l.hh, cz),
+            Quat::from_rotation_y(FRAC_PI_2),
+            Vec2::new(len / 2.0, l.hh),
+        );
     }
-    spawn_doorframe_x(commands, meshes, pal.concrete.clone(), -l.hw, l.tj_center, l.side_door_width);
+    spawn_doorframe_x(
+        commands,
+        meshes,
+        pal.concrete.clone(),
+        -l.hw,
+        l.tj_center,
+        l.side_door_width,
+    );
     {
         let door_n = l.tj_center + l.side_door_width / 2.0;
         let len = (l.tj_north - door_n).abs();
         let cz = (l.tj_north + door_n) / 2.0;
         if len > 0.1 {
-            spawn_wall(commands, meshes, pal.concrete.clone(),
-                Vec3::new(-l.hw, l.hh, cz), Quat::from_rotation_y(FRAC_PI_2), Vec2::new(len / 2.0, l.hh));
+            spawn_wall(
+                commands,
+                meshes,
+                pal.concrete.clone(),
+                Vec3::new(-l.hw, l.hh, cz),
+                Quat::from_rotation_y(FRAC_PI_2),
+                Vec2::new(len / 2.0, l.hh),
+            );
         }
     }
     {
@@ -265,8 +313,14 @@ fn spawn_corridor(
         let len = (door_s - l.back_z).abs();
         let cz = (door_s + l.back_z) / 2.0;
         if len > 0.1 {
-            spawn_wall(commands, meshes, pal.concrete.clone(),
-                Vec3::new(-l.hw, l.hh, cz), Quat::from_rotation_y(FRAC_PI_2), Vec2::new(len / 2.0, l.hh));
+            spawn_wall(
+                commands,
+                meshes,
+                pal.concrete.clone(),
+                Vec3::new(-l.hw, l.hh, cz),
+                Quat::from_rotation_y(FRAC_PI_2),
+                Vec2::new(len / 2.0, l.hh),
+            );
         }
     }
 
@@ -274,17 +328,36 @@ fn spawn_corridor(
     {
         let len = l.front_z - l.tj_north;
         let cz = (l.front_z + l.tj_north) / 2.0;
-        spawn_wall(commands, meshes, pal.concrete.clone(),
-            Vec3::new(l.hw, l.hh, cz), Quat::from_rotation_y(-FRAC_PI_2), Vec2::new(len / 2.0, l.hh));
+        spawn_wall(
+            commands,
+            meshes,
+            pal.concrete.clone(),
+            Vec3::new(l.hw, l.hh, cz),
+            Quat::from_rotation_y(-FRAC_PI_2),
+            Vec2::new(len / 2.0, l.hh),
+        );
     }
-    spawn_doorframe_x(commands, meshes, pal.concrete.clone(), l.hw, l.tj_center, l.side_door_width);
+    spawn_doorframe_x(
+        commands,
+        meshes,
+        pal.concrete.clone(),
+        l.hw,
+        l.tj_center,
+        l.side_door_width,
+    );
     {
         let door_n = l.tj_center + l.side_door_width / 2.0;
         let len = (l.tj_north - door_n).abs();
         let cz = (l.tj_north + door_n) / 2.0;
         if len > 0.1 {
-            spawn_wall(commands, meshes, pal.concrete.clone(),
-                Vec3::new(l.hw, l.hh, cz), Quat::from_rotation_y(-FRAC_PI_2), Vec2::new(len / 2.0, l.hh));
+            spawn_wall(
+                commands,
+                meshes,
+                pal.concrete.clone(),
+                Vec3::new(l.hw, l.hh, cz),
+                Quat::from_rotation_y(-FRAC_PI_2),
+                Vec2::new(len / 2.0, l.hh),
+            );
         }
     }
     {
@@ -292,24 +365,47 @@ fn spawn_corridor(
         let len = (door_s - l.back_z).abs();
         let cz = (door_s + l.back_z) / 2.0;
         if len > 0.1 {
-            spawn_wall(commands, meshes, pal.concrete.clone(),
-                Vec3::new(l.hw, l.hh, cz), Quat::from_rotation_y(-FRAC_PI_2), Vec2::new(len / 2.0, l.hh));
+            spawn_wall(
+                commands,
+                meshes,
+                pal.concrete.clone(),
+                Vec3::new(l.hw, l.hh, cz),
+                Quat::from_rotation_y(-FRAC_PI_2),
+                Vec2::new(len / 2.0, l.hh),
+            );
         }
     }
 
     // Back wall.
-    spawn_wall(commands, meshes, pal.concrete.clone(),
-        Vec3::new(0.0, l.hh, l.back_z), Quat::IDENTITY, Vec2::new(l.hw, l.hh));
+    spawn_wall(
+        commands,
+        meshes,
+        pal.concrete.clone(),
+        Vec3::new(0.0, l.hh, l.back_z),
+        Quat::IDENTITY,
+        Vec2::new(l.hw, l.hh),
+    );
 }
 
 fn spawn_corridor_props(commands: &mut Commands, asset_server: &AssetServer, l: &Layout) {
-    use geometry::glb;
     use std::f32::consts::FRAC_PI_2;
 
-    glb(commands, asset_server, "models/storage/ElectricBox_02.glb",
-        Vec3::new(l.hw - 0.05, 1.6, l.divider_z + 0.3), Quat::from_rotation_y(-FRAC_PI_2));
-    glb(commands, asset_server, "models/storage/Cabinet_02.glb",
-        Vec3::new(-l.hw + 0.3, 0.0, l.divider_z + 0.5), Quat::from_rotation_y(FRAC_PI_2));
+    use geometry::glb;
+
+    glb(
+        commands,
+        asset_server,
+        "models/storage/ElectricBox_02.glb",
+        Vec3::new(l.hw - 0.05, 1.6, l.divider_z + 0.3),
+        Quat::from_rotation_y(-FRAC_PI_2),
+    );
+    glb(
+        commands,
+        asset_server,
+        "models/storage/Cabinet_02.glb",
+        Vec3::new(-l.hw + 0.3, 0.0, l.divider_z + 0.5),
+        Quat::from_rotation_y(FRAC_PI_2),
+    );
 }
 
 fn spawn_ui(commands: &mut Commands, fps_camera_entity: Entity) {
@@ -323,7 +419,10 @@ fn spawn_ui(commands: &mut Commands, fps_camera_entity: Entity) {
             ..default()
         },
         Text::new(""),
-        TextFont { font_size: 14.0, ..default() },
+        TextFont {
+            font_size: 14.0,
+            ..default()
+        },
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.8)),
         Visibility::Hidden,
     ));

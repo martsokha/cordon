@@ -1,7 +1,8 @@
 //! Command post zone: desk, laptop, chair, bookshelves, props.
 
-use bevy::prelude::*;
 use std::f32::consts::FRAC_PI_2;
+
+use bevy::prelude::*;
 
 use super::geometry::*;
 use super::{Layout, Palette};
@@ -16,15 +17,43 @@ pub fn spawn(
     l: &Layout,
 ) {
     // Divider grate.
-    spawn_grate_bars(commands, meshes, pal.metal.clone(), -l.hw, -l.hole_half, l.divider_z, l.h, 0.12);
-    spawn_grate_bars(commands, meshes, pal.metal.clone(), l.hole_half, l.hw, l.divider_z, l.h, 0.12);
+    spawn_grate_bars(
+        commands,
+        meshes,
+        pal.metal.clone(),
+        -l.hw,
+        -l.hole_half,
+        l.divider_z,
+        l.h,
+        0.12,
+    );
+    spawn_grate_bars(
+        commands,
+        meshes,
+        pal.metal.clone(),
+        l.hole_half,
+        l.hw,
+        l.divider_z,
+        l.h,
+        0.12,
+    );
 
     // Dinner table as the command desk.
-    glb(commands, asset_server, "models/interior/WoodenDinnerTable.glb",
-        Vec3::new(0.0, 0.0, l.desk_z), Quat::IDENTITY);
+    glb(
+        commands,
+        asset_server,
+        "models/interior/WoodenDinnerTable.glb",
+        Vec3::new(0.0, 0.0, l.desk_z),
+        Quat::IDENTITY,
+    );
     // Chair.
-    glb(commands, asset_server, "models/interior/WoodenChair.glb",
-        Vec3::new(0.0, 0.0, l.desk_z - 0.5), Quat::IDENTITY);
+    glb(
+        commands,
+        asset_server,
+        "models/interior/WoodenChair.glb",
+        Vec3::new(0.0, 0.0, l.desk_z - 0.5),
+        Quat::IDENTITY,
+    );
     // Laptop with LaptopObject marker.
     {
         let scene: Handle<Scene> = asset_server.load("models/interior/Laptop.glb#Scene0");
@@ -36,8 +65,13 @@ pub fn spawn(
         ));
     }
     // Mug.
-    glb(commands, asset_server, "models/interior/Mug.glb",
-        Vec3::new(-0.35, 1.05, l.desk_z + 0.05), Quat::IDENTITY);
+    glb(
+        commands,
+        asset_server,
+        "models/interior/Mug.glb",
+        Vec3::new(-0.35, 1.05, l.desk_z + 0.05),
+        Quat::IDENTITY,
+    );
     // Bin.
     {
         let scene: Handle<Scene> = asset_server.load("models/interior/Bin.glb#Scene0");
@@ -47,32 +81,69 @@ pub fn spawn(
         ));
     }
     // One bookshelf per wall — spaced to avoid clipping.
-    glb(commands, asset_server, "models/interior/Bookshelf.glb",
-        Vec3::new(-l.hw + 0.3, 0.0, 0.0), Quat::from_rotation_y(FRAC_PI_2));
-    glb(commands, asset_server, "models/interior/Bookshelf.glb",
-        Vec3::new(l.hw - 0.3, 0.0, 0.0), Quat::from_rotation_y(-FRAC_PI_2));
+    glb(
+        commands,
+        asset_server,
+        "models/interior/Bookshelf.glb",
+        Vec3::new(-l.hw + 0.3, 0.0, 0.0),
+        Quat::from_rotation_y(FRAC_PI_2),
+    );
+    glb(
+        commands,
+        asset_server,
+        "models/interior/Bookshelf.glb",
+        Vec3::new(l.hw - 0.3, 0.0, 0.0),
+        Quat::from_rotation_y(-FRAC_PI_2),
+    );
     // Rug in front of the desk.
-    glb(commands, asset_server, "models/interior/Rug.glb",
-        Vec3::new(0.0, 0.02, l.desk_z - 0.3), Quat::IDENTITY);
+    glb(
+        commands,
+        asset_server,
+        "models/interior/Rug.glb",
+        Vec3::new(0.0, 0.02, l.desk_z - 0.3),
+        Quat::IDENTITY,
+    );
     // Cactus in a pot.
-    glb(commands, asset_server, "models/interior/PlantPot1.glb",
-        Vec3::new(-l.hw + 0.3, 0.0, 0.0), Quat::IDENTITY);
-    glb(commands, asset_server, "models/interior/Cactus.glb",
-        Vec3::new(-l.hw + 0.3, 0.25, 0.0), Quat::IDENTITY);
+    glb(
+        commands,
+        asset_server,
+        "models/interior/PlantPot1.glb",
+        Vec3::new(-l.hw + 0.3, 0.0, 0.0),
+        Quat::IDENTITY,
+    );
+    glb(
+        commands,
+        asset_server,
+        "models/interior/Cactus.glb",
+        Vec3::new(-l.hw + 0.3, 0.25, 0.0),
+        Quat::IDENTITY,
+    );
     // Amp rack — comms equipment against the right wall.
-    glb(commands, asset_server, "models/storage/AmpRack_01.glb",
-        Vec3::new(l.hw - 0.3, 0.0, -0.8), Quat::from_rotation_y(-FRAC_PI_2));
+    glb(
+        commands,
+        asset_server,
+        "models/storage/AmpRack_01.glb",
+        Vec3::new(l.hw - 0.3, 0.0, -0.8),
+        Quat::from_rotation_y(-FRAC_PI_2),
+    );
     // Filing cabinet behind the chair.
-    glb(commands, asset_server, "models/storage/Cabinet_01.glb",
-        Vec3::new(0.6, 0.0, l.desk_z - 0.8), Quat::IDENTITY);
+    glb(
+        commands,
+        asset_server,
+        "models/storage/Cabinet_01.glb",
+        Vec3::new(0.6, 0.0, l.desk_z - 0.8),
+        Quat::IDENTITY,
+    );
     // Door button.
     commands.spawn((
         DoorButton,
         Mesh3d(meshes.add(Sphere::new(0.025))),
         MeshMaterial3d(mats.add(StandardMaterial {
             base_color: Color::srgb(0.35, 0.05, 0.05),
-            perceptual_roughness: 0.4, metallic: 0.2,
-            emissive: LinearRgba::BLACK, ..default()
+            perceptual_roughness: 0.4,
+            metallic: 0.2,
+            emissive: LinearRgba::BLACK,
+            ..default()
         })),
         Transform::from_xyz(0.28, 1.0, l.desk_z),
     ));

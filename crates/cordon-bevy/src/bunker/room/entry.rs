@@ -13,15 +13,61 @@ pub fn spawn(
     pal: &Palette,
     l: &Layout,
 ) {
-    spawn_doorframe(commands, meshes, pal.concrete.clone(), 0.0, l.front_z - 0.1, 1.0);
-    spawn_stairs(commands, meshes, pal.concrete.clone(), l.front_z + 0.3, 1.0, 6);
+    spawn_doorframe(
+        commands,
+        meshes,
+        pal.concrete.clone(),
+        0.0,
+        l.front_z - 0.1,
+        1.0,
+    );
+    spawn_stairs(
+        commands,
+        meshes,
+        pal.concrete.clone(),
+        l.front_z + 0.3,
+        1.0,
+        6,
+    );
 
     // Trade grate: sides + bars below counter to block walking.
-    spawn_grate_bars(commands, meshes, pal.metal.clone(), -l.hw, -l.hole_half, l.trade_z, l.h, 0.1);
-    spawn_grate_bars(commands, meshes, pal.metal.clone(), l.hole_half, l.hw, l.trade_z, l.h, 0.1);
-    spawn_box(commands, meshes, pal.wood.clone(),
-        Vec3::new(0.0, 0.78, l.trade_z), Vec3::new(l.hole_half * 2.0 + 0.2, 0.04, 0.25));
-    spawn_grate_bars(commands, meshes, pal.metal.clone(), -l.hole_half, l.hole_half, l.trade_z, 0.76, 0.1);
+    spawn_grate_bars(
+        commands,
+        meshes,
+        pal.metal.clone(),
+        -l.hw,
+        -l.hole_half,
+        l.trade_z,
+        l.h,
+        0.1,
+    );
+    spawn_grate_bars(
+        commands,
+        meshes,
+        pal.metal.clone(),
+        l.hole_half,
+        l.hw,
+        l.trade_z,
+        l.h,
+        0.1,
+    );
+    spawn_box(
+        commands,
+        meshes,
+        pal.wood.clone(),
+        Vec3::new(0.0, 0.78, l.trade_z),
+        Vec3::new(l.hole_half * 2.0 + 0.2, 0.04, 0.25),
+    );
+    spawn_grate_bars(
+        commands,
+        meshes,
+        pal.metal.clone(),
+        -l.hole_half,
+        l.hole_half,
+        l.trade_z,
+        0.76,
+        0.1,
+    );
     // Invisible full-height collider across the center opening so
     // the player can't step over the short bars.
     commands.spawn((
@@ -30,20 +76,45 @@ pub fn spawn(
         Transform::from_xyz(0.0, l.h / 2.0, l.trade_z),
     ));
 
-    glb(commands, asset_server, "models/interior/WoodenStool.glb",
-        Vec3::new(0.0, 0.0, l.trade_z + 0.6), Quat::IDENTITY);
+    glb(
+        commands,
+        asset_server,
+        "models/interior/WoodenStool.glb",
+        Vec3::new(0.0, 0.0, l.trade_z + 0.6),
+        Quat::IDENTITY,
+    );
     // Lockers along the left wall.
     for i in 0..5 {
-        glb(commands, asset_server, "models/storage/Locker.glb",
-            Vec3::new(-l.hw + 0.3, 0.0, 2.2 + 0.5 * i as f32), Quat::from_rotation_y(std::f32::consts::FRAC_PI_2));
+        glb(
+            commands,
+            asset_server,
+            "models/storage/Locker.glb",
+            Vec3::new(-l.hw + 0.3, 0.0, 2.2 + 0.5 * i as f32),
+            Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
+        );
     }
     // Bag on the floor near the lockers.
-    glb(commands, asset_server, "models/storage/Bag_02.glb",
-        Vec3::new(-l.hw + 0.8, 0.0, 4.0), Quat::from_rotation_y(0.8));
+    glb(
+        commands,
+        asset_server,
+        "models/storage/Bag_02.glb",
+        Vec3::new(-l.hw + 0.8, 0.0, 4.0),
+        Quat::from_rotation_y(0.8),
+    );
     // Barrel in the corner.
-    glb(commands, asset_server, "models/storage/Barrel_03.glb",
-        Vec3::new(l.hw - 0.4, 0.0, 4.2), Quat::IDENTITY);
+    glb(
+        commands,
+        asset_server,
+        "models/storage/Barrel_03.glb",
+        Vec3::new(l.hw - 0.4, 0.0, 4.2),
+        Quat::IDENTITY,
+    );
     // Box near lockers.
-    glb(commands, asset_server, "models/storage/Box_01.glb",
-        Vec3::new(-l.hw + 0.8, 0.0, 3.2), Quat::from_rotation_y(0.3));
+    glb(
+        commands,
+        asset_server,
+        "models/storage/Box_01.glb",
+        Vec3::new(-l.hw + 0.8, 0.0, 3.2),
+        Quat::from_rotation_y(0.3),
+    );
 }

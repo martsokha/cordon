@@ -28,7 +28,14 @@ pub struct LightFixture {
 
 impl LightFixture {
     /// Ceiling lamp with the bulb hanging ~0.35m below the ceiling.
-    pub fn ceiling(x: f32, z: f32, ceiling_h: f32, intensity: f32, color: Color, shadows: bool) -> Self {
+    pub fn ceiling(
+        x: f32,
+        z: f32,
+        ceiling_h: f32,
+        intensity: f32,
+        color: Color,
+        shadows: bool,
+    ) -> Self {
         Self {
             model: "models/interior/CeilingLamp.glb",
             model_pos: Vec3::new(x, ceiling_h, z),
@@ -86,7 +93,13 @@ impl LightFixture {
     /// Spawn the fixture model (if any) and its point light.
     pub fn spawn(&self, commands: &mut Commands, asset_server: &AssetServer) {
         if !self.model.is_empty() {
-            glb(commands, asset_server, self.model, self.model_pos, self.model_rot);
+            glb(
+                commands,
+                asset_server,
+                self.model,
+                self.model_pos,
+                self.model_rot,
+            );
         }
         commands.spawn((
             PointLight {
@@ -202,9 +215,27 @@ pub fn spawn_doorframe(
     width: f32,
 ) {
     let hw = width / 2.0;
-    spawn_box(commands, meshes, mat.clone(), Vec3::new(center_x - hw - 0.05, 1.05, z), Vec3::new(0.1, 2.1, 0.15));
-    spawn_box(commands, meshes, mat.clone(), Vec3::new(center_x + hw + 0.05, 1.05, z), Vec3::new(0.1, 2.1, 0.15));
-    spawn_box(commands, meshes, mat, Vec3::new(center_x, 2.15, z), Vec3::new(width + 0.2, 0.15, 0.15));
+    spawn_box(
+        commands,
+        meshes,
+        mat.clone(),
+        Vec3::new(center_x - hw - 0.05, 1.05, z),
+        Vec3::new(0.1, 2.1, 0.15),
+    );
+    spawn_box(
+        commands,
+        meshes,
+        mat.clone(),
+        Vec3::new(center_x + hw + 0.05, 1.05, z),
+        Vec3::new(0.1, 2.1, 0.15),
+    );
+    spawn_box(
+        commands,
+        meshes,
+        mat,
+        Vec3::new(center_x, 2.15, z),
+        Vec3::new(width + 0.2, 0.15, 0.15),
+    );
 }
 
 pub fn spawn_doorframe_x(
@@ -216,9 +247,27 @@ pub fn spawn_doorframe_x(
     width: f32,
 ) {
     let hw = width / 2.0;
-    spawn_box(commands, meshes, mat.clone(), Vec3::new(x, 1.05, center_z - hw - 0.05), Vec3::new(0.15, 2.1, 0.1));
-    spawn_box(commands, meshes, mat.clone(), Vec3::new(x, 1.05, center_z + hw + 0.05), Vec3::new(0.15, 2.1, 0.1));
-    spawn_box(commands, meshes, mat, Vec3::new(x, 2.15, center_z), Vec3::new(0.15, 0.15, width + 0.2));
+    spawn_box(
+        commands,
+        meshes,
+        mat.clone(),
+        Vec3::new(x, 1.05, center_z - hw - 0.05),
+        Vec3::new(0.15, 2.1, 0.1),
+    );
+    spawn_box(
+        commands,
+        meshes,
+        mat.clone(),
+        Vec3::new(x, 1.05, center_z + hw + 0.05),
+        Vec3::new(0.15, 2.1, 0.1),
+    );
+    spawn_box(
+        commands,
+        meshes,
+        mat,
+        Vec3::new(x, 2.15, center_z),
+        Vec3::new(0.15, 0.15, width + 0.2),
+    );
 }
 
 pub fn spawn_stairs(
@@ -241,13 +290,7 @@ pub fn spawn_stairs(
 }
 
 /// Spawn a GLB scene at a given position and rotation.
-pub fn glb(
-    commands: &mut Commands,
-    asset_server: &AssetServer,
-    path: &str,
-    pos: Vec3,
-    rot: Quat,
-) {
+pub fn glb(commands: &mut Commands, asset_server: &AssetServer, path: &str, pos: Vec3, rot: Quat) {
     let scene: Handle<Scene> = asset_server.load(format!("{path}#Scene0"));
     commands.spawn((
         SceneRoot(scene),

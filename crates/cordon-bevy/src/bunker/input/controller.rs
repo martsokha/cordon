@@ -80,8 +80,8 @@ fn fps_move(
         let right = transform.right().as_vec3();
         let flat_forward = Vec3::new(forward.x, 0.0, forward.z).normalize_or_zero();
         let flat_right = Vec3::new(right.x, 0.0, right.z).normalize_or_zero();
-        let velocity = (flat_forward * input.y + flat_right * input.x).normalize_or_zero()
-            * MOVE_SPEED;
+        let velocity =
+            (flat_forward * input.y + flat_right * input.x).normalize_or_zero() * MOVE_SPEED;
 
         let dt = Duration::from_secs_f32(time.delta_secs());
         let config = MoveAndSlideConfig::default();
