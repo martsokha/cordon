@@ -135,34 +135,6 @@ fn spawn_grate_bars(
     }
 }
 
-fn spawn_shelf_unit(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    mat: Handle<StandardMaterial>,
-    center: Vec3,
-    width: f32,
-    depth: f32,
-    tiers: u32,
-) {
-    let tier_h = 1.8 / tiers as f32;
-    for i in 1..=tiers {
-        let y = tier_h * i as f32;
-        commands.spawn((
-            Mesh3d(meshes.add(Cuboid::new(width, 0.02, depth))),
-            MeshMaterial3d(mat.clone()),
-            Transform::from_xyz(center.x, y, center.z),
-        ));
-    }
-    // Uprights
-    for dx in [-width / 2.0 + 0.02, width / 2.0 - 0.02] {
-        commands.spawn((
-            Mesh3d(meshes.add(Cuboid::new(0.03, 1.8, 0.03))),
-            MeshMaterial3d(mat.clone()),
-            Transform::from_xyz(center.x + dx, 0.9, center.z),
-        ));
-    }
-}
-
 fn spawn_locker(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
@@ -276,6 +248,7 @@ fn spawn_stairs(
 
 fn spawn_bunker(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut mats: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -446,30 +419,37 @@ fn spawn_bunker(
         0.12,
     );
 
+    // Helper: spawn an FBX scene at a given position + rotation.
+    let fbx =
+        |commands: &mut Commands, asset_server: &AssetServer, path: &str, pos: Vec3, rot: Quat| {
+            let scene: Handle<Scene> = asset_server.load(format!("{path}#Scene0"));
+            commands.spawn((
+                SceneRoot(scene),
+                Transform::from_translation(pos).with_rotation(rot),
+            ));
+        };
+
     // Storage zone: back_z to divider_z.
+    // Bookshelves along both walls.
     for z in [-2.5, -4.0] {
-        spawn_shelf_unit(
+        fbx(
             &mut commands,
-            &mut meshes,
-            pal.metal_dark.clone(),
+            &asset_server,
+            "models/interior/Bookshelf.glb",
             Vec3::new(-hw + 0.3, 0.0, z),
-            0.5,
-            1.2,
-            3,
+            Quat::from_rotation_y(FRAC_PI_2),
         );
     }
     for z in [-2.5, -4.0] {
-        spawn_shelf_unit(
+        fbx(
             &mut commands,
-            &mut meshes,
-            pal.metal_dark.clone(),
+            &asset_server,
+            "models/interior/Bookshelf.glb",
             Vec3::new(hw - 0.3, 0.0, z),
-            0.5,
-            1.2,
-            3,
+            Quat::from_rotation_y(-FRAC_PI_2),
         );
     }
-    // Crates
+    // Crates (keep procedural — small boxes look fine as cuboids)
     for (pos, size) in [
         (Vec3::new(0.5, 0.15, -4.0), Vec3::new(0.3, 0.3, 0.3)),
         (Vec3::new(-0.3, 0.15, -4.3), Vec3::new(0.4, 0.3, 0.25)),
@@ -478,6 +458,14 @@ fn spawn_bunker(
     ] {
         spawn_box(&mut commands, &mut meshes, pal.crate_.clone(), pos, size);
     }
+    // Kettle on a shelf in the back
+    fbx(
+        &mut commands,
+        &asset_server,
+        "models/interior/Kettle.glb",
+        Vec3::new(-hw + 0.3, 0.9, -4.0),
+        Quat::IDENTITY,
+    );
 
     // Desk area: divider_z to trade_z.
     spawn_desk_enclosed(
@@ -489,71 +477,44 @@ fn spawn_bunker(
         0.6,
     );
 
-    // Chair behind desk
-    // Seat
-    spawn_box(
+    // Chair behind desk — FBX model, facing player (toward +z)
+    fbx(
         &mut commands,
-        &mut meshes,
-        pal.wood.clone(),
-        Vec3::new(0.0, 0.45, desk_z - 0.5),
-        Vec3::new(0.4, 0.04, 0.4),
+        &asset_server,
+        "models/interior/WoodenChair.glb",
+        Vec3::new(0.0, 0.0, desk_z - 0.5),
+        Quat::IDENTITY,
     );
-    // Backrest
-    spawn_box(
-        &mut commands,
-        &mut meshes,
-        pal.wood.clone(),
-        Vec3::new(0.0, 0.7, desk_z - 0.7),
-        Vec3::new(0.4, 0.5, 0.04),
-    );
-    // Legs
-    for (dx, dz) in [(-0.17, -0.17), (0.17, -0.17), (-0.17, 0.17), (0.17, 0.17)] {
-        spawn_box(
-            &mut commands,
-            &mut meshes,
-            pal.metal_dark.clone(),
-            Vec3::new(dx, 0.225, desk_z - 0.5 + dz),
-            Vec3::new(0.03, 0.45, 0.03),
-        );
-    }
 
-    // Shelves in desk room (both walls, two per side)
+    // Shelves in desk room — single bookshelves along the walls
     for z in [-0.6, 0.8] {
-        spawn_shelf_unit(
+        fbx(
             &mut commands,
-            &mut meshes,
-            pal.metal_dark.clone(),
+            &asset_server,
+            "models/interior/SingleBookshelf.glb",
             Vec3::new(-hw + 0.3, 0.0, z),
-            0.5,
-            1.2,
-            3,
+            Quat::from_rotation_y(FRAC_PI_2),
         );
     }
     for z in [-0.6, 0.8] {
-        spawn_shelf_unit(
+        fbx(
             &mut commands,
-            &mut meshes,
-            pal.metal_dark.clone(),
+            &asset_server,
+            "models/interior/SingleBookshelf.glb",
             Vec3::new(hw - 0.3, 0.0, z),
-            0.5,
-            1.2,
-            3,
+            Quat::from_rotation_y(-FRAC_PI_2),
         );
     }
 
-    // Laptop
-    spawn_box(
+    // Laptop — FBX model on the desk, facing the player (toward -z)
+    fbx(
         &mut commands,
-        &mut meshes,
-        mats.add(StandardMaterial {
-            base_color: Color::srgb(0.08, 0.08, 0.08),
-            perceptual_roughness: 0.8,
-            ..default()
-        }),
-        Vec3::new(0.0, 0.79, desk_z),
-        Vec3::new(0.36, 0.02, 0.25),
+        &asset_server,
+        "models/interior/Laptop.glb",
+        Vec3::new(0.0, 0.8, desk_z),
+        Quat::from_rotation_y(PI),
     );
-
+    // Laptop screen plane — functional, stays procedural
     commands.spawn((
         LaptopObject,
         Mesh3d(meshes.add(Plane3d::new(Vec3::Z, Vec2::new(0.17, 0.12)))),
@@ -567,6 +528,44 @@ fn spawn_bunker(
         })),
         Transform::from_xyz(0.0, 0.92, desk_z + 0.12).with_rotation(Quat::from_rotation_x(-0.35)),
     ));
+
+    // Mug on desk, left of laptop
+    fbx(
+        &mut commands,
+        &asset_server,
+        "models/interior/Mug.glb",
+        Vec3::new(-0.35, 0.8, desk_z + 0.05),
+        Quat::IDENTITY,
+    );
+
+    // Bin tucked under the desk
+    {
+        let scene: Handle<Scene> = asset_server.load("models/interior/Bin.glb#Scene0");
+        commands.spawn((
+            SceneRoot(scene),
+            Transform::from_xyz(0.45, 0.0, desk_z - 0.2).with_scale(Vec3::splat(0.6)),
+        ));
+    }
+
+    // Ceiling lamps — one at each point light position
+    for z in [desk_z, -3.0, 3.0] {
+        fbx(
+            &mut commands,
+            &asset_server,
+            "models/interior/CeilingLamp.glb",
+            Vec3::new(0.0, h, z),
+            Quat::IDENTITY,
+        );
+    }
+
+    // Standing lamp in the desk corner (visual for the fill light)
+    fbx(
+        &mut commands,
+        &asset_server,
+        "models/interior/StandingLamp.glb",
+        Vec3::new(0.5, 0.0, desk_z - 0.2),
+        Quat::IDENTITY,
+    );
 
     // Door button — a small red dome on the desk to the right of
     // the laptop. The visitor system makes it glow when someone is
@@ -615,6 +614,15 @@ fn spawn_bunker(
         pal.wood.clone(),
         Vec3::new(0.0, 0.78, trade_z),
         Vec3::new(hole_half * 2.0 + 0.2, 0.04, 0.25),
+    );
+
+    // Stool on the visitor side of the trade counter
+    fbx(
+        &mut commands,
+        &asset_server,
+        "models/interior/WoodenStool.glb",
+        Vec3::new(0.0, 0.0, trade_z + 0.6),
+        Quat::IDENTITY,
     );
 
     // Visitor side: z > trade_z. Lockers on LEFT side (5 together).

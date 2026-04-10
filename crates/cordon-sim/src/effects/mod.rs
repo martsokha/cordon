@@ -38,8 +38,6 @@ mod consume;
 mod corruption;
 mod throwable;
 
-pub use throwable::ThrowableImpact;
-
 use bevy::prelude::*;
 use cordon_core::item::{
     CORRUPTION_HIGH_THRESHOLD, CORRUPTION_LOW_THRESHOLD, EffectTrigger, HP_HIGH_THRESHOLD,
@@ -48,6 +46,7 @@ use cordon_core::item::{
 };
 use cordon_core::primitive::{GameTime, Id};
 use cordon_data::gamedata::GameDataResource;
+pub use throwable::ThrowableImpact;
 
 use crate::behavior::Dead;
 use crate::combat::NpcPoolChanged;
