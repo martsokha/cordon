@@ -516,6 +516,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy-steamworks"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd37df0eb6c8d94191ec467e6f600fae51ebf013290bf3eb4b1fc5d8c0645325"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "steamworks",
+]
+
+[[package]]
 name = "bevy_a11y"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2394,6 +2405,7 @@ dependencies = [
  "avian3d",
  "bevy",
  "bevy-inspector-egui",
+ "bevy-steamworks",
  "bevy_fluent",
  "bevy_yarnspinner",
  "cordon-core",
@@ -2401,6 +2413,7 @@ dependencies = [
  "cordon-sim",
  "fluent_content",
  "rand 0.10.0",
+ "strum",
  "unic-langid",
 ]
 
@@ -6091,6 +6104,24 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
+name = "steamworks"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "722f54c70818b8debdc25b18618b77a0a69fa280012c29e7904d32f9136299fc"
+dependencies = [
+ "bitflags 2.11.0",
+ "paste",
+ "steamworks-sys",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "steamworks-sys"
+version = "0.12.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42862065c9e685d08cc3d9f6c609d4b46bd9684ec7e9420688eb979213469582"
 
 [[package]]
 name = "strict-num"
