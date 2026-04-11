@@ -30,6 +30,14 @@ const HALF_W: f32 = 2.0;
 const HALF_D: f32 = 2.0;
 const HEIGHT: f32 = 2.4;
 
+/// Convert a position expressed in the antechamber's local frame —
+/// where (0, 0, 0) is the center of the floor — into world space.
+/// Lets callers write placements as if the room started at the
+/// origin, without having to remember the y = -50 offset.
+fn local_to_world(local: Vec3) -> Vec3 {
+    ANTECHAMBER_CENTER + Vec3::new(local.x, local.y - HEIGHT / 2.0, local.z)
+}
+
 /// Build the antechamber: floor, four walls, ceiling, the door
 /// behind the visitor, a ceiling lamp, and some holding-room
 /// furniture.
@@ -96,7 +104,7 @@ pub(super) fn spawn(
     spawn_door(commands, meshes, materials, center, hd, h);
     spawn_front_door(commands, meshes, materials, center, hd, h);
     spawn_lamp(commands, center, h);
-    spawn_furniture(commands, asset_server, center, hw, hd, h);
+    spawn_furniture(commands, asset_server, hw, hd);
 }
 
 /// Door on the front wall (+z) — the side facing the bunker
@@ -139,26 +147,22 @@ fn spawn_front_door(
 
 /// Holding-room furniture: cold, functional, security-checkpoint
 /// feel. No comfort — visitors don't get that.
-fn spawn_furniture(
-    commands: &mut Commands,
-    asset_server: &AssetServer,
-    center: Vec3,
-    hw: f32,
-    _hd: f32,
-    h: f32,
-) {
+///
+/// Placements are written in the antechamber's local frame (floor at
+/// y = 0, center at x = z = 0) and lifted into world space by
+/// [`local_to_world`] — so they read the same way as room code in
+/// `bunker/room/*`.
+fn spawn_furniture(commands: &mut Commands, asset_server: &AssetServer, hw: f32, _hd: f32) {
     use std::f32::consts::FRAC_PI_2;
 
     use crate::bunker::room::geometry::{Prop, prop};
-
-    let floor = -h / 2.0;
 
     // Stool — the only seat a visitor gets.
     prop(
         commands,
         asset_server,
         Prop::WoodenStool,
-        center + Vec3::new(0.6, floor, -0.5),
+        local_to_world(Vec3::new(0.6, 0.0, -0.5)),
         Quat::IDENTITY,
     );
     // Locker against the left wall — for confiscated gear.
@@ -166,7 +170,7 @@ fn spawn_furniture(
         commands,
         asset_server,
         Prop::Locker,
-        center + Vec3::new(-hw + 0.3, floor, 0.0),
+        local_to_world(Vec3::new(-hw + 0.3, 0.0, 0.0)),
         Quat::from_rotation_y(FRAC_PI_2),
     );
     // Metal rack on the right wall.
@@ -174,15 +178,15 @@ fn spawn_furniture(
         commands,
         asset_server,
         Prop::StorageRack01,
-        center + Vec3::new(hw - 0.3, floor, 0.0),
+        local_to_world(Vec3::new(hw - 0.3, 0.0, 0.0)),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
-    // Box on the rack.
+    // Box on one of the rack shelves.
     prop(
         commands,
         asset_server,
         Prop::Box02,
-        center + Vec3::new(hw - 0.4, floor + 0.6, 0.0),
+        local_to_world(Vec3::new(hw - 0.4, 0.6, 0.0)),
         Quat::from_rotation_y(0.2),
     );
     // Supply box on the floor.
@@ -190,15 +194,15 @@ fn spawn_furniture(
         commands,
         asset_server,
         Prop::Box01,
-        center + Vec3::new(-0.8, floor, 0.8),
+        local_to_world(Vec3::new(-0.8, 0.0, 0.8)),
         Quat::from_rotation_y(0.4),
     );
-    // Security panel at eye height.
+    // Security panel mounted mid-wall.
     prop(
         commands,
         asset_server,
         Prop::ElectricBox01,
-        center + Vec3::new(hw - 0.05, 0.0, -0.8),
+        local_to_world(Vec3::new(hw - 0.05, HEIGHT / 2.0, -0.8)),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
 }

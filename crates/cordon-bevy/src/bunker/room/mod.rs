@@ -49,6 +49,14 @@ impl Plugin for RoomPlugin {
     }
 }
 
+/// Shared material handles used across every room. Four colors —
+/// everything the bunker renders is currently tinted by one of these.
+///
+/// This is deliberately a small, fixed palette. When the bunker needs
+/// real visual variety (stained concrete zones, metal accent walls,
+/// weathered vs. clean wood, ...) this is the first place to extend
+/// or replace — adding a handful more variants here is cheaper than
+/// switching to per-material lookups per call site.
 pub(crate) struct Palette {
     pub concrete: Handle<StandardMaterial>,
     pub concrete_dark: Handle<StandardMaterial>,
@@ -82,6 +90,18 @@ impl Palette {
             }),
         }
     }
+}
+
+/// Bundle of references every per-room spawner needs. Collapses what
+/// used to be 6 positional arguments into `ctx: &mut RoomCtx`, which
+/// makes adding a new room mechanical and keeps call sites uniform.
+pub(crate) struct RoomCtx<'a, 'w, 's> {
+    pub commands: &'a mut Commands<'w, 's>,
+    pub asset_server: &'a AssetServer,
+    pub meshes: &'a mut Assets<Mesh>,
+    pub mats: &'a mut Assets<StandardMaterial>,
+    pub pal: &'a Palette,
+    pub l: &'a Layout,
 }
 
 /// Bunker dimensions. Only stores the primary constants; derived
@@ -127,6 +147,13 @@ impl Layout {
 
     pub fn hh(&self) -> f32 {
         self.h / 2.0
+    }
+
+    /// Height of a walkable doorframe opening. Leaves a 0.3 m air gap
+    /// above for the lintel so the frame reads as a real doorway
+    /// rather than a ceiling-height hole.
+    pub fn opening_h(&self) -> f32 {
+        self.h - 0.3
     }
 
     pub fn desk_z(&self) -> f32 {
@@ -175,25 +202,20 @@ fn spawn_bunker(
     spawn_lighting(&mut commands, &asset_server, &l);
     spawn_corridor(&mut commands, &mut meshes, &pal, &l);
 
-    entry::spawn(
-        &mut commands,
-        &asset_server,
-        &mut meshes,
-        &mut mats,
-        &pal,
-        &l,
-    );
-    command::spawn(
-        &mut commands,
-        &asset_server,
-        &mut meshes,
-        &mut mats,
-        &pal,
-        &l,
-    );
-    armory::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
-    kitchen::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
-    quarters::spawn(&mut commands, &asset_server, &mut meshes, &pal, &l);
+    let mut ctx = RoomCtx {
+        commands: &mut commands,
+        asset_server: &asset_server,
+        meshes: &mut meshes,
+        mats: &mut mats,
+        pal: &pal,
+        l: &l,
+    };
+    entry::spawn(&mut ctx);
+    command::spawn(&mut ctx);
+    armory::spawn(&mut ctx);
+    kitchen::spawn(&mut ctx);
+    quarters::spawn(&mut ctx);
+    drop(ctx);
 
     spawn_ui(&mut commands, fps_camera_entity);
     commands.insert_resource(BunkerSpawned);
@@ -328,6 +350,7 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
         -l.hw,
         l.tj_center(),
         l.side_door_width,
+        l.opening_h(),
     );
     {
         let door_n = l.tj_center() + l.side_door_width / 2.0;
@@ -380,6 +403,7 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
         l.hw,
         l.tj_center(),
         l.side_door_width,
+        l.opening_h(),
     );
     {
         let door_n = l.tj_center() + l.side_door_width / 2.0;

@@ -247,6 +247,9 @@ pub fn spawn_grate_bars(
     ));
 }
 
+/// Spawn a doorframe in the XZ plane facing ±Z (opening is in the Z
+/// direction). Side pillars + lintel; heights derive from
+/// `opening_h`, the walkable clearance under the lintel.
 pub fn spawn_doorframe(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
@@ -254,31 +257,37 @@ pub fn spawn_doorframe(
     center_x: f32,
     z: f32,
     width: f32,
+    opening_h: f32,
 ) {
     let hw = width / 2.0;
+    let side_h = opening_h;
+    let side_y = side_h / 2.0;
+    let lintel_thickness = 0.15;
+    let lintel_y = opening_h + lintel_thickness / 2.0;
     spawn_box(
         commands,
         meshes,
         mat.clone(),
-        Vec3::new(center_x - hw - 0.05, 1.05, z),
-        Vec3::new(0.1, 2.1, 0.15),
+        Vec3::new(center_x - hw - 0.05, side_y, z),
+        Vec3::new(0.1, side_h, 0.15),
     );
     spawn_box(
         commands,
         meshes,
         mat.clone(),
-        Vec3::new(center_x + hw + 0.05, 1.05, z),
-        Vec3::new(0.1, 2.1, 0.15),
+        Vec3::new(center_x + hw + 0.05, side_y, z),
+        Vec3::new(0.1, side_h, 0.15),
     );
     spawn_box(
         commands,
         meshes,
         mat,
-        Vec3::new(center_x, 2.15, z),
-        Vec3::new(width + 0.2, 0.15, 0.15),
+        Vec3::new(center_x, lintel_y, z),
+        Vec3::new(width + 0.2, lintel_thickness, 0.15),
     );
 }
 
+/// Variant for doorframes facing ±X (opening is in the X direction).
 pub fn spawn_doorframe_x(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
@@ -286,28 +295,33 @@ pub fn spawn_doorframe_x(
     x: f32,
     center_z: f32,
     width: f32,
+    opening_h: f32,
 ) {
     let hw = width / 2.0;
+    let side_h = opening_h;
+    let side_y = side_h / 2.0;
+    let lintel_thickness = 0.15;
+    let lintel_y = opening_h + lintel_thickness / 2.0;
     spawn_box(
         commands,
         meshes,
         mat.clone(),
-        Vec3::new(x, 1.05, center_z - hw - 0.05),
-        Vec3::new(0.15, 2.1, 0.1),
+        Vec3::new(x, side_y, center_z - hw - 0.05),
+        Vec3::new(0.15, side_h, 0.1),
     );
     spawn_box(
         commands,
         meshes,
         mat.clone(),
-        Vec3::new(x, 1.05, center_z + hw + 0.05),
-        Vec3::new(0.15, 2.1, 0.1),
+        Vec3::new(x, side_y, center_z + hw + 0.05),
+        Vec3::new(0.15, side_h, 0.1),
     );
     spawn_box(
         commands,
         meshes,
         mat,
-        Vec3::new(x, 2.15, center_z),
-        Vec3::new(0.15, 0.15, width + 0.2),
+        Vec3::new(x, lintel_y, center_z),
+        Vec3::new(0.15, lintel_thickness, width + 0.2),
     );
 }
 
