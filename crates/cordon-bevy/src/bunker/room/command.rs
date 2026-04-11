@@ -90,20 +90,26 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
             Transform::from_xyz(-0.4, 0.0, l.desk_z()).with_scale(Vec3::splat(0.6)),
         ));
     }
-    // Two bookshelves per wall, packed tight against the trade grate.
-    for z in [l.trade_z - 0.85, l.trade_z - 2.2] {
+    // Two bookshelves per wall along the full command-post z-span.
+    // Bookshelf is 1.656 m wide; with the 3.75 m command post we fit
+    // two end-to-end with ~0.14 m gap and ~0.15 m margins at each end.
+    // Shelves are laterally off the corridor centerline so they don't
+    // interfere with the desk ensemble at x = 0.
+    let shelf_north_z = l.trade_z - 0.978;
+    let shelf_south_z = l.divider_z + 0.978;
+    for z in [shelf_north_z, shelf_south_z] {
         prop(
             ctx.commands,
             ctx.asset_server,
             Prop::Bookshelf,
-            Vec3::new(-l.hw + 0.3, 0.0, z),
+            Vec3::new(-l.hw + 0.25, 0.0, z),
             Quat::from_rotation_y(FRAC_PI_2),
         );
         prop(
             ctx.commands,
             ctx.asset_server,
             Prop::Bookshelf,
-            Vec3::new(l.hw - 0.3, 0.0, z),
+            Vec3::new(l.hw - 0.25, 0.0, z),
             Quat::from_rotation_y(-FRAC_PI_2),
         );
     }

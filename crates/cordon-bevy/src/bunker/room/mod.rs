@@ -133,13 +133,13 @@ impl Layout {
     fn new() -> Self {
         Self {
             h: 2.4,
-            hw: 2.0,
+            hw: 2.05,
             front_z: 5.0,
             trade_z: 1.5,
-            divider_z: -1.5,
+            divider_z: -2.25,
             hole_half: 0.6,
-            tj_north: -3.0,
-            back_z: -6.0,
+            tj_north: -4.63,
+            back_z: -7.63,
             side_depth: 3.0,
             side_door_width: 1.6,
         }
