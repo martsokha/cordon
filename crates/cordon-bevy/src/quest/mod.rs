@@ -23,6 +23,7 @@
 //! every time, so narrator-only stages can wait.
 
 mod bridge;
+mod npc_bridge;
 
 use bevy::prelude::*;
 
@@ -39,5 +40,8 @@ impl Plugin for QuestBridgePlugin {
             bridge::enqueue_talk_dialogue.run_if(in_state(PlayingState::Bunker)),
         );
         app.add_observer(bridge::on_dialogue_completed);
+        app.add_systems(Update, npc_bridge::handle_spawn_npc_requests);
+        app.add_systems(Update, npc_bridge::handle_give_npc_xp_requests);
+        app.add_systems(Update, npc_bridge::handle_template_npc_deaths);
     }
 }
