@@ -11,7 +11,7 @@
 use bevy::prelude::*;
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NpcName;
-use cordon_core::entity::npc::{Npc, Personality, Role};
+use cordon_core::entity::npc::{Npc, NpcTemplate, Personality, Role};
 use cordon_core::entity::perk::Perk;
 use cordon_core::item::{Loadout, TimedEffect};
 use cordon_core::primitive::{
@@ -90,6 +90,12 @@ impl Default for BaseMaxes {
 /// Marker that this entity is an NPC. Use as a query filter.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct NpcMarker;
+
+/// Links an NPC entity back to the [`NpcTemplateDef`] it was
+/// spawned from. Present only on template-spawned NPCs, not on
+/// generic archetype-rolled ones.
+#[derive(Component, Debug, Clone)]
+pub struct TemplateId(pub Id<NpcTemplate>);
 
 /// Faction membership. Distinct from `Id<Faction>` in other
 /// contexts (e.g. fields inside data structs) because this

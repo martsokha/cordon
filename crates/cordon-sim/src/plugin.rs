@@ -141,12 +141,15 @@ pub mod prelude {
         BaseMaxes, CorruptionPool, Employment, FactionId, HealthPool, NpcAttributes, NpcBundle,
         NpcMarker, Perks, RelicHome, RelicMarker, SquadActivity, SquadBundle, SquadFacing,
         SquadHomePosition, SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
-        StaminaPool,
+        StaminaPool, TemplateId,
     };
     pub use crate::day::DayRolled;
     pub use crate::death::{CorpseRemoved, NpcDied};
     pub use crate::loot::ItemLooted;
-    pub use crate::quest::{ActiveQuest, CompletedQuest, QuestLog, StartQuestRequest};
+    pub use crate::quest::{
+        ActiveQuest, CompletedQuest, GiveNpcXpRequest, QuestLog, SpawnNpcRequest,
+        StartQuestRequest, TemplateRegistry,
+    };
     pub use crate::resources::{
         AreaStates, EventLog, FactionIndex, GameClock, Player, SquadIdIndex, UidAllocator,
     };

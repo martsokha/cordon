@@ -12,6 +12,7 @@ use cordon_core::world::narrative::{Quest, QuestStageKind};
 use cordon_data::catalog::GameData;
 
 use super::super::condition::WorldView;
+use super::super::registry::TemplateRegistry;
 use super::super::state::QuestLog;
 
 /// After a Yarn dialogue tied to a `Talk` stage finishes, jump
@@ -31,6 +32,7 @@ pub fn advance_after_talk(
     data: &GameData,
     player: &cordon_core::entity::player::PlayerState,
     events: &[cordon_core::world::narrative::ActiveEvent],
+    registry: &TemplateRegistry,
     quest: &Id<Quest>,
     choice: Option<&str>,
     now: GameTime,
@@ -56,6 +58,7 @@ pub fn advance_after_talk(
         player,
         events,
         quests: log,
+        registry,
         now,
         stage_started_at: Some(active.stage_started_at),
     };

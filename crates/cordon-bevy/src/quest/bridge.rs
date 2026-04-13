@@ -34,6 +34,7 @@ use cordon_core::world::narrative::{Quest, QuestStageKind};
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::{EventLog, GameClock, Player, QuestLog};
 use cordon_sim::quest::engine::advance_after_talk;
+use cordon_sim::quest::registry::TemplateRegistry;
 
 use crate::bunker::dialogue::StartDialogue;
 use crate::bunker::{Visitor, VisitorQueue};
@@ -163,6 +164,7 @@ pub fn on_dialogue_completed(
     clock: Res<GameClock>,
     player: Res<Player>,
     events: Res<EventLog>,
+    registry: Res<TemplateRegistry>,
     mut in_flight: ResMut<DialogueInFlight>,
     runner_q: Query<&DialogueRunner>,
 ) {
@@ -208,6 +210,7 @@ pub fn on_dialogue_completed(
         &data.0,
         &player.0,
         &events.0,
+        &registry,
         &quest_id,
         captured_choice.as_deref(),
         clock.0,

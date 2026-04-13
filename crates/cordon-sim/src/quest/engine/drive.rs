@@ -24,8 +24,11 @@ use cordon_data::catalog::GameData;
 use cordon_data::gamedata::GameDataResource;
 
 use super::super::condition::WorldView;
-use super::super::consequence::{StartQuestRequest, WorldMut, apply};
+use super::super::consequence::{
+    GiveNpcXpRequest, SpawnNpcRequest, StartQuestRequest, WorldMut, apply,
+};
 use super::super::state::{CompletedQuest, QuestLog};
+use crate::quest::registry::TemplateRegistry;
 use crate::resources::{EventLog, GameClock, Player};
 
 /// Mutable bundle used by [`drive_active_quests`] — the only
@@ -48,7 +51,10 @@ pub struct QuestEngineCtx<'w> {
     pub player: ResMut<'w, Player>,
     pub events: ResMut<'w, EventLog>,
     pub factions: Res<'w, crate::resources::FactionIndex>,
+    pub registry: Res<'w, TemplateRegistry>,
     pub start_quest_tx: MessageWriter<'w, StartQuestRequest>,
+    pub spawn_npc_tx: MessageWriter<'w, SpawnNpcRequest>,
+    pub give_npc_xp_tx: MessageWriter<'w, GiveNpcXpRequest>,
 }
 
 /// Drive every active quest that is currently on an `Objective`
@@ -102,8 +108,14 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
     // We must not mutate `log` while evaluating a condition that
     // also borrows `log`. Collect the transitions first, apply
     // them in a second pass.
-    let objective_transitions =
-        collect_objective_transitions(&ctx.log, &ctx.player.0, &ctx.events.0, catalog, now);
+    let objective_transitions = collect_objective_transitions(
+        &ctx.log,
+        &ctx.player.0,
+        &ctx.events.0,
+        &ctx.registry,
+        catalog,
+        now,
+    );
     for (index, next_stage) in objective_transitions {
         if let Some(active) = ctx.log.active.get_mut(index) {
             active.advance_to(next_stage, now);
@@ -115,8 +127,14 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
     // evaluator's immutable borrow of `log` is released before
     // the mutable advance. Run in the same frame as entry so
     // Branch behaves as a silent fork, not a wait state.
-    let branch_transitions =
-        collect_branch_transitions(&ctx.log, &ctx.player.0, &ctx.events.0, catalog, now);
+    let branch_transitions = collect_branch_transitions(
+        &ctx.log,
+        &ctx.player.0,
+        &ctx.events.0,
+        &ctx.registry,
+        catalog,
+        now,
+    );
     for (index, next_stage) in branch_transitions {
         if let Some(active) = ctx.log.active.get_mut(index) {
             active.advance_to(next_stage, now);
@@ -149,9 +167,12 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
             now,
             &mut ctx.player.0,
             &mut ctx.events.0,
+            &ctx.registry,
             &faction_pool,
             &mut rng,
             &mut ctx.start_quest_tx,
+            &mut ctx.spawn_npc_tx,
+            &mut ctx.give_npc_xp_tx,
         );
     }
 }
@@ -163,6 +184,7 @@ fn collect_objective_transitions(
     log: &QuestLog,
     player: &cordon_core::entity::player::PlayerState,
     events: &[cordon_core::world::narrative::ActiveEvent],
+    registry: &TemplateRegistry,
     catalog: &GameData,
     now: GameTime,
 ) -> Vec<(usize, Id<QuestStage>)> {
@@ -196,6 +218,7 @@ fn collect_objective_transitions(
             player,
             events,
             quests: log,
+            registry,
             now,
             stage_started_at: Some(active.stage_started_at),
         };
@@ -235,6 +258,7 @@ fn collect_branch_transitions(
     log: &QuestLog,
     player: &cordon_core::entity::player::PlayerState,
     events: &[cordon_core::world::narrative::ActiveEvent],
+    registry: &TemplateRegistry,
     catalog: &GameData,
     now: GameTime,
 ) -> Vec<(usize, Id<QuestStage>)> {
@@ -254,6 +278,7 @@ fn collect_branch_transitions(
             player,
             events,
             quests: log,
+            registry,
             now,
             stage_started_at: Some(active.stage_started_at),
         };
@@ -281,9 +306,12 @@ fn complete_quest(
     now: GameTime,
     player: &mut cordon_core::entity::player::PlayerState,
     events: &mut Vec<cordon_core::world::narrative::ActiveEvent>,
+    registry: &TemplateRegistry,
     faction_pool: &[Id<Faction>],
     rng: &mut WyRand,
     start_quest_tx: &mut MessageWriter<StartQuestRequest>,
+    spawn_npc_tx: &mut MessageWriter<SpawnNpcRequest>,
+    give_npc_xp_tx: &mut MessageWriter<GiveNpcXpRequest>,
 ) {
     // Resolve the active instance by def_id. Cloning the
     // scalar state we need here lets us drop the borrow of
@@ -320,6 +348,7 @@ fn complete_quest(
             player,
             events,
             quests: log,
+            registry,
             now,
             stage_started_at: Some(stage_started_at),
         };
@@ -344,12 +373,13 @@ fn complete_quest(
         player,
         events,
         data: catalog,
+        registry,
         now,
         rng,
         faction_pool,
     };
     for consequence in &to_apply {
-        apply(consequence, &mut world, start_quest_tx);
+        apply(consequence, &mut world, start_quest_tx, spawn_npc_tx, give_npc_xp_tx);
     }
 
     // Stable removal: retain() walks once, evicts the matching

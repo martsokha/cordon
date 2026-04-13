@@ -14,6 +14,7 @@ use cordon_core::world::narrative::{
     ActiveEvent, ObjectiveCondition, Quest, QuestFlagPredicate, QuestFlagValue,
 };
 
+use super::registry::TemplateRegistry;
 use super::state::QuestLog;
 
 /// Live world state the evaluator reads from. Kept as a single
@@ -25,6 +26,7 @@ pub struct WorldView<'a> {
     pub player: &'a PlayerState,
     pub events: &'a [ActiveEvent],
     pub quests: &'a QuestLog,
+    pub registry: &'a TemplateRegistry,
     /// The current game clock. Used by `Wait` and any future
     /// time-sensitive leaf conditions.
     pub now: GameTime,
@@ -68,27 +70,16 @@ impl<'a> WorldView<'a> {
                 predicate,
             } => self.evaluate_quest_flag(quest, key, predicate),
 
-            // NPC-template conditions are stubs until the template
-            // → live-entity resolution story lands (#104/#105).
-            // The warning ships the ID so malformed quests surface
-            // during development.
-            ObjectiveCondition::NpcAlive(npc) => {
-                warn!(
-                    "STUB CONDITION: NpcAlive({}) evaluated — returning false",
-                    npc.as_str()
-                );
-                false
-            }
-            ObjectiveCondition::NpcDead(npc) => {
-                warn!(
-                    "STUB CONDITION: NpcDead({}) evaluated — returning false",
-                    npc.as_str()
-                );
-                false
-            }
+            ObjectiveCondition::NpcAlive(npc) => self.registry.is_alive(npc),
+            ObjectiveCondition::NpcDead(npc) => !self.registry.is_alive(npc),
             ObjectiveCondition::NpcAtLocation { npc, area } => {
+                // Location resolution requires ECS queries that the
+                // pure-function evaluator does not have access to.
+                // Stays as a warning stub until WorldView carries
+                // area-position data or is replaced by a query-based
+                // evaluator.
                 warn!(
-                    "STUB CONDITION: NpcAtLocation({}, {}) evaluated — returning false",
+                    "NpcAtLocation({}, {}) evaluated — location tracking not wired yet, returning false",
                     npc.as_str(),
                     area.as_str()
                 );
@@ -201,6 +192,7 @@ mod tests {
     };
 
     use super::{WorldView, yarn_value_equals};
+    use crate::quest::registry::TemplateRegistry;
     use crate::quest::state::{ActiveQuest, CompletedQuest, QuestLog};
 
     fn player(factions: &[&str]) -> PlayerState {
@@ -208,11 +200,20 @@ mod tests {
         PlayerState::new(&ids)
     }
 
-    fn view<'a>(player: &'a PlayerState, log: &'a QuestLog) -> WorldView<'a> {
+    fn registry() -> TemplateRegistry {
+        TemplateRegistry::default()
+    }
+
+    fn view<'a>(
+        player: &'a PlayerState,
+        log: &'a QuestLog,
+        registry: &'a TemplateRegistry,
+    ) -> WorldView<'a> {
         WorldView {
             player,
             events: &[],
             quests: log,
+            registry,
             now: GameTime::new(),
             stage_started_at: None,
         }
@@ -221,6 +222,7 @@ mod tests {
     fn view_with_clock<'a>(
         player: &'a PlayerState,
         log: &'a QuestLog,
+        registry: &'a TemplateRegistry,
         now: GameTime,
         stage_started_at: GameTime,
     ) -> WorldView<'a> {
@@ -228,6 +230,7 @@ mod tests {
             player,
             events: &[],
             quests: log,
+            registry,
             now,
             stage_started_at: Some(stage_started_at),
         }
@@ -238,7 +241,8 @@ mod tests {
         let mut p = player(&[]);
         p.credits = Credits::new(500);
         let log = QuestLog::default();
-        let v = view(&p, &log);
+        let reg = registry();
+        let v = view(&p, &log, &reg);
         assert!(v.evaluate(&ObjectiveCondition::HaveCredits(Credits::new(500))));
         assert!(v.evaluate(&ObjectiveCondition::HaveCredits(Credits::new(499))));
         assert!(!v.evaluate(&ObjectiveCondition::HaveCredits(Credits::new(501))));
@@ -251,7 +255,8 @@ mod tests {
             s.apply(RelationDelta::new(50));
         }
         let log = QuestLog::default();
-        let v = view(&p, &log);
+        let reg = registry();
+        let v = view(&p, &log, &reg);
         assert!(v.evaluate(&ObjectiveCondition::FactionStanding {
             faction: Id::<Faction>::new("garrison"),
             min_standing: Relation::new(50),
@@ -266,6 +271,7 @@ mod tests {
     fn all_of_short_circuits_on_false() {
         let p = player(&[]);
         let log = QuestLog::default();
+        let reg = registry();
         let cond = ObjectiveCondition::AllOf(vec![
             ObjectiveCondition::Wait {
                 duration: Duration::INSTANT,
@@ -273,7 +279,7 @@ mod tests {
             ObjectiveCondition::HaveCredits(Credits::new(9999)),
         ]);
         // Wait{INSTANT} needs a stage clock, use the clocked view.
-        let v = view_with_clock(&p, &log, GameTime::new(), GameTime::new());
+        let v = view_with_clock(&p, &log, &reg, GameTime::new(), GameTime::new());
         assert!(!v.evaluate(&cond));
     }
 
@@ -281,13 +287,14 @@ mod tests {
     fn any_of_short_circuits_on_true() {
         let p = player(&[]);
         let log = QuestLog::default();
+        let reg = registry();
         let cond = ObjectiveCondition::AnyOf(vec![
             ObjectiveCondition::HaveCredits(Credits::new(9999)),
             ObjectiveCondition::Wait {
                 duration: Duration::INSTANT,
             },
         ]);
-        let v = view_with_clock(&p, &log, GameTime::new(), GameTime::new());
+        let v = view_with_clock(&p, &log, &reg, GameTime::new(), GameTime::new());
         assert!(v.evaluate(&cond));
     }
 
@@ -295,10 +302,11 @@ mod tests {
     fn not_flips_result() {
         let p = player(&[]);
         let log = QuestLog::default();
+        let reg = registry();
         let cond = ObjectiveCondition::Not(Box::new(ObjectiveCondition::Wait {
             duration: Duration::INSTANT,
         }));
-        let v = view_with_clock(&p, &log, GameTime::new(), GameTime::new());
+        let v = view_with_clock(&p, &log, &reg, GameTime::new(), GameTime::new());
         assert!(!v.evaluate(&cond));
     }
 
@@ -306,27 +314,29 @@ mod tests {
     fn wait_without_stage_clock_returns_false() {
         let p = player(&[]);
         let log = QuestLog::default();
+        let reg = registry();
         let cond = ObjectiveCondition::Wait {
             duration: Duration::INSTANT,
         };
         // No stage clock → false.
-        assert!(!view(&p, &log).evaluate(&cond));
+        assert!(!view(&p, &log, &reg).evaluate(&cond));
     }
 
     #[test]
     fn wait_honours_duration() {
         let p = player(&[]);
         let log = QuestLog::default();
+        let reg = registry();
         let cond = ObjectiveCondition::Wait {
             duration: Duration::from_minutes(30),
         };
         let start = GameTime::new();
         // Zero elapsed → not yet satisfied.
-        assert!(!view_with_clock(&p, &log, start, start).evaluate(&cond));
+        assert!(!view_with_clock(&p, &log, &reg, start, start).evaluate(&cond));
         // 30+ minutes elapsed → satisfied.
         let mut now_late = start;
         now_late.advance_minutes(30);
-        assert!(view_with_clock(&p, &log, now_late, start).evaluate(&cond));
+        assert!(view_with_clock(&p, &log, &reg, now_late, start).evaluate(&cond));
     }
 
     #[test]
@@ -340,7 +350,8 @@ mod tests {
             stage_started_at: GameTime::new(),
             flags: HashMap::new(),
         });
-        let v = view(&p, &log);
+        let reg = registry();
+        let v = view(&p, &log, &reg);
         assert!(
             v.evaluate(&ObjectiveCondition::QuestActive(Id::<Quest>::new(
                 "mainline"
@@ -385,7 +396,8 @@ mod tests {
             flags: completed_flags,
         });
 
-        let v = view(&p, &log);
+        let reg = registry();
+        let v = view(&p, &log, &reg);
         // Active quest hit.
         assert!(v.evaluate(&ObjectiveCondition::QuestFlag {
             quest: Id::<Quest>::new("live"),
@@ -414,7 +426,8 @@ mod tests {
             flags,
         });
 
-        let v = view(&p, &log);
+        let reg = registry();
+        let v = view(&p, &log, &reg);
         assert!(v.evaluate(&ObjectiveCondition::QuestFlag {
             quest: Id::<Quest>::new("live"),
             key: "$quest_stage".to_string(),
@@ -443,7 +456,8 @@ mod tests {
             flags,
         });
 
-        let v = view(&p, &log);
+        let reg = registry();
+        let v = view(&p, &log, &reg);
         // Numeric flag over threshold.
         assert!(v.evaluate(&ObjectiveCondition::QuestFlag {
             quest: Id::<Quest>::new("live"),

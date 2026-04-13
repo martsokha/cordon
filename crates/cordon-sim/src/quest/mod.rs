@@ -20,11 +20,13 @@
 pub mod condition;
 pub mod consequence;
 pub mod engine;
+pub mod registry;
 pub mod state;
 
 use bevy::prelude::*;
 
-pub use self::consequence::StartQuestRequest;
+pub use self::consequence::{GiveNpcXpRequest, SpawnNpcRequest, StartQuestRequest};
+pub use self::registry::TemplateRegistry;
 pub use self::state::{ActiveQuest, CompletedQuest, QuestLog};
 use crate::day::DayRolled;
 use crate::plugin::SimSet;
@@ -42,7 +44,10 @@ pub struct QuestPlugin;
 impl Plugin for QuestPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<QuestLog>();
+        app.init_resource::<TemplateRegistry>();
         app.add_message::<StartQuestRequest>();
+        app.add_message::<SpawnNpcRequest>();
+        app.add_message::<GiveNpcXpRequest>();
 
         // Catalog validation lives in cordon-data now, running
         // inline inside `assemble_game_data` before the
