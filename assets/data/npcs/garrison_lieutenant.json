@@ -1,0 +1,18 @@
+{
+  "id": "npc_garrison_lieutenant",
+  "name_key": "npc.garrison_lieutenant.name",
+  "faction": "faction_garrison",
+  "rank": "veteran",
+  "personality": "cautious",
+  "trust": 0.2,
+  "perks": ["perk_field_medic"],
+  "loadout": [
+    "item_ak74",
+    "item_tactical_vest",
+    "item_steel_helmet",
+    "item_bandage",
+    "item_bandage"
+  ],
+  "unique": true,
+  "respawnable": false
+}

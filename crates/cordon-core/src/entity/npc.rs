@@ -19,7 +19,11 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::primitive::IdMarker;
+use crate::item::Item;
+use crate::primitive::{Id, IdMarker, Rank, Trust};
+
+use super::faction::Faction;
+use super::perk::Perk;
 
 /// Phantom marker for NPC-stable save-game IDs. Used as the
 /// type parameter on `Uid<Npc>`. Has no fields — all the actual
@@ -29,6 +33,45 @@ pub struct Npc;
 /// Marker for NPC template IDs (used in quest consequences).
 pub struct NpcTemplate;
 impl IdMarker for NpcTemplate {}
+
+/// A named, unique NPC definition. Loaded from `assets/data/npcs/`.
+///
+/// Templates are for story-relevant characters with persistent
+/// identities — "Lieutenant Petrov," not "a random Garrison soldier."
+/// Generic NPCs are spawned from [`ArchetypeDef`](super::archetype::ArchetypeDef)
+/// instead.
+///
+/// At spawn time the template's rank determines base stats, and gear
+/// is either pulled from the faction's archetype pool (if `loadout`
+/// is `None`) or set to the authored item list.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NpcTemplateDef {
+    pub id: Id<NpcTemplate>,
+    /// Localization key for the display name, resolved at render time.
+    pub name_key: String,
+    pub faction: Id<Faction>,
+    /// Base rank — actual spawn XP is randomized within this tier.
+    pub rank: Rank,
+    pub personality: Personality,
+    /// Starting trust toward the player.
+    pub trust: Trust,
+    pub perks: Vec<Id<Perk>>,
+    /// If set, the NPC spawns with exactly these items. If `None`,
+    /// gear is rolled from the faction archetype at the resolved rank.
+    #[serde(default)]
+    pub loadout: Option<Vec<Id<Item>>>,
+    /// Only one instance of this NPC can exist at a time.
+    #[serde(default = "default_true")]
+    pub unique: bool,
+    /// If killed, this NPC can be spawned again by future quests.
+    /// If false, death is permanent.
+    #[serde(default)]
+    pub respawnable: bool,
+}
+
+fn default_true() -> bool {
+    true
+}
 
 /// What role an employed NPC fills.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

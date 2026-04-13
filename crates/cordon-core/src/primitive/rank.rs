@@ -69,6 +69,20 @@ impl Rank {
         }
     }
 
+    /// Inclusive XP range for this rank: `(min, max)`. The max is one
+    /// below the next tier's threshold (or a reasonable cap for Legend).
+    pub fn xp_range(self) -> (u32, u32) {
+        let lo = self.xp_threshold();
+        let hi = match self {
+            Rank::Novice => Rank::Experienced.xp_threshold() - 1,
+            Rank::Experienced => Rank::Veteran.xp_threshold() - 1,
+            Rank::Veteran => Rank::Master.xp_threshold() - 1,
+            Rank::Master => Rank::Legend.xp_threshold() - 1,
+            Rank::Legend => 15000,
+        };
+        (lo, hi)
+    }
+
     /// All ranks in ascending order.
     pub fn all() -> [Rank; 5] {
         [
