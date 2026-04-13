@@ -39,6 +39,18 @@ pub struct CctvMaterial {
     pub feed: Handle<Image>,
 }
 
+impl CctvMaterial {
+    pub fn new(feed: Handle<Image>, effect_strength: f32) -> Self {
+        Self {
+            effect_strength,
+            _pad1: 0.0,
+            _pad2: 0.0,
+            _pad3: 0.0,
+            feed,
+        }
+    }
+}
+
 impl Material for CctvMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/cctv_screen.wgsl".into()

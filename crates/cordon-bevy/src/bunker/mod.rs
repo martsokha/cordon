@@ -2,11 +2,13 @@
 //! the player meets visitors at the counter inside the bunker, not on
 //! the laptop map.
 
-mod materials;
+mod camera;
+pub mod cctv;
 pub mod components;
 pub mod dialogue;
 pub mod geometry;
 mod input;
+pub mod lighting;
 mod props;
 pub mod resources;
 mod rooms;
@@ -15,7 +17,7 @@ mod visitor;
 
 use bevy::prelude::*;
 
-pub use self::materials::CctvMaterial;
+pub use self::cctv::CctvMonitor;
 pub use self::components::*;
 pub use self::resources::{BunkerSpawned, CameraMode};
 pub use self::rooms::ANTECHAMBER_VISITOR_POS;
@@ -30,7 +32,7 @@ impl Plugin for BunkerPlugin {
             input::InputPlugin,
             dialogue::DialoguePlugin,
             visitor::VisitorPlugin,
-            bevy::pbr::MaterialPlugin::<CctvMaterial>::default(),
+            cctv::CctvPlugin,
         ));
         app.insert_resource(CameraMode::Free);
         app.insert_resource(bevy::light::GlobalAmbientLight {
@@ -38,24 +40,13 @@ impl Plugin for BunkerPlugin {
             brightness: 80.0,
             ..default()
         });
-        app.add_systems(OnEnter(PlayingState::Bunker), systems::enable_bunker_camera);
-        app.add_systems(OnEnter(PlayingState::Laptop), systems::start_laptop_zoom);
-        app.add_systems(OnEnter(PlayingState::Bunker), systems::start_free_look);
-        app.add_systems(Update, systems::animate_camera);
+        app.add_systems(OnEnter(PlayingState::Bunker), camera::enable_bunker_camera);
+        app.add_systems(OnEnter(PlayingState::Laptop), camera::start_laptop_zoom);
+        app.add_systems(OnEnter(PlayingState::Bunker), camera::start_free_look);
+        app.add_systems(Update, camera::animate_camera);
         app.add_systems(
             OnEnter(PlayingState::Bunker),
             systems::spawn_bunker.run_if(not(resource_exists::<BunkerSpawned>)),
-        );
-        app.add_systems(OnEnter(PlayingState::Bunker), systems::spawn_cctv);
-        app.add_systems(
-            Update,
-            (
-                systems::ensure_fullscreen_plane,
-                systems::apply_cctv_fullscreen,
-                systems::follow_fps_camera,
-            )
-                .chain()
-                .run_if(in_state(PlayingState::Bunker)),
         );
     }
 }

@@ -88,13 +88,13 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Quat::IDENTITY,
     );
 
-    // Lockers along the left wall.
+    // Lockers along the left wall, starting 0.7 m north of the grate.
     for i in 0..5 {
         prop(
             ctx.commands,
             ctx.asset_server,
             Prop::Locker,
-            Vec3::new(-l.hw + 0.3, 0.0, 2.2 + 0.5 * i as f32),
+            Vec3::new(-l.hw + 0.3, 0.0, l.trade_z + 0.7 + 0.5 * i as f32),
             Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
         );
     }
@@ -103,7 +103,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         ctx.commands,
         ctx.asset_server,
         Prop::Bag02,
-        Vec3::new(-l.hw + 0.8, 0.0, 4.0),
+        Vec3::new(-l.hw + 0.8, 0.0, l.trade_z + 2.5),
         Quat::from_rotation_y(0.8),
     );
     // Barrel in the corner.
@@ -111,7 +111,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         ctx.commands,
         ctx.asset_server,
         Prop::Barrel03,
-        Vec3::new(l.hw - 0.4, 0.0, 4.2),
+        Vec3::new(l.hw - 0.4, 0.0, l.trade_z + 2.7),
         Quat::IDENTITY,
     );
     // Box near lockers.
@@ -119,7 +119,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         ctx.commands,
         ctx.asset_server,
         Prop::Box01,
-        Vec3::new(-l.hw + 0.8, 0.0, 3.2),
+        Vec3::new(-l.hw + 0.8, 0.0, l.trade_z + 1.7),
         Quat::from_rotation_y(0.3),
     );
     // Amp rack on the right wall (opposite lockers).
@@ -127,7 +127,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         ctx.commands,
         ctx.asset_server,
         Prop::AmpRack01,
-        Vec3::new(l.hw - 0.3, 0.0, 3.0),
+        Vec3::new(l.hw - 0.3, 0.0, l.trade_z + 1.5),
         Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2),
     );
 }
