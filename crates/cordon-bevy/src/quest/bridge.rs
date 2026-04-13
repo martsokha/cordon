@@ -35,7 +35,7 @@ use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::{EventLog, GameClock, Player, QuestLog};
 use cordon_sim::quest::engine::advance_after_talk;
 
-use crate::bunker::dialogue::StartDialogue;
+use crate::bunker::resources::StartDialogue;
 use crate::bunker::{Visitor, VisitorQueue};
 
 /// Bridge-owned dialogue-in-flight slot.

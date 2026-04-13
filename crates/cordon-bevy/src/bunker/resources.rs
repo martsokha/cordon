@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_yarnspinner::prelude::OptionId;
 
 #[derive(Resource)]
 pub struct BunkerSpawned;
@@ -189,4 +190,46 @@ impl Layout {
     pub fn quarters_x_center(&self) -> f32 {
         (self.hw + self.quarters_x_max()) / 2.0
     }
+}
+
+/// What the dialogue UI should currently show. Mirrored from the
+/// underlying `DialogueRunner` events so the UI doesn't have to know
+/// about Yarn types directly.
+#[derive(Resource, Default, Debug, Clone)]
+pub enum CurrentDialogue {
+    /// No dialogue is active.
+    #[default]
+    Idle,
+    /// A line is being shown. The UI should render it and present a
+    /// "Continue" affordance that emits a [`DialogueChoice::Continue`].
+    Line {
+        speaker: Option<String>,
+        text: String,
+    },
+    /// A set of options is presented. The UI should render the lines
+    /// as buttons; selecting one emits [`DialogueChoice::Option`].
+    Options { lines: Vec<DialogueOptionView> },
+}
+
+/// Player-facing view of a single dialogue option.
+#[derive(Debug, Clone)]
+pub struct DialogueOptionView {
+    pub id: OptionId,
+    pub text: String,
+    pub available: bool,
+}
+
+/// Sent by upstream code (the visitor module) to begin a conversation
+/// at the given yarn node. Resolved by [`apply_start_dialogue`].
+#[derive(Message, Debug, Clone)]
+pub struct StartDialogue {
+    pub node: String,
+}
+
+/// Player-side message: the UI emits one of these when the player
+/// either continues past a line or picks an option.
+#[derive(Message, Debug, Clone, Copy)]
+pub enum DialogueChoice {
+    Continue,
+    Option { id: OptionId },
 }
