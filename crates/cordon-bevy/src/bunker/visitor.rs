@@ -26,7 +26,8 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::Id;
 
 use super::dialogue::{CurrentDialogue, StartDialogue};
-use super::interaction::{Interactable, InteractionLocked};
+use super::interaction::{Interact, Interactable};
+use super::resources::{InteractionLocked, MovementLocked};
 use super::{ANTECHAMBER_VISITOR_POS, CameraMode, DoorButton, FpsCamera};
 use crate::PlayingState;
 
@@ -47,6 +48,7 @@ impl Plugin for VisitorPlugin {
                 update_cursor_lock,
                 dismiss_on_dialogue_complete,
                 despawn_preview_on_leave_knocking,
+                attach_door_observer,
             )
                 .run_if(in_state(PlayingState::Bunker)),
         );
@@ -250,6 +252,7 @@ fn apply_admit_visitor(
     });
 
     commands.insert_resource(InteractionLocked);
+    commands.insert_resource(MovementLocked);
     info!("visitor admitted: {}", visitor.display_name);
     *state = VisitorState::Inside {
         visitor,
@@ -294,6 +297,7 @@ fn dismiss_on_dialogue_complete(
         }
         *state = VisitorState::Quiet;
         commands.remove_resource::<InteractionLocked>();
+        commands.remove_resource::<MovementLocked>();
         info!("visitor dismissed: {name}");
     }
 }
@@ -325,5 +329,15 @@ fn update_button_enabled(
     let active = matches!(*visitor_state, VisitorState::Knocking { .. });
     for mut i in &mut buttons {
         i.enabled = active;
+    }
+}
+
+fn attach_door_observer(mut commands: Commands, new_buttons: Query<Entity, Added<DoorButton>>) {
+    for entity in &new_buttons {
+        commands.entity(entity).observe(
+            |_trigger: On<Interact>, mut admit: MessageWriter<AdmitVisitor>| {
+                admit.write(AdmitVisitor);
+            },
+        );
     }
 }

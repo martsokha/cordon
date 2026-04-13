@@ -13,6 +13,6 @@ pub struct LaptopPlugin;
 
 impl Plugin for LaptopPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, systems::sync_laptop_camera);
+        app.add_systems(Update, (systems::sync_laptop_camera, systems::spawn_laptop));
     }
 }

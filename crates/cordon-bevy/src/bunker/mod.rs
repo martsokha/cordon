@@ -20,8 +20,7 @@ mod visitor;
 use bevy::prelude::*;
 
 pub use self::components::*;
-pub use self::resources::{BunkerSpawned, CameraMode};
-pub use self::rooms::ANTECHAMBER_VISITOR_POS;
+pub use self::resources::{ANTECHAMBER_VISITOR_POS, BunkerSpawned, CameraMode};
 pub use self::visitor::{Visitor, VisitorQueue, VisitorState};
 use crate::PlayingState;
 

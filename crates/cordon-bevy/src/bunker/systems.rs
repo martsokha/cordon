@@ -1,12 +1,13 @@
+use std::f32::consts::PI;
+
 use avian3d::prelude::*;
 use bevy::prelude::*;
 use bevy::ui::UiTargetCamera;
 
 use super::cctv::components::MonitorPlacement;
 use super::components::*;
-use super::geometry;
 use super::resources::*;
-use super::rooms;
+use super::{geometry, rooms};
 
 pub(super) fn spawn_bunker(
     mut commands: Commands,
@@ -20,6 +21,12 @@ pub(super) fn spawn_bunker(
     commands.insert_resource(MonitorPlacement {
         pos: Vec3::new(-l.hw + 0.15, l.h - 0.25, l.trade_z - 0.1),
         target: Vec3::new(0.0, 1.4, 0.0),
+    });
+
+    const TABLE_TOP: f32 = 1.037;
+    commands.insert_resource(LaptopPlacement {
+        pos: Vec3::new(0.0, TABLE_TOP, l.desk_z()),
+        rot: Quat::from_rotation_y(PI),
     });
 
     let fps_camera_entity = spawn_camera(&mut commands, &l);
@@ -40,6 +47,8 @@ pub(super) fn spawn_bunker(
     rooms::kitchen::spawn(&mut ctx);
     rooms::quarters::spawn(&mut ctx);
     drop(ctx);
+
+    rooms::antechamber::spawn(&mut commands, &mut meshes, &mut mats, &asset_server);
 
     spawn_ui(&mut commands, fps_camera_entity);
     commands.insert_resource(BunkerSpawned);

@@ -3,6 +3,24 @@ use bevy::prelude::*;
 #[derive(Resource)]
 pub struct BunkerSpawned;
 
+#[derive(Resource)]
+pub struct MovementLocked;
+
+/// When present as a resource, all interactions are blocked. The
+/// visitor module inserts this while a visitor is inside the bunker
+/// so the player can't escape mid-conversation.
+#[derive(Resource)]
+pub struct InteractionLocked;
+
+#[derive(Resource)]
+pub struct LaptopPlacement {
+    pub pos: Vec3,
+    pub rot: Quat,
+}
+
+pub const ANTECHAMBER_VISITOR_POS: Vec3 = Vec3::new(0.0, -49.75, -49.5);
+pub(crate) const CCTV_CAMERA_POS: Vec3 = Vec3::new(-1.85, -47.9, -48.15);
+
 /// Camera zoomed to laptop. desk_z=1.0, laptop at y≈1.05.
 pub(crate) const LAPTOP_VIEW_POS: Vec3 = Vec3::new(0.0, 1.35, 0.5);
 pub(crate) const LAPTOP_VIEW_TARGET: Vec3 = Vec3::new(0.0, 1.10, 1.12);

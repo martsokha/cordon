@@ -7,14 +7,12 @@ use super::materials::CctvMaterial;
 use crate::bunker::components::FpsCamera;
 use crate::bunker::interaction::{Interact, Interactable};
 use crate::bunker::resources::CameraMode;
-use crate::bunker::rooms;
 
 pub(crate) const CCTV_WIDTH: u32 = 512;
 pub(crate) const CCTV_HEIGHT: u32 = 288;
 
 pub(super) fn spawn_cctv(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     spawned: Option<Res<CctvImage>>,
     placement: Option<Res<MonitorPlacement>>,
     mut images: ResMut<Assets<Image>>,
@@ -32,12 +30,6 @@ pub(super) fn spawn_cctv(
     let image_handle = images.add(image);
     commands.insert_resource(CctvImage(image_handle.clone()));
 
-    rooms::antechamber::spawn(
-        &mut commands,
-        &mut meshes,
-        &mut std_materials,
-        &asset_server,
-    );
     spawn_cctv_camera(&mut commands, image_handle.clone());
     let monitor = super::bundles::spawn_monitor(
         &mut commands,
@@ -84,8 +76,8 @@ fn spawn_cctv_camera(commands: &mut Commands, image: Handle<Image>) {
             handle: image,
             scale_factor: 1.0,
         }),
-        Transform::from_translation(rooms::antechamber::CCTV_CAMERA_POS)
-            .looking_at(rooms::antechamber::ANTECHAMBER_VISITOR_POS, Vec3::Y),
+        Transform::from_translation(crate::bunker::resources::CCTV_CAMERA_POS)
+            .looking_at(crate::bunker::resources::ANTECHAMBER_VISITOR_POS, Vec3::Y),
     ));
 }
 

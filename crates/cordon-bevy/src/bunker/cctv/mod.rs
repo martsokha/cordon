@@ -5,10 +5,9 @@ mod systems;
 
 use bevy::prelude::*;
 
-use crate::PlayingState;
-
 pub use self::components::*;
 pub use self::materials::CctvMaterial;
+use crate::PlayingState;
 
 pub struct CctvPlugin;
 
@@ -18,6 +17,7 @@ impl Plugin for CctvPlugin {
         app.add_systems(
             Update,
             (
+                systems::spawn_cctv,
                 systems::ensure_fullscreen_plane,
                 systems::apply_cctv_fullscreen,
                 systems::follow_fps_camera,

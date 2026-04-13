@@ -7,7 +7,7 @@
 use bevy::prelude::*;
 
 use super::components::{FpsCamera, InteractPrompt};
-use super::resources::CameraMode;
+use super::resources::{CameraMode, InteractionLocked};
 
 const INTERACT_DIST: f32 = 3.5;
 
@@ -17,12 +17,6 @@ pub struct Interactable {
     pub prompt: &'static str,
     pub enabled: bool,
 }
-
-/// When present as a resource, all interactions are blocked. The
-/// visitor module inserts this while a visitor is inside the bunker
-/// so the player can't escape mid-conversation.
-#[derive(Resource)]
-pub struct InteractionLocked;
 
 /// Fired on the winning entity when the player presses E.
 #[derive(EntityEvent)]

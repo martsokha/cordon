@@ -11,17 +11,6 @@
 
 use bevy::prelude::*;
 
-/// World-space position the antechamber's CCTV camera is aimed at —
-/// the visitor sprite stands here while knocking, partway between
-/// the back wall (where the door is) and the front wall (where the
-/// camera is mounted). The y is half-sprite-height above the floor
-/// so they "stand" properly.
-pub const ANTECHAMBER_VISITOR_POS: Vec3 = Vec3::new(0.0, -49.75, -49.5);
-
-/// Where the CCTV camera itself sits — front-left ceiling corner
-/// of the antechamber, looking diagonally back at the visitor.
-pub(crate) const CCTV_CAMERA_POS: Vec3 = Vec3::new(-1.85, -47.9, -48.15);
-
 /// Antechamber world centre. The room is built around this point.
 const ANTECHAMBER_CENTER: Vec3 = Vec3::new(0.0, -49.0, -50.0);
 
