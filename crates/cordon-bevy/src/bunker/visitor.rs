@@ -26,6 +26,7 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::Id;
 
 use super::dialogue::{CurrentDialogue, StartDialogue};
+use super::interaction::{Interactable, InteractionLocked};
 use super::{ANTECHAMBER_VISITOR_POS, CameraMode, DoorButton, FpsCamera};
 use crate::PlayingState;
 
@@ -42,6 +43,7 @@ impl Plugin for VisitorPlugin {
                 arrive_next_visitor,
                 apply_admit_visitor,
                 update_button_glow,
+                update_button_enabled,
                 update_cursor_lock,
                 dismiss_on_dialogue_complete,
                 despawn_preview_on_leave_knocking,
@@ -247,6 +249,7 @@ fn apply_admit_visitor(
         node: visitor.yarn_node.clone(),
     });
 
+    commands.insert_resource(InteractionLocked);
     info!("visitor admitted: {}", visitor.display_name);
     *state = VisitorState::Inside {
         visitor,
@@ -290,6 +293,7 @@ fn dismiss_on_dialogue_complete(
             *camera_mode = CameraMode::Returning(saved_transform);
         }
         *state = VisitorState::Quiet;
+        commands.remove_resource::<InteractionLocked>();
         info!("visitor dismissed: {name}");
     }
 }
@@ -311,5 +315,15 @@ fn update_cursor_lock(state: Res<VisitorState>, mut cursor_q: Query<&mut CursorO
             cursor.grab_mode = CursorGrabMode::Locked;
             cursor.visible = false;
         }
+    }
+}
+
+fn update_button_enabled(
+    visitor_state: Res<VisitorState>,
+    mut buttons: Query<&mut Interactable, With<DoorButton>>,
+) {
+    let active = matches!(*visitor_state, VisitorState::Knocking { .. });
+    for mut i in &mut buttons {
+        i.enabled = active;
     }
 }

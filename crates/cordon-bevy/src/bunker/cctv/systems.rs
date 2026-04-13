@@ -5,6 +5,7 @@ use bevy::render::render_resource::TextureFormat;
 use super::components::*;
 use super::materials::CctvMaterial;
 use crate::bunker::components::FpsCamera;
+use crate::bunker::interaction::{Interact, Interactable};
 use crate::bunker::resources::CameraMode;
 use crate::bunker::rooms;
 
@@ -38,7 +39,7 @@ pub(super) fn spawn_cctv(
         &asset_server,
     );
     spawn_cctv_camera(&mut commands, image_handle.clone());
-    super::bundles::spawn_monitor(
+    let monitor = super::bundles::spawn_monitor(
         &mut commands,
         &mut meshes,
         &mut std_materials,
@@ -47,6 +48,23 @@ pub(super) fn spawn_cctv(
         placement.pos,
         placement.target,
     );
+    commands
+        .entity(monitor)
+        .insert(Interactable {
+            prompt: "[E] View Camera",
+            enabled: true,
+        })
+        .observe(
+            |_trigger: On<Interact>,
+             mut camera_mode: ResMut<CameraMode>,
+             cam_q: Query<&Transform, With<FpsCamera>>| {
+                if let Ok(t) = cam_q.single() {
+                    *camera_mode = CameraMode::AtCctv {
+                        saved_transform: *t,
+                    };
+                }
+            },
+        );
 }
 
 fn spawn_cctv_camera(commands: &mut Commands, image: Handle<Image>) {

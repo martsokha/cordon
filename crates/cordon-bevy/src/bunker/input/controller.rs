@@ -10,9 +10,10 @@ use avian3d::prelude::*;
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 
-use super::FpsCamera;
 use crate::PlayingState;
-use crate::bunker::{CameraMode, VisitorState};
+use crate::bunker::components::FpsCamera;
+use crate::bunker::resources::CameraMode;
+use crate::bunker::visitor::VisitorState;
 
 const MOVE_SPEED: f32 = 4.0;
 const LOOK_SENSITIVITY: f32 = 0.003;

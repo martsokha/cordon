@@ -4,9 +4,12 @@ use std::f32::consts::FRAC_PI_2;
 
 use bevy::prelude::*;
 
+use crate::PlayingState;
 use crate::bunker::components::{DoorButton, LaptopObject};
 use crate::bunker::geometry::*;
+use crate::bunker::interaction::{Interact, Interactable};
 use crate::bunker::resources::RoomCtx;
+use crate::bunker::visitor::AdmitVisitor;
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     let l = ctx.l;
@@ -49,15 +52,25 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Vec3::new(0.0, 0.0, l.desk_z() - 0.5),
         Quat::IDENTITY,
     );
-    // Laptop — still custom-spawned so it gets the LaptopObject marker.
+    // Laptop — custom-spawned with LaptopObject marker + interaction observer.
     {
         let scene: Handle<Scene> = ctx.asset_server.load("models/interior/Laptop.glb#Scene0");
-        ctx.commands.spawn((
-            LaptopObject,
-            SceneRoot(scene),
-            Transform::from_xyz(0.0, TABLE_TOP, l.desk_z())
-                .with_rotation(Quat::from_rotation_y(std::f32::consts::PI)),
-        ));
+        ctx.commands
+            .spawn((
+                LaptopObject,
+                Interactable {
+                    prompt: "[E] Use Laptop",
+                    enabled: true,
+                },
+                SceneRoot(scene),
+                Transform::from_xyz(0.0, TABLE_TOP, l.desk_z())
+                    .with_rotation(Quat::from_rotation_y(std::f32::consts::PI)),
+            ))
+            .observe(
+                |_trigger: On<Interact>, mut next_state: ResMut<NextState<PlayingState>>| {
+                    *next_state = NextState::Pending(PlayingState::Laptop);
+                },
+            );
     }
     // Mug.
     prop(
@@ -67,7 +80,8 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Vec3::new(-0.35, TABLE_TOP, l.desk_z() + 0.05),
         Quat::IDENTITY,
     );
-    // Door button — sits on the table surface.
+    // Door button — sits on the table surface. Starts disabled;
+    // visitor module enables it when someone is knocking.
     let button_mesh = ctx.meshes.add(Sphere::new(0.025));
     let button_mat = ctx.mats.add(StandardMaterial {
         base_color: Color::srgb(0.35, 0.05, 0.05),
@@ -76,12 +90,22 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         emissive: LinearRgba::BLACK,
         ..default()
     });
-    ctx.commands.spawn((
-        DoorButton,
-        Mesh3d(button_mesh),
-        MeshMaterial3d(button_mat),
-        Transform::from_xyz(0.35, TABLE_TOP + 0.03, l.desk_z()),
-    ));
+    ctx.commands
+        .spawn((
+            DoorButton,
+            Interactable {
+                prompt: "[E] Open Door",
+                enabled: false,
+            },
+            Mesh3d(button_mesh),
+            MeshMaterial3d(button_mat),
+            Transform::from_xyz(0.35, TABLE_TOP + 0.03, l.desk_z()),
+        ))
+        .observe(
+            |_trigger: On<Interact>, mut admit: MessageWriter<AdmitVisitor>| {
+                admit.write(AdmitVisitor);
+            },
+        );
     // Bin between the table legs (scaled down; kept as raw spawn).
     {
         let scene: Handle<Scene> = ctx.asset_server.load("models/interior/Bin.glb#Scene0");

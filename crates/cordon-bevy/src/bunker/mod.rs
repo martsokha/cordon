@@ -8,6 +8,7 @@ pub mod components;
 pub mod dialogue;
 pub mod geometry;
 mod input;
+pub mod interaction;
 pub mod lighting;
 mod props;
 pub mod resources;
@@ -17,7 +18,6 @@ mod visitor;
 
 use bevy::prelude::*;
 
-pub use self::cctv::CctvMonitor;
 pub use self::components::*;
 pub use self::resources::{BunkerSpawned, CameraMode};
 pub use self::rooms::ANTECHAMBER_VISITOR_POS;
@@ -47,6 +47,11 @@ impl Plugin for BunkerPlugin {
         app.add_systems(
             OnEnter(PlayingState::Bunker),
             systems::spawn_bunker.run_if(not(resource_exists::<BunkerSpawned>)),
+        );
+        app.add_systems(
+            Update,
+            (interaction::update_prompt, interaction::interact)
+                .run_if(in_state(PlayingState::Bunker)),
         );
     }
 }

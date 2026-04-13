@@ -11,7 +11,7 @@ pub fn spawn_monitor(
     image: Handle<Image>,
     monitor_pos: Vec3,
     monitor_target: Vec3,
-) {
+) -> Entity {
     let screen_mat = cctv_materials.add(CctvMaterial::new(image, 1.0));
 
     let bezel_mat = std_materials.add(StandardMaterial {
@@ -29,10 +29,12 @@ pub fn spawn_monitor(
     let mut monitor_transform =
         Transform::from_translation(monitor_pos + dir * 0.03).looking_at(monitor_target, Vec3::Y);
     monitor_transform.scale.x = -1.0;
-    commands.spawn((
-        CctvMonitor,
-        Mesh3d(meshes.add(Plane3d::new(Vec3::Z, Vec2::new(0.16, 0.09)))),
-        MeshMaterial3d(screen_mat),
-        monitor_transform,
-    ));
+    commands
+        .spawn((
+            CctvMonitor,
+            Mesh3d(meshes.add(Plane3d::new(Vec3::Z, Vec2::new(0.16, 0.09)))),
+            MeshMaterial3d(screen_mat),
+            monitor_transform,
+        ))
+        .id()
 }
