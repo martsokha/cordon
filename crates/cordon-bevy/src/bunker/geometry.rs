@@ -116,7 +116,7 @@ impl LightFixture {
     }
 }
 
-pub use super::prop_registry::Prop;
+pub use super::props::Prop;
 
 /// Spawn a registered prop at `pos`, where `pos` is the **feet-center**:
 /// the model's lateral AABB center sits at `pos.x`/`pos.z` and its

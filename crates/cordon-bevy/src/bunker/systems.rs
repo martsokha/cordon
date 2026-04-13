@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy::render::render_resource::TextureFormat;
 use bevy::ui::UiTargetCamera;
 
-use super::cctv_material::CctvMaterial;
+use super::materials::CctvMaterial;
 use super::components::*;
 use super::geometry;
 use super::resources::*;

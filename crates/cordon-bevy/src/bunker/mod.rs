@@ -2,12 +2,12 @@
 //! the player meets visitors at the counter inside the bunker, not on
 //! the laptop map.
 
-mod cctv_material;
+mod materials;
 pub mod components;
 pub mod dialogue;
 pub mod geometry;
 mod input;
-mod prop_registry;
+mod props;
 pub mod resources;
 mod rooms;
 mod systems;
@@ -15,7 +15,7 @@ mod visitor;
 
 use bevy::prelude::*;
 
-pub use self::cctv_material::CctvMaterial;
+pub use self::materials::CctvMaterial;
 pub use self::components::*;
 pub use self::resources::{BunkerSpawned, CameraMode};
 pub use self::rooms::ANTECHAMBER_VISITOR_POS;

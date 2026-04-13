@@ -311,7 +311,7 @@ def main() -> int:
     rows = scan()
 
     if rust_mode:
-        out = REPO / "crates" / "cordon-bevy" / "src" / "bunker" / "room" / "prop_registry.rs"
+        out = REPO / "crates" / "cordon-bevy" / "src" / "bunker" / "props.rs"
         out.write_text(emit_rust(rows))
         print(f"wrote {out}  ({len(rows)} props)")
         return 0
