@@ -7,8 +7,6 @@ mod systems;
 
 use bevy::prelude::*;
 
-pub use self::components::LaptopObject;
-
 pub struct LaptopPlugin;
 
 impl Plugin for LaptopPlugin {

@@ -19,8 +19,8 @@ mod visitor;
 
 use bevy::prelude::*;
 
-pub use self::components::*;
-pub use self::resources::{ANTECHAMBER_VISITOR_POS, BunkerSpawned, CameraMode};
+pub use self::components::FpsCamera;
+pub use self::resources::{BunkerSpawned, CameraMode};
 pub use self::visitor::{Visitor, VisitorQueue, VisitorState};
 use crate::PlayingState;
 

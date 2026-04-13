@@ -5,7 +5,7 @@ mod systems;
 
 use bevy::prelude::*;
 
-pub use self::components::*;
+pub use self::components::MonitorPlacement;
 pub use self::materials::CctvMaterial;
 use crate::PlayingState;
 

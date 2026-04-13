@@ -4,7 +4,7 @@ use avian3d::prelude::*;
 use bevy::prelude::*;
 use bevy::ui::UiTargetCamera;
 
-use super::cctv::components::MonitorPlacement;
+use super::cctv::MonitorPlacement;
 use super::components::*;
 use super::resources::*;
 use super::{geometry, rooms};
@@ -33,20 +33,21 @@ pub(super) fn spawn_bunker(
     super::lighting::spawn_lighting(&mut commands, &asset_server, &l);
     spawn_corridor(&mut commands, &mut meshes, &pal, &l);
 
-    let mut ctx = RoomCtx {
-        commands: &mut commands,
-        asset_server: &asset_server,
-        meshes: &mut meshes,
-        mats: &mut mats,
-        pal: &pal,
-        l: &l,
-    };
-    rooms::entry::spawn(&mut ctx);
-    rooms::command::spawn(&mut ctx);
-    rooms::armory::spawn(&mut ctx);
-    rooms::kitchen::spawn(&mut ctx);
-    rooms::quarters::spawn(&mut ctx);
-    drop(ctx);
+    {
+        let mut ctx = RoomCtx {
+            commands: &mut commands,
+            asset_server: &asset_server,
+            meshes: &mut meshes,
+            mats: &mut mats,
+            pal: &pal,
+            l: &l,
+        };
+        rooms::entry::spawn(&mut ctx);
+        rooms::command::spawn(&mut ctx);
+        rooms::armory::spawn(&mut ctx);
+        rooms::kitchen::spawn(&mut ctx);
+        rooms::quarters::spawn(&mut ctx);
+    }
 
     rooms::antechamber::spawn(&mut commands, &mut meshes, &mut mats, &asset_server);
 
