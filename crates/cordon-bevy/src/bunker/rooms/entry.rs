@@ -2,8 +2,8 @@
 
 use bevy::prelude::*;
 
-use super::RoomCtx;
-use super::geometry::*;
+use crate::bunker::geometry::*;
+use crate::bunker::resources::RoomCtx;
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     let l = ctx.l;

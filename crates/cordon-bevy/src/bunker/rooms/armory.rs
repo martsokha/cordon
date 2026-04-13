@@ -4,8 +4,8 @@ use std::f32::consts::FRAC_PI_2;
 
 use bevy::prelude::*;
 
-use super::RoomCtx;
-use super::geometry::*;
+use crate::bunker::geometry::*;
+use crate::bunker::resources::RoomCtx;
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     let l = ctx.l;
@@ -68,11 +68,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     );
 
     // Boxes and crates on the rack shelves. Each StorageRack_01 has
-    // 3 shelves at approximately these heights (the bottom one is
-    // ~20 cm off the floor, then the slot spacing divides the rest):
-    //     SHELF_BOTTOM = 0.20
-    //     SHELF_MIDDLE = 0.98
-    //     SHELF_TOP    = 1.76
+    // 3 shelves at approximately these heights:
     // Boxes sit at the rack's lateral center, slightly pulled toward
     // the corridor front so they read well from the aisle.
     const SHELF_BOTTOM: f32 = 0.65;

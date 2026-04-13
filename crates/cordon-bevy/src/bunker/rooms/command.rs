@@ -4,9 +4,9 @@ use std::f32::consts::FRAC_PI_2;
 
 use bevy::prelude::*;
 
-use super::RoomCtx;
-use super::geometry::*;
-use crate::bunker::{DoorButton, LaptopObject};
+use crate::bunker::components::{DoorButton, LaptopObject};
+use crate::bunker::geometry::*;
+use crate::bunker::resources::RoomCtx;
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     let l = ctx.l;

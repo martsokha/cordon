@@ -20,7 +20,7 @@ pub const ANTECHAMBER_VISITOR_POS: Vec3 = Vec3::new(0.0, -49.75, -49.5);
 
 /// Where the CCTV camera itself sits — front-left ceiling corner
 /// of the antechamber, looking diagonally back at the visitor.
-pub(super) const CCTV_CAMERA_POS: Vec3 = Vec3::new(-1.85, -47.9, -48.15);
+pub(crate) const CCTV_CAMERA_POS: Vec3 = Vec3::new(-1.85, -47.9, -48.15);
 
 /// Antechamber world centre. The room is built around this point.
 const ANTECHAMBER_CENTER: Vec3 = Vec3::new(0.0, -49.0, -50.0);
@@ -41,7 +41,7 @@ fn local_to_world(local: Vec3) -> Vec3 {
 /// Build the antechamber: floor, four walls, ceiling, the door
 /// behind the visitor, a ceiling lamp, and some holding-room
 /// furniture.
-pub(super) fn spawn(
+pub(crate) fn spawn(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
@@ -155,7 +155,7 @@ fn spawn_front_door(
 fn spawn_furniture(commands: &mut Commands, asset_server: &AssetServer, hw: f32, _hd: f32) {
     use std::f32::consts::FRAC_PI_2;
 
-    use crate::bunker::room::geometry::{Prop, prop};
+    use crate::bunker::geometry::{Prop, prop};
 
     // Stool — the only seat a visitor gets.
     prop(
