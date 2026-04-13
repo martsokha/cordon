@@ -16,7 +16,6 @@ pub(super) fn start_laptop_zoom(
 
 pub(super) fn start_free_look(
     mut mode: ResMut<CameraMode>,
-    mut laptop_cam: Query<&mut Camera, With<crate::laptop::LaptopCamera>>,
     mut cursor_q: Query<&mut bevy::window::CursorOptions>,
 ) {
     let saved = match &*mode {
@@ -26,9 +25,6 @@ pub(super) fn start_free_look(
     };
     if let Some(t) = saved {
         *mode = CameraMode::Returning(t);
-        for mut cam in &mut laptop_cam {
-            cam.is_active = false;
-        }
         for mut cursor in &mut cursor_q {
             cursor.grab_mode = bevy::window::CursorGrabMode::Locked;
             cursor.visible = false;
@@ -37,13 +33,9 @@ pub(super) fn start_free_look(
 }
 
 pub(super) fn animate_camera(
-    // Bunker camera animation is player-facing, not sim state --
-    // use real time so accelerating the sim doesn't speed up the
-    // laptop-to-bunker return lerp.
     time: Res<Time<Real>>,
     mut mode: ResMut<CameraMode>,
     mut camera_q: Query<&mut Transform, With<FpsCamera>>,
-    mut laptop_cam: Query<&mut Camera, (With<crate::laptop::LaptopCamera>, Without<FpsCamera>)>,
     mut cursor_q: Query<&mut bevy::window::CursorOptions>,
 ) {
     let dt = time.delta_secs();
@@ -58,10 +50,6 @@ pub(super) fn animate_camera(
         CameraMode::Returning(saved) => {
             transform.translation = transform.translation.lerp(saved.translation, factor);
             transform.rotation = transform.rotation.slerp(saved.rotation, factor);
-            // The visitor-return case only changes rotation (the
-            // player never moved), so a translation-only threshold
-            // would flip back to Free on the very first frame
-            // before the slerp had any visible effect. Check both.
             let pos_done = transform.translation.distance(saved.translation) < 0.01;
             let rot_done = transform.rotation.dot(saved.rotation).abs() > 0.9999;
             if pos_done && rot_done {
@@ -79,9 +67,6 @@ pub(super) fn animate_camera(
 
             if transform.translation.distance(LAPTOP_VIEW_POS) < 0.01 {
                 *mode = CameraMode::AtLaptop { saved_transform };
-                for mut cam in &mut laptop_cam {
-                    cam.is_active = true;
-                }
                 for mut cursor in &mut cursor_q {
                     cursor.grab_mode = bevy::window::CursorGrabMode::None;
                     cursor.visible = true;
@@ -96,18 +81,12 @@ pub(super) fn animate_camera(
             transform.rotation = target_rot;
         }
         CameraMode::LookingAt { target, .. } => {
-            // Rotation only -- player stays put. Smoothly slerp the
-            // current rotation toward facing the visitor.
             let target_rot = Transform::from_translation(transform.translation)
                 .looking_at(target, Vec3::Y)
                 .rotation;
             transform.rotation = transform.rotation.slerp(target_rot, factor);
         }
-        CameraMode::AtCctv { .. } => {
-            // The CCTV camera takes over the window during fullscreen
-            // mode. The FPS camera doesn't move; the cctv plugin's
-            // `apply_cctv_fullscreen` system handles the swap.
-        }
+        CameraMode::AtCctv { .. } => {}
     }
 }
 

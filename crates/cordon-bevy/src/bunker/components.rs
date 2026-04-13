@@ -4,9 +4,6 @@ use bevy::prelude::*;
 pub struct FpsCamera;
 
 #[derive(Component)]
-pub struct LaptopObject;
-
-#[derive(Component)]
 pub struct InteractPrompt;
 
 /// Marker for the small dome on the desk that admits a knocking

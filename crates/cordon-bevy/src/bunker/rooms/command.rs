@@ -5,9 +5,10 @@ use std::f32::consts::FRAC_PI_2;
 use bevy::prelude::*;
 
 use crate::PlayingState;
-use crate::bunker::components::{DoorButton, LaptopObject};
+use crate::bunker::components::DoorButton;
 use crate::bunker::geometry::*;
 use crate::bunker::interaction::{Interact, Interactable};
+use crate::bunker::laptop::LaptopObject;
 use crate::bunker::resources::RoomCtx;
 use crate::bunker::visitor::AdmitVisitor;
 

@@ -9,6 +9,7 @@ pub mod dialogue;
 pub mod geometry;
 mod input;
 pub mod interaction;
+pub mod laptop;
 pub mod lighting;
 mod props;
 pub mod resources;
@@ -33,6 +34,7 @@ impl Plugin for BunkerPlugin {
             dialogue::DialoguePlugin,
             visitor::VisitorPlugin,
             cctv::CctvPlugin,
+            laptop::LaptopPlugin,
         ));
         app.insert_resource(CameraMode::Free);
         app.insert_resource(bevy::light::GlobalAmbientLight {
