@@ -24,7 +24,6 @@ pub struct RelicMarker;
 /// The anchor is logical (by id), not spatial: if an area's
 /// radius ever shrinks at runtime, relics spawned inside the
 /// old radius stay anchored to that area even if their transform
-/// is no longer within the new disk. Areas don't currently
-/// resize, so this is a latent concern, not a bug.
+/// is no longer within the new disk.
 #[derive(Component, Debug, Clone)]
 pub struct RelicHome(pub Id<Area>);

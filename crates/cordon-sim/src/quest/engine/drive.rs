@@ -40,7 +40,7 @@ use crate::resources::{EventLog, GameClock, Player};
 /// and run in parallel with other read-only systems.
 ///
 /// Also carries the faction index (for
-/// [`spawn_event_instance`](crate::day::events::spawn_event_instance))
+/// [`spawn_event_instance`](crate::day::world_events::spawn_event_instance))
 /// so consequence-driven event fires can roll real random
 /// instances instead of hardcoding def-minimum values.
 #[derive(SystemParam)]

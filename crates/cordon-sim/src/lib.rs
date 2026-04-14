@@ -14,9 +14,6 @@ pub mod behavior;
 /// Day rollover detection and per-day systems.
 pub mod day;
 
-/// Effect dispatcher: ActiveEffects tick, OnHit/OnLowHealth/Periodic
-/// relic-trigger wiring, and the TimedEffect → pool handler.
-pub mod effects;
 
 /// Per-entity ECS components that aren't owned by a specific
 /// behavior subplugin — NPC attributes, relic markers.

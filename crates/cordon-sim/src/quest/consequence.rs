@@ -24,7 +24,7 @@ use cordon_core::world::narrative::{ActiveEvent, Consequence, Quest};
 use cordon_data::catalog::GameData;
 
 use super::registry::TemplateRegistry;
-use crate::day::events::{EventOverrides, spawn_event_instance};
+use crate::day::world_events::{EventOverrides, spawn_event_instance};
 
 /// Live references the applier may mutate in place.
 ///

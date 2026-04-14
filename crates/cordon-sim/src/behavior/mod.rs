@@ -14,6 +14,7 @@
 
 pub mod combat;
 pub mod death;
+pub mod effects;
 pub mod loot;
 pub mod movement;
 pub mod squad;
@@ -42,6 +43,7 @@ impl Plugin for BehaviorPlugin {
             combat::CombatPlugin,
             death::DeathPlugin,
             loot::LootPlugin,
+            effects::EffectsPlugin,
             squad::SquadPlugin,
         ));
         // Runs in Cleanup: early enough that the rest of the frame

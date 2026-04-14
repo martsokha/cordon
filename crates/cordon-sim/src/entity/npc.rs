@@ -37,7 +37,7 @@ pub type CorruptionPool = Pool<Corruption>;
 /// Populated by the effect dispatcher and drained as each
 /// entry's duration expires. Instant effects never land here —
 /// they apply synchronously at insertion time inside the
-/// dispatcher. See [`crate::effects`] for the systems.
+/// dispatcher. See [`crate::behavior::effects`] for the systems.
 ///
 /// An active effect has no memory of its source (consumable,
 /// relic trigger, throwable). Once it lands it runs out its

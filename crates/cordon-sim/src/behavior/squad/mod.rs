@@ -9,8 +9,8 @@
 //! Submodules:
 //!
 //! - [`components`] — SquadMarker/Leader/Members/Facing/Bundle, plus
-//!                    MovementIntent / EngagementTarget (the two
-//!                    BT-written data components)
+//!   MovementIntent / EngagementTarget (the two BT-written data
+//!   components).
 //! - [`constants`]  — timing / distance tuning knobs
 //! - [`scan`]       — spatial grid + per-NPC snapshot used by engagement
 //! - [`engagement`] — vision-shared hostile selection + per-member targets

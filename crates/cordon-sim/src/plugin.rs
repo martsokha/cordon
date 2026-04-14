@@ -16,7 +16,6 @@ use cordon_data::gamedata::GameDataResource;
 
 use crate::behavior::BehaviorPlugin;
 use crate::day::DayCyclePlugin;
-use crate::effects::EffectsPlugin;
 use crate::quest::QuestPlugin;
 use crate::resources::{GameClock, SquadIdIndex, UidAllocator};
 use crate::spawn;
@@ -96,12 +95,11 @@ impl Plugin for CordonSimPlugin {
             crate::resources::tick_game_time.run_if(resource_exists::<GameClock>),
         );
         // BehaviorPlugin composes Movement / Vision / Combat /
-        // Death / Loot / Squad subplugins internally, so we register
-        // one plugin for that bundle.
+        // Death / Loot / Effects / Squad subplugins internally, so we
+        // register one plugin for that bundle.
         app.add_plugins((
             DayCyclePlugin,
             BehaviorPlugin,
-            EffectsPlugin,
             RelicSpawnPlugin,
             QuestPlugin,
         ));
