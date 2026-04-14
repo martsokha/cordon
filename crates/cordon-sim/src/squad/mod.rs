@@ -14,6 +14,7 @@
 //! - [`lifecycle`]  — drop despawned members, promote leaders, despawn empty squads
 //! - [`commands`]   — player → sim command boundary (the only mutation path)
 
+mod behave;
 mod commands;
 mod engagement;
 mod formation;
@@ -22,6 +23,7 @@ mod lifecycle;
 mod scan;
 
 use bevy::prelude::*;
+use bevy_behave::prelude::BehavePlugin;
 pub use commands::{Owned, SquadCommand};
 
 use crate::plugin::SimSet;
@@ -30,7 +32,9 @@ pub struct SquadPlugin;
 
 impl Plugin for SquadPlugin {
     fn build(&self, app: &mut App) {
+        app.add_plugins(BehavePlugin::default());
         app.add_message::<SquadCommand>();
+        app.add_observer(behave::attach_idle_tree);
         app.add_systems(
             Update,
             (
