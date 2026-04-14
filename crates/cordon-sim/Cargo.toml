@@ -37,3 +37,4 @@ bevy_yarnspinner = { workspace = true }
 
 # Randomness
 rand = { workspace = true }
+bevy_behave = "0.5"

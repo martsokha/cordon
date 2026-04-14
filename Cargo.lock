@@ -712,6 +712,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_behave"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9af3b90d9e9457a10dafe231d6951ebd43c98fd3b03c013ae437d6bd8316ef8e"
+dependencies = [
+ "bevy",
+ "dyn-clone",
+ "ego-tree",
+]
+
+[[package]]
 name = "bevy_camera"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2449,6 +2460,7 @@ name = "cordon-sim"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_behave",
  "bevy_prng",
  "bevy_rand",
  "bevy_yarnspinner",
@@ -2943,6 +2955,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
 
 [[package]]
+name = "dyn-clone"
+version = "1.0.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0881ea181b1df73ff77ffaaf9c7544ecc11e82fba9b5f27b262a3c73a332555"
+
+[[package]]
 name = "ecolor"
 version = "0.33.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2951,6 +2969,12 @@ dependencies = [
  "bytemuck",
  "emath",
 ]
+
+[[package]]
+name = "ego-tree"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2972feb8dffe7bc8c5463b1dacda1b0dfbed3710e50f977d965429692d74cd8"
 
 [[package]]
 name = "egui"
