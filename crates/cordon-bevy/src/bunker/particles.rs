@@ -16,6 +16,7 @@ use bevy::prelude::*;
 use bevy_hanabi::Gradient as HanabiGradient;
 use bevy_hanabi::prelude::*;
 
+use super::input::controller::FootstepScuffed;
 use super::resources::Layout;
 use crate::PlayingState;
 
@@ -27,11 +28,17 @@ pub struct BunkerParticlesPlugin;
 impl Plugin for BunkerParticlesPlugin {
     fn build(&self, app: &mut App) {
         // Room dust runs on bunker entry. Prop-attached effects
-        // live in the room spawn functions alongside the props
-        // they decorate, so they don't need a plugin hook here.
+        // (kettle steam, visitor swirl) live in their spawn
+        // call-sites alongside the prop they decorate.
         app.add_systems(
             OnEnter(PlayingState::Bunker),
             spawn_dust_emitters.run_if(not(resource_exists::<BunkerDustSpawned>)),
+        );
+        // Footstep scuffs: read the controller's FootstepScuffed
+        // messages and spawn a one-shot emitter at each step.
+        app.add_systems(
+            Update,
+            spawn_footstep_scuffs.run_if(in_state(PlayingState::Bunker)),
         );
     }
 }
@@ -266,6 +273,168 @@ fn build_kettle_steam_effect() -> EffectAsset {
         .init(init_vel)
         .init(init_age)
         .init(init_lifetime)
+        .render(ColorOverLifetimeModifier {
+            gradient: color_grad,
+            ..default()
+        })
+        .render(SizeOverLifetimeModifier {
+            gradient: size_grad,
+            screen_space_size: false,
+        })
+}
+
+/// One-shot dust scuff spawned at the player's feet per footstep.
+/// Each event spawns a *new* short-lived emitter entity that
+/// self-despawns once its particles die. Keeping the emitter
+/// per-step (rather than one shared emitter that gets `reset()`)
+/// avoids the coalescing problem — two steps in rapid succession
+/// would otherwise collapse into a single burst.
+fn spawn_footstep_scuffs(
+    mut commands: Commands,
+    mut effects: ResMut<Assets<EffectAsset>>,
+    mut steps: MessageReader<FootstepScuffed>,
+) {
+    for ev in steps.read() {
+        let effect = effects.add(build_footstep_scuff_effect());
+        commands.spawn((
+            Name::new("bunker_footstep_scuff"),
+            ParticleEffect::new(effect),
+            Transform::from_translation(ev.pos),
+        ));
+    }
+}
+
+/// Tiny radial puff: ~8 particles splashing outward in the XZ
+/// plane, short lifetime, quickly fading gray so the scuff reads
+/// as dust kicked up by a boot and not a smoke bomb.
+fn build_footstep_scuff_effect() -> EffectAsset {
+    let spawner = SpawnerSettings::once(8.0.into());
+    let writer = ExprWriter::new();
+
+    let init_age = SetAttributeModifier::new(Attribute::AGE, writer.lit(0.0).expr());
+    let init_lifetime = SetAttributeModifier::new(
+        Attribute::LIFETIME,
+        (writer.lit(0.3) + writer.rand(ScalarType::Float) * writer.lit(0.2)).expr(),
+    );
+
+    // Tiny disc on the ground plane so the burst has a visible
+    // footprint at birth.
+    let init_pos = SetPositionCircleModifier {
+        center: writer.lit(Vec3::ZERO).expr(),
+        axis: writer.lit(Vec3::Y).expr(),
+        radius: writer.lit(0.04).expr(),
+        dimension: ShapeDimension::Volume,
+    };
+
+    // Outward XZ velocity, 0.3–0.7 m/s radial.
+    let init_vel = SetVelocityCircleModifier {
+        center: writer.lit(Vec3::ZERO).expr(),
+        axis: writer.lit(Vec3::Y).expr(),
+        speed: (writer.lit(0.3) + writer.rand(ScalarType::Float) * writer.lit(0.4)).expr(),
+    };
+
+    // Drag so particles settle instead of flying off across the
+    // floor — "scuff and settle", not "spray".
+    let mut module = writer.finish();
+    let drag = LinearDragModifier::new(module.lit(5.0));
+
+    let mut color_grad = HanabiGradient::new();
+    color_grad.add_key(0.0, Vec4::new(0.5, 0.47, 0.42, 0.45));
+    color_grad.add_key(0.6, Vec4::new(0.45, 0.42, 0.38, 0.25));
+    color_grad.add_key(1.0, Vec4::new(0.4, 0.37, 0.33, 0.0));
+
+    let mut size_grad = HanabiGradient::new();
+    size_grad.add_key(0.0, Vec3::splat(0.02));
+    size_grad.add_key(1.0, Vec3::splat(0.06));
+
+    EffectAsset::new(32, spawner, module)
+        .with_name("footstep_scuff")
+        .init(init_pos)
+        .init(init_vel)
+        .init(init_age)
+        .init(init_lifetime)
+        .update(drag)
+        .render(ColorOverLifetimeModifier {
+            gradient: color_grad,
+            ..default()
+        })
+        .render(SizeOverLifetimeModifier {
+            gradient: size_grad,
+            screen_space_size: false,
+        })
+}
+
+/// Attach a one-shot arrival swirl as a child of the visitor
+/// sprite. Reads as the door opening and a gust of dust rolling
+/// in around the visitor when they step into the bunker.
+///
+/// Parenting to the sprite means the emitter co-despawns when the
+/// visitor sprite does (dialogue end / dismissal), so we don't
+/// leak emitter entities across visitors.
+pub fn attach_visitor_arrival_swirl(
+    commands: &mut Commands,
+    effects: &mut Assets<EffectAsset>,
+    visitor_sprite: Entity,
+) {
+    let effect = effects.add(build_visitor_swirl_effect());
+    let child = commands
+        .spawn((
+            Name::new("bunker_visitor_swirl"),
+            ParticleEffect::new(effect),
+            // Drop below the sprite centre so the swirl pools at
+            // the visitor's feet, not their chest.
+            Transform::from_translation(Vec3::new(0.0, -0.6, 0.0)),
+        ))
+        .id();
+    commands.entity(visitor_sprite).add_child(child);
+}
+
+/// ~40 warm off-white particles exploding outward in the XZ
+/// plane, short lifetime.
+fn build_visitor_swirl_effect() -> EffectAsset {
+    let spawner = SpawnerSettings::once(40.0.into());
+    let writer = ExprWriter::new();
+
+    let init_age = SetAttributeModifier::new(Attribute::AGE, writer.lit(0.0).expr());
+    let init_lifetime = SetAttributeModifier::new(
+        Attribute::LIFETIME,
+        (writer.lit(0.8) + writer.rand(ScalarType::Float) * writer.lit(0.4)).expr(),
+    );
+
+    let init_pos = SetPositionCircleModifier {
+        center: writer.lit(Vec3::ZERO).expr(),
+        axis: writer.lit(Vec3::Y).expr(),
+        radius: writer.lit(0.15).expr(),
+        dimension: ShapeDimension::Volume,
+    };
+
+    let init_vel = SetVelocityCircleModifier {
+        center: writer.lit(Vec3::ZERO).expr(),
+        axis: writer.lit(Vec3::Y).expr(),
+        speed: (writer.lit(0.6) + writer.rand(ScalarType::Float) * writer.lit(0.7)).expr(),
+    };
+
+    let mut module = writer.finish();
+    let drag = LinearDragModifier::new(module.lit(3.5));
+
+    // Warm off-white — reads as "outside air rolling in", not
+    // "corpse gray dust".
+    let mut color_grad = HanabiGradient::new();
+    color_grad.add_key(0.0, Vec4::new(1.0, 0.95, 0.85, 0.0));
+    color_grad.add_key(0.2, Vec4::new(1.0, 0.95, 0.85, 0.55));
+    color_grad.add_key(1.0, Vec4::new(0.9, 0.85, 0.75, 0.0));
+
+    let mut size_grad = HanabiGradient::new();
+    size_grad.add_key(0.0, Vec3::splat(0.04));
+    size_grad.add_key(1.0, Vec3::splat(0.18));
+
+    EffectAsset::new(128, spawner, module)
+        .with_name("visitor_swirl")
+        .init(init_pos)
+        .init(init_vel)
+        .init(init_age)
+        .init(init_lifetime)
+        .update(drag)
         .render(ColorOverLifetimeModifier {
             gradient: color_grad,
             ..default()

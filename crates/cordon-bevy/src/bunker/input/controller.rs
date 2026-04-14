@@ -17,13 +17,27 @@ use crate::bunker::resources::{CameraMode, MovementLocked};
 const MOVE_SPEED: f32 = 4.0;
 const LOOK_SENSITIVITY: f32 = 0.003;
 
+/// Distance (in metres) the player walks between consecutive
+/// footstep events. ~0.7 m matches a natural stride at
+/// [`MOVE_SPEED`] = 4 m/s.
+const STEP_DISTANCE: f32 = 0.7;
+
 pub(crate) const PLAYER_RADIUS: f32 = 0.3;
 pub(crate) const PLAYER_HEIGHT: f32 = 1.0;
+
+/// Fired whenever the player walks far enough for a new footstep.
+/// `pos` is the world-space floor position under the camera.
+/// Consumed by the bunker particle system to scuff a dust puff.
+#[derive(Message, Debug, Clone, Copy)]
+pub struct FootstepScuffed {
+    pub pos: Vec3,
+}
 
 pub struct ControllerPlugin;
 
 impl Plugin for ControllerPlugin {
     fn build(&self, app: &mut App) {
+        app.add_message::<FootstepScuffed>();
         app.add_systems(
             Update,
             (fps_look, fps_move)
@@ -57,6 +71,8 @@ fn fps_move(
     time: Res<Time<Real>>,
     move_and_slide: MoveAndSlide,
     mut camera_q: Query<(Entity, &Collider, &mut Transform), With<FpsCamera>>,
+    mut distance_since_step: Local<f32>,
+    mut footsteps: MessageWriter<FootstepScuffed>,
 ) {
     let mut input = Vec2::ZERO;
     if keys.pressed(KeyCode::KeyW) {
@@ -72,6 +88,9 @@ fn fps_move(
         input.x += 1.0;
     }
     if input == Vec2::ZERO {
+        // Reset the accumulator so stopping and starting again
+        // doesn't fire a stale step the moment the player moves.
+        *distance_since_step = 0.0;
         return;
     }
 
@@ -87,6 +106,7 @@ fn fps_move(
         let config = MoveAndSlideConfig::default();
         let filter = SpatialQueryFilter::default().with_excluded_entities([entity]);
 
+        let before = transform.translation;
         let output = move_and_slide.move_and_slide(
             collider,
             transform.translation,
@@ -100,5 +120,18 @@ fn fps_move(
 
         transform.translation = output.position;
         transform.translation.y = 1.6;
+
+        // Accumulate horizontal distance actually travelled (not
+        // the velocity intent) so collisions + wall-slide naturally
+        // slow the step cadence. Fire a footstep at ground level
+        // when the accumulator crosses STEP_DISTANCE.
+        let delta = (transform.translation - before).xz().length();
+        *distance_since_step += delta;
+        if *distance_since_step >= STEP_DISTANCE {
+            *distance_since_step = 0.0;
+            footsteps.write(FootstepScuffed {
+                pos: Vec3::new(transform.translation.x, 0.0, transform.translation.z),
+            });
+        }
     }
 }
