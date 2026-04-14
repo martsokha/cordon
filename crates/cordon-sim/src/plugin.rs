@@ -138,10 +138,10 @@ pub mod prelude {
     // module layout.
     pub use crate::combat::ShotFired;
     pub use crate::components::{
-        BaseMaxes, CorruptionPool, Employment, FactionId, HealthPool, NpcAttributes, NpcBundle,
-        NpcMarker, Perks, RelicHome, RelicMarker, SquadActivity, SquadBundle, SquadFacing,
-        SquadHomePosition, SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
-        StaminaPool, TemplateId,
+        BaseMaxes, CorruptionPool, Employment, EngagementTarget, FactionId, HealthPool,
+        MovementIntent, NpcAttributes, NpcBundle, NpcMarker, Perks, RelicHome, RelicMarker,
+        SquadBundle, SquadFacing, SquadHomePosition, SquadLeader, SquadMarker, SquadMembers,
+        SquadMembership, SquadWaypoints, StaminaPool, TemplateId,
     };
     pub use crate::day::DayRolled;
     pub use crate::death::{CorpseRemoved, NpcDied};

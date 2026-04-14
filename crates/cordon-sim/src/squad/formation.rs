@@ -3,47 +3,58 @@
 //! Throttled to ~10Hz. For each squad this:
 //!
 //! 1. Snapshots the leader position.
-//! 2. Resolves `Goal::Protect` to a Move target via `SquadIdIndex`.
-//! 3. Flips arrived `Move` activities to `Hold` and updates facing.
-//! 4. Per member, writes `MovementTarget`/`MovementSpeed` to either
+//! 2. Updates facing toward `MovementIntent` target when one is set.
+//! 3. Per member, writes `MovementTarget`/`MovementSpeed` to either
 //!    a combat target (if engaging and out of weapon range) or to the
 //!    formation slot in the squad's local frame.
+//!
+//! All control-flow decisions (Protect follow, arrival detection,
+//! hold transitions, goal-driven walking) live in the behavior tree
+//! (`squad/behave`), which writes [`MovementIntent`] and the
+//! scanner writes [`EngagementTarget`]. This module is pure data
+//! flow: intent in, per-member movement out.
 
 use std::collections::HashMap;
 
 use bevy::prelude::*;
-use cordon_core::entity::squad::{Formation, Goal};
+use cordon_core::entity::squad::Formation;
 use cordon_core::item::Loadout;
 use cordon_data::gamedata::GameDataResource;
 
 use crate::behavior::{CombatTarget, Dead, MovementSpeed, MovementTarget};
 use crate::combat::weapon_range;
 use crate::components::{
-    NpcMarker, SquadActivity, SquadFacing, SquadLeader, SquadMarker, SquadMembers, SquadMembership,
+    EngagementTarget, MovementIntent, NpcMarker, SquadFacing, SquadLeader, SquadMembers,
+    SquadMembership,
 };
-use crate::resources::SquadIdIndex;
-use crate::tuning::{
-    ARRIVED_DIST, ENGAGE_WALK_SPEED, FORMATION_INTERVAL_SECS, PATROL_HOLD_SECS,
-    PROTECT_FOLLOW_DIST, SQUAD_WALK_SPEED,
-};
+use crate::tuning::{ARRIVED_DIST, ENGAGE_WALK_SPEED, FORMATION_INTERVAL_SECS, SQUAD_WALK_SPEED};
+
+/// Per-squad snapshot cached between the leader-pos pass and the
+/// member-writing pass so we don't re-query mid-iteration.
+#[derive(Clone, Copy)]
+pub(super) struct SquadSnap {
+    centroid: Vec2,
+    facing: Vec2,
+    formation: Formation,
+    member_count: usize,
+    engaged: Option<Entity>,
+}
 
 pub(super) fn drive_squad_formation(
     game_data: Res<GameDataResource>,
     time: Res<Time>,
-    squad_index: Res<SquadIdIndex>,
     mut throttle: Local<f32>,
     mut squad_leader_pos: Local<HashMap<Entity, Vec2>>,
-    mut squad_info: Local<HashMap<Entity, (SquadActivity, Vec2, Formation, usize)>>,
+    mut squad_info: Local<HashMap<Entity, SquadSnap>>,
     mut squad_state_q: Query<(
         Entity,
-        &Goal,
         &SquadLeader,
         &SquadMembers,
         &Formation,
-        &mut SquadActivity,
+        &MovementIntent,
+        &EngagementTarget,
         &mut SquadFacing,
     )>,
-    other_leaders_q: Query<&SquadLeader, With<SquadMarker>>,
     leaders_q: Query<&Transform, (With<NpcMarker>, Without<Dead>)>,
     mut members_q: Query<
         (
@@ -67,65 +78,54 @@ pub(super) fn drive_squad_formation(
     let items = &game_data.0.items;
 
     squad_leader_pos.clear();
-    for (squad_entity, _, leader, _, _, _, _) in squad_state_q.iter() {
+    for (squad_entity, leader, _, _, _, _, _) in squad_state_q.iter() {
         if let Ok(t) = leaders_q.get(leader.0) {
             squad_leader_pos.insert(squad_entity, t.translation.truncate());
         }
     }
 
-    // Pass A: per-squad — handle Protect, arrival flip, facing.
-    for (squad_entity, goal, _, _, _, mut activity, mut facing) in squad_state_q.iter_mut() {
+    // Pass A: per-squad — update facing toward the movement target
+    // when one is set, so formation slots rotate into the direction
+    // of travel. Arrival, Protect follow, and Hold transitions are
+    // handled by the behavior tree and surface here as `MovementIntent`.
+    for (squad_entity, _, _, _, intent, _, mut facing) in squad_state_q.iter_mut() {
         let Some(p) = squad_leader_pos.get(&squad_entity).copied() else {
             continue;
         };
-
-        if let Goal::Protect { other } = goal
-            && !matches!(*activity, SquadActivity::Engage { .. })
-            && let Some(other_entity) = squad_index.0.get(other).copied()
-            && let Ok(other_leader) = other_leaders_q.get(other_entity)
-            && let Ok(other_t) = leaders_q.get(other_leader.0)
-        {
-            let target = other_t.translation.truncate();
-            if p.distance(target) > PROTECT_FOLLOW_DIST {
-                *activity = SquadActivity::Move { target };
-            } else if matches!(*activity, SquadActivity::Move { .. }) {
-                *activity = SquadActivity::Hold { duration_secs: 0.5 };
+        if let Some(target) = intent.0 {
+            let new_facing = (target - p).normalize_or_zero();
+            if new_facing.length_squared() > 0.001 {
+                facing.0 = new_facing;
             }
         }
-
-        if let SquadActivity::Move { target } = *activity
-            && p.distance(target) < ARRIVED_DIST
-        {
-            *activity = SquadActivity::Hold {
-                duration_secs: PATROL_HOLD_SECS,
-            };
-        }
-
-        let new_facing = match *activity {
-            SquadActivity::Move { target } => (target - p).normalize_or_zero(),
-            _ => facing.0,
-        };
-        if new_facing.length_squared() > 0.001 {
-            facing.0 = new_facing;
-        } else if facing.0 == Vec2::ZERO {
+        if facing.0 == Vec2::ZERO {
             facing.0 = Vec2::Y;
         }
     }
 
     squad_info.clear();
-    for (e, _, _, members, formation, activity, facing) in squad_state_q.iter() {
-        squad_info.insert(e, (activity.clone(), facing.0, *formation, members.0.len()));
+    for (e, _, members, formation, intent, engagement, facing) in squad_state_q.iter() {
+        let leader_p = squad_leader_pos.get(&e).copied().unwrap_or(Vec2::ZERO);
+        let centroid = intent.0.unwrap_or(leader_p);
+        squad_info.insert(
+            e,
+            SquadSnap {
+                centroid,
+                facing: facing.0,
+                formation: *formation,
+                member_count: members.0.len(),
+                engaged: engagement.0,
+            },
+        );
     }
 
     for (member, transform, combat_target, loadout, mut move_target, mut speed) in &mut members_q {
-        let Some((activity, facing_v, formation, member_count)) =
-            squad_info.get(&member.squad).cloned()
-        else {
+        let Some(snap) = squad_info.get(&member.squad).copied() else {
             continue;
         };
         let pos = transform.translation.truncate();
 
-        if matches!(activity, SquadActivity::Engage { .. }) {
+        if snap.engaged.is_some() {
             if let Some(target_entity) = combat_target.0
                 && let Ok(target_t) = targets_q.get(target_entity)
             {
@@ -169,24 +169,16 @@ pub(super) fn drive_squad_formation(
             continue;
         }
 
-        let Some(leader_p) = squad_leader_pos.get(&member.squad).copied() else {
-            continue;
-        };
-        let facing = facing_v.normalize_or_zero();
+        let facing = snap.facing.normalize_or_zero();
         if facing.length_squared() < 0.001 {
             continue;
         }
-        let centroid = match activity {
-            SquadActivity::Hold { .. } => leader_p,
-            SquadActivity::Move { target } => target,
-            SquadActivity::Engage { .. } => leader_p,
-        };
-        let offsets = formation.slot_offsets(member_count);
+        let offsets = snap.formation.slot_offsets(snap.member_count);
         let slot = (member.slot as usize).min(offsets.len().saturating_sub(1));
         let local = Vec2::new(offsets[slot][0], offsets[slot][1]);
         let perp = Vec2::new(-facing.y, facing.x);
         let world_offset = perp * local.x + facing * local.y;
-        let target = centroid + world_offset;
+        let target = snap.centroid + world_offset;
 
         let dist = pos.distance(target);
         if dist > ARRIVED_DIST {

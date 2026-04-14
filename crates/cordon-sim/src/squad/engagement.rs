@@ -3,8 +3,12 @@
 //! Throttled to ~10Hz, this system is the squad-AI brain: each squad
 //! looks through all of its alive members' vision cones, picks the
 //! nearest hostile squad anyone can see, and writes both the squad-
-//! level [`SquadActivity::Engage`] and the per-member [`CombatTarget`]
+//! level [`EngagementTarget`] and the per-member [`CombatTarget`]
 //! that the firing system will read.
+//!
+//! The scanner runs unconditionally — engagement is never suppressed.
+//! Behavior trees may branch on `EngagementTarget` but do not gate
+//! it.
 
 use std::collections::HashMap;
 
@@ -15,7 +19,7 @@ use super::scan::{NpcSnap, SpatialGrid};
 use crate::behavior::{AnomalyZone, CombatTarget, Dead, Vision};
 use crate::combat::{is_hostile, line_blocked};
 use crate::components::{
-    FactionId, NpcMarker, SquadActivity, SquadFacing, SquadLeader, SquadMarker, SquadMembership,
+    EngagementTarget, FactionId, NpcMarker, SquadFacing, SquadLeader, SquadMarker, SquadMembership,
 };
 use crate::tuning::{ENGAGEMENT_CELL_SIZE, SCAN_INTERVAL_SECS};
 
@@ -30,7 +34,12 @@ pub(super) fn update_squad_engagement(
         (With<NpcMarker>, Without<Dead>),
     >,
     squads_q: Query<(Entity, &FactionId, &SquadLeader), With<SquadMarker>>,
-    mut squad_state_q: Query<(Entity, &mut SquadActivity, &mut SquadFacing, &SquadLeader)>,
+    mut squad_state_q: Query<(
+        Entity,
+        &mut EngagementTarget,
+        &mut SquadFacing,
+        &SquadLeader,
+    )>,
     mut combat_targets_q: Query<&mut CombatTarget, Without<Dead>>,
 ) {
     *throttle += time.delta_secs();
@@ -127,14 +136,12 @@ pub(super) fn update_squad_engagement(
         }
     }
 
-    // Pass B: write per-squad activity + facing.
-    for (squad_entity, mut activity, mut facing, leader) in squad_state_q.iter_mut() {
+    // Pass B: write per-squad engagement target + facing.
+    for (squad_entity, mut engagement, mut facing, leader) in squad_state_q.iter_mut() {
         match squad_hostile.get(&squad_entity) {
             Some(hostile) => {
-                let same =
-                    matches!(*activity, SquadActivity::Engage { hostiles } if hostiles == *hostile);
-                if !same {
-                    *activity = SquadActivity::Engage { hostiles: *hostile };
+                if engagement.0 != Some(*hostile) {
+                    engagement.0 = Some(*hostile);
                 }
                 let our_pos = snapshot
                     .iter()
@@ -152,8 +159,8 @@ pub(super) fn update_squad_engagement(
                 }
             }
             None => {
-                if matches!(*activity, SquadActivity::Engage { .. }) {
-                    *activity = SquadActivity::Hold { duration_secs: 0.5 };
+                if engagement.0.is_some() {
+                    engagement.0 = None;
                 }
             }
         }
@@ -167,9 +174,9 @@ pub(super) fn update_squad_engagement(
         }
         m
     };
-    let activity_by_squad: HashMap<Entity, SquadActivity> = squad_state_q
+    let engagement_by_squad: HashMap<Entity, Option<Entity>> = squad_state_q
         .iter()
-        .map(|(e, a, _, _)| (e, (*a).clone()))
+        .map(|(e, et, _, _)| (e, et.0))
         .collect();
 
     for (entity, member, _, _) in members_q.iter() {
@@ -177,9 +184,8 @@ pub(super) fn update_squad_engagement(
             Some(s) => s,
             None => continue,
         };
-        let activity = activity_by_squad.get(&member.squad);
         // Squad isn't engaged: drop any stale per-member target.
-        let Some(SquadActivity::Engage { hostiles }) = activity else {
+        let Some(Some(hostiles)) = engagement_by_squad.get(&member.squad).copied() else {
             if let Ok(mut ct) = combat_targets_q.get_mut(entity)
                 && ct.0.is_some()
             {
@@ -187,6 +193,7 @@ pub(super) fn update_squad_engagement(
             }
             continue;
         };
+        let hostiles = &hostiles;
 
         // Hostile squad has no alive members in snapshot — they all
         // died this tick. Drop the per-member target; the next scan

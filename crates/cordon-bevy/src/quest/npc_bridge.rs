@@ -17,7 +17,7 @@ use cordon_core::world::BUNKER_MAP_POS;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::components::{
     ActiveEffects, BaseMaxes, CorruptionPool, Employment, FactionId, NpcAttributes, NpcBundle,
-    NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadActivity, SquadBundle,
+    MovementIntent, NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle,
     SquadMembership, StaminaPool, TemplateId, TravelingHome, TravelingToBunker,
 };
 
@@ -96,9 +96,10 @@ pub fn handle_spawn_npc_requests(
             };
             let mut squad_bundle =
                 SquadBundle::from_squad(squad, entity, vec![entity], current_pos);
-            squad_bundle.activity = SquadActivity::Move {
-                target: BUNKER_MAP_POS,
-            };
+            // Pre-seed the movement intent so formation pulls the
+            // dot toward the bunker on the very first tick instead
+            // of waiting for the BT to fire.
+            squad_bundle.movement = MovementIntent(Some(BUNKER_MAP_POS));
             let squad_entity = commands.spawn(squad_bundle).id();
             squad_index.0.insert(squad_uid, squad_entity);
 
@@ -250,12 +251,11 @@ pub fn handle_spawn_npc_requests(
         // `SquadLeader` / `SquadMembers`, not uids. Pass the real
         // entity as leader + sole member.
         let mut squad_bundle = SquadBundle::from_squad(squad, entity, vec![entity], spawn_pos);
-        // Start moving immediately instead of sitting in the
-        // default one-second Hold — we want the dot to peel off
-        // toward the bunker as soon as it appears.
-        squad_bundle.activity = SquadActivity::Move {
-            target: BUNKER_MAP_POS,
-        };
+        // Start moving immediately so the dot peels off toward the
+        // bunker on spawn — the behavior tree will write the same
+        // intent on its first tick but this avoids a one-frame
+        // flicker.
+        squad_bundle.movement = MovementIntent(Some(BUNKER_MAP_POS));
         let squad_entity = commands.spawn(squad_bundle).id();
         squad_index.0.insert(squad_uid, squad_entity);
 
@@ -348,7 +348,7 @@ pub fn handle_template_dismissal(
         };
         let mut squad_bundle =
             SquadBundle::from_squad(squad, req.entity, vec![req.entity], current_pos);
-        squad_bundle.activity = SquadActivity::Move { target: origin_pos };
+        squad_bundle.movement = MovementIntent(Some(origin_pos));
         let squad_entity = commands.spawn(squad_bundle).id();
         squad_index.0.insert(squad_uid, squad_entity);
 

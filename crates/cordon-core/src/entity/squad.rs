@@ -2,9 +2,11 @@
 //!
 //! [`Squad`] is the **spawn-time / save-game** representation. At
 //! runtime, squads are Bevy entities composed of components defined
-//! in `cordon-sim::components` (`SquadFaction`, `SquadGoal`,
-//! `SquadFormation`, `SquadFacing`, `SquadWaypoints`, `SquadLeader`,
-//! `SquadMembers`, `SquadActivity`).
+//! in `cordon-sim::components` (`FactionId`, `Goal`, `Formation`,
+//! `SquadFacing`, `SquadWaypoints`, `SquadLeader`, `SquadMembers`,
+//! `MovementIntent`, `EngagementTarget`). A `bevy_behave` tree child
+//! drives `MovementIntent` based on `Goal`; the engagement scanner
+//! writes `EngagementTarget` when a hostile squad is in vision.
 //!
 //! Vision and engagement are shared at squad granularity: when any
 //! member spots a hostile, the whole squad knows; when the squad

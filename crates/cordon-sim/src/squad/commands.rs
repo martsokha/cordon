@@ -12,9 +12,13 @@
 //! there is no other API.
 
 use bevy::prelude::*;
+use bevy_prng::WyRand;
+use bevy_rand::prelude::GlobalRng;
 use cordon_core::entity::squad::{Formation, Goal, Squad};
 use cordon_core::primitive::{Id, Uid};
 use cordon_core::world::area::Area;
+use cordon_data::gamedata::GameDataResource;
+use rand::RngExt;
 
 use crate::components::{SquadMarker, SquadWaypoints};
 
@@ -45,38 +49,48 @@ pub enum SquadCommand {
 /// targeting unowned squads are dropped silently — the UI is
 /// responsible for not offering player commands against world
 /// squads, and there is no other mutation API.
+///
+/// Goals are changed via `commands.entity(squad).insert(new_goal)`
+/// (not `*goal = new_goal`) so the `Insert<Goal>` observer fires and
+/// the behavior-tree attach logic rebuilds the squad's tree.
+/// Mutating in place would leave the old tree in charge.
 pub(super) fn apply_squad_commands(
     mut messages: MessageReader<SquadCommand>,
+    data: Res<GameDataResource>,
+    mut rng: Single<&mut WyRand, With<GlobalRng>>,
+    mut cmds: Commands,
     owned: Query<(), (With<SquadMarker>, With<Owned>)>,
     squad_ids: Query<&Uid<Squad>>,
-    mut squads: Query<(&mut Goal, &mut Formation, &mut SquadWaypoints)>,
+    mut squads: Query<(&mut Formation, &mut SquadWaypoints)>,
 ) {
     for cmd in messages.read() {
         let target = cmd.squad();
         if owned.get(target).is_err() {
             continue;
         }
-        let Ok((mut goal, mut formation, mut waypoints)) = squads.get_mut(target) else {
+        let Ok((mut formation, mut waypoints)) = squads.get_mut(target) else {
             continue;
         };
 
         match cmd {
             SquadCommand::Hold { .. } => {
-                *goal = Goal::Idle;
                 waypoints.points.clear();
                 waypoints.next = 0;
+                cmds.entity(target).insert(Goal::Idle);
             }
             SquadCommand::Patrol { area, .. } => {
-                *goal = Goal::Patrol { area: area.clone() };
-                // Concrete waypoints get rolled by the next squad-AI
-                // tick — clear the old set so fresh ones land.
-                waypoints.points.clear();
+                // Roll concrete waypoints inside the area so Patrol
+                // actually moves. Pre-port this was left to a
+                // squad-AI tick that never existed, so player-issued
+                // Patrol stalled with an empty list.
+                waypoints.points = roll_area_waypoints(area, &data, rng.as_mut());
                 waypoints.next = 0;
+                cmds.entity(target).insert(Goal::Patrol { area: area.clone() });
             }
             SquadCommand::Scavenge { area, .. } => {
-                *goal = Goal::Scavenge { area: area.clone() };
-                waypoints.points.clear();
+                waypoints.points = roll_area_waypoints(area, &data, rng.as_mut());
                 waypoints.next = 0;
+                cmds.entity(target).insert(Goal::Scavenge { area: area.clone() });
             }
             SquadCommand::Protect { other, .. } => {
                 // Goal::Protect stores a Uid<Squad> (save-game stable).
@@ -85,15 +99,15 @@ pub(super) fn apply_squad_commands(
                 let Ok(other_uid) = squad_ids.get(*other) else {
                     continue;
                 };
-                *goal = Goal::Protect { other: *other_uid };
+                cmds.entity(target).insert(Goal::Protect { other: *other_uid });
             }
             SquadCommand::GoTo { to, .. } => {
-                *goal = Goal::GoTo {
-                    target: [to.x, to.y],
-                    intent: cordon_core::entity::squad::TravelIntent::Generic,
-                };
                 waypoints.points.clear();
                 waypoints.next = 0;
+                cmds.entity(target).insert(Goal::GoTo {
+                    target: [to.x, to.y],
+                    intent: cordon_core::entity::squad::TravelIntent::Generic,
+                });
             }
             SquadCommand::SetFormation {
                 formation: new_formation,
@@ -103,6 +117,29 @@ pub(super) fn apply_squad_commands(
             }
         }
     }
+}
+
+/// Roll 3 scattered waypoints inside an area. Mirrors
+/// `spawn::generator::waypoints_for_goal` so player-issued Patrol
+/// lands the same shape of ring as spawn-generated patrol squads.
+fn roll_area_waypoints(
+    area_id: &Id<Area>,
+    data: &GameDataResource,
+    rng: &mut WyRand,
+) -> Vec<Vec2> {
+    let Some(area) = data.0.areas.get(area_id) else {
+        return Vec::new();
+    };
+    let cx = area.location.x;
+    let cy = area.location.y;
+    let r = area.radius.value() * 0.7;
+    (0..3)
+        .map(|_| {
+            let angle = rng.random_range(0.0_f32..std::f32::consts::TAU);
+            let dist = rng.random_range(r * 0.3..r);
+            Vec2::new(cx + angle.cos() * dist, cy + angle.sin() * dist)
+        })
+        .collect()
 }
 
 impl SquadCommand {

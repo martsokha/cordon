@@ -18,7 +18,6 @@ mod behave;
 mod commands;
 mod engagement;
 mod formation;
-mod goals;
 mod lifecycle;
 mod scan;
 
@@ -33,14 +32,14 @@ pub struct SquadPlugin;
 impl Plugin for SquadPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(BehavePlugin::default());
+        app.add_plugins(behave::ActionsPlugin);
         app.add_message::<SquadCommand>();
-        app.add_observer(behave::attach_idle_tree);
+        app.add_observer(behave::attach_goal_tree);
         app.add_systems(
             Update,
             (
                 commands::apply_squad_commands.in_set(SimSet::Commands),
                 lifecycle::cleanup_dead_squads.in_set(SimSet::Cleanup),
-                goals::drive_squad_goals.in_set(SimSet::Goals),
                 engagement::update_squad_engagement.in_set(SimSet::Engagement),
                 formation::drive_squad_formation.in_set(SimSet::Formation),
             ),

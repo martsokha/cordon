@@ -20,7 +20,7 @@ use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::{Formation, Goal, Squad};
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::components::{
-    FactionId, PendingYarnNode, SquadActivity, SquadBundle, SquadMembership,
+    FactionId, PendingYarnNode, SquadBundle, SquadMembership,
 };
 use cordon_sim::quest::travel::{BunkerArrival, HomeArrival};
 use cordon_sim::resources::{SquadIdIndex, UidAllocator};
@@ -125,9 +125,11 @@ pub fn handle_home_arrival(
             waypoints: Vec::new(),
             next_waypoint: 0,
         };
-        let mut squad_bundle =
+        let squad_bundle =
             SquadBundle::from_squad(squad, arrival.entity, vec![arrival.entity], pos);
-        squad_bundle.activity = SquadActivity::Hold { duration_secs: 4.0 };
+        // MovementIntent defaults to None — an idle squad holds at
+        // the leader's pos. The tree (idle_tree) will manage the
+        // 4-second hold cycle going forward.
         let squad_entity = commands.spawn(squad_bundle).id();
         squad_index.0.insert(squad_uid, squad_entity);
 

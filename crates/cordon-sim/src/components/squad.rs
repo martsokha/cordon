@@ -51,20 +51,26 @@ pub struct SquadLeader(pub Entity);
 #[derive(Component, Debug, Clone)]
 pub struct SquadMembers(pub Vec<Entity>);
 
-/// Short-term squad activity (Hold / Move / Engage). The squad
-/// systems read and write this each tick.
-#[derive(Component, Debug, Clone)]
-pub enum SquadActivity {
-    Hold { duration_secs: f32 },
-    Move { target: Vec2 },
-    Engage { hostiles: Entity },
-}
+/// Where the squad wants its leader-anchored centroid to be this
+/// frame. `Some(target)` = walk there; `None` = hold position (use
+/// the leader's current transform as the centroid). Written by
+/// behavior-tree action leaves (see `squad/behave`); read by
+/// `drive_squad_formation` to place members in their formation slot.
+///
+/// Replaces the old `SquadActivity::Move` variant. Absence replaces
+/// `SquadActivity::Hold`.
+#[derive(Component, Debug, Clone, Copy, Default)]
+pub struct MovementIntent(pub Option<Vec2>);
 
-impl Default for SquadActivity {
-    fn default() -> Self {
-        Self::Hold { duration_secs: 1.0 }
-    }
-}
+/// Hostile squad entity the engagement scanner has locked onto this
+/// frame, if any. Written by `update_squad_engagement`; read by the
+/// formation per-member pass (to chase a combat target when out of
+/// weapon range) and by behavior trees (for branching on "we're
+/// currently engaging").
+///
+/// Replaces the old `SquadActivity::Engage` variant.
+#[derive(Component, Debug, Clone, Copy, Default)]
+pub struct EngagementTarget(pub Option<Entity>);
 
 #[derive(Bundle)]
 pub struct SquadBundle {
@@ -78,7 +84,8 @@ pub struct SquadBundle {
     pub home: SquadHomePosition,
     pub leader: SquadLeader,
     pub members: SquadMembers,
-    pub activity: SquadActivity,
+    pub movement: MovementIntent,
+    pub engagement: EngagementTarget,
 }
 
 impl SquadBundle {
@@ -101,7 +108,8 @@ impl SquadBundle {
             home: SquadHomePosition(home),
             leader: SquadLeader(leader),
             members: SquadMembers(members),
-            activity: SquadActivity::default(),
+            movement: MovementIntent::default(),
+            engagement: EngagementTarget::default(),
         }
     }
 }
