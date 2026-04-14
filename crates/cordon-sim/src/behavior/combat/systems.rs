@@ -32,36 +32,47 @@ struct TargetInfo {
     ballistic: u32,
 }
 
-/// Weapon + ammo stats resolved from a shooter's current loadout.
-/// Pulled out into its own struct so `simulate_shooter_frame` has
-/// a flat, boring argument list instead of a wall of locals.
+/// Weapon stats resolved once per shooter per frame. The actual
+/// per-shot damage is recomputed inside the shooter loop whenever
+/// the active ammo box's def changes, so a shooter carrying mixed
+/// ammo types gets correct damage numbers for each round (no
+/// stale caching across box swaps).
 struct WeaponStats {
+    /// Caliber the shooter's weapon fires. Used to match ammo
+    /// boxes in the pouch.
     caliber: Id<Caliber>,
-    magazine: u32,
     /// Seconds per shot (`1.0 / fire_rate`), precomputed once.
     period: f32,
     range: f32,
-    /// Damage dealt *after* target ballistic resistance has already
-    /// been subtracted — precomputed so the shooter loop doesn't
-    /// repeat the resolve for every catch-up shot.
-    dealt: u32,
+    /// Weapon's own bonus damage (long barrel, hand-tuned action),
+    /// added to the active ammo's base damage.
+    added_damage: u32,
+    /// Target's ballistic resistance, snapshotted once per frame
+    /// so every shot in the burst uses the same resistance value.
+    target_ballistic: u32,
 }
 
 /// Result of simulating one shooter for one frame. Written back to
 /// the shooter's components by the caller.
 struct ShooterOutcome {
     cooldown: f32,
-    shots_fired: u32,
+    /// Total rounds fired this frame, paired with the damage each
+    /// one dealt. Length matches total shots; the `u32` on each
+    /// entry is the resolved post-resistance damage.
+    hits: Vec<u32>,
     hit_target: Option<Entity>,
     /// True when the NPC ran out of ammo mid-frame and should drop
     /// its combat target.
     stop_targeting: bool,
 }
 
-/// Resolve a shooter's equipped weapon + loaded-ammo stats into a
-/// flat [`WeaponStats`] + precomputed damage. Returns `None` when
-/// the shooter doesn't have a fireable setup (no weapon, no ammo,
-/// invalid def, etc.); the caller treats that as "skip this frame".
+/// Resolve a shooter's equipped weapon stats into a flat
+/// [`WeaponStats`]. Returns `None` when the shooter doesn't have a
+/// fireable setup (no weapon, no matching ammo in the pouch,
+/// invalid def); the caller treats that as "skip this frame".
+///
+/// This is a peek — it doesn't consume ammo. The shooter loop
+/// resolves the active box's damage on demand.
 fn load_weapon_stats(
     loadout: &Loadout,
     target_ballistic: u32,
@@ -73,14 +84,9 @@ fn load_weapon_stats(
         return None;
     };
 
-    let loaded_ammo_id = weapon_inst.loaded_ammo.clone()?;
-    let ammo_def = items.get(&loaded_ammo_id)?;
-    let ItemData::Ammo(ammo) = &ammo_def.data else {
-        return None;
-    };
-
-    let raw_damage = ammo.damage + weapon.added_damage;
-    let dealt = Resistances::resolve_hit(target_ballistic, ammo.penetration, raw_damage);
+    // Gate: must have at least one matching ammo box to fire this
+    // frame. We don't compute damage here — that happens per shot.
+    find_ammo_idx(loadout, &weapon.caliber, items)?;
 
     let period = if weapon.fire_rate > 0.0 {
         1.0 / weapon.fire_rate
@@ -90,10 +96,10 @@ fn load_weapon_stats(
 
     Some(WeaponStats {
         caliber: weapon.caliber.clone(),
-        magazine: weapon.magazine,
         period,
         range: weapon.range.value(),
-        dealt,
+        added_damage: weapon.added_damage,
+        target_ballistic,
     })
 }
 
@@ -101,45 +107,61 @@ fn load_weapon_stats(
 /// catch-up loop against a shared `dt` budget and returns a
 /// [`ShooterOutcome`] the caller can flush into components.
 ///
-/// This is the interesting part of combat — split out of
-/// `resolve_combat` so the outer system is mostly plumbing. The
-/// `loadout` reference is mutable because mag refills drain ammo
-/// pouches; everything else is local state. Fire tempo is
-/// controlled entirely by `WeaponStats::period`: when a mag runs
-/// dry the loop tops it up in place from the general pouch and
-/// keeps firing within the same `dt` budget.
+/// No magazine state — every shot pulls one round directly from
+/// the first matching ammo box in the general pouch. When no
+/// matching box remains, the shooter drops the target.
+///
+/// Damage is resolved per shot against the *active* ammo box's
+/// def. We cache the last-seen box id so unchanged bursts skip
+/// the HashMap lookup; only a box-swap forces a refresh.
 fn simulate_shooter_frame(
     dt: f32,
     target: Entity,
     loadout: &mut Loadout,
     stats: &WeaponStats,
     initial_cooldown: f32,
-    initial_mag: u32,
     items: &HashMap<Id<Item>, ItemDef>,
 ) -> ShooterOutcome {
     let mut budget = dt;
     let mut cooldown = initial_cooldown;
-    let mut mag_live = initial_mag;
-    let mut shots_fired: u32 = 0;
+    let mut hits: Vec<u32> = Vec::new();
     let mut stop_targeting = false;
+    // Per-shot damage cache: `(ammo_def_id, resolved_damage)`.
+    // Reset on box swap so mixed-caliber-same-pouch loadouts
+    // produce correct numbers.
+    let mut active: Option<(Id<Item>, u32)> = None;
 
     while budget > 0.0 {
-        // --- Empty-mag phase: refill instantly from the general
-        // pouch if we can, otherwise drop the target.
-        if mag_live == 0 {
-            let refilled = refill_magazine(loadout, items, &stats.caliber, stats.magazine);
-            if refilled {
-                mag_live = loadout.primary.as_ref().map(|w| w.count).unwrap_or(0);
-                continue;
-            }
-            // No ammo pouches left → give up. Caller will drop
-            // the combat target so the AI can pick something else.
+        // --- Ammo check: is there any matching box left?
+        let Some(ammo_idx) = find_ammo_idx(loadout, &stats.caliber, items) else {
             stop_targeting = true;
             break;
-        }
+        };
+        let ammo_box_id = loadout.general[ammo_idx].def_id.clone();
+
+        // --- Resolve damage for the active box (cache hit on
+        // same-box bursts, one lookup on swap). If the id doesn't
+        // resolve (shouldn't happen — find_ammo_idx already
+        // filtered) we bail out of the frame defensively.
+        let dealt = match &active {
+            Some((id, d)) if *id == ammo_box_id => *d,
+            _ => {
+                let Some(resolved) = resolve_ammo_damage(
+                    &ammo_box_id,
+                    items,
+                    stats.added_damage,
+                    stats.target_ballistic,
+                ) else {
+                    stop_targeting = true;
+                    break;
+                };
+                active = Some((ammo_box_id.clone(), resolved));
+                resolved
+            }
+        };
 
         // --- Firing phase: advance the cooldown, then fire as
-        // many catch-up shots as the remaining budget can afford.
+        // many catch-up shots as the remaining budget affords.
         if cooldown > 0.0 {
             let consumed = cooldown.min(budget);
             cooldown -= consumed;
@@ -153,19 +175,30 @@ fn simulate_shooter_frame(
         } else {
             1
         };
-        let to_fire = affordable.min(mag_live);
+
+        // Cap the burst at the rounds remaining *in the current
+        // box* so a box-swap mid-burst triggers a fresh damage
+        // resolve on the next outer-loop iteration.
+        let box_rounds = loadout.general[ammo_idx].count;
+        let to_fire = affordable.min(box_rounds);
         if to_fire == 0 {
-            // Shouldn't be reachable given the branches above, but
-            // guard to prevent an infinite loop on weird input.
+            stop_targeting = true;
             break;
         }
         for _ in 0..to_fire {
-            if let Some(weapon) = &mut loadout.primary {
-                weapon.count = weapon.count.saturating_sub(1);
-            }
+            // Direct index decrement — we know ammo_idx is valid
+            // for this burst because to_fire <= box_rounds.
+            loadout.general[ammo_idx].count -= 1;
+            hits.push(dealt);
         }
-        shots_fired += to_fire;
-        mag_live = mag_live.saturating_sub(to_fire);
+        // Clean up an emptied box; next loop iteration's
+        // `find_ammo_idx` will pick the next matching box (or
+        // terminate the burst).
+        if loadout.general[ammo_idx].count == 0 {
+            loadout.general.remove(ammo_idx);
+            active = None;
+        }
+
         // The first shot of the burst was already "paid for" by
         // exiting the cooldown branch — only the extras spend
         // additional budget.
@@ -173,12 +206,35 @@ fn simulate_shooter_frame(
         cooldown = stats.period;
     }
 
+    let shots_fired = hits.len() as u32;
     ShooterOutcome {
         cooldown,
-        shots_fired,
+        hits,
         hit_target: if shots_fired > 0 { Some(target) } else { None },
         stop_targeting,
     }
+}
+
+/// Resolve an ammo def's damage against a target's ballistic
+/// resistance. Returns `None` if the id doesn't point to an ammo
+/// def (shouldn't happen in practice — `find_ammo_idx` already
+/// filtered — but defensive).
+fn resolve_ammo_damage(
+    ammo_id: &Id<Item>,
+    items: &HashMap<Id<Item>, ItemDef>,
+    weapon_added: u32,
+    target_ballistic: u32,
+) -> Option<u32> {
+    let def = items.get(ammo_id)?;
+    let ItemData::Ammo(ammo) = &def.data else {
+        return None;
+    };
+    let raw = ammo.damage + weapon_added;
+    Some(Resistances::resolve_hit(
+        target_ballistic,
+        ammo.penetration,
+        raw,
+    ))
 }
 
 /// Tick down per-NPC fire cooldowns and apply damage when ready.
@@ -220,13 +276,7 @@ pub fn resolve_combat(
     let target_snapshot = snapshot_targets(&sets.p0(), items);
 
     // Phase 2: run each shooter's per-frame loop and collect hits.
-    let hits = fire_shooters(
-        &mut sets.p1(),
-        &target_snapshot,
-        items,
-        dt,
-        &mut shots,
-    );
+    let hits = fire_shooters(&mut sets.p1(), &target_snapshot, items, dt, &mut shots);
 
     // Phase 3: apply accumulated hits to target HP pools.
     apply_hits(&mut sets.p2(), hits, &mut pool_changed);
@@ -296,14 +346,12 @@ fn fire_shooters(
             continue;
         }
 
-        let mag_count = loadout.equipped_weapon().map(|w| w.count).unwrap_or(0);
         let outcome = simulate_shooter_frame(
             dt,
             target_entity,
             &mut loadout,
             &stats,
             fire_state.cooldown_secs,
-            mag_count,
             items,
         );
         fire_state.cooldown_secs = outcome.cooldown;
@@ -317,11 +365,11 @@ fn fire_shooters(
                 from: shooter_pos,
                 to: target_info.pos,
             });
-            for _ in 0..outcome.shots_fired {
-                hits.push(HitIntent {
-                    target,
-                    dealt: stats.dealt,
-                });
+            // `outcome.hits` carries the per-shot resolved damage,
+            // which may differ across shots in a burst if the
+            // shooter's ammo box swapped mid-frame.
+            for dealt in outcome.hits {
+                hits.push(HitIntent { target, dealt });
             }
         }
 
@@ -355,33 +403,4 @@ fn apply_hits(
             });
         }
     }
-}
-
-/// Pull one matching ammo box from the loadout's general pouch and
-/// refill the primary weapon up to its magazine size.
-fn refill_magazine(
-    loadout: &mut Loadout,
-    items: &HashMap<Id<Item>, ItemDef>,
-    caliber: &Id<Caliber>,
-    magazine: u32,
-) -> bool {
-    let Some(idx) = find_ammo_idx(loadout, caliber, items) else {
-        return false;
-    };
-    let box_def_id = loadout.general[idx].def_id.clone();
-    let current_mag = loadout.primary.as_ref().map(|w| w.count).unwrap_or(0);
-    let space = magazine.saturating_sub(current_mag);
-    let take = space.min(loadout.general[idx].count);
-    if take == 0 {
-        return false;
-    }
-    loadout.general[idx].count -= take;
-    if loadout.general[idx].count == 0 {
-        loadout.general.remove(idx);
-    }
-    if let Some(weapon) = &mut loadout.primary {
-        weapon.count += take;
-        weapon.loaded_ammo = Some(box_def_id);
-    }
-    true
 }

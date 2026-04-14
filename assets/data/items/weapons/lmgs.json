@@ -10,7 +10,6 @@
       ],
       "fire_rate": 12.0,
       "accuracy": 0.65,
-      "magazine": 45,
       "range": 160.0,
       "suppressed": false,
       "added_damage": 6
@@ -34,7 +33,6 @@
       ],
       "fire_rate": 11.0,
       "accuracy": 0.6,
-      "magazine": 100,
       "range": 170.0,
       "suppressed": false,
       "added_damage": 7
@@ -62,7 +60,6 @@
       ],
       "fire_rate": 10.0,
       "accuracy": 0.65,
-      "magazine": 100,
       "range": 200.0,
       "suppressed": false,
       "added_damage": 10

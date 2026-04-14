@@ -17,6 +17,10 @@ pub enum FireMode {
 }
 
 /// Data for weapon items.
+///
+/// Weapons do not track magazine capacity or chambered rounds —
+/// the sim consumes one round per shot directly from a matching
+/// ammo box in the general pouch, with no reload step.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WeaponData {
     /// Caliber ID this weapon fires. Must match an ammo item's caliber.
@@ -27,8 +31,6 @@ pub struct WeaponData {
     pub fire_rate: f32,
     /// Base accuracy (0.0–1.0). Higher = tighter spread.
     pub accuracy: f32,
-    /// Magazine capacity in rounds.
-    pub magazine: u32,
     /// Effective firing range in map units.
     pub range: Distance,
     /// Whether this weapon is suppressed (affects runner stealth missions).

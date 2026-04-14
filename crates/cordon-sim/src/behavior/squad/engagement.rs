@@ -86,10 +86,8 @@ pub(super) fn update_squad_engagement(
         })
         .collect();
 
-    let squad_faction: HashMap<
-        Entity,
-        &Id<Faction>,
-    > = squads_q.iter().map(|(e, f, _)| (e, &f.0)).collect();
+    let squad_faction: HashMap<Entity, &Id<Faction>> =
+        squads_q.iter().map(|(e, f, _)| (e, &f.0)).collect();
     let squad_leader: HashMap<Entity, Entity> = squads_q
         .iter()
         .map(|(e, _, leader)| (e, leader.0))

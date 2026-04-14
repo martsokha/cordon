@@ -17,7 +17,9 @@
 //!   `next_fire` has landed and advances the schedule past `now`.
 
 use bevy::prelude::*;
-use cordon_core::item::{EffectTrigger, Item, ItemData, Loadout, PERIODIC_INTERVAL_MINUTES, TimedEffect};
+use cordon_core::item::{
+    EffectTrigger, Item, ItemData, Loadout, PERIODIC_INTERVAL_MINUTES, TimedEffect,
+};
 use cordon_core::primitive::{Corruption, GameTime, Health, Id, Pool, Stamina};
 use cordon_data::gamedata::GameDataResource;
 

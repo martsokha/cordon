@@ -22,7 +22,9 @@
 use std::collections::HashMap;
 
 use bevy::prelude::*;
-use cordon_core::item::{Item, ItemData, ItemDef, ItemInstance, Loadout, ResourceTarget, TimedEffect};
+use cordon_core::item::{
+    Item, ItemData, ItemDef, ItemInstance, Loadout, ResourceTarget, TimedEffect,
+};
 use cordon_core::primitive::{Corruption, GameTime, Health, Id, Pool, Stamina};
 use cordon_data::gamedata::GameDataResource;
 
@@ -176,11 +178,7 @@ fn find_matching_consumable(
     })
 }
 
-fn instance_satisfies(
-    inst: &ItemInstance,
-    items: &HashMap<Id<Item>, ItemDef>,
-    need: Need,
-) -> bool {
+fn instance_satisfies(inst: &ItemInstance, items: &HashMap<Id<Item>, ItemDef>, need: Need) -> bool {
     let Some(def) = items.get(&inst.def_id) else {
         return false;
     };

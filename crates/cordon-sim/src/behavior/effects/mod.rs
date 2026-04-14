@@ -57,7 +57,6 @@ mod throwable;
 mod tick;
 
 use bevy::prelude::*;
-
 pub use scheduler::PeriodicTriggers;
 pub use throwable::ThrowableImpact;
 

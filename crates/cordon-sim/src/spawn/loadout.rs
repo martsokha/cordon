@@ -77,10 +77,9 @@ pub fn generate_loadout<R: Rng>(
     loadout
 }
 
-/// Roll an ammo type for a freshly-rolled weapon, then:
-///   1. Set the weapon's `loaded_ammo` to that type and `count` to a full mag.
-///   2. Append `reserve_boxes` extra fresh ammo boxes (any caliber-matching
-///      def, picked uniformly each time) to the general pouch.
+/// Equip a freshly-rolled weapon and stock caliber-matching ammo
+/// boxes in the general pouch. Weapons no longer track a loaded
+/// magazine — every shot pulls from the pouch directly.
 fn fill_weapon_and_reserves<R: Rng>(
     weapon_slot: &mut Option<ItemInstance>,
     general: &mut Vec<ItemInstance>,
@@ -95,25 +94,22 @@ fn fill_weapon_and_reserves<R: Rng>(
     let Some(weapon_def) = items.get(&weapon_inst.def_id) else {
         return;
     };
-    let (caliber, magazine) = match &weapon_def.data {
-        ItemData::Weapon(w) => (w.caliber.clone(), w.magazine),
+    let caliber = match &weapon_def.data {
+        ItemData::Weapon(w) => w.caliber.clone(),
         _ => return,
     };
 
-    // Pick the ammo type to load and load a full mag.
-    if let Some(loaded_def) = pick_ammo_def_for_caliber(&caliber, items, rng) {
-        weapon_inst.loaded_ammo = Some(loaded_def.id.clone());
-        weapon_inst.count = magazine;
-    }
-
-    // Spare boxes: same caliber, any type.
-    for _ in 0..reserve_boxes {
+    // Pouch stock: one guaranteed box plus `reserve_boxes` extras,
+    // any caliber-matching def, picked uniformly each time.
+    // Replaces the old "loaded magazine + reserves" split — the
+    // first box is what the shooter draws from, extras let them
+    // keep firing after the first box empties.
+    for _ in 0..=reserve_boxes {
+        if (general.len() as u8) >= capacity {
+            break;
+        }
         if let Some(def) = pick_ammo_def_for_caliber(&caliber, items, rng) {
-            let inst = ItemInstance::new(def);
-            if (general.len() as u8) >= capacity {
-                break;
-            }
-            general.push(inst);
+            general.push(ItemInstance::new(def));
         }
     }
 }
