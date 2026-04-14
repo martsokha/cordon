@@ -130,11 +130,15 @@ pub mod prelude {
     };
     pub use crate::entity::relic::{RelicHome, RelicMarker};
 
-    // Squad components and commands.
-    pub use crate::behavior::squad::components::{
-        EngagementTarget, MovementIntent, SquadBundle, SquadFacing, SquadHomePosition,
-        SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
+    // Squad components and commands. Squad is split by concern:
+    // identity (who), intent (blackboard), formation (cohesion data).
+    pub use crate::behavior::squad::formation::{
+        SquadFacing, SquadHomePosition, SquadWaypoints,
     };
+    pub use crate::behavior::squad::identity::{
+        SquadBundle, SquadLeader, SquadMarker, SquadMembers, SquadMembership,
+    };
+    pub use crate::behavior::squad::intent::{EngagementTarget, MovementIntent};
     pub use crate::behavior::squad::{Owned, SquadCommand};
 
     // Cross-cutting messages and resources.

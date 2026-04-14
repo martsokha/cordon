@@ -15,10 +15,10 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataResource;
 
-use super::components::{
-    EngagementTarget, SquadFacing, SquadLeader, SquadMarker, SquadMembership,
-};
 use super::constants::{ENGAGEMENT_CELL_SIZE, SCAN_INTERVAL_SECS};
+use super::formation::SquadFacing;
+use super::identity::{SquadLeader, SquadMarker, SquadMembership};
+use super::intent::EngagementTarget;
 use super::scan::{NpcSnap, SpatialGrid};
 use crate::behavior::combat::components::CombatTarget;
 use crate::behavior::combat::helpers::{is_hostile, line_blocked};

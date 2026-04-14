@@ -20,7 +20,9 @@ use cordon_core::primitive::Uid;
 use crate::behavior::death::components::Dead;
 use crate::entity::npc::NpcMarker;
 use crate::resources::SquadIdIndex;
-use super::super::components::{MovementIntent, SquadLeader, SquadMarker, SquadWaypoints};
+use super::super::formation::SquadWaypoints;
+use super::super::identity::{SquadLeader, SquadMarker};
+use super::super::intent::MovementIntent;
 use super::super::constants::{ARRIVED_DIST, PROTECT_FOLLOW_DIST};
 
 const FIND_SEARCH_RADIUS: f32 = 60.0;

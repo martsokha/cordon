@@ -1,4 +1,13 @@
-//! Formation positioning and movement targeting.
+//! Squad cohesion: formation slot positioning + the data that
+//! anchors it.
+//!
+//! This module owns the three components that describe where the
+//! squad is and where it's pointing — [`SquadFacing`],
+//! [`SquadWaypoints`], [`SquadHomePosition`] — plus the
+//! [`drive_squad_formation`] system that reads
+//! [`MovementIntent`](super::intent::MovementIntent) and
+//! [`EngagementTarget`](super::intent::EngagementTarget) and
+//! writes per-member [`MovementTarget`] / [`MovementSpeed`].
 //!
 //! Throttled to ~10Hz. For each squad this:
 //!
@@ -10,9 +19,9 @@
 //!
 //! All control-flow decisions (Protect follow, arrival detection,
 //! hold transitions, goal-driven walking) live in the behavior tree
-//! (`squad/behave`), which writes [`MovementIntent`] and the
-//! scanner writes [`EngagementTarget`]. This module is pure data
-//! flow: intent in, per-member movement out.
+//! (`super::behave`), which writes [`MovementIntent`]; the scanner
+//! ([`super::engagement`]) writes [`EngagementTarget`]. This module
+//! is pure data flow: intent in, per-member movement out.
 
 use std::collections::HashMap;
 
@@ -21,17 +30,44 @@ use cordon_core::entity::squad::Formation;
 use cordon_core::item::Loadout;
 use cordon_data::gamedata::GameDataResource;
 
-use super::components::{
-    EngagementTarget, MovementIntent, SquadFacing, SquadLeader, SquadMembers, SquadMembership,
-};
 use super::constants::{
     ARRIVED_DIST, ENGAGE_WALK_SPEED, FORMATION_INTERVAL_SECS, SQUAD_WALK_SPEED,
 };
+use super::identity::{SquadLeader, SquadMembers, SquadMembership};
+use super::intent::{EngagementTarget, MovementIntent};
 use crate::behavior::combat::components::CombatTarget;
 use crate::behavior::combat::helpers::weapon_range;
 use crate::behavior::death::components::Dead;
 use crate::behavior::movement::components::{MovementSpeed, MovementTarget};
 use crate::entity::npc::NpcMarker;
+
+/// Last known facing direction for formation rotation. Default is
+/// +Y. Updated by [`drive_squad_formation`] to point toward the
+/// current `MovementIntent` target so formation slots rotate with
+/// the squad's direction of travel.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct SquadFacing(pub Vec2);
+
+impl Default for SquadFacing {
+    fn default() -> Self {
+        Self(Vec2::Y)
+    }
+}
+
+/// Patrol/scavenge waypoints inside the goal area + the index of
+/// the next one to visit. Consumed one-at-a-time by the
+/// `BtWalkWaypoint` BT leaf. Empty for non-patrol goals.
+#[derive(Component, Debug, Clone, Default)]
+pub struct SquadWaypoints {
+    pub points: Vec<Vec2>,
+    pub next: u8,
+}
+
+/// Initial spawn position for the squad, used by the visual layer
+/// to place freshly-spawned members at the right map coordinate
+/// before the formation system takes over.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct SquadHomePosition(pub Vec2);
 
 /// Per-squad snapshot cached between the leader-pos pass and the
 /// member-writing pass so we don't re-query mid-iteration.

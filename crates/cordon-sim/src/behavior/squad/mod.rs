@@ -8,23 +8,32 @@
 //!
 //! Submodules:
 //!
-//! - [`components`] — SquadMarker/Leader/Members/Facing/Bundle, plus
-//!   MovementIntent / EngagementTarget (the two BT-written data
-//!   components).
-//! - [`constants`]  — timing / distance tuning knobs
-//! - [`scan`]       — spatial grid + per-NPC snapshot used by engagement
-//! - [`engagement`] — vision-shared hostile selection + per-member targets
-//! - [`formation`]  — formation slot positioning
-//! - [`lifecycle`]  — drop despawned members, promote leaders, prune stale membership
-//! - [`commands`]   — player → sim command boundary (the only mutation path)
-//! - [`behave`]     — behavior-tree attach observer + action leaves + tree factory
+//! - [`identity`]   — SquadMarker / SquadLeader / SquadMembers /
+//!   SquadMembership / SquadBundle. Pure ECS data, no systems.
+//! - [`intent`]     — the two blackboard components (MovementIntent,
+//!   EngagementTarget) that the deciders (behave, engagement) write
+//!   and the mover (formation) reads.
+//! - [`constants`]  — timing / distance tuning knobs.
+//! - [`commands`]   — player → sim command boundary.
+//! - [`lifecycle`]  — drop despawned members, promote leaders, prune
+//!   stale membership back-pointers.
+//! - [`formation`]  — SquadFacing / SquadWaypoints / SquadHomePosition
+//!   components plus the system that turns MovementIntent into per-
+//!   member MovementTarget.
+//! - [`engagement`] — vision-shared hostile selection + per-member
+//!   combat targets. Writes EngagementTarget. Uses [`scan`] internally.
+//! - [`scan`]       — spatial grid + per-NPC snapshot, an internal
+//!   helper for engagement.
+//! - [`behave`]     — behavior-tree attach observer, action leaves,
+//!   and the Goal → Tree factory. Writes MovementIntent.
 
 pub mod behave;
 pub mod commands;
-pub mod components;
 pub mod constants;
 mod engagement;
-mod formation;
+pub mod formation;
+pub mod identity;
+pub mod intent;
 mod lifecycle;
 mod scan;
 
@@ -32,10 +41,9 @@ use bevy::prelude::*;
 use bevy_behave::prelude::BehavePlugin;
 
 pub use commands::{Owned, SquadCommand};
-pub use components::{
-    EngagementTarget, MovementIntent, SquadBundle, SquadFacing, SquadHomePosition, SquadLeader,
-    SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
-};
+pub use formation::{SquadFacing, SquadHomePosition, SquadWaypoints};
+pub use identity::{SquadBundle, SquadLeader, SquadMarker, SquadMembers, SquadMembership};
+pub use intent::{EngagementTarget, MovementIntent};
 
 use crate::plugin::SimSet;
 

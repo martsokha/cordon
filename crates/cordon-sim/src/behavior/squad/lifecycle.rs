@@ -19,7 +19,7 @@
 use bevy::prelude::*;
 use cordon_core::primitive::Experience;
 
-use super::components::{SquadLeader, SquadMarker, SquadMembers, SquadMembership};
+use super::identity::{SquadLeader, SquadMarker, SquadMembers, SquadMembership};
 use crate::behavior::death::components::Dead;
 use crate::behavior::death::constants::CLEANUP_INTERVAL_SECS;
 use crate::entity::npc::NpcMarker;
