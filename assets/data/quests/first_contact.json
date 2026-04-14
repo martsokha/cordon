@@ -99,7 +99,18 @@
       "id": "stage_failed",
       "kind": "outcome",
       "success": false,
-      "consequences": []
+      "consequences": [
+        {
+          "apply": [
+            {
+              "standing_change": {
+                "faction": "faction_garrison",
+                "delta": -10
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "repeatable": false

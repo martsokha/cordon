@@ -42,4 +42,12 @@ impl TemplateRegistry {
             self.permanently_dead.insert(id.clone());
         }
     }
+
+    /// Drop the alive entry if it points to a specific entity.
+    /// Used by the despawn-sweep system so an entity that got
+    /// despawned through a non-`NpcDied` path doesn't leave a
+    /// stale reference behind.
+    pub fn forget_entity(&mut self, entity: Entity) {
+        self.alive.retain(|_, e| *e != entity);
+    }
 }

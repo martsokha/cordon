@@ -11,6 +11,7 @@ use cordon_core::entity::npc::NpcTemplate;
 use cordon_core::primitive::Id;
 use cordon_core::world::BUNKER_MAP_POS;
 
+use super::registry::TemplateRegistry;
 use crate::components::{SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker};
 
 /// Distance at which a traveling NPC is considered "at the bunker."
@@ -69,5 +70,19 @@ pub fn detect_home_arrival(
                 template: tmpl.0.clone(),
             });
         }
+    }
+}
+
+/// Defensive sweep: when a [`TemplateId`] component is removed from
+/// an entity (e.g. because the entity was despawned through any
+/// path that bypasses [`NpcDied`]), drop the stale `alive` entry
+/// from the registry. Without this, future `SpawnNpc` requests
+/// could see `is_alive == true` for a dead entity handle.
+pub fn prune_despawned_templates(
+    mut removed: RemovedComponents<TemplateId>,
+    mut registry: ResMut<TemplateRegistry>,
+) {
+    for entity in removed.read() {
+        registry.forget_entity(entity);
     }
 }

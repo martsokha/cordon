@@ -89,7 +89,11 @@ impl Plugin for QuestPlugin {
         // the same frame.
         app.add_systems(
             Update,
-            (travel::detect_bunker_arrival, travel::detect_home_arrival),
+            (
+                travel::detect_bunker_arrival,
+                travel::detect_home_arrival,
+                travel::prune_despawned_templates,
+            ),
         );
     }
 }
