@@ -24,15 +24,13 @@
 use bevy::prelude::*;
 use cordon_core::entity::faction::Faction;
 use cordon_core::item::{ItemData, Loadout};
-use cordon_core::primitive::{GameTime, Id};
+use cordon_core::primitive::{Corruption, GameTime, Health, Id, Pool, Stamina};
 use cordon_data::gamedata::GameDataResource;
 
 use super::apply_or_queue;
 use crate::behavior::combat::{CombatTarget, NpcPoolChanged, is_hostile};
 use crate::behavior::death::Dead;
-use crate::entity::npc::{
-    ActiveEffects, CorruptionPool, FactionId, HealthPool, NpcMarker, StaminaPool,
-};
+use crate::entity::npc::{ActiveEffects, FactionId, NpcMarker};
 use crate::resources::GameClock;
 
 /// Minimum minutes between two throws from the same thrower.
@@ -152,9 +150,9 @@ pub(crate) fn process_throwable_impacts(
             &Transform,
             &FactionId,
             &mut ActiveEffects,
-            &mut HealthPool,
-            &mut StaminaPool,
-            &mut CorruptionPool,
+            &mut Pool<Health>,
+            &mut Pool<Stamina>,
+            &mut Pool<Corruption>,
         ),
         (With<NpcMarker>, Without<Dead>),
     >,

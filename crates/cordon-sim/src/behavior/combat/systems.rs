@@ -5,14 +5,13 @@ use std::collections::HashMap;
 use bevy::ecs::system::ParamSet;
 use bevy::prelude::*;
 use cordon_core::item::{Item, ItemData, ItemDef, Loadout};
-use cordon_core::primitive::{Id, Resistances};
+use cordon_core::primitive::{Health, Id, Pool, Resistances};
 use cordon_data::gamedata::GameDataResource;
 
 use super::components::{CombatTarget, FireState};
 use super::events::{NpcPoolChanged, ShotFired};
 use super::helpers::{equipped_ballistic, find_ammo_idx};
 use crate::behavior::death::components::Dead;
-use crate::entity::npc::HealthPool;
 
 /// One pending hit produced by the shooter loop and applied to the
 /// target in a separate pass. Decoupling lets us hold one mutable
@@ -61,7 +60,7 @@ struct ShooterOutcome {
 /// Build the per-target snapshot used by the shooter loop so
 /// shooters don't need to query target components mutably.
 fn build_target_snapshot(
-    query: &Query<(Entity, &Transform, &Loadout), (With<HealthPool>, Without<Dead>)>,
+    query: &Query<(Entity, &Transform, &Loadout), (With<Pool<Health>>, Without<Dead>)>,
     items: &HashMap<Id<Item>, ItemDef>,
 ) -> HashMap<Entity, TargetInfo> {
     let mut m = HashMap::with_capacity(1024);
@@ -212,7 +211,7 @@ pub fn resolve_combat(
     mut pool_changed: MessageWriter<NpcPoolChanged>,
     mut sets: ParamSet<(
         // Read-only snapshot pass.
-        Query<(Entity, &Transform, &Loadout), (With<HealthPool>, Without<Dead>)>,
+        Query<(Entity, &Transform, &Loadout), (With<Pool<Health>>, Without<Dead>)>,
         // Shooter mutation pass.
         Query<
             (
@@ -225,7 +224,7 @@ pub fn resolve_combat(
             Without<Dead>,
         >,
         // Target apply pass.
-        Query<&mut HealthPool, Without<Dead>>,
+        Query<&mut Pool<Health>, Without<Dead>>,
     )>,
 ) {
     let items = &game_data.0.items;

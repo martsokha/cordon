@@ -18,20 +18,6 @@ use cordon_core::primitive::{
     Corruption, Credits, Experience, GameTime, Health, Id, Loyalty, Pool, Stamina, Trust, Uid,
 };
 
-/// Health pool component (current + max HP).
-pub type HealthPool = Pool<Health>;
-
-/// Stamina pool component.
-pub type StaminaPool = Pool<Stamina>;
-
-/// Corruption pool component. Accumulates from zero. Unlike
-/// health/stamina which drain from full, this fills up from
-/// corrupted areas, tainted food, and carried artifacts that
-/// bleed Zone-stuff into their carrier, and drains back down
-/// when the carrier uses an antidote or equips a scrubber
-/// relic.
-pub type CorruptionPool = Pool<Corruption>;
-
 /// Per-entity list of currently-active [`TimedEffect`]s.
 ///
 /// Populated by the effect dispatcher and drained as each
@@ -66,8 +52,8 @@ pub struct ActiveEffect {
 
 /// Baseline pool caps before any equipment bonuses.
 ///
-/// `HealthPool` and `StaminaPool` hold the *effective* current / max;
-/// this component stores the underlying base so the
+/// `Pool<Health>` and `Pool<Stamina>` hold the *effective* current /
+/// max; this component stores the underlying base so the
 /// `sync_pool_maxes` system can recompute the effective max each
 /// time the loadout changes (equip +10 max HP relic → effective
 /// 110, drop it → effective 100). Using a snapshot of the base
@@ -173,9 +159,9 @@ pub struct NpcBundle {
     pub name: NpcName,
     pub faction: FactionId,
     pub xp: Experience,
-    pub hp: HealthPool,
-    pub stamina: StaminaPool,
-    pub corruption: CorruptionPool,
+    pub hp: Pool<Health>,
+    pub stamina: Pool<Stamina>,
+    pub corruption: Pool<Corruption>,
     pub active_effects: ActiveEffects,
     pub base_maxes: BaseMaxes,
     pub loadout: Loadout,

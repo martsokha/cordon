@@ -44,15 +44,13 @@ use cordon_core::item::{
     HP_LOW_THRESHOLD, Item, ItemData, Loadout, PERIODIC_INTERVAL_MINUTES, ResourceTarget,
     STAMINA_HIGH_THRESHOLD, STAMINA_LOW_THRESHOLD, TimedEffect,
 };
-use cordon_core::primitive::{GameTime, Id};
+use cordon_core::primitive::{Corruption, GameTime, Health, Id, Pool, Stamina};
 use cordon_data::gamedata::GameDataResource;
 pub use throwable::ThrowableImpact;
 
 use crate::behavior::combat::NpcPoolChanged;
 use crate::behavior::death::Dead;
-use crate::entity::npc::{
-    ActiveEffect, ActiveEffects, CorruptionPool, HealthPool, NpcMarker, StaminaPool,
-};
+use crate::entity::npc::{ActiveEffect, ActiveEffects, NpcMarker};
 use crate::plugin::SimSet;
 use crate::resources::GameClock;
 
@@ -140,9 +138,9 @@ fn dispatch_pool_triggers(
         (
             &Loadout,
             &mut ActiveEffects,
-            &mut HealthPool,
-            &mut StaminaPool,
-            &mut CorruptionPool,
+            &mut Pool<Health>,
+            &mut Pool<Stamina>,
+            &mut Pool<Corruption>,
         ),
         Without<Dead>,
     >,
@@ -347,9 +345,9 @@ fn fire_periodic_triggers(
     mut carriers: Query<
         (
             &mut ActiveEffects,
-            &mut HealthPool,
-            &mut StaminaPool,
-            &mut CorruptionPool,
+            &mut Pool<Health>,
+            &mut Pool<Stamina>,
+            &mut Pool<Corruption>,
         ),
         Without<Dead>,
     >,
@@ -398,9 +396,9 @@ fn tick_active_effects(
         (
             Entity,
             &mut ActiveEffects,
-            &mut HealthPool,
-            &mut StaminaPool,
-            &mut CorruptionPool,
+            &mut Pool<Health>,
+            &mut Pool<Stamina>,
+            &mut Pool<Corruption>,
         ),
         Without<Dead>,
     >,
@@ -471,9 +469,9 @@ pub(crate) fn apply_or_queue(
     effect: TimedEffect,
     now: GameTime,
     active: &mut ActiveEffects,
-    hp: &mut HealthPool,
-    stamina: &mut StaminaPool,
-    corruption: &mut CorruptionPool,
+    hp: &mut Pool<Health>,
+    stamina: &mut Pool<Stamina>,
+    corruption: &mut Pool<Corruption>,
     pool_changed: &mut MessageWriter<NpcPoolChanged>,
 ) {
     if effect.duration.is_instant() {
@@ -509,9 +507,9 @@ pub(crate) fn apply_pool_delta(
     entity: Entity,
     target: ResourceTarget,
     value: f32,
-    hp: &mut HealthPool,
-    stamina: &mut StaminaPool,
-    corruption: &mut CorruptionPool,
+    hp: &mut Pool<Health>,
+    stamina: &mut Pool<Stamina>,
+    corruption: &mut Pool<Corruption>,
     pool_changed: &mut MessageWriter<NpcPoolChanged>,
 ) {
     match target {

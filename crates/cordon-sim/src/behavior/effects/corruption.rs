@@ -28,13 +28,13 @@
 
 use bevy::prelude::*;
 use cordon_core::item::ResourceTarget;
-use cordon_core::primitive::{GameTime, Tier};
+use cordon_core::primitive::{Corruption, GameTime, Health, Pool, Stamina, Tier};
 use cordon_data::gamedata::GameDataResource;
 
 use super::apply_pool_delta;
 use crate::behavior::combat::NpcPoolChanged;
 use crate::behavior::death::Dead;
-use crate::entity::npc::{CorruptionPool, HealthPool, NpcMarker, StaminaPool};
+use crate::entity::npc::NpcMarker;
 use crate::resources::GameClock;
 
 /// Corruption gained per minute, per anomaly tier.
@@ -64,9 +64,9 @@ pub(crate) fn area_corruption_tick(
         (
             Entity,
             &Transform,
-            &mut HealthPool,
-            &mut StaminaPool,
-            &mut CorruptionPool,
+            &mut Pool<Health>,
+            &mut Pool<Stamina>,
+            &mut Pool<Corruption>,
         ),
         (With<NpcMarker>, Without<Dead>),
     >,

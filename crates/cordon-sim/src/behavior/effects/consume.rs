@@ -21,13 +21,13 @@
 
 use bevy::prelude::*;
 use cordon_core::item::{ItemData, ItemInstance, Loadout, ResourceTarget};
-use cordon_core::primitive::GameTime;
+use cordon_core::primitive::{Corruption, GameTime, Health, Pool, Stamina};
 use cordon_data::gamedata::GameDataResource;
 
 use super::apply_or_queue;
 use crate::behavior::combat::NpcPoolChanged;
 use crate::behavior::death::Dead;
-use crate::entity::npc::{ActiveEffects, CorruptionPool, HealthPool, NpcMarker, StaminaPool};
+use crate::entity::npc::{ActiveEffects, NpcMarker};
 use crate::resources::GameClock;
 
 const HP_NEED_RATIO: f32 = 0.5;
@@ -51,9 +51,9 @@ pub(crate) fn npc_auto_consume(
             Entity,
             &mut Loadout,
             &mut ActiveEffects,
-            &mut HealthPool,
-            &mut StaminaPool,
-            &mut CorruptionPool,
+            &mut Pool<Health>,
+            &mut Pool<Stamina>,
+            &mut Pool<Corruption>,
         ),
         (With<NpcMarker>, Without<Dead>),
     >,

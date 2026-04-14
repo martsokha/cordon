@@ -12,13 +12,13 @@ use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::{Formation, Goal, Squad};
 use cordon_core::item::{ItemInstance, Loadout};
-use cordon_core::primitive::{Experience, Health, Loyalty, Pool};
+use cordon_core::primitive::{Corruption, Experience, Health, Loyalty, Pool, Stamina};
 use cordon_core::world::BUNKER_MAP_POS;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::{
-    ActiveEffects, BaseMaxes, CorruptionPool, Employment, FactionId, MovementIntent, NpcAttributes,
-    NpcBundle, NpcDied, NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle,
-    SquadMembership, StaminaPool, TemplateId, TravelingHome, TravelingToBunker,
+    ActiveEffects, BaseMaxes, Employment, FactionId, MovementIntent, NpcAttributes, NpcBundle,
+    NpcDied, NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle,
+    SquadMembership, TemplateId, TravelingHome, TravelingToBunker,
 };
 
 use crate::locale::l10n_or;
@@ -162,8 +162,8 @@ pub fn handle_spawn_npc_requests(
             faction: FactionId(def.faction.clone()),
             xp,
             hp: health,
-            stamina: StaminaPool::full(),
-            corruption: CorruptionPool::empty(),
+            stamina: Pool::<Stamina>::full(),
+            corruption: Pool::<Corruption>::empty(),
             active_effects: ActiveEffects::default(),
             base_maxes: BaseMaxes {
                 hp: hp_max,

@@ -22,9 +22,10 @@ pub mod vision;
 
 use bevy::prelude::*;
 use cordon_core::item::{ItemData, PassiveModifier, StatTarget};
+use cordon_core::primitive::{Health, Pool, Stamina};
 use cordon_data::gamedata::GameDataResource;
 
-use crate::entity::npc::{BaseMaxes, HealthPool, NpcMarker, StaminaPool};
+use crate::entity::npc::{BaseMaxes, NpcMarker};
 use crate::plugin::SimSet;
 
 /// Composer plugin that wires up every behavior subplugin.
@@ -72,8 +73,8 @@ pub fn sync_pool_maxes(
         (
             &cordon_core::item::Loadout,
             &BaseMaxes,
-            &mut HealthPool,
-            &mut StaminaPool,
+            &mut Pool<Health>,
+            &mut Pool<Stamina>,
         ),
         (With<NpcMarker>, Changed<cordon_core::item::Loadout>),
     >,

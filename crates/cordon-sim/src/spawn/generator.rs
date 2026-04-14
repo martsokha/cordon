@@ -6,13 +6,14 @@ use cordon_core::entity::name::{NameFormat, NamePool, NpcName};
 use cordon_core::entity::npc::{Npc, Personality};
 use cordon_core::entity::squad::{Goal, Squad};
 use cordon_core::item::{Item, ItemDef, Loadout};
-use cordon_core::primitive::{Credits, Experience, Health, Id, Loyalty, Pool, Rank, Trust, Uid};
+use cordon_core::primitive::{
+    Corruption, Credits, Experience, Health, Id, Loyalty, Pool, Rank, Stamina, Trust, Uid,
+};
 use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
 use crate::entity::npc::{
-    ActiveEffects, BaseMaxes, CorruptionPool, Employment, FactionId, NpcAttributes, NpcBundle,
-    NpcMarker, Perks, StaminaPool,
+    ActiveEffects, BaseMaxes, Employment, FactionId, NpcAttributes, NpcBundle, NpcMarker, Perks,
 };
 use crate::resources::{FactionIndex, UidAllocator};
 use crate::spawn::loadout::generate_loadout;
@@ -153,8 +154,8 @@ pub trait NpcGenerator {
             faction: FactionId(faction),
             xp,
             hp: health,
-            stamina: StaminaPool::full(),
-            corruption: CorruptionPool::empty(),
+            stamina: Pool::<Stamina>::full(),
+            corruption: Pool::<Corruption>::empty(),
             active_effects: ActiveEffects::default(),
             base_maxes: BaseMaxes {
                 hp: hp_max,

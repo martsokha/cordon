@@ -2,12 +2,12 @@
 
 use bevy::prelude::*;
 use cordon_core::item::Loadout;
-use cordon_core::primitive::GameTime;
+use cordon_core::primitive::{GameTime, Health, Pool};
 
 use super::components::Dead;
 use super::constants::{CLEANUP_INTERVAL_SECS, CORPSE_PERSISTENCE_MINUTES, MAX_DEAD_NPCS};
 use super::events::{CorpseRemoved, NpcDied};
-use crate::entity::npc::{HealthPool, NpcMarker};
+use crate::entity::npc::NpcMarker;
 use crate::resources::GameClock;
 
 /// Throttle gate used by corpse-cleanup systems. Accumulates
@@ -28,7 +28,7 @@ pub fn handle_deaths(
     clock: Res<GameClock>,
     mut commands: Commands,
     mut died: MessageWriter<NpcDied>,
-    q: Query<(Entity, &HealthPool), (With<NpcMarker>, Without<Dead>)>,
+    q: Query<(Entity, &Pool<Health>), (With<NpcMarker>, Without<Dead>)>,
 ) {
     let now = clock.0;
     for (entity, hp) in &q {
