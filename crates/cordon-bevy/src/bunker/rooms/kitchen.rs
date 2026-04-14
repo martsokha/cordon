@@ -5,6 +5,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 use bevy::prelude::*;
 
 use crate::bunker::geometry::*;
+use crate::bunker::particles;
 use crate::bunker::resources::RoomCtx;
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
@@ -80,12 +81,22 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Vec3::new(l.kitchen_x_min() + 0.4, SHELF_SURFACE, l.tj_center() - 0.3),
         Quat::from_rotation_y(FRAC_PI_2),
     );
-    prop(
+    let kettle = prop(
         ctx.commands,
         ctx.asset_server,
         Prop::Kettle,
         Vec3::new(l.kitchen_x_min() + 0.4, SHELF_SURFACE, l.tj_center() + 0.7),
         Quat::from_rotation_y(FRAC_PI_2),
+    );
+    // Steam rising from the spout. Offset is in the kettle's
+    // *local* frame; the kettle is rotated +90° around Y, so
+    // local +Z maps to world +X — the direction the nose points
+    // (toward the player entering the kitchen from the corridor).
+    particles::attach_kettle_steam(
+        ctx.commands,
+        ctx.effects,
+        kettle,
+        Vec3::new(0.0, 0.3, 0.1),
     );
     prop(
         ctx.commands,

@@ -58,6 +58,7 @@ fn main() {
     })
     .add_plugins(locale::LocalePlugin)
     .add_plugins(avian3d::PhysicsPlugins::default())
+    .add_plugins(bevy_hanabi::HanabiPlugin)
     .insert_resource(avian3d::prelude::Gravity(Vec3::ZERO))
     .add_plugins(CordonSimPlugin)
     .add_plugins(bunker::BunkerPlugin)

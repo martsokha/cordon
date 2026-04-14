@@ -103,6 +103,7 @@ pub(crate) struct RoomCtx<'a, 'w, 's> {
     pub asset_server: &'a AssetServer,
     pub meshes: &'a mut Assets<Mesh>,
     pub mats: &'a mut Assets<StandardMaterial>,
+    pub effects: &'a mut Assets<bevy_hanabi::EffectAsset>,
     pub pal: &'a Palette,
     pub l: &'a Layout,
 }

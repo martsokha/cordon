@@ -49,3 +49,4 @@ strum = { workspace = true, features = [] }
 
 # Steam (optional: run without via --no-default-features)
 bevy-steamworks = { version = "0.16", optional = true, features = [] }
+bevy_hanabi = "0.18"

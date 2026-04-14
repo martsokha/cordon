@@ -11,6 +11,7 @@ mod input;
 pub mod interaction;
 pub mod laptop;
 pub mod lighting;
+mod particles;
 mod props;
 pub mod resources;
 mod rooms;
@@ -34,6 +35,7 @@ impl Plugin for BunkerPlugin {
             visitor::VisitorPlugin,
             cctv::CctvPlugin,
             laptop::LaptopPlugin,
+            particles::BunkerParticlesPlugin,
         ));
         app.insert_resource(CameraMode::Free);
         app.insert_resource(bevy::light::GlobalAmbientLight {

@@ -13,7 +13,15 @@ pub use super::props::Prop;
 /// If the prop's registry entry has `collider = true`, a sibling static
 /// collider is spawned matching the GLB's measured AABB. Rotation
 /// (around Y — which is all the rooms use) applies to both.
-pub fn prop(commands: &mut Commands, asset_server: &AssetServer, prop: Prop, pos: Vec3, rot: Quat) {
+/// Returns the spawned prop entity so callers can parent child
+/// effects (e.g. particle emitters) to it.
+pub fn prop(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    prop: Prop,
+    pos: Vec3,
+    rot: Quat,
+) -> Entity {
     let def = prop.def();
     let size = def.aabb_max - def.aabb_min;
     let local_center = (def.aabb_min + def.aabb_max) * 0.5;
@@ -24,10 +32,12 @@ pub fn prop(commands: &mut Commands, asset_server: &AssetServer, prop: Prop, pos
     let spawn_pos = pos - rot * feet_local;
 
     let scene: Handle<Scene> = asset_server.load(format!("{}#Scene0", def.path));
-    commands.spawn((
-        SceneRoot(scene),
-        Transform::from_translation(spawn_pos).with_rotation(rot),
-    ));
+    let entity = commands
+        .spawn((
+            SceneRoot(scene),
+            Transform::from_translation(spawn_pos).with_rotation(rot),
+        ))
+        .id();
 
     if def.collider {
         // AABB center in world space = spawn_pos + rot * local_center.
@@ -40,6 +50,8 @@ pub fn prop(commands: &mut Commands, asset_server: &AssetServer, prop: Prop, pos
             Transform::from_translation(collider_center).with_rotation(rot),
         ));
     }
+
+    entity
 }
 
 pub fn spawn_box(

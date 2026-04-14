@@ -14,6 +14,7 @@ pub(super) fn spawn_bunker(
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut mats: ResMut<Assets<StandardMaterial>>,
+    mut effects: ResMut<Assets<bevy_hanabi::EffectAsset>>,
 ) {
     let pal = Palette::new(&mut mats);
     let l = Layout::new();
@@ -39,6 +40,7 @@ pub(super) fn spawn_bunker(
             asset_server: &asset_server,
             meshes: &mut meshes,
             mats: &mut mats,
+            effects: &mut effects,
             pal: &pal,
             l: &l,
         };

@@ -7,10 +7,12 @@ mod systems;
 
 use bevy::prelude::*;
 
+use self::systems::{spawn_laptop, sync_laptop_camera};
+
 pub struct LaptopPlugin;
 
 impl Plugin for LaptopPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (systems::sync_laptop_camera, systems::spawn_laptop));
+        app.add_systems(Update, (sync_laptop_camera, spawn_laptop));
     }
 }
