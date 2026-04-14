@@ -210,7 +210,7 @@ fn apply_admit_visitor(
     mut start_dialogue: MessageWriter<StartDialogue>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut effects: ResMut<Assets<bevy_hanabi::EffectAsset>>,
+    event_assets: Res<super::particles::EventEffectAssets>,
 ) {
     if requests.read().next().is_none() {
         return;
@@ -242,7 +242,7 @@ fn apply_admit_visitor(
     // One-shot dust swirl around the visitor as they "arrive" —
     // attached to the sprite so it co-despawns when the sprite
     // does (dialogue end).
-    super::particles::attach_visitor_arrival_swirl(&mut commands, &mut effects, sprite_entity);
+    super::particles::attach_visitor_arrival_swirl(&mut commands, &event_assets, sprite_entity);
 
     // Turn the camera (rotation only) to face the visitor. Save the
     // current transform so we can restore on dismissal.

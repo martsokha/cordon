@@ -92,12 +92,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     // *local* frame; the kettle is rotated +90° around Y, so
     // local +Z maps to world +X — the direction the nose points
     // (toward the player entering the kitchen from the corridor).
-    particles::attach_kettle_steam(
-        ctx.commands,
-        ctx.effects,
-        kettle,
-        Vec3::new(0.0, 0.3, 0.1),
-    );
+    particles::attach_kettle_steam(ctx.commands, ctx.effects, kettle, Vec3::new(0.0, 0.3, 0.1));
     prop(
         ctx.commands,
         ctx.asset_server,

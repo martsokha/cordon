@@ -61,13 +61,18 @@ fn spawn_camera(commands: &mut Commands, l: &Layout) -> Entity {
     commands
         .spawn((
             FpsCamera,
+            super::input::controller::StepTracker::default(),
             Camera3d::default(),
             Collider::capsule(
                 super::input::controller::PLAYER_RADIUS,
                 super::input::controller::PLAYER_HEIGHT,
             ),
-            Transform::from_xyz(0.0, 1.6, l.desk_z() - 0.5)
-                .looking_at(Vec3::new(0.0, 1.2, l.front_z), Vec3::Y),
+            Transform::from_xyz(
+                0.0,
+                super::input::controller::CAMERA_EYE_Y,
+                l.desk_z() - 0.5,
+            )
+            .looking_at(Vec3::new(0.0, 1.2, l.front_z), Vec3::Y),
             bevy::core_pipeline::tonemapping::Tonemapping::TonyMcMapface,
             // Subtle bloom on emissive surfaces.
             bevy::post_process::bloom::Bloom {

@@ -22,7 +22,7 @@ use bevy::prelude::*;
 
 pub use self::components::FpsCamera;
 pub use self::resources::{BunkerSpawned, CameraMode};
-pub use self::visitor::{Visitor, VisitorQueue, VisitorState};
+pub use self::visitor::{Visitor, VisitorQueue};
 use crate::PlayingState;
 
 pub struct BunkerPlugin;

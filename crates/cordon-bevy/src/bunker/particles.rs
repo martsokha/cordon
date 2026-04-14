@@ -23,6 +23,31 @@ use crate::PlayingState;
 #[derive(Component)]
 struct DustEmitter;
 
+/// Marks a transient (one-shot) emitter entity with the real time
+/// at which it should be despawned. Prevents per-event emitters
+/// (footstep scuffs, visitor swirls) from piling up for the life
+/// of the session — one [`despawn_expired_emitters`] run per
+/// frame sweeps them once their TTL is up.
+#[derive(Component)]
+struct EmitterTtl {
+    despawn_at: f32,
+}
+
+/// Shared [`EffectAsset`] handles for per-event emitters built
+/// once at startup. Storing them in a resource means every
+/// footstep scuff and visitor swirl reuses the same compiled
+/// effect rather than creating a fresh one (and leaking it) per
+/// event.
+///
+/// `pub` because [`attach_visitor_arrival_swirl`] takes this by
+/// reference — callers outside this module pick up the resource
+/// themselves rather than having us reach into `Assets` twice.
+#[derive(Resource, Clone)]
+pub struct EventEffectAssets {
+    footstep_scuff: Handle<EffectAsset>,
+    visitor_swirl: Handle<EffectAsset>,
+}
+
 pub struct BunkerParticlesPlugin;
 
 impl Plugin for BunkerParticlesPlugin {
@@ -34,11 +59,17 @@ impl Plugin for BunkerParticlesPlugin {
             OnEnter(PlayingState::Bunker),
             spawn_dust_emitters.run_if(not(resource_exists::<BunkerDustSpawned>)),
         );
-        // Footstep scuffs: read the controller's FootstepScuffed
-        // messages and spawn a one-shot emitter at each step.
+        // Shared event effect assets, built once.
+        app.add_systems(
+            Startup,
+            init_event_effect_assets.run_if(not(resource_exists::<EventEffectAssets>)),
+        );
+        // Footstep scuffs spawn short-lived emitters; a cleanup
+        // pass reaps them once their particles have died.
         app.add_systems(
             Update,
-            spawn_footstep_scuffs.run_if(in_state(PlayingState::Bunker)),
+            (spawn_footstep_scuffs, despawn_expired_emitters)
+                .run_if(in_state(PlayingState::Bunker)),
         );
     }
 }
@@ -47,6 +78,31 @@ impl Plugin for BunkerParticlesPlugin {
 /// doesn't duplicate the emitters.
 #[derive(Resource)]
 struct BunkerDustSpawned;
+
+/// Build the per-event effect assets once and stash their
+/// handles. All footstep scuffs + visitor swirls share these.
+fn init_event_effect_assets(mut commands: Commands, mut effects: ResMut<Assets<EffectAsset>>) {
+    commands.insert_resource(EventEffectAssets {
+        footstep_scuff: effects.add(build_footstep_scuff_effect()),
+        visitor_swirl: effects.add(build_visitor_swirl_effect()),
+    });
+}
+
+/// Despawn any emitter whose TTL has elapsed. Real time (not
+/// virtual) so cleanup cadence matches particle lifetime, which
+/// is also measured in real time by Hanabi.
+fn despawn_expired_emitters(
+    mut commands: Commands,
+    time: Res<Time<Real>>,
+    q: Query<(Entity, &EmitterTtl)>,
+) {
+    let now = time.elapsed_secs();
+    for (entity, ttl) in &q {
+        if now >= ttl.despawn_at {
+            commands.entity(entity).despawn();
+        }
+    }
+}
 
 /// Warm off-white — main corridor, kitchen, quarters.
 const DUST_WARM: Vec4 = Vec4::new(0.95, 0.9, 0.8, 0.6);
@@ -283,23 +339,39 @@ fn build_kettle_steam_effect() -> EffectAsset {
         })
 }
 
+/// Particle lifetime upper bound for the scuff effect, in seconds.
+/// Matches the max `init_lifetime` in [`build_footstep_scuff_effect`]
+/// plus a small safety margin so cleanup never clips a live
+/// particle. Keep these two in sync if either changes.
+const SCUFF_TTL_SECS: f32 = 0.7;
+
 /// One-shot dust scuff spawned at the player's feet per footstep.
-/// Each event spawns a *new* short-lived emitter entity that
-/// self-despawns once its particles die. Keeping the emitter
-/// per-step (rather than one shared emitter that gets `reset()`)
-/// avoids the coalescing problem — two steps in rapid succession
-/// would otherwise collapse into a single burst.
+/// Each event spawns a *new* short-lived emitter entity that is
+/// marked with [`EmitterTtl`]; [`despawn_expired_emitters`] sweeps
+/// it once its particles die, so per-event emitters don't
+/// accumulate for the whole session.
+///
+/// The [`EffectAsset`] itself is shared via [`EventEffectAssets`]
+/// — only the emitter entity is per-step, not the compiled effect.
+///
+/// Per-step emitters (rather than one shared emitter that gets
+/// `reset()`) avoid the coalescing problem: two steps in rapid
+/// succession would otherwise collapse into a single burst.
 fn spawn_footstep_scuffs(
     mut commands: Commands,
-    mut effects: ResMut<Assets<EffectAsset>>,
+    time: Res<Time<Real>>,
+    assets: Res<EventEffectAssets>,
     mut steps: MessageReader<FootstepScuffed>,
 ) {
+    let now = time.elapsed_secs();
     for ev in steps.read() {
-        let effect = effects.add(build_footstep_scuff_effect());
         commands.spawn((
             Name::new("bunker_footstep_scuff"),
-            ParticleEffect::new(effect),
+            ParticleEffect::new(assets.footstep_scuff.clone()),
             Transform::from_translation(ev.pos),
+            EmitterTtl {
+                despawn_at: now + SCUFF_TTL_SECS,
+            },
         ));
     }
 }
@@ -334,13 +406,18 @@ fn build_footstep_scuff_effect() -> EffectAsset {
     };
 
     // Drag so particles settle instead of flying off across the
-    // floor — "scuff and settle", not "spray".
+    // floor — "scuff and settle", not "spray". Drag value 5.0 is
+    // eyeballed against the 0.3–0.7 m/s initial speed so particles
+    // cover ~5–10 cm before stopping; retune this if speed changes.
     let mut module = writer.finish();
     let drag = LinearDragModifier::new(module.lit(5.0));
 
+    // Alpha bumped from 0.45 peak so the scuff reads visibly when
+    // the camera looks straight down at it (where billboards
+    // stack and per-particle alpha compounds toward zero).
     let mut color_grad = HanabiGradient::new();
-    color_grad.add_key(0.0, Vec4::new(0.5, 0.47, 0.42, 0.45));
-    color_grad.add_key(0.6, Vec4::new(0.45, 0.42, 0.38, 0.25));
+    color_grad.add_key(0.0, Vec4::new(0.5, 0.47, 0.42, 0.6));
+    color_grad.add_key(0.6, Vec4::new(0.45, 0.42, 0.38, 0.35));
     color_grad.add_key(1.0, Vec4::new(0.4, 0.37, 0.33, 0.0));
 
     let mut size_grad = HanabiGradient::new();
@@ -370,17 +447,18 @@ fn build_footstep_scuff_effect() -> EffectAsset {
 ///
 /// Parenting to the sprite means the emitter co-despawns when the
 /// visitor sprite does (dialogue end / dismissal), so we don't
-/// leak emitter entities across visitors.
+/// leak emitter entities across visitors. The [`EffectAsset`] is
+/// shared via [`EventEffectAssets`] so each admit reuses the same
+/// compiled effect.
 pub fn attach_visitor_arrival_swirl(
     commands: &mut Commands,
-    effects: &mut Assets<EffectAsset>,
+    assets: &EventEffectAssets,
     visitor_sprite: Entity,
 ) {
-    let effect = effects.add(build_visitor_swirl_effect());
     let child = commands
         .spawn((
             Name::new("bunker_visitor_swirl"),
-            ParticleEffect::new(effect),
+            ParticleEffect::new(assets.visitor_swirl.clone()),
             // Drop below the sprite centre so the swirl pools at
             // the visitor's feet, not their chest.
             Transform::from_translation(Vec3::new(0.0, -0.6, 0.0)),
@@ -414,6 +492,9 @@ fn build_visitor_swirl_effect() -> EffectAsset {
         speed: (writer.lit(0.6) + writer.rand(ScalarType::Float) * writer.lit(0.7)).expr(),
     };
 
+    // Drag value 3.5 eyeballed against 0.6–1.3 m/s initial speed
+    // so the swirl covers ~20–30 cm before settling; retune
+    // alongside speed if you change either.
     let mut module = writer.finish();
     let drag = LinearDragModifier::new(module.lit(3.5));
 
