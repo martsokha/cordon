@@ -14,7 +14,6 @@ pub mod behavior;
 /// Day rollover detection and per-day systems.
 pub mod day;
 
-
 /// Per-entity ECS components that aren't owned by a specific
 /// behavior subplugin — NPC attributes, relic markers.
 pub mod entity;
@@ -31,4 +30,3 @@ pub mod resources;
 
 /// NPC and squad spawning systems.
 pub mod spawn;
-

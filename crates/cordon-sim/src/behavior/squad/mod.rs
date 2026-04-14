@@ -39,7 +39,6 @@ mod scan;
 
 use bevy::prelude::*;
 use bevy_behave::prelude::BehavePlugin;
-
 pub use commands::{Owned, SquadCommand};
 pub use formation::{SquadFacing, SquadHomePosition, SquadWaypoints};
 pub use identity::{SquadBundle, SquadLeader, SquadMarker, SquadMembers, SquadMembership};

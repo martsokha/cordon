@@ -5,8 +5,8 @@
 //! a tracer line entity per event and fades it out.
 
 use bevy::prelude::*;
-use cordon_sim::plugin::prelude::ShotFired;
 use cordon_sim::plugin::SimSet;
+use cordon_sim::plugin::prelude::ShotFired;
 
 use crate::PlayingState;
 use crate::laptop::map::MapWorldEntity;

@@ -7,10 +7,12 @@
 
 use bevy::prelude::*;
 use bevy_behave::prelude::*;
-use cordon_core::entity::squad::Goal;
+use cordon_core::entity::npc::Npc;
+use cordon_core::entity::squad::{Goal, Squad};
+use cordon_core::primitive::Uid;
 
-use super::actions::{BtFindNpc, BtIdleHold, BtMoveTo, BtProtectFollow, BtWalkWaypoint};
 use super::super::constants::PATROL_HOLD_SECS;
+use super::actions::{BtFindNpc, BtIdleHold, BtMoveTo, BtProtectFollow, BtWalkWaypoint};
 
 const IDLE_HOLD_SECS: f32 = 4.0;
 
@@ -48,7 +50,7 @@ fn patrol_tree() -> Tree<Behave> {
     }
 }
 
-fn protect_tree(other: cordon_core::primitive::Uid<cordon_core::entity::squad::Squad>) -> Tree<Behave> {
+fn protect_tree(other: Uid<Squad>) -> Tree<Behave> {
     // Close the gap, pause briefly, re-evaluate. The follow leaf
     // succeeds as soon as we're within PROTECT_FOLLOW_DIST, so the
     // loop rebuilds intent every half-second once in range — cheap,
@@ -75,7 +77,7 @@ fn goto_tree(target: Vec2) -> Tree<Behave> {
     }
 }
 
-fn find_tree(target: cordon_core::primitive::Uid<cordon_core::entity::npc::Npc>) -> Tree<Behave> {
+fn find_tree(target: Uid<Npc>) -> Tree<Behave> {
     // Chase the target while resolvable; when the target disappears
     // the leaf fails on arrival at last-seen, so the enclosing
     // Forever restarts the search next frame.

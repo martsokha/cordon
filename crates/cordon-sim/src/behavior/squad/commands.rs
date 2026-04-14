@@ -14,7 +14,7 @@
 use bevy::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::GlobalRng;
-use cordon_core::entity::squad::{Formation, Goal, Squad};
+use cordon_core::entity::squad::{Formation, Goal, Squad, TravelIntent};
 use cordon_core::primitive::{Id, Uid};
 use cordon_core::world::area::Area;
 use cordon_data::gamedata::GameDataResource;
@@ -86,12 +86,14 @@ pub(super) fn apply_squad_commands(
                 // Patrol stalled with an empty list.
                 waypoints.points = roll_area_waypoints(area, &data.0.areas, rng.as_mut());
                 waypoints.next = 0;
-                cmds.entity(target).insert(Goal::Patrol { area: area.clone() });
+                cmds.entity(target)
+                    .insert(Goal::Patrol { area: area.clone() });
             }
             SquadCommand::Scavenge { area, .. } => {
                 waypoints.points = roll_area_waypoints(area, &data.0.areas, rng.as_mut());
                 waypoints.next = 0;
-                cmds.entity(target).insert(Goal::Scavenge { area: area.clone() });
+                cmds.entity(target)
+                    .insert(Goal::Scavenge { area: area.clone() });
             }
             SquadCommand::Protect { other, .. } => {
                 // Goal::Protect stores a Uid<Squad> (save-game stable).
@@ -100,14 +102,15 @@ pub(super) fn apply_squad_commands(
                 let Ok(other_uid) = squad_ids.get(*other) else {
                     continue;
                 };
-                cmds.entity(target).insert(Goal::Protect { other: *other_uid });
+                cmds.entity(target)
+                    .insert(Goal::Protect { other: *other_uid });
             }
             SquadCommand::GoTo { to, .. } => {
                 waypoints.points.clear();
                 waypoints.next = 0;
                 cmds.entity(target).insert(Goal::GoTo {
                     target: [to.x, to.y],
-                    intent: cordon_core::entity::squad::TravelIntent::Generic,
+                    intent: TravelIntent::Generic,
                 });
             }
             SquadCommand::SetFormation {
@@ -119,7 +122,6 @@ pub(super) fn apply_squad_commands(
         }
     }
 }
-
 
 impl SquadCommand {
     /// Target squad entity for any command variant.

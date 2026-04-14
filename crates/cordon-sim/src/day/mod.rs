@@ -22,7 +22,6 @@ pub mod systems;
 pub mod world_events;
 
 use bevy::prelude::*;
-
 pub use events::DayRolled;
 
 use crate::plugin::SimSet;

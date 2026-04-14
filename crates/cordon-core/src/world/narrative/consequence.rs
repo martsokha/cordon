@@ -224,4 +224,3 @@ pub enum Consequence {
         duration: Option<Duration>,
     },
 }
-

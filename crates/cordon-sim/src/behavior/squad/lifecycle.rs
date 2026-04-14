@@ -16,6 +16,8 @@
 //! this keeps downstream systems from dereferencing a dead Entity
 //! if a future code path forgets.
 
+use std::collections::HashSet;
+
 use bevy::prelude::*;
 use cordon_core::primitive::Experience;
 
@@ -34,7 +36,7 @@ pub(super) fn prune_stale_membership(
     members_q: Query<(Entity, &SquadMembership)>,
     mut commands: Commands,
 ) {
-    let dead: std::collections::HashSet<Entity> = removed.read().collect();
+    let dead: HashSet<Entity> = removed.read().collect();
     if dead.is_empty() {
         return;
     }

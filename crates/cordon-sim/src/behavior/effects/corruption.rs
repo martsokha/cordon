@@ -31,7 +31,7 @@ use cordon_core::item::ResourceTarget;
 use cordon_core::primitive::{Corruption, GameTime, Health, Pool, Stamina, Tier};
 use cordon_data::gamedata::GameDataResource;
 
-use super::apply_pool_delta;
+use super::apply::apply_pool_delta;
 use crate::behavior::combat::NpcPoolChanged;
 use crate::behavior::death::Dead;
 use crate::entity::npc::NpcMarker;

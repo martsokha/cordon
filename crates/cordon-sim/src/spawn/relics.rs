@@ -30,11 +30,11 @@ use cordon_data::gamedata::GameDataResource;
 use rand::{Rng, RngExt};
 
 use crate::behavior::death::Dead;
+use crate::behavior::squad::identity::SquadLeader;
 use crate::day::DayRolled;
 use crate::entity::npc::NpcMarker;
 use crate::entity::relic::{RelicHome, RelicMarker};
 use crate::plugin::SimSet;
-use crate::behavior::squad::identity::SquadLeader;
 
 /// Spawn attempts per anomaly area per day rollover. Each attempt
 /// is an independent probability roll, so on average the system

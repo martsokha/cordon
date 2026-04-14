@@ -9,7 +9,9 @@
 //!
 //! Every movement leaf writes [`MovementIntent`] on entry and clears
 //! it on successful completion, so the handoff between steps is
-//! visually continuous.
+//! visually continuous. Two small helpers — [`leader_pos`] and
+//! [`clear_intent`] — dedupe the repeated ECS lookups each leaf
+//! would otherwise spell out by hand.
 
 use bevy::prelude::*;
 use bevy_behave::prelude::*;
@@ -17,14 +19,16 @@ use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::Squad;
 use cordon_core::primitive::Uid;
 
-use crate::behavior::death::components::Dead;
-use crate::entity::npc::NpcMarker;
-use crate::resources::SquadIdIndex;
+use super::super::constants::{ARRIVED_DIST, PROTECT_FOLLOW_DIST};
 use super::super::formation::SquadWaypoints;
 use super::super::identity::{SquadLeader, SquadMarker};
 use super::super::intent::MovementIntent;
-use super::super::constants::{ARRIVED_DIST, PROTECT_FOLLOW_DIST};
+use crate::behavior::death::components::Dead;
+use crate::entity::npc::NpcMarker;
+use crate::resources::SquadIdIndex;
 
+/// How close the squad leader must get to a last-seen position
+/// before [`BtFindNpc`] fails over to the enclosing fallback.
 const FIND_SEARCH_RADIUS: f32 = 60.0;
 
 /// Walk the squad's leader-anchored centroid toward a fixed point.
@@ -83,9 +87,9 @@ impl BtIdleHold {
 #[derive(Component, Clone, Debug)]
 pub(super) struct BtFindNpc {
     pub target: Uid<Npc>,
-    /// Last-seen position, written when the target is observed.
-    /// Used as a fallback search point in the enclosing sequence if
-    /// the target is no longer resolvable.
+    /// Last-seen position, written each tick we can resolve the
+    /// target. Used as a fallback search point if the target later
+    /// disappears.
     pub last_seen: Option<Vec2>,
 }
 
@@ -107,6 +111,46 @@ impl Plugin for ActionsPlugin {
     }
 }
 
+/// Resolve the current position of a squad's leader by chasing
+/// the [`SquadLeader`] pointer to its NPC transform. Returns
+/// `None` if the squad isn't queryable, the leader entity is
+/// missing, or the leader is tagged `Dead` (the transforms query
+/// filters out corpses).
+///
+/// This pattern appears verbatim in every action leaf; centralising
+/// it keeps the tick logic focused on decisions, not lookups.
+fn leader_pos(
+    squad: Entity,
+    leaders_q: &Query<&SquadLeader, With<SquadMarker>>,
+    transforms_q: &Query<&Transform, (With<NpcMarker>, Without<Dead>)>,
+) -> Option<Vec2> {
+    let leader = leaders_q.get(squad).ok()?;
+    let transform = transforms_q.get(leader.0).ok()?;
+    Some(transform.translation.truncate())
+}
+
+/// Clear the squad's [`MovementIntent`] so formation stops
+/// pulling members toward the last target. Silent no-op if the
+/// squad has no intent component (shouldn't happen, but defensive).
+fn clear_intent(intents_q: &mut Query<&mut MovementIntent>, squad: Entity) {
+    if let Ok(mut intent) = intents_q.get_mut(squad)
+        && intent.0.is_some()
+    {
+        intent.0 = None;
+    }
+}
+
+/// Set the squad's [`MovementIntent`] to `target` if it differs
+/// from the current value. Change-only write avoids dirtying
+/// Bevy's change detection for every re-tick of the same target.
+fn set_intent(intents_q: &mut Query<&mut MovementIntent>, squad: Entity, target: Vec2) {
+    if let Ok(mut intent) = intents_q.get_mut(squad)
+        && intent.0 != Some(target)
+    {
+        intent.0 = Some(target);
+    }
+}
+
 fn tick_move_to(
     tasks: Query<(&BtMoveTo, &BehaveCtx)>,
     leaders_q: Query<&SquadLeader, With<SquadMarker>>,
@@ -116,24 +160,13 @@ fn tick_move_to(
 ) {
     for (move_to, ctx) in &tasks {
         let squad = ctx.target_entity();
-        let Ok(leader) = leaders_q.get(squad) else {
+        let Some(leader_pos) = leader_pos(squad, &leaders_q, &transforms_q) else {
             commands.trigger(ctx.failure());
             continue;
         };
-        let Ok(leader_t) = transforms_q.get(leader.0) else {
-            commands.trigger(ctx.failure());
-            continue;
-        };
-        if let Ok(mut intent) = intents_q.get_mut(squad)
-            && intent.0 != Some(move_to.target)
-        {
-            intent.0 = Some(move_to.target);
-        }
-        let leader_pos = leader_t.translation.truncate();
+        set_intent(&mut intents_q, squad, move_to.target);
         if leader_pos.distance(move_to.target) < ARRIVED_DIST {
-            if let Ok(mut intent) = intents_q.get_mut(squad) {
-                intent.0 = None;
-            }
+            clear_intent(&mut intents_q, squad);
             commands.trigger(ctx.success());
         }
     }
@@ -168,11 +201,10 @@ fn tick_walk_waypoint(
         if intent.0 != Some(target) {
             intent.0 = Some(target);
         }
-        let Ok(leader) = leaders_q.get(squad) else {
-            commands.trigger(ctx.failure());
-            continue;
-        };
-        let Ok(leader_t) = transforms_q.get(leader.0) else {
+        // Can't use `leader_pos` here because we're already
+        // holding `squads_q` mutably on `squad`; resolving the leader
+        // through a separate read-only query doesn't conflict.
+        let Some(leader_pos) = leader_pos(squad, &leaders_q, &transforms_q) else {
             // Leader dead or missing — the tree leaf can't make
             // progress this tick. Fail; the enclosing Forever will
             // restart the sequence next frame, by which time
@@ -180,7 +212,6 @@ fn tick_walk_waypoint(
             commands.trigger(ctx.failure());
             continue;
         };
-        let leader_pos = leader_t.translation.truncate();
         if leader_pos.distance(target) < ARRIVED_DIST {
             waypoints.next = ((idx + 1) % waypoints.points.len()) as u8;
             intent.0 = None;
@@ -203,36 +234,20 @@ fn tick_protect_follow(
             commands.trigger(ctx.failure());
             continue;
         };
-        let Ok(other_leader) = leaders_q.get(other_entity) else {
+        let Some(target) = leader_pos(other_entity, &leaders_q, &transforms_q) else {
             commands.trigger(ctx.failure());
             continue;
         };
-        let Ok(other_t) = transforms_q.get(other_leader.0) else {
+        let Some(own_pos) = leader_pos(squad, &leaders_q, &transforms_q) else {
             commands.trigger(ctx.failure());
             continue;
         };
-        let Ok(own_leader) = leaders_q.get(squad) else {
-            commands.trigger(ctx.failure());
-            continue;
-        };
-        let Ok(own_t) = transforms_q.get(own_leader.0) else {
-            commands.trigger(ctx.failure());
-            continue;
-        };
-        let target = other_t.translation.truncate();
-        let own_pos = own_t.translation.truncate();
         if own_pos.distance(target) <= PROTECT_FOLLOW_DIST {
-            if let Ok(mut intent) = intents_q.get_mut(squad) {
-                intent.0 = None;
-            }
+            clear_intent(&mut intents_q, squad);
             commands.trigger(ctx.success());
             continue;
         }
-        if let Ok(mut intent) = intents_q.get_mut(squad)
-            && intent.0 != Some(target)
-        {
-            intent.0 = Some(target);
-        }
+        set_intent(&mut intents_q, squad, target);
     }
 }
 
@@ -244,11 +259,8 @@ fn tick_idle_hold(
 ) {
     let dt = time.delta_secs();
     for (mut hold, ctx) in &mut tasks {
-        if hold.elapsed_secs == 0.0
-            && let Ok(mut intent) = intents_q.get_mut(ctx.target_entity())
-            && intent.0.is_some()
-        {
-            intent.0 = None;
+        if hold.elapsed_secs == 0.0 {
+            clear_intent(&mut intents_q, ctx.target_entity());
         }
         hold.elapsed_secs += dt;
         if hold.elapsed_secs >= hold.duration_secs {
@@ -258,24 +270,19 @@ fn tick_idle_hold(
 }
 
 fn tick_find_npc(
-    tasks: Query<(&BtFindNpc, &BehaveCtx)>,
+    mut tasks: Query<(&mut BtFindNpc, &BehaveCtx)>,
     leaders_q: Query<&SquadLeader, With<SquadMarker>>,
     transforms_q: Query<&Transform, (With<NpcMarker>, Without<Dead>)>,
     npc_q: Query<(&Uid<Npc>, &Transform), (With<NpcMarker>, Without<Dead>)>,
     mut intents_q: Query<&mut MovementIntent>,
     mut commands: Commands,
 ) {
-    for (find, ctx) in &tasks {
+    for (mut find, ctx) in &mut tasks {
         let squad = ctx.target_entity();
-        let Ok(leader) = leaders_q.get(squad) else {
+        let Some(leader_pos) = leader_pos(squad, &leaders_q, &transforms_q) else {
             commands.trigger(ctx.failure());
             continue;
         };
-        let Ok(leader_t) = transforms_q.get(leader.0) else {
-            commands.trigger(ctx.failure());
-            continue;
-        };
-        let leader_pos = leader_t.translation.truncate();
 
         // Try to resolve the current position of the target npc by
         // its stable Uid. O(N) over alive npcs — fine at our
@@ -286,55 +293,41 @@ fn tick_find_npc(
             .find(|(uid, _)| **uid == find.target)
             .map(|(_, t)| t.translation.truncate());
 
+        // Record sightings so a target that later disappears still
+        // has a fallback point to sweep toward.
+        if let Some(p) = target_pos {
+            find.last_seen = Some(p);
+        }
+
         let walk_to = match (target_pos, find.last_seen) {
-            (Some(p), _) => {
-                // Target is alive and visible somewhere — walk to them.
-                // last_seen should be updated, but BehaveCtx queries are
-                // immutable so that's deferred to a separate system;
-                // for now the fresh position is enough.
-                Some(p)
-            }
+            // Target is alive and visible — walk to the fresh
+            // position; last_seen was just updated above.
+            (Some(p), _) => Some(p),
+            // Target unresolvable this tick — sweep the last-seen
+            // area, failing once we arrive there still empty-handed
+            // so the enclosing fallback can take another branch.
             (None, Some(last)) => {
-                // Target unresolvable this tick — sweep the last-seen
-                // area, succeeding once the leader is within search
-                // radius to trigger re-acquisition next frame.
                 if leader_pos.distance(last) < FIND_SEARCH_RADIUS {
-                    // Arrived at last-seen, target still missing —
-                    // fail so the enclosing fallback can take
-                    // another branch (e.g. patrol more waypoints).
-                    if let Ok(mut intent) = intents_q.get_mut(squad) {
-                        intent.0 = None;
-                    }
+                    clear_intent(&mut intents_q, squad);
                     commands.trigger(ctx.failure());
                     continue;
                 }
                 Some(last)
             }
+            // No target, never seen — authoring error.
             (None, None) => {
-                // No target, no last-seen — authoring error. Fail so
-                // the enclosing fallback moves on.
-                if let Ok(mut intent) = intents_q.get_mut(squad) {
-                    intent.0 = None;
-                }
+                clear_intent(&mut intents_q, squad);
                 commands.trigger(ctx.failure());
                 continue;
             }
         };
 
-        if let Some(target) = walk_to
-            && let Ok(mut intent) = intents_q.get_mut(squad)
-            && intent.0 != Some(target)
-        {
-            intent.0 = Some(target);
-        }
-
-        if let Some(target) = walk_to
-            && leader_pos.distance(target) < ARRIVED_DIST
-        {
-            if let Ok(mut intent) = intents_q.get_mut(squad) {
-                intent.0 = None;
+        if let Some(target) = walk_to {
+            set_intent(&mut intents_q, squad, target);
+            if leader_pos.distance(target) < ARRIVED_DIST {
+                clear_intent(&mut intents_q, squad);
+                commands.trigger(ctx.success());
             }
-            commands.trigger(ctx.success());
         }
     }
 }

@@ -29,14 +29,13 @@
 mod actions;
 mod trees;
 
+pub use actions::ActionsPlugin;
 use bevy::ecs::lifecycle::Insert;
 use bevy::prelude::*;
 use bevy_behave::prelude::*;
 use cordon_core::entity::squad::Goal;
 
 use super::identity::SquadMarker;
-
-pub use actions::ActionsPlugin;
 
 /// Marker on the BehaveTree child entity so we can despawn it when
 /// the squad's goal changes without touching sibling children.

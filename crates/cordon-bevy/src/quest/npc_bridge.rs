@@ -20,13 +20,13 @@ use cordon_sim::plugin::prelude::{
     NpcDied, NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle,
     SquadMembership, TemplateId, TravelingHome, TravelingToBunker,
 };
-
-use crate::locale::l10n_or;
 use cordon_sim::quest::consequence::{DismissTemplateNpc, GiveNpcXpRequest, SpawnNpcRequest};
 use cordon_sim::quest::registry::TemplateRegistry;
 use cordon_sim::resources::{FactionSettlements, SquadIdIndex, UidAllocator};
 use cordon_sim::spawn::loadout::generate_loadout;
 use rand::RngExt;
+
+use crate::locale::l10n_or;
 
 /// Consume [`SpawnNpcRequest`] messages, spawning a template NPC
 /// entity for each one and registering it in the

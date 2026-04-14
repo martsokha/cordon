@@ -9,7 +9,6 @@
 pub mod components;
 
 use bevy::prelude::*;
-
 pub use components::{AnomalyZone, Vision};
 
 pub struct VisionPlugin;

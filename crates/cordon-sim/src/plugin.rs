@@ -111,48 +111,6 @@ impl Plugin for CordonSimPlugin {
 /// internal subplugin paths so structural changes here don't
 /// ripple outward.
 pub mod prelude {
-    pub use super::{CordonSimPlugin, SimSet};
-
-    // Behavior subplugin exports: each subplugin's component + event
-    // types, grouped per subplugin so consumers can reason about
-    // which subsystem an import comes from.
-    pub use crate::behavior::combat::{CombatTarget, FireState, NpcPoolChanged, ShotFired};
-    pub use crate::behavior::death::{CorpseRemoved, Dead, NpcDied};
-    pub use crate::behavior::loot::{ItemLooted, LootState};
-    pub use crate::behavior::movement::{MovementSpeed, MovementTarget};
-    pub use crate::behavior::vision::{AnomalyZone, Vision};
-
-    // Per-entity components not owned by a subplugin.
-    pub use crate::entity::npc::{
-        ActiveEffects, BaseMaxes, Employment, FactionId, NpcAttributes, NpcBundle, NpcMarker,
-        PendingYarnNode, Perks, QuestCritical, SpawnOrigin, TemplateId, TravelingHome,
-        TravelingToBunker,
-    };
-    pub use crate::entity::relic::{RelicHome, RelicMarker};
-
-    // Squad components and commands. Squad is split by concern:
-    // identity (who), intent (blackboard), formation (cohesion data).
-    pub use crate::behavior::squad::formation::{
-        SquadFacing, SquadHomePosition, SquadWaypoints,
-    };
-    pub use crate::behavior::squad::identity::{
-        SquadBundle, SquadLeader, SquadMarker, SquadMembers, SquadMembership,
-    };
-    pub use crate::behavior::squad::intent::{EngagementTarget, MovementIntent};
-    pub use crate::behavior::squad::{Owned, SquadCommand};
-
-    // Cross-cutting messages and resources.
-    pub use crate::day::DayRolled;
-    pub use crate::quest::{
-        ActiveQuest, CompletedQuest, GiveNpcXpRequest, QuestLog, SpawnNpcRequest,
-        StartQuestRequest, TemplateRegistry,
-    };
-    pub use crate::resources::{
-        AreaStates, EventLog, FactionIndex, GameClock, Player, SquadIdIndex, UidAllocator,
-    };
-    pub use crate::spawn::SquadSpawned;
-    pub use crate::spawn::relics::RelicPickedUp;
-
     // Cordon-core types that derive `Component` directly and are
     // attached to entities as live components, plus the flavour
     // types (`Trust`, `Loyalty`, `Personality`) that are bundled
@@ -162,4 +120,40 @@ pub mod prelude {
     pub use cordon_core::entity::squad::{Formation, Goal};
     pub use cordon_core::item::{ItemInstance, Loadout};
     pub use cordon_core::primitive::{Credits, Experience, Loyalty, Trust};
+
+    pub use super::{CordonSimPlugin, SimSet};
+    // Behavior subplugin exports: each subplugin's component + event
+    // types, grouped per subplugin so consumers can reason about
+    // which subsystem an import comes from.
+    pub use crate::behavior::combat::{CombatTarget, FireState, NpcPoolChanged, ShotFired};
+    pub use crate::behavior::death::{CorpseRemoved, Dead, NpcDied};
+    pub use crate::behavior::loot::{ItemLooted, LootState};
+    pub use crate::behavior::movement::{MovementSpeed, MovementTarget};
+    // Squad components and commands. Squad is split by concern:
+    // identity (who), intent (blackboard), formation (cohesion data).
+    pub use crate::behavior::squad::formation::{SquadFacing, SquadHomePosition, SquadWaypoints};
+    pub use crate::behavior::squad::identity::{
+        SquadBundle, SquadLeader, SquadMarker, SquadMembers, SquadMembership,
+    };
+    pub use crate::behavior::squad::intent::{EngagementTarget, MovementIntent};
+    pub use crate::behavior::squad::{Owned, SquadCommand};
+    pub use crate::behavior::vision::{AnomalyZone, Vision};
+    // Cross-cutting messages and resources.
+    pub use crate::day::DayRolled;
+    // Per-entity components not owned by a subplugin.
+    pub use crate::entity::npc::{
+        ActiveEffects, BaseMaxes, Employment, FactionId, NpcAttributes, NpcBundle, NpcMarker,
+        PendingYarnNode, Perks, QuestCritical, SpawnOrigin, TemplateId, TravelingHome,
+        TravelingToBunker,
+    };
+    pub use crate::entity::relic::{RelicHome, RelicMarker};
+    pub use crate::quest::{
+        ActiveQuest, CompletedQuest, GiveNpcXpRequest, QuestLog, SpawnNpcRequest,
+        StartQuestRequest, TemplateRegistry,
+    };
+    pub use crate::resources::{
+        AreaStates, EventLog, FactionIndex, GameClock, Player, SquadIdIndex, UidAllocator,
+    };
+    pub use crate::spawn::SquadSpawned;
+    pub use crate::spawn::relics::RelicPickedUp;
 }

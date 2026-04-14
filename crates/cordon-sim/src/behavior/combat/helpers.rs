@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use bevy::math::Vec2;
 use cordon_core::entity::faction::{Faction, FactionDef};
-use cordon_core::item::{Item, ItemData, ItemDef, Loadout};
+use cordon_core::item::{Caliber, Item, ItemData, ItemDef, Loadout};
 use cordon_core::primitive::{Id, Resistances};
 
 /// Whether two factions are hostile.
@@ -115,7 +115,7 @@ pub(super) fn equipped_ballistic(loadout: &Loadout, items: &HashMap<Id<Item>, It
 /// Find the index in the general pouch of an ammo box for the given caliber.
 pub(super) fn find_ammo_idx(
     loadout: &Loadout,
-    caliber: &Id<cordon_core::item::Caliber>,
+    caliber: &Id<Caliber>,
     items: &HashMap<Id<Item>, ItemDef>,
 ) -> Option<usize> {
     loadout.general.iter().position(|inst| {

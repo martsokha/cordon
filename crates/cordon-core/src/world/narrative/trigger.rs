@@ -100,4 +100,3 @@ pub struct QuestTriggerDef {
     #[serde(default)]
     pub repeatable: bool,
 }
-

@@ -354,7 +354,6 @@ fn resolve_goal<R: Rng>(kind: SquadGoalKind, area_ids: &[Id<Area>], rng: &mut R)
     }
 }
 
-
 /// Weighted pick over `(faction_id, weight)` pairs. Each weight is
 /// floored at 1 so a misconfigured `spawn_weight: 0` doesn't drop a
 /// faction out of rotation entirely. `total_weight` is precomputed

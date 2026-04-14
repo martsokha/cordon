@@ -77,7 +77,10 @@ pub(super) struct SquadSnap {
     facing: Vec2,
     formation: Formation,
     member_count: usize,
-    engaged: Option<Entity>,
+    /// Whether the squad has a current engagement target. The
+    /// identity of the hostile squad isn't needed here — per-member
+    /// combat targeting consults [`CombatTarget`] directly.
+    engaged: bool,
 }
 
 pub(super) fn drive_squad_formation(
@@ -145,7 +148,14 @@ pub(super) fn drive_squad_formation(
 
     squad_info.clear();
     for (e, _, members, formation, intent, engagement, facing) in squad_state_q.iter() {
-        let leader_p = squad_leader_pos.get(&e).copied().unwrap_or(Vec2::ZERO);
+        // Skip squads whose leader we couldn't snapshot this pass —
+        // e.g. the leader's Transform was not queryable because the
+        // entity was despawned mid-frame. Falling back to Vec2::ZERO
+        // would teleport every member toward the world origin, which
+        // is a visible glitch rather than graceful degradation.
+        let Some(leader_p) = squad_leader_pos.get(&e).copied() else {
+            continue;
+        };
         let centroid = intent.0.unwrap_or(leader_p);
         squad_info.insert(
             e,
@@ -154,7 +164,7 @@ pub(super) fn drive_squad_formation(
                 facing: facing.0,
                 formation: *formation,
                 member_count: members.0.len(),
-                engaged: engagement.0,
+                engaged: engagement.0.is_some(),
             },
         );
     }
@@ -165,7 +175,7 @@ pub(super) fn drive_squad_formation(
         };
         let pos = transform.translation.truncate();
 
-        if snap.engaged.is_some() {
+        if snap.engaged {
             if let Some(target_entity) = combat_target.0
                 && let Ok(target_t) = targets_q.get(target_entity)
             {

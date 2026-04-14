@@ -6,7 +6,6 @@ pub mod events;
 pub mod systems;
 
 use bevy::prelude::*;
-
 pub use components::Dead;
 pub use events::{CorpseRemoved, NpcDied};
 

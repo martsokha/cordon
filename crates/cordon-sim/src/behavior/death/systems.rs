@@ -56,8 +56,7 @@ pub fn cleanup_corpses(
         let elapsed = minutes_between(dead.died_at, now);
         let looted = loadout.is_empty();
         if looted || elapsed >= CORPSE_PERSISTENCE_MINUTES {
-            commands.entity(entity).despawn();
-            removed.write(CorpseRemoved { entity });
+            despawn_corpse(&mut commands, &mut removed, entity);
         }
     }
 }
@@ -79,9 +78,21 @@ pub fn enforce_corpse_cap(
     entries.sort_by_key(|(_, t)| to_minutes(*t));
     let to_evict = count - MAX_DEAD_NPCS;
     for (entity, _) in entries.into_iter().take(to_evict) {
-        commands.entity(entity).despawn();
-        removed.write(CorpseRemoved { entity });
+        despawn_corpse(&mut commands, &mut removed, entity);
     }
+}
+
+/// Despawn a corpse entity and emit the removal event. The single
+/// path through which every corpse leaves the world — new removal
+/// reasons (explode, incinerate, looted-to-empty) should call into
+/// here rather than duplicating the `despawn` + `write` pair.
+fn despawn_corpse(
+    commands: &mut Commands,
+    removed: &mut MessageWriter<CorpseRemoved>,
+    entity: Entity,
+) {
+    commands.entity(entity).despawn();
+    removed.write(CorpseRemoved { entity });
 }
 
 fn to_minutes(t: GameTime) -> u32 {

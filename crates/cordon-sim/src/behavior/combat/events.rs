@@ -2,6 +2,7 @@
 //! and by the effect dispatcher.
 
 use bevy::prelude::*;
+use cordon_core::item::ResourceTarget;
 
 /// A weapon discharged from `from` toward `to`. The visual layer
 /// renders a tracer; the audio layer plays a gunshot. Emitted
@@ -22,15 +23,14 @@ pub struct ShotFired {
 /// crossings (`prev > threshold && current <= threshold`) without
 /// storing their own previous-state tracking.
 ///
-/// `pool` is never [`cordon_core::item::ResourceTarget::Damage`] —
-/// damage is normalised to a `Health` decrease before the event is
-/// written.
+/// `pool` is never [`ResourceTarget::Damage`] — damage is
+/// normalised to a `Health` decrease before the event is written.
 #[derive(Message, Debug, Clone, Copy)]
 pub struct NpcPoolChanged {
     /// The entity whose pool changed.
     pub entity: Entity,
     /// Which pool changed.
-    pub pool: cordon_core::item::ResourceTarget,
+    pub pool: ResourceTarget,
     /// Pool current value before the change.
     pub prev: u32,
     /// Pool current value after the change.

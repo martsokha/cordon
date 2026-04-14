@@ -13,7 +13,6 @@ pub mod helpers;
 pub mod systems;
 
 use bevy::prelude::*;
-
 pub use components::{CombatTarget, FireState};
 pub use events::{NpcPoolChanged, ShotFired};
 pub use helpers::{is_hostile, line_blocked, weapon_range};

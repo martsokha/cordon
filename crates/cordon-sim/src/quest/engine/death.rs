@@ -129,12 +129,12 @@ pub fn fail_talk_on_template_death(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use cordon_core::primitive::GameTime;
     use cordon_core::world::narrative::{
         OutcomeStage, QuestCategory, QuestDef, QuestStageDef, QuestStageKind, TalkBranch, TalkStage,
     };
 
+    use super::*;
     use crate::quest::state::ActiveQuest;
 
     fn template(s: &str) -> Id<NpcTemplate> {

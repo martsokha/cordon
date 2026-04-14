@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use bevy::ecs::system::ParamSet;
 use bevy::prelude::*;
-use cordon_core::item::{Item, ItemData, ItemDef, Loadout};
+use cordon_core::item::{Caliber, Item, ItemData, ItemDef, Loadout, ResourceTarget};
 use cordon_core::primitive::{Health, Id, Pool, Resistances};
 use cordon_data::gamedata::GameDataResource;
 
@@ -12,6 +12,7 @@ use super::components::{CombatTarget, FireState};
 use super::events::{NpcPoolChanged, ShotFired};
 use super::helpers::{equipped_ballistic, find_ammo_idx};
 use crate::behavior::death::components::Dead;
+use crate::entity::npc::NpcMarker;
 
 /// One pending hit produced by the shooter loop and applied to the
 /// target in a separate pass. Decoupling lets us hold one mutable
@@ -35,7 +36,7 @@ struct TargetInfo {
 /// Pulled out into its own struct so `simulate_shooter_frame` has
 /// a flat, boring argument list instead of a wall of locals.
 struct WeaponStats {
-    caliber: Id<cordon_core::item::Caliber>,
+    caliber: Id<Caliber>,
     magazine: u32,
     /// Seconds per shot (`1.0 / fire_rate`), precomputed once.
     period: f32,
@@ -55,21 +56,6 @@ struct ShooterOutcome {
     /// True when the NPC ran out of ammo mid-frame and should drop
     /// its combat target.
     stop_targeting: bool,
-}
-
-/// Build the per-target snapshot used by the shooter loop so
-/// shooters don't need to query target components mutably.
-fn build_target_snapshot(
-    query: &Query<(Entity, &Transform, &Loadout), (With<Pool<Health>>, Without<Dead>)>,
-    items: &HashMap<Id<Item>, ItemDef>,
-) -> HashMap<Entity, TargetInfo> {
-    let mut m = HashMap::with_capacity(1024);
-    for (entity, transform, loadout) in query.iter() {
-        let pos = transform.translation.truncate();
-        let ballistic = equipped_ballistic(loadout, items);
-        m.insert(entity, TargetInfo { pos, ballistic });
-    }
-    m
 }
 
 /// Resolve a shooter's equipped weapon + loaded-ammo stats into a
@@ -197,10 +183,9 @@ fn simulate_shooter_frame(
 
 /// Tick down per-NPC fire cooldowns and apply damage when ready.
 ///
-/// Structured as four small phases — snapshot targets, run each
-/// shooter's per-frame loop, emit one tracer per shooter, apply
-/// damage — so the big ParamSet plumbing stays at the top and the
-/// per-shooter logic lives in [`simulate_shooter_frame`].
+/// Orchestrator: three named phases, each expressed as a helper
+/// function. The ParamSet plumbing stays here because it's
+/// cross-phase; the per-phase logic reads top-to-bottom.
 ///
 /// All NPC mutable access flows through a [`ParamSet`] so multiple
 /// `&mut Loadout` queries don't overlap.
@@ -211,7 +196,7 @@ pub fn resolve_combat(
     mut pool_changed: MessageWriter<NpcPoolChanged>,
     mut sets: ParamSet<(
         // Read-only snapshot pass.
-        Query<(Entity, &Transform, &Loadout), (With<Pool<Health>>, Without<Dead>)>,
+        Query<(Entity, &Transform, &Loadout), (With<NpcMarker>, Without<Dead>)>,
         // Shooter mutation pass.
         Query<
             (
@@ -230,91 +215,140 @@ pub fn resolve_combat(
     let items = &game_data.0.items;
     let dt = time.delta_secs();
 
-    // Pass 0: snapshot every alive NPC's position + ballistic.
-    let target_snapshot = build_target_snapshot(&sets.p0(), items);
+    // Phase 1: build a cheap snapshot keyed by entity so the
+    // shooter loop doesn't hold a borrow on target components.
+    let target_snapshot = snapshot_targets(&sets.p0(), items);
 
-    // Pass 1: run each shooter's per-frame loop, collecting hits
-    // and tracer events. `ShotFired` is capped at one per shooter
-    // per frame — at 64× dt a 10 rps weapon would otherwise spam
-    // the visual layer with ~10 identical tracers, which both
-    // crushes the renderer and looks bad. Damage still applies
-    // for every shot, so combat resolves correctly.
+    // Phase 2: run each shooter's per-frame loop and collect hits.
+    let hits = fire_shooters(
+        &mut sets.p1(),
+        &target_snapshot,
+        items,
+        dt,
+        &mut shots,
+    );
+
+    // Phase 3: apply accumulated hits to target HP pools.
+    apply_hits(&mut sets.p2(), hits, &mut pool_changed);
+}
+
+/// Phase 1: snapshot every alive NPC's position + ballistic into
+/// a HashMap keyed by entity. The shooter loop reads this without
+/// holding a borrow on `Pool<Health>` or `Loadout`, which keeps
+/// the ParamSet dance honest.
+fn snapshot_targets(
+    query: &Query<(Entity, &Transform, &Loadout), (With<NpcMarker>, Without<Dead>)>,
+    items: &HashMap<Id<Item>, ItemDef>,
+) -> HashMap<Entity, TargetInfo> {
+    let mut m = HashMap::with_capacity(1024);
+    for (entity, transform, loadout) in query.iter() {
+        let pos = transform.translation.truncate();
+        let ballistic = equipped_ballistic(loadout, items);
+        m.insert(entity, TargetInfo { pos, ballistic });
+    }
+    m
+}
+
+/// Phase 2: run each shooter's per-frame loop. Collects damage
+/// into a `Vec<HitIntent>` rather than applying in place so the
+/// apply pass can hold `&mut Pool<Health>` without fighting the
+/// shooter's `&mut Loadout`. `ShotFired` is capped at one per
+/// shooter per frame — at high `dt` (e.g. 64×) a 10 rps weapon
+/// would otherwise spam the visual layer with identical tracers.
+/// Damage still applies for every shot, so combat resolves
+/// correctly.
+fn fire_shooters(
+    shooters: &mut Query<
+        (
+            Entity,
+            &Transform,
+            &mut CombatTarget,
+            &mut FireState,
+            &mut Loadout,
+        ),
+        Without<Dead>,
+    >,
+    target_snapshot: &HashMap<Entity, TargetInfo>,
+    items: &HashMap<Id<Item>, ItemDef>,
+    dt: f32,
+    shots: &mut MessageWriter<ShotFired>,
+) -> Vec<HitIntent> {
     let mut hits: Vec<HitIntent> = Vec::new();
+    for (shooter_entity, shooter_transform, mut combat_target, mut fire_state, mut loadout) in
+        shooters
     {
-        let mut shooters = sets.p1();
-        for (shooter_entity, shooter_transform, mut combat_target, mut fire_state, mut loadout) in
-            &mut shooters
-        {
-            let Some(target_entity) = combat_target.0 else {
-                continue;
-            };
-            let Some(&target_info) = target_snapshot.get(&target_entity) else {
-                combat_target.0 = None;
-                *fire_state = FireState::default();
-                continue;
-            };
-            let Some(stats) = load_weapon_stats(&loadout, target_info.ballistic, items) else {
-                combat_target.0 = None;
-                *fire_state = FireState::default();
-                continue;
-            };
+        let Some(target_entity) = combat_target.0 else {
+            continue;
+        };
+        let Some(&target_info) = target_snapshot.get(&target_entity) else {
+            combat_target.0 = None;
+            *fire_state = FireState::default();
+            continue;
+        };
+        let Some(stats) = load_weapon_stats(&loadout, target_info.ballistic, items) else {
+            combat_target.0 = None;
+            *fire_state = FireState::default();
+            continue;
+        };
 
-            let shooter_pos = shooter_transform.translation.truncate();
-            if shooter_pos.distance(target_info.pos) > stats.range {
-                continue;
-            }
+        let shooter_pos = shooter_transform.translation.truncate();
+        if shooter_pos.distance(target_info.pos) > stats.range {
+            continue;
+        }
 
-            let mag_count = loadout.equipped_weapon().map(|w| w.count).unwrap_or(0);
+        let mag_count = loadout.equipped_weapon().map(|w| w.count).unwrap_or(0);
+        let outcome = simulate_shooter_frame(
+            dt,
+            target_entity,
+            &mut loadout,
+            &stats,
+            fire_state.cooldown_secs,
+            mag_count,
+            items,
+        );
+        fire_state.cooldown_secs = outcome.cooldown;
 
-            let outcome = simulate_shooter_frame(
-                dt,
-                target_entity,
-                &mut loadout,
-                &stats,
-                fire_state.cooldown_secs,
-                mag_count,
-                items,
-            );
-
-            fire_state.cooldown_secs = outcome.cooldown;
-
-            if let Some(target) = outcome.hit_target {
-                // One tracer per shooter per frame (see comment
-                // above); emit before the damage push so the
-                // visual layer receives a single "shooter shot"
-                // event even when the sim fired a burst.
-                shots.write(ShotFired {
-                    shooter: shooter_entity,
-                    from: shooter_pos,
-                    to: target_info.pos,
+        if let Some(target) = outcome.hit_target {
+            // Emit one tracer for the frame before the damage
+            // pushes so the visual layer receives a single
+            // "shooter shot" event even when the sim fired a burst.
+            shots.write(ShotFired {
+                shooter: shooter_entity,
+                from: shooter_pos,
+                to: target_info.pos,
+            });
+            for _ in 0..outcome.shots_fired {
+                hits.push(HitIntent {
+                    target,
+                    dealt: stats.dealt,
                 });
-                for _ in 0..outcome.shots_fired {
-                    hits.push(HitIntent {
-                        target,
-                        dealt: stats.dealt,
-                    });
-                }
-            }
-
-            if outcome.stop_targeting {
-                combat_target.0 = None;
-                *fire_state = FireState::default();
             }
         }
-    }
 
-    // Pass 2: apply HP damage and emit one NpcPoolChanged per hit.
-    // Capturing prev before deplete lets the effect dispatcher
-    // detect threshold crossings (e.g. OnLowHealth) without having
-    // to store its own previous-state tracking.
-    let mut targets_apply = sets.p2();
+        if outcome.stop_targeting {
+            combat_target.0 = None;
+            *fire_state = FireState::default();
+        }
+    }
+    hits
+}
+
+/// Phase 3: apply each queued hit and emit one [`NpcPoolChanged`]
+/// per damage instance. Capturing `prev` before `deplete` lets the
+/// effect dispatcher detect threshold crossings (e.g. `OnLowHealth`)
+/// without storing its own previous-state tracking.
+fn apply_hits(
+    targets: &mut Query<&mut Pool<Health>, Without<Dead>>,
+    hits: Vec<HitIntent>,
+    pool_changed: &mut MessageWriter<NpcPoolChanged>,
+) {
     for hit in hits {
-        if let Ok(mut hp) = targets_apply.get_mut(hit.target) {
+        if let Ok(mut hp) = targets.get_mut(hit.target) {
             let prev = hp.current();
             hp.deplete(hit.dealt);
             pool_changed.write(NpcPoolChanged {
                 entity: hit.target,
-                pool: cordon_core::item::ResourceTarget::Health,
+                pool: ResourceTarget::Health,
                 prev,
                 current: hp.current(),
                 max: hp.max(),
@@ -328,7 +362,7 @@ pub fn resolve_combat(
 fn refill_magazine(
     loadout: &mut Loadout,
     items: &HashMap<Id<Item>, ItemDef>,
-    caliber: &Id<cordon_core::item::Caliber>,
+    caliber: &Id<Caliber>,
     magazine: u32,
 ) -> bool {
     let Some(idx) = find_ammo_idx(loadout, caliber, items) else {

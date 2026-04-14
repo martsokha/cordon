@@ -63,4 +63,3 @@ pub enum QuestFlagPredicate {
     /// of its value. Useful for "the player made *some* choice".
     IsSet,
 }
-

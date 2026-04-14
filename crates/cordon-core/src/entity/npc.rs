@@ -19,11 +19,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::item::Item;
-use crate::primitive::{Id, IdMarker, Rank, Trust};
-
 use super::faction::Faction;
 use super::perk::Perk;
+use crate::item::Item;
+use crate::primitive::{Id, IdMarker, Rank, Trust};
 
 /// Phantom marker for NPC-stable save-game IDs. Used as the
 /// type parameter on `Uid<Npc>`. Has no fields — all the actual

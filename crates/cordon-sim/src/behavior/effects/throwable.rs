@@ -21,13 +21,15 @@
 //! ([`GrenadeCooldown`]) so a single fight doesn't drain a
 //! pouch in one tick.
 
+use std::collections::HashMap;
+
 use bevy::prelude::*;
-use cordon_core::entity::faction::Faction;
-use cordon_core::item::{ItemData, Loadout};
+use cordon_core::entity::faction::{Faction, FactionDef};
+use cordon_core::item::{Item, ItemData, Loadout};
 use cordon_core::primitive::{Corruption, GameTime, Health, Id, Pool, Stamina};
 use cordon_data::gamedata::GameDataResource;
 
-use super::apply_or_queue;
+use super::apply::apply_or_queue;
 use crate::behavior::combat::{CombatTarget, NpcPoolChanged, is_hostile};
 use crate::behavior::death::Dead;
 use crate::entity::npc::{ActiveEffects, FactionId, NpcMarker};
@@ -52,7 +54,7 @@ pub struct ThrowableImpact {
     /// World-space impact point.
     pub target_pos: Vec2,
     /// Catalog id of the throwable item.
-    pub item: Id<cordon_core::item::Item>,
+    pub item: Id<Item>,
 }
 
 /// Per-NPC throw cooldown. Inserted lazily on first throw.
@@ -253,7 +255,7 @@ pub(crate) fn process_throwable_impacts(
 fn hostile_or_unowned(
     thrower: Option<&Id<Faction>>,
     victim: &Id<Faction>,
-    factions: &std::collections::HashMap<Id<Faction>, cordon_core::entity::faction::FactionDef>,
+    factions: &HashMap<Id<Faction>, FactionDef>,
 ) -> bool {
     match thrower {
         None => true,

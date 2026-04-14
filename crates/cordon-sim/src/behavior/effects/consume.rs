@@ -19,12 +19,14 @@
 //! the same way combat damage does. The relic threshold dispatcher
 //! picks them up downstream without any extra wiring.
 
+use std::collections::HashMap;
+
 use bevy::prelude::*;
-use cordon_core::item::{ItemData, ItemInstance, Loadout, ResourceTarget};
-use cordon_core::primitive::{Corruption, GameTime, Health, Pool, Stamina};
+use cordon_core::item::{Item, ItemData, ItemDef, ItemInstance, Loadout, ResourceTarget, TimedEffect};
+use cordon_core::primitive::{Corruption, GameTime, Health, Id, Pool, Stamina};
 use cordon_data::gamedata::GameDataResource;
 
-use super::apply_or_queue;
+use super::apply::apply_or_queue;
 use crate::behavior::combat::NpcPoolChanged;
 use crate::behavior::death::Dead;
 use crate::entity::npc::{ActiveEffects, NpcMarker};
@@ -163,10 +165,7 @@ fn pick_need(current: u32, max: u32, pred: impl FnOnce(u32, u32) -> bool) -> Opt
 /// that satisfies `need`.
 fn find_matching_consumable(
     loadout: &Loadout,
-    items: &std::collections::HashMap<
-        cordon_core::primitive::Id<cordon_core::item::Item>,
-        cordon_core::item::ItemDef,
-    >,
+    items: &HashMap<Id<Item>, ItemDef>,
     need: Need,
 ) -> Option<usize> {
     loadout.general.iter().enumerate().find_map(|(idx, inst)| {
@@ -179,10 +178,7 @@ fn find_matching_consumable(
 
 fn instance_satisfies(
     inst: &ItemInstance,
-    items: &std::collections::HashMap<
-        cordon_core::primitive::Id<cordon_core::item::Item>,
-        cordon_core::item::ItemDef,
-    >,
+    items: &HashMap<Id<Item>, ItemDef>,
     need: Need,
 ) -> bool {
     let Some(def) = items.get(&inst.def_id) else {
@@ -194,7 +190,7 @@ fn instance_satisfies(
     c.effects.iter().any(|e| effect_matches_need(e, need))
 }
 
-fn effect_matches_need(effect: &cordon_core::item::TimedEffect, need: Need) -> bool {
+fn effect_matches_need(effect: &TimedEffect, need: Need) -> bool {
     match need {
         Need::Heal => effect.target == ResourceTarget::Health && effect.value > 0.0,
         Need::Scrub => effect.target == ResourceTarget::Corruption && effect.value < 0.0,

@@ -709,7 +709,10 @@ fn build_squad_roster(
 fn update_squad_roster_state(
     selected: Res<crate::laptop::SelectedNpc>,
     mut slots: Query<(&SquadRosterSlot, &mut BackgroundColor)>,
-    npcs: Query<Option<&cordon_sim::plugin::prelude::Dead>, With<cordon_sim::plugin::prelude::NpcMarker>>,
+    npcs: Query<
+        Option<&cordon_sim::plugin::prelude::Dead>,
+        With<cordon_sim::plugin::prelude::NpcMarker>,
+    >,
 ) {
     for (slot, mut bg) in &mut slots {
         let (base, is_selected) = match slot.npc {

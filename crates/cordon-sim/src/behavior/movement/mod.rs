@@ -6,7 +6,6 @@ pub mod constants;
 pub mod systems;
 
 use bevy::prelude::*;
-
 pub use components::{MovementSpeed, MovementTarget};
 pub use systems::move_npcs;
 

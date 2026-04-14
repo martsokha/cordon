@@ -7,7 +7,6 @@ pub mod events;
 pub mod systems;
 
 use bevy::prelude::*;
-
 pub use components::LootState;
 pub use events::ItemLooted;
 

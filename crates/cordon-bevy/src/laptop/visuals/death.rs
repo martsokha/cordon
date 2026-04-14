@@ -7,8 +7,8 @@
 //! X mesh children follow the parent entity into oblivion.
 
 use bevy::prelude::*;
-use cordon_sim::plugin::prelude::{FactionId, NpcDied, NpcMarker};
 use cordon_sim::plugin::SimSet;
+use cordon_sim::plugin::prelude::{FactionId, NpcDied, NpcMarker};
 
 use crate::AppState;
 use crate::laptop::FactionPalette;

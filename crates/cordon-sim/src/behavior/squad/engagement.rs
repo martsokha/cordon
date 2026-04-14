@@ -1,18 +1,37 @@
 //! Vision-shared engagement scan.
 //!
-//! Throttled to ~10Hz, this system is the squad-AI brain: each squad
-//! looks through all of its alive members' vision cones, picks the
-//! nearest hostile squad anyone can see, and writes both the squad-
-//! level [`EngagementTarget`] and the per-member [`CombatTarget`]
-//! that the firing system will read.
+//! Throttled to ~10Hz, this system is the squad-AI brain: each
+//! squad looks through all of its alive members' vision cones,
+//! picks the nearest hostile squad anyone can see, and writes both
+//! the squad-level [`EngagementTarget`] and the per-member
+//! [`CombatTarget`] that the firing system will read.
 //!
 //! The scanner runs unconditionally — engagement is never suppressed.
 //! Behavior trees may branch on `EngagementTarget` but do not gate
 //! it.
+//!
+//! # Three-pass structure
+//!
+//! Bevy's query rules forbid overlapping mut borrows on the same
+//! archetype, so this system splits the work into three passes
+//! with staged results in between:
+//!
+//! 1. **Pass A** (per squad) — walk each squad's members, gather
+//!    candidate hostiles from the spatial grid, run LOS checks,
+//!    pick the nearest visible hostile squad. Staged in a local
+//!    `HashMap<our_squad, hostile_squad>`.
+//! 2. **Pass B** (per squad, mutable) — write the staged hostile
+//!    into [`EngagementTarget`] and update facing toward the
+//!    hostile leader.
+//! 3. **Pass C** (per member) — pick each engaged member's
+//!    closest hostile member (preferring LOS) and write
+//!    [`CombatTarget`].
 
 use std::collections::HashMap;
 
 use bevy::prelude::*;
+use cordon_core::entity::faction::Faction;
+use cordon_core::primitive::Id;
 use cordon_data::gamedata::GameDataResource;
 
 use super::constants::{ENGAGEMENT_CELL_SIZE, SCAN_INTERVAL_SECS};
@@ -69,7 +88,7 @@ pub(super) fn update_squad_engagement(
 
     let squad_faction: HashMap<
         Entity,
-        &cordon_core::primitive::Id<cordon_core::entity::faction::Faction>,
+        &Id<Faction>,
     > = squads_q.iter().map(|(e, f, _)| (e, &f.0)).collect();
     let squad_leader: HashMap<Entity, Entity> = squads_q
         .iter()

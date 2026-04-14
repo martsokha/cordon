@@ -27,9 +27,10 @@ use cordon_core::primitive::Id;
 
 use super::components::{DoorButton, FpsCamera};
 use super::interaction::{Interact, Interactable};
-use super::resources::{ANTECHAMBER_VISITOR_POS, CameraMode};
-use super::resources::{CurrentDialogue, StartDialogue};
-use super::resources::{InteractionLocked, MovementLocked};
+use super::resources::{
+    ANTECHAMBER_VISITOR_POS, CameraMode, CurrentDialogue, InteractionLocked, MovementLocked,
+    StartDialogue,
+};
 use crate::PlayingState;
 
 pub struct VisitorPlugin;
