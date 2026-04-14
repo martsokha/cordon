@@ -39,7 +39,11 @@ impl Plugin for SquadPlugin {
             Update,
             (
                 commands::apply_squad_commands.in_set(SimSet::Commands),
-                lifecycle::cleanup_dead_squads.in_set(SimSet::Cleanup),
+                (
+                    lifecycle::prune_stale_membership,
+                    lifecycle::cleanup_dead_squads,
+                )
+                    .in_set(SimSet::Cleanup),
                 engagement::update_squad_engagement.in_set(SimSet::Engagement),
                 formation::drive_squad_formation.in_set(SimSet::Formation),
             ),

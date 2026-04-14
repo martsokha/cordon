@@ -18,9 +18,9 @@ use cordon_core::entity::squad::{Formation, Goal, Squad};
 use cordon_core::primitive::{Id, Uid};
 use cordon_core::world::area::Area;
 use cordon_data::gamedata::GameDataResource;
-use rand::RngExt;
 
 use crate::components::{SquadMarker, SquadWaypoints};
+use crate::spawn::waypoints::roll_area_waypoints;
 
 /// Marker for squads under direct player control. Only owned squads
 /// react to [`SquadCommand`]s.
@@ -83,12 +83,12 @@ pub(super) fn apply_squad_commands(
                 // actually moves. Pre-port this was left to a
                 // squad-AI tick that never existed, so player-issued
                 // Patrol stalled with an empty list.
-                waypoints.points = roll_area_waypoints(area, &data, rng.as_mut());
+                waypoints.points = roll_area_waypoints(area, &data.0.areas, rng.as_mut());
                 waypoints.next = 0;
                 cmds.entity(target).insert(Goal::Patrol { area: area.clone() });
             }
             SquadCommand::Scavenge { area, .. } => {
-                waypoints.points = roll_area_waypoints(area, &data, rng.as_mut());
+                waypoints.points = roll_area_waypoints(area, &data.0.areas, rng.as_mut());
                 waypoints.next = 0;
                 cmds.entity(target).insert(Goal::Scavenge { area: area.clone() });
             }
@@ -119,28 +119,6 @@ pub(super) fn apply_squad_commands(
     }
 }
 
-/// Roll 3 scattered waypoints inside an area. Mirrors
-/// `spawn::generator::waypoints_for_goal` so player-issued Patrol
-/// lands the same shape of ring as spawn-generated patrol squads.
-fn roll_area_waypoints(
-    area_id: &Id<Area>,
-    data: &GameDataResource,
-    rng: &mut WyRand,
-) -> Vec<Vec2> {
-    let Some(area) = data.0.areas.get(area_id) else {
-        return Vec::new();
-    };
-    let cx = area.location.x;
-    let cy = area.location.y;
-    let r = area.radius.value() * 0.7;
-    (0..3)
-        .map(|_| {
-            let angle = rng.random_range(0.0_f32..std::f32::consts::TAU);
-            let dist = rng.random_range(r * 0.3..r);
-            Vec2::new(cx + angle.cos() * dist, cy + angle.sin() * dist)
-        })
-        .collect()
-}
 
 impl SquadCommand {
     /// Target squad entity for any command variant.

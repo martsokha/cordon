@@ -1,19 +1,48 @@
 //! Squad lifecycle: prune fully-despawned members from the squad's
 //! member list, promote new leaders when the old one dies, and
-//! despawn squads with zero remaining members. Throttled to 1 Hz.
+//! despawn squads with zero remaining members. Throttled to
+//! [`CLEANUP_INTERVAL_SECS`].
 //!
 //! A squad whose members are all dead but whose corpses still exist
 //! stays alive — the corpses are members for lifecycle purposes, and
 //! the squad only despawns once the last corpse has been despawned by
 //! the corpse cleanup path. This keeps dead bodies lootable for as
 //! long as they exist on the map.
+//!
+//! Also hosts [`prune_stale_membership`], which runs every frame
+//! and drops [`SquadMembership`] back-pointers whose squad entity
+//! was just despawned. Defensive — no current path despawns a squad
+//! without also updating membership on the surviving members, but
+//! this keeps downstream systems from dereferencing a dead Entity
+//! if a future code path forgets.
 
 use bevy::prelude::*;
 use cordon_core::primitive::Experience;
 
 use crate::behavior::Dead;
-use crate::components::{NpcMarker, SquadLeader, SquadMembers};
+use crate::components::{NpcMarker, SquadLeader, SquadMarker, SquadMembers, SquadMembership};
 use crate::tuning::CLEANUP_INTERVAL_SECS;
+
+/// Drop [`SquadMembership`] from NPCs whose squad entity has just
+/// been despawned. Runs every frame (no throttle) so stale
+/// back-pointers never survive a frame boundary — systems that
+/// dereference `membership.squad` don't have to defensively check
+/// for entity existence.
+pub(super) fn prune_stale_membership(
+    mut removed: RemovedComponents<SquadMarker>,
+    members_q: Query<(Entity, &SquadMembership)>,
+    mut commands: Commands,
+) {
+    let dead: std::collections::HashSet<Entity> = removed.read().collect();
+    if dead.is_empty() {
+        return;
+    }
+    for (entity, membership) in &members_q {
+        if dead.contains(&membership.squad) {
+            commands.entity(entity).remove::<SquadMembership>();
+        }
+    }
+}
 
 pub(super) fn cleanup_dead_squads(
     time: Res<Time>,

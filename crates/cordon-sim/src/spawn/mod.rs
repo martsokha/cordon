@@ -12,6 +12,7 @@
 pub mod generator;
 pub mod loadout;
 pub mod relics;
+pub mod waypoints;
 
 use std::collections::HashMap;
 
