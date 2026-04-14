@@ -90,7 +90,24 @@ pub(crate) fn spawn(
         Transform::from_translation(center + Vec3::new(hw, 0.0, 0.0)),
     ));
 
-    spawn_door(commands, meshes, materials, center, hd, h);
+    // Back door: real GLB prop (same model + scale as the bunker
+    // entrance). Stands against the back wall (-z), facing the
+    // visitor so they "came through" it. feet land on the floor
+    // via `local_to_world`.
+    {
+        use crate::bunker::geometry::{Prop, prop_scaled};
+        const DOOR_SCALE: f32 = 1.44;
+        // Door2 depth half-extent ~0.07 × 1.44 ≈ 0.10 m. Set back
+        // against the wall with a small gap so it doesn't z-fight.
+        prop_scaled(
+            commands,
+            asset_server,
+            Prop::Door2,
+            local_to_world(Vec3::new(0.0, 0.0, -hd + 0.12)),
+            Quat::IDENTITY,
+            DOOR_SCALE,
+        );
+    }
     spawn_front_door(commands, meshes, materials, center, hd, h);
     spawn_lamp(commands, center, h);
     spawn_furniture(commands, asset_server, hw, hd);
@@ -194,46 +211,6 @@ fn spawn_furniture(commands: &mut Commands, asset_server: &AssetServer, hw: f32,
         local_to_world(Vec3::new(hw - 0.05, HEIGHT / 2.0, -0.8)),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
-}
-
-/// Recessed door panel + slim metallic frame on the back wall,
-/// behind where the visitor stands.
-fn spawn_door(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    materials: &mut Assets<StandardMaterial>,
-    center: Vec3,
-    hd: f32,
-    h: f32,
-) {
-    let panel_mat = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.05, 0.05, 0.06),
-        perceptual_roughness: 0.6,
-        ..default()
-    });
-    let frame_mat = materials.add(StandardMaterial {
-        base_color: Color::srgb(0.22, 0.20, 0.18),
-        perceptual_roughness: 0.5,
-        metallic: 0.4,
-        ..default()
-    });
-    let door_w = 0.9;
-    let door_h = 2.0;
-    let door_z = -hd + 0.03;
-    let door_y = -h / 2.0 + door_h / 2.0;
-
-    // Frame: a slightly larger plate behind the panel.
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(door_w + 0.1, door_h + 0.1, 0.04))),
-        MeshMaterial3d(frame_mat),
-        Transform::from_translation(center + Vec3::new(0.0, door_y, door_z + 0.005)),
-    ));
-    // Panel: the door itself.
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(door_w, door_h, 0.04))),
-        MeshMaterial3d(panel_mat),
-        Transform::from_translation(center + Vec3::new(0.0, door_y, door_z + 0.025)),
-    ));
 }
 
 /// Single warm-but-dim ceiling lamp so the camera has something to

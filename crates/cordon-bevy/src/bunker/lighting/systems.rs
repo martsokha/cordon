@@ -21,11 +21,11 @@ pub fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &L
         // Entry
         LightFixtureBundle::ceiling(0.0, l.trade_z + 1.5, l.h, 50000.0, cool, false),
         // Armory + T-junction -- single light between them.
-        LightFixtureBundle::ceiling(0.0, l.tj_north - 0.5, l.h, 50000.0, dim_cool, false),
+        LightFixtureBundle::ceiling(0.0, l.tj1_north - 0.5, l.h, 50000.0, dim_cool, false),
         // Kitchen
         LightFixtureBundle::ceiling(
             l.kitchen_x_center(),
-            l.tj_center(),
+            l.tj1_center(),
             l.h,
             45000.0,
             white,
@@ -34,7 +34,7 @@ pub fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &L
         // Quarters
         LightFixtureBundle::ceiling(
             l.quarters_x_center(),
-            l.tj_center(),
+            l.tj1_center(),
             l.h,
             15000.0,
             dim_warm,
@@ -42,7 +42,7 @@ pub fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &L
         ),
         LightFixtureBundle::standing(
             l.quarters_x_center(),
-            l.tj_center() - 0.5,
+            l.tj1_center() - 0.5,
             18000.0,
             lamp_warm,
         ),

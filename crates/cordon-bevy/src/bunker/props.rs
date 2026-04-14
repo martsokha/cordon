@@ -21,7 +21,25 @@ use bevy::prelude::*;
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Prop {
-    Camera,
+    TV,
+    BreathingAparatus,
+    Bucket1,
+    Chair,
+    Door1,
+    Door2,
+    Door3,
+    FaceMask1,
+    FaceMask2,
+    FireExtinguisher,
+    Generator1,
+    MedicationBottle,
+    MedicationCluster1,
+    PaperTrashCluster1,
+    Plant1,
+    Radio,
+    Syringe,
+    Toolbox1,
+    WallMachine,
     AmericanFridge,
     Armchair1,
     Armchair2,
@@ -125,10 +143,118 @@ pub struct PropDef {
 impl Prop {
     pub const fn def(self) -> PropDef {
         match self {
-            Self::Camera => PropDef {
-                path: "models/cctv/camera.glb",
-                aabb_min: Vec3::new(-0.001519f32, 1.108e-05f32, -0.05445f32),
-                aabb_max: Vec3::new(0.323f32, 0.1584f32, 0.05445f32),
+            Self::TV => PropDef {
+                path: "models/atomic/TV.glb",
+                aabb_min: Vec3::new(-0.4314f32, 4.324e-05f32, -0.209f32),
+                aabb_max: Vec3::new(0.2347f32, 1.031f32, 0.301f32),
+                collider: true,
+            },
+            Self::BreathingAparatus => PropDef {
+                path: "models/atomic/breathing_aparatus.glb",
+                aabb_min: Vec3::new(-0.23f32, -4.47e-08f32, -0.2134f32),
+                aabb_max: Vec3::new(0.02949f32, 0.1058f32, 0.4746f32),
+                collider: true,
+            },
+            Self::Bucket1 => PropDef {
+                path: "models/atomic/bucket_1.glb",
+                aabb_min: Vec3::new(-0.2119f32, 0.0f32, -0.2039f32),
+                aabb_max: Vec3::new(0.187f32, 0.4151f32, 0.1895f32),
+                collider: true,
+            },
+            Self::Chair => PropDef {
+                path: "models/atomic/chair.glb",
+                aabb_min: Vec3::new(-0.235f32, -1.49e-08f32, -0.3036f32),
+                aabb_max: Vec3::new(0.2349f32, 0.7549f32, 0.2338f32),
+                collider: true,
+            },
+            Self::Door1 => PropDef {
+                path: "models/atomic/door_1.glb",
+                aabb_min: Vec3::new(0.0f32, 0.0f32, -0.05981f32),
+                aabb_max: Vec3::new(1.003f32, 1.58f32, 0.1091f32),
+                collider: true,
+            },
+            Self::Door2 => PropDef {
+                path: "models/atomic/door_2.glb",
+                aabb_min: Vec3::new(0.0f32, 0.0f32, -0.07066f32),
+                aabb_max: Vec3::new(0.8007f32, 1.457f32, 0.07066f32),
+                collider: true,
+            },
+            Self::Door3 => PropDef {
+                path: "models/atomic/door_3.glb",
+                aabb_min: Vec3::new(-2.912e-11f32, 0.0f32, -0.1112f32),
+                aabb_max: Vec3::new(0.8007f32, 1.457f32, 0.03013f32),
+                collider: true,
+            },
+            Self::FaceMask1 => PropDef {
+                path: "models/atomic/face_mask_1.glb",
+                aabb_min: Vec3::new(-0.09452f32, -0.06357f32, -0.03723f32),
+                aabb_max: Vec3::new(0.08772f32, 0.05722f32, 0.03929f32),
+                collider: true,
+            },
+            Self::FaceMask2 => PropDef {
+                path: "models/atomic/face_mask_2.glb",
+                aabb_min: Vec3::new(-0.1106f32, -0.00881f32, -0.05804f32),
+                aabb_max: Vec3::new(0.109f32, 0.01586f32, 0.05912f32),
+                collider: true,
+            },
+            Self::FireExtinguisher => PropDef {
+                path: "models/atomic/fire_extinguisher.glb",
+                aabb_min: Vec3::new(-0.1054f32, 0.0f32, -0.0799f32),
+                aabb_max: Vec3::new(0.07772f32, 0.5228f32, 0.2508f32),
+                collider: true,
+            },
+            Self::Generator1 => PropDef {
+                path: "models/atomic/generator_1.glb",
+                aabb_min: Vec3::new(-1.038f32, 7.451e-09f32, -0.4706f32),
+                aabb_max: Vec3::new(0.9906f32, 1.281f32, 0.4781f32),
+                collider: true,
+            },
+            Self::MedicationBottle => PropDef {
+                path: "models/atomic/medication_bottle.glb",
+                aabb_min: Vec3::new(-0.02802f32, 7.451e-09f32, -0.02802f32),
+                aabb_max: Vec3::new(0.02802f32, 0.08357f32, 0.02802f32),
+                collider: true,
+            },
+            Self::MedicationCluster1 => PropDef {
+                path: "models/atomic/medication_cluster_1.glb",
+                aabb_min: Vec3::new(-0.09747f32, -0.03181f32, -0.06917f32),
+                aabb_max: Vec3::new(0.139f32, 0.04273f32, 0.1089f32),
+                collider: true,
+            },
+            Self::PaperTrashCluster1 => PropDef {
+                path: "models/atomic/paper_trash_cluster_1.glb",
+                aabb_min: Vec3::new(-0.2268f32, -0.012f32, -0.5558f32),
+                aabb_max: Vec3::new(0.5449f32, 0.02136f32, 0.6273f32),
+                collider: true,
+            },
+            Self::Plant1 => PropDef {
+                path: "models/atomic/plant_1.glb",
+                aabb_min: Vec3::new(-0.3092f32, 9.124e-07f32, -0.325f32),
+                aabb_max: Vec3::new(0.3816f32, 0.898f32, 0.3511f32),
+                collider: true,
+            },
+            Self::Radio => PropDef {
+                path: "models/atomic/radio.glb",
+                aabb_min: Vec3::new(-0.1739f32, 7.309e-05f32, -0.07784f32),
+                aabb_max: Vec3::new(0.1739f32, 0.365f32, 0.09998f32),
+                collider: true,
+            },
+            Self::Syringe => PropDef {
+                path: "models/atomic/syringe.glb",
+                aabb_min: Vec3::new(-0.01911f32, -0.01325f32, -0.06885f32),
+                aabb_max: Vec3::new(0.02277f32, 0.01325f32, 0.1258f32),
+                collider: true,
+            },
+            Self::Toolbox1 => PropDef {
+                path: "models/atomic/toolbox_1.glb",
+                aabb_min: Vec3::new(-0.1958f32, 0.0f32, -0.1324f32),
+                aabb_max: Vec3::new(0.1958f32, 0.2812f32, 0.146f32),
+                collider: true,
+            },
+            Self::WallMachine => PropDef {
+                path: "models/atomic/wall_machine.glb",
+                aabb_min: Vec3::new(-0.1795f32, -0.0001227f32, -0.216f32),
+                aabb_max: Vec3::new(0.4675f32, 0.2154f32, 0.446f32),
                 collider: true,
             },
             Self::AmericanFridge => PropDef {
@@ -662,3 +788,4 @@ impl Prop {
         (d.aabb_min + d.aabb_max) * 0.5
     }
 }
+

@@ -9,7 +9,8 @@ license, and where the converted files end up in `assets/`.
 |---|---|---|---|---|
 | Low-Poly Furniture Pack | (itch.io) | See itch.io page | `raw/models/interior/*.fbx` | `assets/models/interior/*.glb` |
 | Low-Poly Storage Pack | [brokenvector (itch.io)](https://brokenvector.itch.io/low-poly-storage-pack) | See itch.io page | `raw/models/storage/*.dae` | `assets/models/storage/*.glb` |
-| Surveillance Camera | [oxygen3d (itch.io)](https://oxygen3d.itch.io/game-ready-surveillance-camera-asset) | See itch.io page | `raw/models/cctv/` | `assets/models/cctv/camera.glb` |
+| Atomic Post-Apocalyptic Pack | (itch.io) | See itch.io page | `raw/models/atomic/*.glb` | `assets/models/atomic/*.glb` |
+| Retro Interior Pack | [kkryy (itch.io)](https://kkryy.itch.io/retro-interior-pack) | See itch.io page | `raw/models/retro/` | (not yet integrated) |
 
 ## Conversion
 
@@ -35,12 +36,13 @@ raw/                              ← source assets
   models/
     interior/*.fbx                ← low-poly furniture
     storage/*.dae                 ← storage/industrial props
-  textures/storage/Palette_*.png   ← color palettes for storage
-    cctv/                         ← surveillance camera + textures
+    atomic/*.glb                  ← post-apocalyptic props (pre-converted)
+    retro/                        ← retro interior pack (not yet integrated)
+  textures/storage/Palette_*.png  ← color palettes for storage
 
 assets/                           ← runtime assets (committed)
   models/
     interior/*.glb
     storage/*.glb
-    cctv/camera.glb
+    atomic/*.glb
 ```

@@ -182,7 +182,7 @@ pub trait NpcGenerator {
     /// Target alive-NPC population in the Zone. Spawning replenishes
     /// toward this number rather than dumping a fixed batch each day.
     fn target_population(&self, _day: u32) -> u32 {
-        800
+        200
     }
 }
 
@@ -274,7 +274,11 @@ pub fn roll_population_top_up<R: Rng>(
         let Some(leader) = leader_uid else { continue };
 
         // Resolve the template's coarse goal kind into a concrete Goal.
-        let goal = resolve_goal(template.goal, area_ids, rng);
+        // Squads prefer areas their own faction controls; only when no
+        // owned area exists do they fall back to a random one. Keeps
+        // most patrols on home turf so neighbouring factions' squads
+        // only collide at territory boundaries.
+        let goal = resolve_goal(template.goal, &faction, area_ids, loadout_ctx.areas, rng);
 
         // For Patrol/Scavenge goals, scatter 3 waypoints inside the
         // target area so multiple squads patrolling the same area don't
@@ -334,21 +338,46 @@ fn pick_squad_template<'a, R: Rng>(
 }
 
 /// Translate a template's goal kind into a concrete [`Goal`] by picking
-/// a target area when needed.
-fn resolve_goal<R: Rng>(kind: SquadGoalKind, area_ids: &[Id<Area>], rng: &mut R) -> Goal {
-    fn pick_area<R: Rng>(area_ids: &[Id<Area>], rng: &mut R) -> Option<Id<Area>> {
-        if area_ids.is_empty() {
+/// a target area, biased toward areas the squad's own faction
+/// controls so squads cluster around home rather than wandering
+/// random tiles of the map.
+///
+/// Falls back to any area if the faction holds no Settlements yet
+/// (e.g. a faction present in data but not yet assigned territory).
+fn resolve_goal<R: Rng>(
+    kind: SquadGoalKind,
+    faction: &Id<Faction>,
+    area_ids: &[Id<Area>],
+    areas: &HashMap<Id<Area>, AreaDef>,
+    rng: &mut R,
+) -> Goal {
+    // Build the preferred pool: areas controlled by `faction` (only
+    // Settlements carry a controller). If empty, use the full list.
+    let owned: Vec<Id<Area>> = area_ids
+        .iter()
+        .filter(|id| {
+            areas
+                .get(*id)
+                .and_then(|def| def.kind.faction())
+                .is_some_and(|f| f == faction)
+        })
+        .cloned()
+        .collect();
+    let pool: &[Id<Area>] = if owned.is_empty() { area_ids } else { &owned };
+
+    fn pick<R: Rng>(pool: &[Id<Area>], rng: &mut R) -> Option<Id<Area>> {
+        if pool.is_empty() {
             None
         } else {
-            Some(area_ids[rng.random_range(0..area_ids.len())].clone())
+            Some(pool[rng.random_range(0..pool.len())].clone())
         }
     }
     match kind {
         SquadGoalKind::Idle => Goal::Idle,
-        SquadGoalKind::Patrol => pick_area(area_ids, rng)
+        SquadGoalKind::Patrol => pick(pool, rng)
             .map(|area| Goal::Patrol { area })
             .unwrap_or(Goal::Idle),
-        SquadGoalKind::Scavenge => pick_area(area_ids, rng)
+        SquadGoalKind::Scavenge => pick(pool, rng)
             .map(|area| Goal::Scavenge { area })
             .unwrap_or(Goal::Idle),
     }

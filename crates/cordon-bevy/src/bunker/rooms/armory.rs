@@ -15,7 +15,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     // is 0.20 m; gap between racks is 0.192 m; south rack extends
     // 0.15 m past `tj_north` into the T-junction's solid-wall strip.
     let rack_north_z = l.divider_z - 0.772;
-    let rack_south_z = l.tj_north - 0.15 + 0.572;
+    let rack_south_z = l.tj1_north - 0.15 + 0.572;
     for z in [rack_north_z, rack_south_z] {
         prop(
             ctx.commands,
@@ -33,29 +33,29 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         );
     }
 
-    // Back-area props sit in the narrow strip south of the T-junction
-    // side doors, against the main corridor's back wall at `back_z`.
+    // Back-area props sit in the narrow strip south of the T1
+    // side doors, against the T1-south corridor slab at `tj1_south`.
     // Crates on a pallet: back right corner (opposite the armchair).
     // Pallet height 0.144m; Crate_01 height 0.513m; stack accordingly.
     prop(
         ctx.commands,
         ctx.asset_server,
         Prop::EURPallet,
-        Vec3::new(l.hw - 0.6, 0.0, l.back_z + 0.5),
+        Vec3::new(l.hw - 0.6, 0.0, l.tj1_south + 0.5),
         Quat::IDENTITY,
     );
     prop(
         ctx.commands,
         ctx.asset_server,
         Prop::Crate01,
-        Vec3::new(l.hw - 0.6, 0.144, l.back_z + 0.5),
+        Vec3::new(l.hw - 0.6, 0.144, l.tj1_south + 0.5),
         Quat::IDENTITY,
     );
     prop(
         ctx.commands,
         ctx.asset_server,
         Prop::Crate02,
-        Vec3::new(l.hw - 0.6, 0.657, l.back_z + 0.5),
+        Vec3::new(l.hw - 0.6, 0.657, l.tj1_south + 0.5),
         Quat::from_rotation_y(0.3),
     );
     // Loose box next to the pallet.
@@ -63,7 +63,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         ctx.commands,
         ctx.asset_server,
         Prop::Box01,
-        Vec3::new(l.hw - 1.2, 0.0, l.back_z + 0.4),
+        Vec3::new(l.hw - 1.2, 0.0, l.tj1_south + 0.4),
         Quat::from_rotation_y(0.2),
     );
 
@@ -140,7 +140,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         ctx.commands,
         ctx.asset_server,
         Prop::Armchair1,
-        Vec3::new(-l.hw + 0.5, 0.0, l.back_z + 0.5),
+        Vec3::new(-l.hw + 0.5, 0.0, l.tj1_south + 0.5),
         Quat::from_rotation_y(FRAC_PI_2 / 2.0),
     );
     // Bag on the floor near the armchair.
@@ -148,16 +148,8 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         ctx.commands,
         ctx.asset_server,
         Prop::Bag01,
-        Vec3::new(-0.3, 0.0, l.back_z + 0.3),
+        Vec3::new(-0.3, 0.0, l.tj1_south + 0.3),
         Quat::from_rotation_y(0.5),
     );
 
-    // Back door (boarded up).
-    spawn_box(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.wood.clone(),
-        Vec3::new(0.0, 1.0, l.back_z + 0.05),
-        Vec3::new(0.9, 2.0, 0.08),
-    );
 }

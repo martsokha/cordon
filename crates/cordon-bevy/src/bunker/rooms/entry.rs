@@ -7,14 +7,30 @@ use crate::bunker::resources::RoomCtx;
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     let l = ctx.l;
-    spawn_doorframe(
+    // Entry door: real GLB prop replacing the old hand-built
+    // lintel+jambs. Door2's native height is 1.46 m; the bunker
+    // opening is 2.10 m, so scale by 2.1 / 1.46 ≈ 1.44 to fill
+    // the frame.
+    const DOOR_SCALE: f32 = 1.44;
+    prop_scaled(
         ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete.clone(),
-        0.0,
-        l.front_z - 0.1,
-        1.0,
-        l.opening_h(),
+        ctx.asset_server,
+        Prop::Door2,
+        Vec3::new(0.0, 0.0, l.front_z - 0.1),
+        Quat::IDENTITY,
+        DOOR_SCALE,
+    );
+    // Matching door on the opposite end of the corridor at
+    // `back_z`. Flush against the back wall, facing the bunker
+    // interior (rotated 180° around Y so its +z hinge/normal
+    // points into the room rather than into the concrete).
+    prop_scaled(
+        ctx.commands,
+        ctx.asset_server,
+        Prop::Door2,
+        Vec3::new(0.0, 0.0, l.back_z + 0.1),
+        Quat::from_rotation_y(std::f32::consts::PI),
+        DOOR_SCALE,
     );
     spawn_stairs(
         ctx.commands,

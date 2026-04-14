@@ -22,27 +22,38 @@ pub fn prop(
     pos: Vec3,
     rot: Quat,
 ) -> Entity {
+    prop_scaled(commands, asset_server, prop, pos, rot, 1.0)
+}
+
+/// Uniformly-scaled variant of [`prop`]. Scales the mesh, the
+/// feet-center offset math, and the collider so the scaled prop
+/// still sits flush on `pos.y`.
+pub fn prop_scaled(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    prop: Prop,
+    pos: Vec3,
+    rot: Quat,
+    scale: f32,
+) -> Entity {
     let def = prop.def();
-    let size = def.aabb_max - def.aabb_min;
-    let local_center = (def.aabb_min + def.aabb_max) * 0.5;
-    // Feet-center in model local space: lateral center at AABB center,
-    // y at AABB min.
-    let feet_local = Vec3::new(local_center.x, def.aabb_min.y, local_center.z);
-    // Offset the spawn so `feet_local` lands on `pos`.
+    let size = (def.aabb_max - def.aabb_min) * scale;
+    let local_center = (def.aabb_min + def.aabb_max) * 0.5 * scale;
+    // Feet-center in scaled model local space.
+    let feet_local = Vec3::new(local_center.x, def.aabb_min.y * scale, local_center.z);
     let spawn_pos = pos - rot * feet_local;
 
     let scene: Handle<Scene> = asset_server.load(format!("{}#Scene0", def.path));
     let entity = commands
         .spawn((
             SceneRoot(scene),
-            Transform::from_translation(spawn_pos).with_rotation(rot),
+            Transform::from_translation(spawn_pos)
+                .with_rotation(rot)
+                .with_scale(Vec3::splat(scale)),
         ))
         .id();
 
     if def.collider {
-        // AABB center in world space = spawn_pos + rot * local_center.
-        // Since rotation is around Y only for every room call, this
-        // simplifies, but we compute it generally to stay honest.
         let collider_center = spawn_pos + rot * local_center;
         commands.spawn((
             RigidBody::Static,
@@ -144,46 +155,6 @@ pub fn spawn_grate_bars(
         Collider::cuboid(width, height, 0.1),
         Transform::from_xyz(center_x, height / 2.0, z),
     ));
-}
-
-/// Spawn a doorframe in the XZ plane facing ±Z (opening is in the Z
-/// direction). Side pillars + lintel; heights derive from
-/// `opening_h`, the walkable clearance under the lintel.
-pub fn spawn_doorframe(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    mat: Handle<StandardMaterial>,
-    center_x: f32,
-    z: f32,
-    width: f32,
-    opening_h: f32,
-) {
-    let hw = width / 2.0;
-    let side_h = opening_h;
-    let side_y = side_h / 2.0;
-    let lintel_thickness = 0.15;
-    let lintel_y = opening_h + lintel_thickness / 2.0;
-    spawn_box(
-        commands,
-        meshes,
-        mat.clone(),
-        Vec3::new(center_x - hw - 0.05, side_y, z),
-        Vec3::new(0.1, side_h, 0.15),
-    );
-    spawn_box(
-        commands,
-        meshes,
-        mat.clone(),
-        Vec3::new(center_x + hw + 0.05, side_y, z),
-        Vec3::new(0.1, side_h, 0.15),
-    );
-    spawn_box(
-        commands,
-        meshes,
-        mat,
-        Vec3::new(center_x, lintel_y, z),
-        Vec3::new(width + 0.2, lintel_thickness, 0.15),
-    );
 }
 
 /// Variant for doorframes facing ±X (opening is in the X direction).

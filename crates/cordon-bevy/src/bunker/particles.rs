@@ -113,8 +113,10 @@ const DUST_COOL: Vec4 = Vec4::new(0.82, 0.88, 0.95, 0.55);
 fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<EffectAsset>>) {
     let l = Layout::new();
 
-    // Main corridor: front_z → tj_north, full corridor width.
-    let corridor_min_z = l.tj_north + 0.2;
+    // Main corridor: one long emitter spanning front_z → back_z.
+    // The two T-junction openings are narrow cross-passages, not
+    // separate volumes, so the corridor dust covers them.
+    let corridor_min_z = l.back_z + 0.3;
     let corridor_max_z = l.front_z - 0.3;
     spawn_dust(
         &mut commands,
@@ -126,32 +128,28 @@ fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<Effect
             l.hh() - 0.2,
             (corridor_max_z - corridor_min_z) * 0.5,
         ),
-        25.0,
+        // Longer corridor, more particles. Old rate (25) over a
+        // ~12 m span -> density ~2/m. Keep the same density here.
+        40.0,
         DUST_WARM,
     );
 
-    // Kitchen: left of -hw, from back_z forward by side_depth.
-    let side_min_z = l.back_z + 0.3;
-    let side_max_z = l.back_z + l.side_depth - 0.3;
+    // T1 side rooms (kitchen + quarters).
+    let t1_min_z = l.tj1_south + 0.3;
+    let t1_max_z = l.tj1_north - 0.3;
     spawn_dust(
         &mut commands,
         &mut effects,
         "bunker_dust_kitchen",
-        Vec3::new(
-            l.kitchen_x_center(),
-            l.hh(),
-            (side_min_z + side_max_z) * 0.5,
-        ),
+        Vec3::new(l.kitchen_x_center(), l.hh(), (t1_min_z + t1_max_z) * 0.5),
         Vec3::new(
             (l.side_depth * 0.5) - 0.2,
             l.hh() - 0.2,
-            (side_max_z - side_min_z) * 0.5,
+            (t1_max_z - t1_min_z) * 0.5,
         ),
         15.0,
         DUST_WARM,
     );
-
-    // Quarters: right of +hw, same Z span as kitchen.
     spawn_dust(
         &mut commands,
         &mut effects,
@@ -159,25 +157,54 @@ fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<Effect
         Vec3::new(
             l.quarters_x_center(),
             l.hh(),
-            (side_min_z + side_max_z) * 0.5,
+            (t1_min_z + t1_max_z) * 0.5,
         ),
         Vec3::new(
             (l.side_depth * 0.5) - 0.2,
             l.hh() - 0.2,
-            (side_max_z - side_min_z) * 0.5,
+            (t1_max_z - t1_min_z) * 0.5,
         ),
         15.0,
         DUST_WARM,
     );
 
-    // T-junction (command/armory wing). Cool tint.
+    // T2 side rooms (infirmary + workshop). Cool tint to reinforce
+    // the "clinical / industrial" atmosphere distinct from T1's
+    // living quarters vibe.
+    let t2_min_z = l.back_z + 0.3;
+    let t2_max_z = l.tj2_north - 0.3;
     spawn_dust(
         &mut commands,
         &mut effects,
-        "bunker_dust_tjunction",
-        Vec3::new(0.0, l.hh(), l.tj_center()),
-        Vec3::new(l.hw - 0.2, l.hh() - 0.2, (l.tj_len() * 0.5) - 0.2),
-        20.0,
+        "bunker_dust_infirmary",
+        Vec3::new(
+            l.infirmary_x_center(),
+            l.hh(),
+            (t2_min_z + t2_max_z) * 0.5,
+        ),
+        Vec3::new(
+            (l.side_depth * 0.5) - 0.2,
+            l.hh() - 0.2,
+            (t2_max_z - t2_min_z) * 0.5,
+        ),
+        15.0,
+        DUST_COOL,
+    );
+    spawn_dust(
+        &mut commands,
+        &mut effects,
+        "bunker_dust_workshop",
+        Vec3::new(
+            l.workshop_x_center(),
+            l.hh(),
+            (t2_min_z + t2_max_z) * 0.5,
+        ),
+        Vec3::new(
+            (l.side_depth * 0.5) - 0.2,
+            l.hh() - 0.2,
+            (t2_max_z - t2_min_z) * 0.5,
+        ),
+        15.0,
         DUST_COOL,
     );
 

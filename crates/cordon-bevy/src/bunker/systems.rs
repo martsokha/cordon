@@ -49,6 +49,8 @@ pub(super) fn spawn_bunker(
         rooms::armory::spawn(&mut ctx);
         rooms::kitchen::spawn(&mut ctx);
         rooms::quarters::spawn(&mut ctx);
+        rooms::infirmary::spawn(&mut ctx);
+        rooms::workshop::spawn(&mut ctx);
     }
 
     rooms::antechamber::spawn(&mut commands, &mut meshes, &mut mats, &asset_server);
@@ -97,7 +99,7 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
 
     use geometry::*;
 
-    // Floor + ceiling.
+    // Floor + ceiling span the full extended corridor.
     let main_center_z = (l.front_z + l.back_z) / 2.0;
     let main_floor_half = Vec2::new(l.hw, (l.front_z - l.back_z) / 2.0);
     spawn_floor_ceiling(
@@ -119,111 +121,25 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
         Vec2::new(l.hw, l.hh()),
     );
 
-    // Left wall + kitchen doorframe.
-    {
-        let len = l.front_z - l.tj_north;
-        let cz = (l.front_z + l.tj_north) / 2.0;
-        spawn_wall(
-            commands,
-            meshes,
-            pal.concrete.clone(),
-            Vec3::new(-l.hw, l.hh(), cz),
-            Quat::from_rotation_y(FRAC_PI_2),
-            Vec2::new(len / 2.0, l.hh()),
-        );
-    }
-    spawn_doorframe_x(
+    // Side walls: each side runs from front_z to back_z with two
+    // door openings (one per T-junction) cut into it. The helper
+    // emits wall segments for the gaps between door openings.
+    spawn_side_wall(
         commands,
         meshes,
-        pal.concrete.clone(),
+        pal,
+        l,
         -l.hw,
-        l.tj_center(),
-        l.side_door_width,
-        l.opening_h(),
+        Quat::from_rotation_y(FRAC_PI_2),
     );
-    {
-        let door_n = l.tj_center() + l.side_door_width / 2.0;
-        let len = (l.tj_north - door_n).abs();
-        let cz = (l.tj_north + door_n) / 2.0;
-        if len > 0.1 {
-            spawn_wall(
-                commands,
-                meshes,
-                pal.concrete.clone(),
-                Vec3::new(-l.hw, l.hh(), cz),
-                Quat::from_rotation_y(FRAC_PI_2),
-                Vec2::new(len / 2.0, l.hh()),
-            );
-        }
-    }
-    {
-        let door_s = l.tj_center() - l.side_door_width / 2.0;
-        let len = (door_s - l.back_z).abs();
-        let cz = (door_s + l.back_z) / 2.0;
-        if len > 0.1 {
-            spawn_wall(
-                commands,
-                meshes,
-                pal.concrete.clone(),
-                Vec3::new(-l.hw, l.hh(), cz),
-                Quat::from_rotation_y(FRAC_PI_2),
-                Vec2::new(len / 2.0, l.hh()),
-            );
-        }
-    }
-
-    // Right wall + bedroom doorframe.
-    {
-        let len = l.front_z - l.tj_north;
-        let cz = (l.front_z + l.tj_north) / 2.0;
-        spawn_wall(
-            commands,
-            meshes,
-            pal.concrete.clone(),
-            Vec3::new(l.hw, l.hh(), cz),
-            Quat::from_rotation_y(-FRAC_PI_2),
-            Vec2::new(len / 2.0, l.hh()),
-        );
-    }
-    spawn_doorframe_x(
+    spawn_side_wall(
         commands,
         meshes,
-        pal.concrete.clone(),
+        pal,
+        l,
         l.hw,
-        l.tj_center(),
-        l.side_door_width,
-        l.opening_h(),
+        Quat::from_rotation_y(-FRAC_PI_2),
     );
-    {
-        let door_n = l.tj_center() + l.side_door_width / 2.0;
-        let len = (l.tj_north - door_n).abs();
-        let cz = (l.tj_north + door_n) / 2.0;
-        if len > 0.1 {
-            spawn_wall(
-                commands,
-                meshes,
-                pal.concrete.clone(),
-                Vec3::new(l.hw, l.hh(), cz),
-                Quat::from_rotation_y(-FRAC_PI_2),
-                Vec2::new(len / 2.0, l.hh()),
-            );
-        }
-    }
-    {
-        let door_s = l.tj_center() - l.side_door_width / 2.0;
-        let len = (door_s - l.back_z).abs();
-        let cz = (door_s + l.back_z) / 2.0;
-        if len > 0.1 {
-            spawn_wall(
-                commands,
-                meshes,
-                pal.concrete.clone(),
-                Vec3::new(l.hw, l.hh(), cz),
-                Quat::from_rotation_y(-FRAC_PI_2),
-                Vec2::new(len / 2.0, l.hh()),
-            );
-        }
-    }
 
     // Back wall.
     spawn_wall(
@@ -233,6 +149,74 @@ fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Pale
         Vec3::new(0.0, l.hh(), l.back_z),
         Quat::IDENTITY,
         Vec2::new(l.hw, l.hh()),
+    );
+}
+
+/// Spawn one side of the main corridor: a wall that runs
+/// `front_z → back_z` with T1 and T2 door openings cut into it.
+/// Emits up to five wall segments (front stub, between T1 door and
+/// T2 door, back stub, plus the narrow strips above/below each
+/// door) and a doorframe at each T's centre.
+///
+/// `x` is the wall's x-coordinate (`-hw` for left, `+hw` for
+/// right); `rot` orients the wall facing the corridor interior.
+fn spawn_side_wall(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    pal: &Palette,
+    l: &Layout,
+    x: f32,
+    rot: Quat,
+) {
+    use geometry::*;
+
+    // Four "gap" spans along the Z axis where the wall is solid
+    // (not interrupted by a T door). Each entry is (z_north, z_south).
+    let gaps = [
+        // Front stub: front_z → T1 door north edge.
+        (l.front_z, l.tj1_center() + l.side_door_width / 2.0),
+        // Between T1 door south edge and T2 door north edge.
+        (
+            l.tj1_center() - l.side_door_width / 2.0,
+            l.tj2_center() + l.side_door_width / 2.0,
+        ),
+        // Back stub: T2 door south edge → back_z.
+        (l.tj2_center() - l.side_door_width / 2.0, l.back_z),
+    ];
+    for (n, s) in gaps {
+        let len = (n - s).abs();
+        if len <= 0.1 {
+            continue;
+        }
+        let cz = (n + s) / 2.0;
+        spawn_wall(
+            commands,
+            meshes,
+            pal.concrete.clone(),
+            Vec3::new(x, l.hh(), cz),
+            rot,
+            Vec2::new(len / 2.0, l.hh()),
+        );
+    }
+
+    // Doorframes at each T-junction centre.
+    spawn_doorframe_x(
+        commands,
+        meshes,
+        pal.concrete.clone(),
+        x,
+        l.tj1_center(),
+        l.side_door_width,
+        l.opening_h(),
+    );
+    spawn_doorframe_x(
+        commands,
+        meshes,
+        pal.concrete.clone(),
+        x,
+        l.tj2_center(),
+        l.side_door_width,
+        l.opening_h(),
     );
 }
 

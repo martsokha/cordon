@@ -110,6 +110,16 @@ pub(crate) struct RoomCtx<'a, 'w, 's> {
 
 /// Bunker dimensions. Only stores the primary constants; derived
 /// values are computed via methods so nothing can go stale.
+///
+/// The corridor has **two T-junctions**:
+/// - **T1** (kitchen / quarters) — the original pair, at the back
+///   of the original corridor span. Z range `[tj1_north, tj1_south]`.
+/// - **T2** (infirmary / workshop) — the newer pair, past T1 on
+///   the way to the back wall. Z range `[tj2_north, tj2_south]`.
+///
+/// Between `tj1_south` and `tj2_north` sits a short straight hall
+/// so the corridor reads as “two branching zones with a passage
+/// between them” rather than a single mashed-together space.
 pub(crate) struct Layout {
     /// Ceiling height.
     pub h: f32,
@@ -123,9 +133,13 @@ pub(crate) struct Layout {
     pub divider_z: f32,
     /// Half-width of the grate opening.
     pub hole_half: f32,
-    /// Z of the north edge of the T-junction.
-    pub tj_north: f32,
-    /// Z of the back wall (south edge of corridor + side rooms).
+    /// Z of the north edge of the first T-junction (kitchen/quarters).
+    pub tj1_north: f32,
+    /// Z of the south edge of the first T-junction.
+    pub tj1_south: f32,
+    /// Z of the north edge of the second T-junction (infirmary/workshop).
+    pub tj2_north: f32,
+    /// Z of the back wall (south edge of corridor + T2 side rooms).
     pub back_z: f32,
     /// How far each side room extends from the corridor wall.
     pub side_depth: f32,
@@ -135,6 +149,9 @@ pub(crate) struct Layout {
 
 impl Layout {
     pub(crate) fn new() -> Self {
+        // Original back_z was -7.63. Extend the corridor ~4 m to
+        // fit the second T-junction (~3 m long) plus a 1 m straight
+        // hall segment between the two Ts.
         Self {
             h: 2.4,
             hw: 2.05,
@@ -142,8 +159,10 @@ impl Layout {
             trade_z: 1.5,
             divider_z: -2.25,
             hole_half: 0.6,
-            tj_north: -4.63,
-            back_z: -7.63,
+            tj1_north: -4.63,
+            tj1_south: -7.63,
+            tj2_north: -8.63,
+            back_z: -11.63,
             side_depth: 3.0,
             side_door_width: 1.6,
         }
@@ -164,32 +183,64 @@ impl Layout {
         self.trade_z - 0.5
     }
 
-    pub fn tj_center(&self) -> f32 {
-        (self.tj_north + self.back_z) / 2.0
+    /// Centre of the first T-junction's Z extent.
+    pub fn tj1_center(&self) -> f32 {
+        (self.tj1_north + self.tj1_south) / 2.0
     }
 
-    pub fn tj_len(&self) -> f32 {
-        self.tj_north - self.back_z
+    /// Z-length of the first T-junction (= kitchen/quarters depth).
+    pub fn tj1_len(&self) -> f32 {
+        self.tj1_north - self.tj1_south
     }
 
-    /// Kitchen (left): furthest x.
+    /// Centre of the second T-junction's Z extent.
+    pub fn tj2_center(&self) -> f32 {
+        (self.tj2_north + self.back_z) / 2.0
+    }
+
+    /// Z-length of the second T-junction (= infirmary/workshop depth).
+    pub fn tj2_len(&self) -> f32 {
+        self.tj2_north - self.back_z
+    }
+
+    /// Kitchen (left of T1): furthest x.
     pub fn kitchen_x_min(&self) -> f32 {
         -(self.hw + self.side_depth)
     }
 
-    /// Kitchen (left): center x.
+    /// Kitchen (left of T1): center x.
     pub fn kitchen_x_center(&self) -> f32 {
         (self.kitchen_x_min() + (-self.hw)) / 2.0
     }
 
-    /// Quarters (right): furthest x.
+    /// Quarters (right of T1): furthest x.
     pub fn quarters_x_max(&self) -> f32 {
         self.hw + self.side_depth
     }
 
-    /// Quarters (right): center x.
+    /// Quarters (right of T1): center x.
     pub fn quarters_x_center(&self) -> f32 {
         (self.hw + self.quarters_x_max()) / 2.0
+    }
+
+    /// Infirmary (left of T2): furthest x. Mirrors kitchen's span.
+    pub fn infirmary_x_min(&self) -> f32 {
+        -(self.hw + self.side_depth)
+    }
+
+    /// Infirmary (left of T2): center x.
+    pub fn infirmary_x_center(&self) -> f32 {
+        (self.infirmary_x_min() + (-self.hw)) / 2.0
+    }
+
+    /// Workshop (right of T2): furthest x.
+    pub fn workshop_x_max(&self) -> f32 {
+        self.hw + self.side_depth
+    }
+
+    /// Workshop (right of T2): center x.
+    pub fn workshop_x_center(&self) -> f32 {
+        (self.hw + self.workshop_x_max()) / 2.0
     }
 }
 
