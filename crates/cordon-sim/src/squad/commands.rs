@@ -35,8 +35,8 @@ pub enum SquadCommand {
     Scavenge { squad: Entity, area: Id<Area> },
     /// Tail another squad and engage anything that attacks them.
     Protect { squad: Entity, other: Entity },
-    /// Carry items to a destination point.
-    Deliver { squad: Entity, to: Vec2 },
+    /// Travel to a destination point.
+    GoTo { squad: Entity, to: Vec2 },
     /// Switch the marching formation.
     SetFormation { squad: Entity, formation: Formation },
 }
@@ -87,8 +87,11 @@ pub(super) fn apply_squad_commands(
                 };
                 *goal = Goal::Protect { other: *other_uid };
             }
-            SquadCommand::Deliver { to, .. } => {
-                *goal = Goal::Deliver { to: [to.x, to.y] };
+            SquadCommand::GoTo { to, .. } => {
+                *goal = Goal::GoTo {
+                    target: [to.x, to.y],
+                    intent: cordon_core::entity::squad::TravelIntent::Generic,
+                };
                 waypoints.points.clear();
                 waypoints.next = 0;
             }
@@ -110,7 +113,7 @@ impl SquadCommand {
             | SquadCommand::Patrol { squad, .. }
             | SquadCommand::Scavenge { squad, .. }
             | SquadCommand::Protect { squad, .. }
-            | SquadCommand::Deliver { squad, .. }
+            | SquadCommand::GoTo { squad, .. }
             | SquadCommand::SetFormation { squad, .. } => *squad,
         }
     }

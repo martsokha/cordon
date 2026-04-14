@@ -3,13 +3,15 @@
 use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 use bevy::prelude::Component;
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
 
 /// The Zone's currency. Used for trading, bribes, upgrades, and payroll.
 ///
 /// Wraps a `u32`. Cannot go negative — subtraction saturates at zero.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[derive(Component, Serialize, Deserialize)]
+#[derive(Component, Display, Serialize, Deserialize)]
+#[display("{_0} cr")]
 pub struct Credits(u32);
 
 impl Credits {
@@ -64,11 +66,5 @@ impl SubAssign for Credits {
 impl From<u32> for Credits {
     fn from(amount: u32) -> Self {
         Self(amount)
-    }
-}
-
-impl std::fmt::Display for Credits {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} cr", self.0)
     }
 }

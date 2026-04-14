@@ -39,6 +39,9 @@ fn next_activity_for_goal(goal: &Goal, waypoints: &mut SquadWaypoints) -> SquadA
             }
         }
         Goal::Protect { .. } => SquadActivity::Hold { duration_secs: 0.5 },
+        Goal::GoTo { target, .. } => SquadActivity::Move {
+            target: Vec2::new(target[0], target[1]),
+        },
         _ => SquadActivity::Hold { duration_secs: 4.0 },
     }
 }

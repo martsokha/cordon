@@ -1,6 +1,7 @@
 //! Experience points for players and NPCs.
 
 use bevy::prelude::Component;
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
 
 use super::Rank;
@@ -14,7 +15,8 @@ use super::Rank;
 /// (guards). The player gains XP from trades, completed quests, surviving
 /// events, and faction milestones.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[derive(Component, Serialize, Deserialize)]
+#[derive(Component, Display, Serialize, Deserialize)]
+#[display("{_0} XP")]
 pub struct Experience(u32);
 
 impl Experience {
@@ -50,11 +52,5 @@ impl Experience {
 impl From<u32> for Experience {
     fn from(xp: u32) -> Self {
         Self(xp)
-    }
-}
-
-impl std::fmt::Display for Experience {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} XP", self.0)
     }
 }

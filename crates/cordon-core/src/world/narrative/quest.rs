@@ -135,6 +135,13 @@ pub enum QuestStageKind {
         /// or all eligible branches were gated out by
         /// [`TalkBranch::requires`]).
         fallback: Id<QuestStage>,
+        /// Stage to transition to if the visitor NPC dies en route to
+        /// the bunker (or otherwise fails to arrive). Optional — if
+        /// unset, the quest stalls indefinitely when the giver can't
+        /// arrive. Resolved against sibling stage IDs like on_failure
+        /// on Objective stages.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        on_failure: Option<Id<QuestStage>>,
     },
 
     /// Wait for a world condition to become true.

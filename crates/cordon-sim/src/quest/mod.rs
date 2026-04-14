@@ -22,12 +22,14 @@ pub mod consequence;
 pub mod engine;
 pub mod registry;
 pub mod state;
+pub mod travel;
 
 use bevy::prelude::*;
 
 pub use self::consequence::{GiveNpcXpRequest, SpawnNpcRequest, StartQuestRequest};
 pub use self::registry::TemplateRegistry;
 pub use self::state::{ActiveQuest, CompletedQuest, QuestLog};
+pub use self::travel::{BunkerArrival, HomeArrival};
 use crate::day::DayRolled;
 use crate::plugin::SimSet;
 use crate::resources::GameClock;
@@ -48,6 +50,9 @@ impl Plugin for QuestPlugin {
         app.add_message::<StartQuestRequest>();
         app.add_message::<SpawnNpcRequest>();
         app.add_message::<GiveNpcXpRequest>();
+        app.add_message::<BunkerArrival>();
+        app.add_message::<HomeArrival>();
+        app.add_message::<consequence::DismissTemplateNpc>();
 
         // Catalog validation lives in cordon-data now, running
         // inline inside `assemble_game_data` before the
@@ -71,10 +76,20 @@ impl Plugin for QuestPlugin {
                 engine::dispatch_on_condition,
                 engine::drive_active_quests,
                 engine::process_start_quest_requests,
+                engine::fail_talk_on_template_death,
             )
                 .chain()
                 .in_set(SimSet::Cleanup)
                 .run_if(resource_exists::<GameClock>),
+        );
+
+        // Arrival detection is a lightweight transform scan;
+        // runs every Update outside the cleanup bundle so the
+        // Bevy-layer arrival handler can consume the message
+        // the same frame.
+        app.add_systems(
+            Update,
+            (travel::detect_bunker_arrival, travel::detect_home_arrival),
         );
     }
 }

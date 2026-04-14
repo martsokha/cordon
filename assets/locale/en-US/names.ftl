@@ -60,3 +60,6 @@ alias-pike = Pike
 npc-name-alias = { $first }
 npc-name-firstsurname = { $first } { $second }
 npc-name-firstalias = { $first } "{ $second }"
+
+# Named unique characters (NpcTemplateDef.name_key resolves here)
+npc-garrison-lieutenant = Lt. Petrov

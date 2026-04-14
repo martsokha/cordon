@@ -1,6 +1,6 @@
 {
   "id": "npc_garrison_lieutenant",
-  "name_key": "npc.garrison_lieutenant.name",
+  "name_key": "npc-garrison-lieutenant",
   "faction": "faction_garrison",
   "rank": "veteran",
   "personality": "cautious",

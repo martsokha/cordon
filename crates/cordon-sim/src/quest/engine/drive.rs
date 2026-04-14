@@ -379,7 +379,13 @@ fn complete_quest(
         faction_pool,
     };
     for consequence in &to_apply {
-        apply(consequence, &mut world, start_quest_tx, spawn_npc_tx, give_npc_xp_tx);
+        apply(
+            consequence,
+            &mut world,
+            start_quest_tx,
+            spawn_npc_tx,
+            give_npc_xp_tx,
+        );
     }
 
     // Stable removal: retain() walks once, evicts the matching

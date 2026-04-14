@@ -97,6 +97,33 @@ pub struct NpcMarker;
 #[derive(Component, Debug, Clone)]
 pub struct TemplateId(pub Id<NpcTemplate>);
 
+/// Marker for a template NPC that is currently traveling to the
+/// bunker. Removed on arrival. Drives arrival detection.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct TravelingToBunker;
+
+/// Map-space coordinate where a template NPC was spawned. Used
+/// for the return-travel leg — after dialogue, they travel back
+/// here before despawning.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct SpawnOrigin(pub Vec2);
+
+/// Marker: this template NPC is traveling home after dialogue.
+/// Driven by `detect_home_arrival`.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct TravelingHome;
+
+/// Marker placed on NPC entities whose map dot should render
+/// with a pulsing quest-critical outline. Reserved for template
+/// NPCs that matter narratively.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct QuestCritical;
+
+/// Yarn node this template NPC should dispatch when admitted
+/// as a visitor. Set at SpawnNpc time, read on arrival.
+#[derive(Component, Debug, Clone)]
+pub struct PendingYarnNode(pub String);
+
 /// Faction membership. Distinct from `Id<Faction>` in other
 /// contexts (e.g. fields inside data structs) because this
 /// wrapper type is what Bevy queries actually filter on —

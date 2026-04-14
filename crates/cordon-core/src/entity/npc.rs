@@ -89,6 +89,7 @@ pub enum Role {
 /// `NpcAttributes`, not as its own component.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Personality {
     /// Careful, slow to trust, thorough negotiator.
     #[default]

@@ -59,10 +59,10 @@ use std::collections::{HashMap, HashSet};
 
 use bevy::log::warn;
 use cordon_core::entity::archetype::{Archetype, ArchetypeDef, RankLoadout};
-use cordon_core::entity::npc::{NpcTemplate, NpcTemplateDef};
 use cordon_core::entity::bunker::{Upgrade, UpgradeDef};
 use cordon_core::entity::faction::{Faction, FactionDef};
 use cordon_core::entity::name::{NamePool, NamePoolMarker};
+use cordon_core::entity::npc::{NpcTemplate, NpcTemplateDef};
 use cordon_core::entity::perk::{Perk, PerkDef};
 use cordon_core::item::{Caliber, Item, ItemData, ItemDef};
 use cordon_core::primitive::{Id, IdMarker};
@@ -368,10 +368,21 @@ impl GameData {
             let stage_ref = format!("{referrer} stage `{}`", stage.id.as_str());
             match &stage.kind {
                 QuestStageKind::Talk {
-                    branches, fallback, ..
+                    branches,
+                    fallback,
+                    on_failure,
+                    ..
                 } => {
                     if !ids.contains(fallback) {
                         warn!("{stage_ref}: unknown fallback `{}`", fallback.as_str());
+                    }
+                    if let Some(on_failure) = on_failure
+                        && !ids.contains(on_failure)
+                    {
+                        warn!(
+                            "{stage_ref}: on_failure → unknown stage `{}`",
+                            on_failure.as_str()
+                        );
                     }
                     // Duplicate choice strings silently shadow —
                     // serde keeps the first, so later branches

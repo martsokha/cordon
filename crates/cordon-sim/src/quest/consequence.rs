@@ -60,6 +60,22 @@ pub struct StartQuestRequest {
 pub struct SpawnNpcRequest {
     pub template: Id<NpcTemplate>,
     pub at: Option<Id<Area>>,
+    /// When set, the spawned template NPC will dispatch this
+    /// yarn node as its visitor payload when it arrives at the
+    /// bunker. `None` for generic `SpawnNpc` consequences that
+    /// drop the NPC into the world without a conversation.
+    pub yarn_node: Option<String>,
+}
+
+/// Emitted by the dialogue bridge when a template NPC's
+/// conversation completes. Consumed by a Bevy-layer system that
+/// starts the return-travel leg: strips `QuestCritical`, attaches
+/// `TravelingHome`, and builds a fresh 1-member squad that walks
+/// the NPC back to its `SpawnOrigin`.
+#[derive(Message, Debug, Clone)]
+pub struct DismissTemplateNpc {
+    pub entity: Entity,
+    pub template: Id<NpcTemplate>,
 }
 
 /// Emitted by `GiveNpcXp` consequences. Consumed by a downstream
@@ -200,6 +216,7 @@ pub fn apply(
             spawn_npc.write(SpawnNpcRequest {
                 template: template.clone(),
                 at: at.clone(),
+                yarn_node: None,
             });
         }
 

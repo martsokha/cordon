@@ -1,13 +1,13 @@
 {
   "id": "quest_first_contact",
   "category": "tutorial",
-  "giver": "garrison_lieutenant",
+  "giver": "npc_garrison_lieutenant",
   "giver_faction": "faction_garrison",
   "stages": [
     {
       "id": "intro",
       "kind": "talk",
-      "npc": "garrison_lieutenant",
+      "npc": "npc_garrison_lieutenant",
       "yarn_node": "first_contact.intro",
       "branches": [
         {
@@ -23,7 +23,8 @@
           "next_stage": "outcome_refuse"
         }
       ],
-      "fallback": "outcome_refuse"
+      "fallback": "outcome_refuse",
+      "on_failure": "stage_failed"
     },
     {
       "id": "outcome_accept",
@@ -93,6 +94,12 @@
           ]
         }
       ]
+    },
+    {
+      "id": "stage_failed",
+      "kind": "outcome",
+      "success": false,
+      "consequences": []
     }
   ],
   "repeatable": false

@@ -176,10 +176,9 @@ fn assemble_game_data<S: FreelyMutableState>(
     let name_pools = parse_folder(&loading.namepools, &folders, &raw, |d: &NamePool| {
         d.id.clone()
     });
-    let npc_templates =
-        parse_folder(&loading.npcs, &folders, &raw, |d: &NpcTemplateDef| {
-            d.id.clone()
-        });
+    let npc_templates = parse_folder(&loading.npcs, &folders, &raw, |d: &NpcTemplateDef| {
+        d.id.clone()
+    });
     let perks = parse_folder(&loading.perks, &folders, &raw, |d: &PerkDef| d.id.clone());
     let quests = parse_folder(&loading.quests, &folders, &raw, |d: &QuestDef| d.id.clone());
     let triggers = parse_folder(&loading.triggers, &folders, &raw, |d: &QuestTriggerDef| {
