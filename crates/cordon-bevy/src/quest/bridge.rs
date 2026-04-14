@@ -38,7 +38,7 @@ use cordon_sim::quest::consequence::{DismissTemplateNpc, SpawnNpcRequest};
 use cordon_sim::quest::engine::advance_after_talk;
 use cordon_sim::quest::registry::TemplateRegistry;
 
-use crate::bunker::dialogue::StartDialogue;
+use crate::bunker::resources::StartDialogue;
 use crate::bunker::{Visitor, VisitorQueue};
 
 /// Bridge-owned dialogue-in-flight slot.

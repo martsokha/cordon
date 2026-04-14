@@ -4,128 +4,126 @@ use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::prelude::*;
 
-use super::geometry::*;
-use super::{Layout, Palette};
+use crate::bunker::geometry::*;
+use crate::bunker::resources::RoomCtx;
 
-pub fn spawn(
-    commands: &mut Commands,
-    asset_server: &AssetServer,
-    meshes: &mut Assets<Mesh>,
-    pal: &Palette,
-    l: &Layout,
-) {
+pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
+    let l = ctx.l;
     let floor_half = Vec2::new(l.side_depth / 2.0, l.tj_len() / 2.0);
     spawn_floor_ceiling(
-        commands,
-        meshes,
-        pal.concrete_dark.clone(),
+        ctx.commands,
+        ctx.meshes,
+        ctx.pal.concrete_dark.clone(),
         Vec3::new(l.quarters_x_center(), 0.0, l.tj_center()),
         floor_half,
         l.h,
     );
 
     spawn_wall(
-        commands,
-        meshes,
-        pal.concrete.clone(),
+        ctx.commands,
+        ctx.meshes,
+        ctx.pal.concrete.clone(),
         Vec3::new(l.quarters_x_max(), l.hh(), l.tj_center()),
         Quat::from_rotation_y(FRAC_PI_2),
         Vec2::new(l.tj_len() / 2.0, l.hh()),
     );
     spawn_wall(
-        commands,
-        meshes,
-        pal.concrete.clone(),
+        ctx.commands,
+        ctx.meshes,
+        ctx.pal.concrete.clone(),
         Vec3::new(l.quarters_x_center(), l.hh(), l.tj_north),
         Quat::from_rotation_y(PI),
         Vec2::new(l.side_depth / 2.0, l.hh()),
     );
     spawn_wall(
-        commands,
-        meshes,
-        pal.concrete.clone(),
+        ctx.commands,
+        ctx.meshes,
+        ctx.pal.concrete.clone(),
         Vec3::new(l.quarters_x_center(), l.hh(), l.back_z),
         Quat::IDENTITY,
         Vec2::new(l.side_depth / 2.0, l.hh()),
     );
 
-    // Wide sofa against the far wall.
-    glb(
-        commands,
-        asset_server,
-        "models/interior/WideSofa.glb",
+    // Wide sofa against the far wall. Cushion top is around y = 0.4.
+    const SOFA_CUSHION: f32 = 0.4;
+    prop(
+        ctx.commands,
+        ctx.asset_server,
+        Prop::WideSofa,
         Vec3::new(l.quarters_x_max() - 0.5, 0.0, l.tj_center()),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
-    // Pillow.
-    glb(
-        commands,
-        asset_server,
-        "models/interior/Pillow.glb",
-        Vec3::new(l.quarters_x_max() - 0.5, 0.4, l.tj_center() + 0.5),
+    // Pillow on the sofa cushion.
+    prop(
+        ctx.commands,
+        ctx.asset_server,
+        Prop::Pillow,
+        Vec3::new(l.quarters_x_max() - 0.5, SOFA_CUSHION, l.tj_center() + 0.5),
         Quat::IDENTITY,
     );
     // Rug.
-    glb(
-        commands,
-        asset_server,
-        "models/interior/Rug.glb",
-        Vec3::new(l.quarters_x_center(), 0.02, l.tj_center()),
+    prop(
+        ctx.commands,
+        ctx.asset_server,
+        Prop::Rug,
+        Vec3::new(l.quarters_x_center(), 0.0, l.tj_center()),
         Quat::IDENTITY,
     );
     // Small bookshelf (personal books).
-    glb(
-        commands,
-        asset_server,
-        "models/interior/SingleBookshelf.glb",
+    prop(
+        ctx.commands,
+        ctx.asset_server,
+        Prop::SingleBookshelf,
         Vec3::new(l.quarters_x_max() - 0.3, 0.0, l.back_z + 0.3),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
     // Suitcase — personal belongings.
-    glb(
-        commands,
-        asset_server,
-        "models/storage/Suitcase_01.glb",
+    prop(
+        ctx.commands,
+        ctx.asset_server,
+        Prop::Suitcase01,
         Vec3::new(l.quarters_x_center() - 0.3, 0.0, l.back_z + 0.3),
         Quat::from_rotation_y(0.4),
     );
     // Lamp next to the sofa.
-    glb(
-        commands,
-        asset_server,
-        "models/interior/Lamp1.glb",
+    prop(
+        ctx.commands,
+        ctx.asset_server,
+        Prop::Lamp1,
         Vec3::new(l.quarters_x_max() - 0.3, 0.0, l.tj_center() - 0.8),
         Quat::IDENTITY,
     );
     // A bit of life.
-    glb(
-        commands,
-        asset_server,
-        "models/interior/PlantPot2.glb",
+    prop(
+        ctx.commands,
+        ctx.asset_server,
+        Prop::PlantPot2,
         Vec3::new(l.hw + 0.4, 0.0, l.back_z + 0.3),
         Quat::IDENTITY,
     );
     // Second pillow.
-    glb(
-        commands,
-        asset_server,
-        "models/interior/Pillow.glb",
-        Vec3::new(l.quarters_x_max() - 0.5, 0.4, l.tj_center() - 0.3),
+    prop(
+        ctx.commands,
+        ctx.asset_server,
+        Prop::Pillow,
+        Vec3::new(l.quarters_x_max() - 0.5, SOFA_CUSHION, l.tj_center() - 0.3),
         Quat::from_rotation_y(0.5),
     );
     // Cactus in a pot — the one living thing down here.
-    glb(
-        commands,
-        asset_server,
-        "models/interior/PlantPot1.glb",
+    // PlantPot1 top is at y = 0.48 (measured).
+    const POT1_TOP: f32 = 0.480;
+    prop(
+        ctx.commands,
+        ctx.asset_server,
+        Prop::PlantPot1,
         Vec3::new(l.hw + 0.4, 0.0, l.tj_center() + 1.0),
         Quat::IDENTITY,
     );
-    glb(
-        commands,
-        asset_server,
-        "models/interior/Cactus.glb",
-        Vec3::new(l.hw + 0.4, 0.25, l.tj_center() + 1.0),
+    prop(
+        ctx.commands,
+        ctx.asset_server,
+        Prop::Cactus,
+        Vec3::new(l.hw + 0.4, POT1_TOP, l.tj_center() + 1.0),
         Quat::IDENTITY,
     );
 }
