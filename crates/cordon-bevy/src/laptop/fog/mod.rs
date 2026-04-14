@@ -35,7 +35,7 @@ mod sync;
 use std::collections::HashSet;
 
 use bevy::prelude::*;
-use cordon_sim::components::{FactionId, SquadMarker};
+use cordon_sim::plugin::prelude::{FactionId, SquadMarker};
 
 pub use self::mask::ScoutMask;
 

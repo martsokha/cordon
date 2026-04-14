@@ -641,7 +641,7 @@ fn build_squad_roster(
     mut commands: Commands,
     player_squads: Res<crate::laptop::fog::PlayerSquads>,
     panel_q: Query<(Entity, Option<&Children>), With<SquadRosterPanel>>,
-    squads: Query<&cordon_sim::components::SquadMembers>,
+    squads: Query<&cordon_sim::plugin::prelude::SquadMembers>,
 ) {
     let Ok((panel_entity, panel_children)) = panel_q.single() else {
         return;
@@ -709,7 +709,7 @@ fn build_squad_roster(
 fn update_squad_roster_state(
     selected: Res<crate::laptop::SelectedNpc>,
     mut slots: Query<(&SquadRosterSlot, &mut BackgroundColor)>,
-    npcs: Query<Option<&cordon_sim::behavior::Dead>, With<cordon_sim::components::NpcMarker>>,
+    npcs: Query<Option<&cordon_sim::plugin::prelude::Dead>, With<cordon_sim::plugin::prelude::NpcMarker>>,
 ) {
     for (slot, mut bg) in &mut slots {
         let (base, is_selected) = match slot.npc {

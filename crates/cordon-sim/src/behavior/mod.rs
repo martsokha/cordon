@@ -1,113 +1,53 @@
-//! Per-NPC physical and combat state, plus the per-NPC movement system.
+//! Entity-behavior subplugins.
 //!
-//! These components are written by the squad/combat/loot systems and
-//! read by the per-NPC drivers below. There is no state machine —
-//! interruptions are just "set a new target, drop the old one", which
-//! is naturally race-free under explicit system ordering.
+//! Grouped here so the top-level crate has one place for "everything
+//! that controls how a spawned entity acts": movement, vision,
+//! combat, death, loot, squad. Each subplugin follows the
+//! `{mod.rs, components.rs, systems.rs, events.rs, constants.rs}`
+//! shape (with files omitted when empty), so you can find any
+//! component / system / event by folder + filename.
+//!
+//! [`squad`] has enough internal structure (engagement, formation,
+//! lifecycle, commands, behave trees) that it keeps its own feature
+//! file layout alongside the canonical `components.rs` /
+//! `constants.rs` files. A follow-up task will further reorganise it.
+
+pub mod combat;
+pub mod death;
+pub mod loot;
+pub mod movement;
+pub mod squad;
+pub mod vision;
 
 use bevy::prelude::*;
-use cordon_core::item::{ItemData, Loadout, PassiveModifier, StatTarget};
-use cordon_core::primitive::{GameTime, Rank};
+use cordon_core::item::{ItemData, PassiveModifier, StatTarget};
 use cordon_data::gamedata::GameDataResource;
 
-use crate::components::{BaseMaxes, HealthPool, NpcMarker, StaminaPool};
+use crate::entity::npc::{BaseMaxes, HealthPool, NpcMarker, StaminaPool};
 use crate::plugin::SimSet;
-use crate::tuning::MAP_BOUND;
 
-/// The point this NPC is currently walking toward, in world space.
-/// `None` means the NPC is standing still.
-#[derive(Component, Default, Debug, Clone, Copy)]
-pub struct MovementTarget(pub Option<Vec2>);
-
-/// How fast this NPC walks toward [`MovementTarget`], in map units per
-/// second. Updated by the system that sets the target.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct MovementSpeed(pub f32);
-
-impl Default for MovementSpeed {
-    fn default() -> Self {
-        Self(30.0)
-    }
-}
-
-/// The hostile NPC this entity is firing on. `None` means the NPC is
-/// not currently engaged in combat. The squad engagement scanner sets
-/// this; the combat firing system reads it.
-#[derive(Component, Default, Debug, Clone, Copy)]
-pub struct CombatTarget(pub Option<Entity>);
-
-/// Per-NPC firing state: cooldown until next shot.
+/// Composer plugin that wires up every behavior subplugin.
 ///
-/// Reload is not modelled as a timed phase — magazines refill
-/// instantly from the general pouch when empty, and fire tempo is
-/// controlled entirely by the weapon's `fire_rate`.
-#[derive(Component, Default, Debug, Clone, Copy)]
-pub struct FireState {
-    pub cooldown_secs: f32,
-}
+/// Also owns [`sync_pool_maxes`] because it's a cross-cutting per-NPC
+/// system that doesn't belong to any single subplugin — it reads
+/// [`Loadout`] (from `cordon-core`) and writes the NPC's pool
+/// capacities.
+pub struct BehaviorPlugin;
 
-/// Per-NPC looting progress. Present only while the NPC is actively
-/// looting a specific corpse. Removed when the corpse is empty or the
-/// NPC walks away.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct LootState {
-    pub corpse: Entity,
-    pub progress_secs: f32,
-}
-
-/// Vision radius (in map units) for spotting hostiles.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct Vision {
-    pub radius: f32,
-}
-
-impl Vision {
-    /// Default vision: 120 base + 15 per rank tier above Novice.
-    pub fn for_npc(rank: Rank) -> Self {
-        let radius = 120.0 + (rank.tier() as f32 - 1.0) * 15.0;
-        Self { radius }
-    }
-}
-
-/// Marker for anomaly entities, contributing to LOS blocking. Spawned
-/// by the visual layer when it lays out the map; the combat system
-/// reads `(Transform, AnomalyZone)` to compute LOS.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct AnomalyZone {
-    pub radius: f32,
-}
-
-/// Marker for a corpse with its time of death. Inserted by the death
-/// system when an NPC's HP hits zero.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct Dead {
-    pub died_at: GameTime,
-}
-
-/// Walk every NPC with a [`MovementTarget`] toward that point.
-///
-/// Filters on `MovementTarget` so NPCs that aren't moving don't even
-/// touch their transform — Bevy's change detection skips them and the
-/// downstream transform-propagation system has less work.
-pub fn move_npcs(
-    time: Res<Time>,
-    mut q: Query<(&MovementTarget, &MovementSpeed, &mut Transform), Without<Dead>>,
-) {
-    let dt = time.delta_secs();
-    for (target, speed, mut transform) in &mut q {
-        let Some(target) = target.0 else { continue };
-        let pos = transform.translation.truncate();
-        let delta = target - pos;
-        let dist = delta.length();
-        if dist < 0.5 {
-            continue;
-        }
-        let dir = delta / dist;
-        let step = (speed.0 * dt).min(dist);
-        transform.translation.x += dir.x * step;
-        transform.translation.y += dir.y * step;
-        transform.translation.x = transform.translation.x.clamp(-MAP_BOUND, MAP_BOUND);
-        transform.translation.y = transform.translation.y.clamp(-MAP_BOUND, MAP_BOUND);
+impl Plugin for BehaviorPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_plugins((
+            vision::VisionPlugin,
+            movement::MovementPlugin,
+            combat::CombatPlugin,
+            death::DeathPlugin,
+            loot::LootPlugin,
+            squad::SquadPlugin,
+        ));
+        // Runs in Cleanup: early enough that the rest of the frame
+        // sees the updated max, late enough that the pickup from the
+        // previous frame has already landed in the loadout.
+        app.add_systems(Update, sync_pool_maxes.in_set(SimSet::Cleanup));
     }
 }
 
@@ -127,8 +67,13 @@ pub fn move_npcs(
 pub fn sync_pool_maxes(
     game_data: Res<GameDataResource>,
     mut changed: Query<
-        (&Loadout, &BaseMaxes, &mut HealthPool, &mut StaminaPool),
-        (With<NpcMarker>, Changed<Loadout>),
+        (
+            &cordon_core::item::Loadout,
+            &BaseMaxes,
+            &mut HealthPool,
+            &mut StaminaPool,
+        ),
+        (With<NpcMarker>, Changed<cordon_core::item::Loadout>),
     >,
 ) {
     let items = &game_data.0.items;
@@ -174,18 +119,5 @@ fn apply_effective_max<K: cordon_core::primitive::PoolKind>(
     pool.set_max(new_max);
     if new_max > old_max {
         pool.restore(new_max - old_max);
-    }
-}
-
-/// Plugin registering per-NPC systems: movement, pool-max sync, etc.
-pub struct BehaviorPlugin;
-
-impl Plugin for BehaviorPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Update, move_npcs.in_set(SimSet::Movement));
-        // Runs in Cleanup: early enough that the rest of the frame
-        // sees the updated max, late enough that the pickup from the
-        // previous frame has already landed in the loadout.
-        app.add_systems(Update, sync_pool_maxes.in_set(SimSet::Cleanup));
     }
 }

@@ -10,7 +10,7 @@ use bevy_behave::prelude::*;
 use cordon_core::entity::squad::Goal;
 
 use super::actions::{BtFindNpc, BtIdleHold, BtMoveTo, BtProtectFollow, BtWalkWaypoint};
-use crate::tuning::PATROL_HOLD_SECS;
+use super::super::constants::PATROL_HOLD_SECS;
 
 const IDLE_HOLD_SECS: f32 = 4.0;
 

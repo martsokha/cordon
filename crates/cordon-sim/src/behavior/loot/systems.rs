@@ -1,39 +1,19 @@
-//! Looting: alive NPCs near a corpse pull items from its loadout into
-//! their own general pouch.
+//! Looting systems.
 
 use bevy::prelude::*;
-use cordon_core::item::{Item, ItemData, Loadout};
-use cordon_core::primitive::{Experience, Id};
+use cordon_core::item::{ItemData, Loadout};
+use cordon_core::primitive::Experience;
 use cordon_data::gamedata::GameDataResource;
 
-use crate::behavior::{CombatTarget, Dead, LootState};
-use crate::components::NpcMarker;
-use crate::plugin::SimSet;
-use crate::tuning::{LOOT_INTERVAL_SECS, LOOT_REACH};
-
-/// A looter pulled an item from a corpse into their general
-/// pouch.
-#[derive(Message, Debug, Clone)]
-pub struct ItemLooted {
-    pub looter: Entity,
-    pub corpse: Entity,
-    pub item: Id<Item>,
-}
-
-pub struct LootPlugin;
-
-impl Plugin for LootPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_message::<ItemLooted>();
-        app.add_systems(
-            Update,
-            (try_start_looting, drive_loot).chain().in_set(SimSet::Loot),
-        );
-    }
-}
+use super::components::LootState;
+use super::constants::{LOOT_INTERVAL_SECS, LOOT_REACH};
+use super::events::ItemLooted;
+use crate::behavior::combat::components::CombatTarget;
+use crate::behavior::death::components::Dead;
+use crate::entity::npc::NpcMarker;
 
 /// Insert a `LootState` for alive non-combat NPCs standing on a corpse.
-fn try_start_looting(
+pub fn try_start_looting(
     mut commands: Commands,
     corpses: Query<(Entity, &Transform, &Loadout), With<Dead>>,
     alive: Query<
@@ -84,7 +64,7 @@ fn try_start_looting(
 /// Tick `LootState` and transfer one item per interval. Removes the
 /// component when the corpse is empty or vanishes, or when the looter
 /// starts a fight.
-fn drive_loot(
+pub fn drive_loot(
     time: Res<Time>,
     game_data: Res<GameDataResource>,
     mut commands: Commands,

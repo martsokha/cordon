@@ -1,11 +1,11 @@
 //! Visual reaction to weapon fire.
 //!
-//! The sim layer ([`cordon_sim::combat`]) resolves combat and emits
-//! `ShotFired` for each successful shot. This module spawns a tracer
-//! line entity per event and fades it out.
+//! The sim layer ([`cordon_sim::behavior::combat`]) resolves combat
+//! and emits `ShotFired` for each successful shot. This module spawns
+//! a tracer line entity per event and fades it out.
 
 use bevy::prelude::*;
-use cordon_sim::combat::ShotFired;
+use cordon_sim::plugin::prelude::ShotFired;
 use cordon_sim::plugin::SimSet;
 
 use crate::PlayingState;

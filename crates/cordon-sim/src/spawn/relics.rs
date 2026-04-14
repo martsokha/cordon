@@ -29,11 +29,26 @@ use cordon_core::world::area::AreaDef;
 use cordon_data::gamedata::GameDataResource;
 use rand::{Rng, RngExt};
 
-use crate::behavior::Dead;
-use crate::components::{NpcMarker, RelicHome, RelicMarker, SquadLeader};
+use crate::behavior::death::Dead;
 use crate::day::DayRolled;
+use crate::entity::npc::NpcMarker;
+use crate::entity::relic::{RelicHome, RelicMarker};
 use crate::plugin::SimSet;
-use crate::tuning::{RELIC_ATTEMPTS_PER_AREA, RELIC_PICKUP_REACH, RELIC_SPAWN_PROBABILITY};
+use crate::behavior::squad::components::SquadLeader;
+
+/// Spawn attempts per anomaly area per day rollover. Each attempt
+/// is an independent probability roll, so on average the system
+/// spawns `ATTEMPTS_PER_AREA * SPAWN_PROBABILITY` relics per day
+/// per area, capped by intensity-tier.
+const RELIC_ATTEMPTS_PER_AREA: u32 = 2;
+
+/// Probability per attempt that a relic is spawned this day.
+const RELIC_SPAWN_PROBABILITY: f32 = 0.6;
+
+/// Pickup reach for relics: a scavenging squad leader within this
+/// distance of a world relic automatically collects it on the next
+/// loot tick.
+const RELIC_PICKUP_REACH: f32 = 16.0;
 
 /// A squad member picked up a relic lying in the world. The
 /// relic entity has already been despawned; the item is now in

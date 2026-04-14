@@ -34,7 +34,7 @@ use bevy::prelude::*;
 use bevy_behave::prelude::*;
 use cordon_core::entity::squad::Goal;
 
-use crate::components::SquadMarker;
+use super::components::SquadMarker;
 
 pub use actions::ActionsPlugin;
 

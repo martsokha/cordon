@@ -19,7 +19,7 @@ use cordon_core::primitive::{Id, Uid};
 use cordon_core::world::area::Area;
 use cordon_data::gamedata::GameDataResource;
 
-use crate::components::{SquadMarker, SquadWaypoints};
+use super::components::{SquadMarker, SquadWaypoints};
 use crate::spawn::waypoints::roll_area_waypoints;
 
 /// Marker for squads under direct player control. Only owned squads

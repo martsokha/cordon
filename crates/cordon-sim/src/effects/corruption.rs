@@ -32,9 +32,9 @@ use cordon_core::primitive::{GameTime, Tier};
 use cordon_data::gamedata::GameDataResource;
 
 use super::apply_pool_delta;
-use crate::behavior::Dead;
-use crate::combat::NpcPoolChanged;
-use crate::components::{CorruptionPool, HealthPool, NpcMarker, StaminaPool};
+use crate::behavior::combat::NpcPoolChanged;
+use crate::behavior::death::Dead;
+use crate::entity::npc::{CorruptionPool, HealthPool, NpcMarker, StaminaPool};
 use crate::resources::GameClock;
 
 /// Corruption gained per minute, per anomaly tier.

@@ -32,7 +32,7 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::Id;
 use cordon_core::world::narrative::{Quest, QuestStageKind};
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::components::TemplateId;
+use cordon_sim::entity::npc::TemplateId;
 use cordon_sim::plugin::prelude::{EventLog, GameClock, Player, QuestLog};
 use cordon_sim::quest::consequence::{DismissTemplateNpc, SpawnNpcRequest};
 use cordon_sim::quest::engine::advance_after_talk;

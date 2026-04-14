@@ -11,7 +11,7 @@ use bevy::prelude::*;
 use bevy_fluent::prelude::*;
 use cordon_core::primitive::Tier;
 use cordon_core::world::area::{AreaDef, AreaKind, SettlementRole};
-use cordon_sim::behavior::{CombatTarget, MovementTarget};
+use cordon_sim::plugin::prelude::{CombatTarget, MovementTarget};
 
 use super::AreaTooltipInfo;
 use crate::laptop::map::relics::RelicIconAssets;

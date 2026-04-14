@@ -19,9 +19,7 @@ use bevy_fluent::prelude::Localization;
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::{Formation, Goal, Squad};
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::components::{
-    FactionId, PendingYarnNode, SquadBundle, SquadMembership,
-};
+use cordon_sim::plugin::prelude::{FactionId, PendingYarnNode, SquadBundle, SquadMembership};
 use cordon_sim::quest::travel::{BunkerArrival, HomeArrival};
 use cordon_sim::resources::{SquadIdIndex, UidAllocator};
 

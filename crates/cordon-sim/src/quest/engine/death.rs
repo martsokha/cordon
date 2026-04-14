@@ -15,8 +15,8 @@ use cordon_core::world::narrative::{Quest, QuestStage, QuestStageKind};
 use cordon_data::catalog::GameData;
 use cordon_data::gamedata::GameDataResource;
 
-use crate::components::TemplateId;
-use crate::death::NpcDied;
+use crate::behavior::death::NpcDied;
+use crate::entity::npc::TemplateId;
 use crate::quest::state::QuestLog;
 use crate::resources::GameClock;
 

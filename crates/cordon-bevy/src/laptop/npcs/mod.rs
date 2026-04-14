@@ -18,9 +18,9 @@ use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::entity::squad::Formation;
 use cordon_core::primitive::Experience;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::behavior::{CombatTarget, FireState, MovementSpeed, MovementTarget, Vision};
-use cordon_sim::components::{
-    FactionId, NpcMarker, QuestCritical, SquadHomePosition, SquadMembership,
+use cordon_sim::plugin::prelude::{
+    CombatTarget, FactionId, FireState, MovementSpeed, MovementTarget, NpcMarker, QuestCritical,
+    SquadHomePosition, SquadMembership, Vision,
 };
 
 pub use self::palette::FactionPalette;
@@ -187,7 +187,7 @@ fn attach_npc_visuals(
     squads: Query<(
         &SquadHomePosition,
         &Formation,
-        &cordon_sim::components::SquadMembers,
+        &cordon_sim::plugin::prelude::SquadMembers,
     )>,
     new_npcs: Query<
         (Entity, &FactionId, &Experience, &NpcName, &SquadMembership),

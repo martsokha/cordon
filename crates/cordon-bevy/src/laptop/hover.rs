@@ -15,8 +15,9 @@ use bevy_fluent::prelude::*;
 use cordon_core::entity::squad::Goal;
 use cordon_core::item::{ItemData, ItemInstance};
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::behavior::{CombatTarget, LootState, MovementTarget};
-use cordon_sim::components::{NpcMarker, RelicMarker, SquadMembership};
+use cordon_sim::plugin::prelude::{
+    CombatTarget, LootState, MovementTarget, NpcMarker, RelicMarker, SquadMembership,
+};
 
 use crate::PlayingState;
 use crate::laptop::LaptopCamera;

@@ -17,12 +17,11 @@ use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::Squad;
 use cordon_core::primitive::Uid;
 
-use crate::behavior::Dead;
-use crate::components::{
-    MovementIntent, NpcMarker, SquadLeader, SquadMarker, SquadWaypoints,
-};
+use crate::behavior::death::components::Dead;
+use crate::entity::npc::NpcMarker;
 use crate::resources::SquadIdIndex;
-use crate::tuning::{ARRIVED_DIST, PROTECT_FOLLOW_DIST};
+use super::super::components::{MovementIntent, SquadLeader, SquadMarker, SquadWaypoints};
+use super::super::constants::{ARRIVED_DIST, PROTECT_FOLLOW_DIST};
 
 const FIND_SEARCH_RADIUS: f32 = 60.0;
 

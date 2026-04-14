@@ -32,7 +32,7 @@ pub fn process_achievements(client: Res<Client>, mut unlocks: MessageReader<Unlo
 }
 
 pub fn track_first_kill(
-    mut died: MessageReader<cordon_sim::death::NpcDied>,
+    mut died: MessageReader<cordon_sim::behavior::death::NpcDied>,
     mut unlocks: MessageWriter<UnlockAchievement>,
 ) {
     if died.read().next().is_some() {
@@ -41,9 +41,9 @@ pub fn track_first_kill(
 }
 
 pub fn track_squad_wipe(
-    mut died: MessageReader<cordon_sim::death::NpcDied>,
+    mut died: MessageReader<cordon_sim::behavior::death::NpcDied>,
     squads: Query<&cordon_sim::plugin::prelude::SquadMembers>,
-    dead: Query<(), With<cordon_sim::behavior::Dead>>,
+    dead: Query<(), With<cordon_sim::behavior::death::Dead>>,
     mut unlocks: MessageWriter<UnlockAchievement>,
 ) {
     for event in died.read() {

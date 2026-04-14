@@ -12,7 +12,7 @@ use cordon_core::primitive::Id;
 use cordon_core::world::BUNKER_MAP_POS;
 
 use super::registry::TemplateRegistry;
-use crate::components::{SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker};
+use crate::entity::npc::{SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker};
 
 /// Distance at which a traveling NPC is considered "at the bunker."
 const ARRIVAL_RADIUS: f32 = 15.0;

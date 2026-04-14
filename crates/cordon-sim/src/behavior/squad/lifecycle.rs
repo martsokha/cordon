@@ -19,9 +19,10 @@
 use bevy::prelude::*;
 use cordon_core::primitive::Experience;
 
-use crate::behavior::Dead;
-use crate::components::{NpcMarker, SquadLeader, SquadMarker, SquadMembers, SquadMembership};
-use crate::tuning::CLEANUP_INTERVAL_SECS;
+use super::components::{SquadLeader, SquadMarker, SquadMembers, SquadMembership};
+use crate::behavior::death::components::Dead;
+use crate::behavior::death::constants::CLEANUP_INTERVAL_SECS;
+use crate::entity::npc::NpcMarker;
 
 /// Drop [`SquadMembership`] from NPCs whose squad entity has just
 /// been despawned. Runs every frame (no throttle) so stale

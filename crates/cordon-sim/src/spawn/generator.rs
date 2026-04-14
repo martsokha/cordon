@@ -10,7 +10,7 @@ use cordon_core::primitive::{Credits, Experience, Health, Id, Loyalty, Pool, Ran
 use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
-use crate::components::{
+use crate::entity::npc::{
     ActiveEffects, BaseMaxes, CorruptionPool, Employment, FactionId, NpcAttributes, NpcBundle,
     NpcMarker, Perks, StaminaPool,
 };

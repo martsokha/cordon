@@ -1,5 +1,6 @@
 //! Squad behavior: vision-shared engagement, formation positioning,
-//! goal transitions, lifecycle, and the player command boundary.
+//! goal transitions (via behavior trees), lifecycle, and the player
+//! command boundary.
 //!
 //! Squads are Bevy entities. NPC members carry a `SquadMembership`
 //! back-pointer. Hot-path systems iterate squads + members via ECS
@@ -7,15 +8,21 @@
 //!
 //! Submodules:
 //!
+//! - [`components`] — SquadMarker/Leader/Members/Facing/Bundle, plus
+//!                    MovementIntent / EngagementTarget (the two
+//!                    BT-written data components)
+//! - [`constants`]  — timing / distance tuning knobs
 //! - [`scan`]       — spatial grid + per-NPC snapshot used by engagement
 //! - [`engagement`] — vision-shared hostile selection + per-member targets
-//! - [`goals`]      — Hold timer expiry → next goal-driven activity
-//! - [`formation`]  — formation slot positioning + Protect follow + arrival
-//! - [`lifecycle`]  — drop despawned members, promote leaders, despawn empty squads
+//! - [`formation`]  — formation slot positioning
+//! - [`lifecycle`]  — drop despawned members, promote leaders, prune stale membership
 //! - [`commands`]   — player → sim command boundary (the only mutation path)
+//! - [`behave`]     — behavior-tree attach observer + action leaves + tree factory
 
-mod behave;
-mod commands;
+pub mod behave;
+pub mod commands;
+pub mod components;
+pub mod constants;
 mod engagement;
 mod formation;
 mod lifecycle;
@@ -23,7 +30,12 @@ mod scan;
 
 use bevy::prelude::*;
 use bevy_behave::prelude::BehavePlugin;
+
 pub use commands::{Owned, SquadCommand};
+pub use components::{
+    EngagementTarget, MovementIntent, SquadBundle, SquadFacing, SquadHomePosition, SquadLeader,
+    SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
+};
 
 use crate::plugin::SimSet;
 

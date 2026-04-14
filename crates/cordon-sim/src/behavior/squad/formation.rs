@@ -21,13 +21,17 @@ use cordon_core::entity::squad::Formation;
 use cordon_core::item::Loadout;
 use cordon_data::gamedata::GameDataResource;
 
-use crate::behavior::{CombatTarget, Dead, MovementSpeed, MovementTarget};
-use crate::combat::weapon_range;
-use crate::components::{
-    EngagementTarget, MovementIntent, NpcMarker, SquadFacing, SquadLeader, SquadMembers,
-    SquadMembership,
+use super::components::{
+    EngagementTarget, MovementIntent, SquadFacing, SquadLeader, SquadMembers, SquadMembership,
 };
-use crate::tuning::{ARRIVED_DIST, ENGAGE_WALK_SPEED, FORMATION_INTERVAL_SECS, SQUAD_WALK_SPEED};
+use super::constants::{
+    ARRIVED_DIST, ENGAGE_WALK_SPEED, FORMATION_INTERVAL_SECS, SQUAD_WALK_SPEED,
+};
+use crate::behavior::combat::components::CombatTarget;
+use crate::behavior::combat::helpers::weapon_range;
+use crate::behavior::death::components::Dead;
+use crate::behavior::movement::components::{MovementSpeed, MovementTarget};
+use crate::entity::npc::NpcMarker;
 
 /// Per-squad snapshot cached between the leader-pos pass and the
 /// member-writing pass so we don't re-query mid-iteration.

@@ -4,14 +4,13 @@
 //! cordon-core, so they're attached to squad entities without a
 //! wrapper. This module holds the squad marker, the position /
 //! facing / waypoints live state, leader + member entity lists,
-//! the short-term activity state machine, and the `SquadBundle`
-//! glue.
+//! the BT-driven intent components, and the `SquadBundle` glue.
 
 use bevy::prelude::*;
 use cordon_core::entity::squad::{Formation, Goal, Squad};
 use cordon_core::primitive::Uid;
 
-use super::npc::FactionId;
+use crate::entity::npc::FactionId;
 
 /// Marker that this entity is a squad.
 #[derive(Component, Debug, Clone, Copy)]

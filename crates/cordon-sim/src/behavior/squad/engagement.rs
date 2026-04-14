@@ -15,13 +15,16 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataResource;
 
-use super::scan::{NpcSnap, SpatialGrid};
-use crate::behavior::{AnomalyZone, CombatTarget, Dead, Vision};
-use crate::combat::{is_hostile, line_blocked};
-use crate::components::{
-    EngagementTarget, FactionId, NpcMarker, SquadFacing, SquadLeader, SquadMarker, SquadMembership,
+use super::components::{
+    EngagementTarget, SquadFacing, SquadLeader, SquadMarker, SquadMembership,
 };
-use crate::tuning::{ENGAGEMENT_CELL_SIZE, SCAN_INTERVAL_SECS};
+use super::constants::{ENGAGEMENT_CELL_SIZE, SCAN_INTERVAL_SECS};
+use super::scan::{NpcSnap, SpatialGrid};
+use crate::behavior::combat::components::CombatTarget;
+use crate::behavior::combat::helpers::{is_hostile, line_blocked};
+use crate::behavior::death::components::Dead;
+use crate::behavior::vision::components::{AnomalyZone, Vision};
+use crate::entity::npc::{FactionId, NpcMarker};
 
 pub(super) fn update_squad_engagement(
     game_data: Res<GameDataResource>,

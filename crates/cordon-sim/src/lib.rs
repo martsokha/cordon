@@ -6,27 +6,21 @@
 // crate-wide rather than per-system.
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
-/// Per-NPC behavior state and the per-NPC movement system.
+/// Per-entity behavior subplugins: movement, vision, combat, death,
+/// loot. Each subplugin follows the
+/// `{mod, components, systems, events?, constants?}` file convention.
 pub mod behavior;
-
-/// Combat resolution: weapon firing, damage, hostility checks.
-pub mod combat;
-
-/// ECS components for NPCs and squads.
-pub mod components;
 
 /// Day rollover detection and per-day systems.
 pub mod day;
-
-/// Death and corpse lifecycle.
-pub mod death;
 
 /// Effect dispatcher: ActiveEffects tick, OnHit/OnLowHealth/Periodic
 /// relic-trigger wiring, and the TimedEffect → pool handler.
 pub mod effects;
 
-/// Looting: alive NPCs pull items from nearby corpses.
-pub mod loot;
+/// Per-entity ECS components that aren't owned by a specific
+/// behavior subplugin — NPC attributes, relic markers.
+pub mod entity;
 
 /// Bevy plugin entry point.
 pub mod plugin;
@@ -41,10 +35,3 @@ pub mod resources;
 /// NPC and squad spawning systems.
 pub mod spawn;
 
-/// Squad behavior: engagement, formation, goals, lifecycle, and the
-/// player command boundary.
-pub mod squad;
-
-/// Gameplay tuning knobs — distances, timings, thresholds,
-/// probabilities. One place to tune the sim from.
-pub mod tuning;

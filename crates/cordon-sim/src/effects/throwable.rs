@@ -28,9 +28,9 @@ use cordon_core::primitive::{GameTime, Id};
 use cordon_data::gamedata::GameDataResource;
 
 use super::apply_or_queue;
-use crate::behavior::{CombatTarget, Dead};
-use crate::combat::{NpcPoolChanged, is_hostile};
-use crate::components::{
+use crate::behavior::combat::{CombatTarget, NpcPoolChanged, is_hostile};
+use crate::behavior::death::Dead;
+use crate::entity::npc::{
     ActiveEffects, CorruptionPool, FactionId, HealthPool, NpcMarker, StaminaPool,
 };
 use crate::resources::GameClock;

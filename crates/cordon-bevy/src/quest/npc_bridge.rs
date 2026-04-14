@@ -15,14 +15,13 @@ use cordon_core::item::{ItemInstance, Loadout};
 use cordon_core::primitive::{Experience, Health, Loyalty, Pool};
 use cordon_core::world::BUNKER_MAP_POS;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::components::{
-    ActiveEffects, BaseMaxes, CorruptionPool, Employment, FactionId, NpcAttributes, NpcBundle,
-    MovementIntent, NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle,
+use cordon_sim::plugin::prelude::{
+    ActiveEffects, BaseMaxes, CorruptionPool, Employment, FactionId, MovementIntent, NpcAttributes,
+    NpcBundle, NpcDied, NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle,
     SquadMembership, StaminaPool, TemplateId, TravelingHome, TravelingToBunker,
 };
 
 use crate::locale::l10n_or;
-use cordon_sim::death::NpcDied;
 use cordon_sim::quest::consequence::{DismissTemplateNpc, GiveNpcXpRequest, SpawnNpcRequest};
 use cordon_sim::quest::registry::TemplateRegistry;
 use cordon_sim::resources::{FactionSettlements, SquadIdIndex, UidAllocator};

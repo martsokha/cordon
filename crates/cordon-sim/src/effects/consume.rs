@@ -25,9 +25,9 @@ use cordon_core::primitive::GameTime;
 use cordon_data::gamedata::GameDataResource;
 
 use super::apply_or_queue;
-use crate::behavior::Dead;
-use crate::combat::NpcPoolChanged;
-use crate::components::{ActiveEffects, CorruptionPool, HealthPool, NpcMarker, StaminaPool};
+use crate::behavior::combat::NpcPoolChanged;
+use crate::behavior::death::Dead;
+use crate::entity::npc::{ActiveEffects, CorruptionPool, HealthPool, NpcMarker, StaminaPool};
 use crate::resources::GameClock;
 
 const HP_NEED_RATIO: f32 = 0.5;

@@ -26,12 +26,21 @@ use cordon_core::primitive::{Id, Uid};
 use cordon_data::gamedata::GameDataResource;
 use rand::{Rng, RngExt};
 
-use crate::components::{NpcMarker, SquadBundle, SquadMembership};
+use crate::entity::npc::NpcMarker;
 use crate::resources::{FactionIndex, FactionSettlements, GameClock, SquadIdIndex, UidAllocator};
 use crate::spawn::generator::{
     DefaultNpcGenerator, LoadoutContext, NpcGenerator, roll_population_top_up,
 };
-use crate::tuning::{SPAWN_DAY_END, SPAWN_DAY_START};
+use crate::behavior::squad::components::{SquadBundle, SquadMembership};
+
+/// Earliest daytime fraction at which spawn waves can fire. 0.25 =
+/// 06:00. Waves are spread between `SPAWN_DAY_START` and
+/// `SPAWN_DAY_END` so population ramps up during waking hours.
+const SPAWN_DAY_START: f32 = 0.25;
+
+/// Latest daytime fraction at which spawn waves can fire. 0.875 =
+/// 21:00.
+const SPAWN_DAY_END: f32 = 0.875;
 
 /// A fresh squad just entered the world. Currently declared
 /// but not wired up — reserved as a seed for future spawn →

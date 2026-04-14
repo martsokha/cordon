@@ -48,9 +48,9 @@ use cordon_core::primitive::{GameTime, Id};
 use cordon_data::gamedata::GameDataResource;
 pub use throwable::ThrowableImpact;
 
-use crate::behavior::Dead;
-use crate::combat::NpcPoolChanged;
-use crate::components::{
+use crate::behavior::combat::NpcPoolChanged;
+use crate::behavior::death::Dead;
+use crate::entity::npc::{
     ActiveEffect, ActiveEffects, CorruptionPool, HealthPool, NpcMarker, StaminaPool,
 };
 use crate::plugin::SimSet;
