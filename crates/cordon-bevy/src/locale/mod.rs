@@ -1,8 +1,16 @@
 //! Fluent localization loading and resolution.
+//!
+//! Also owns the cross-resource validation pass that warns when
+//! content data (NPC templates, eventually items/factions/areas)
+//! references a fluent key that's not present in the loaded
+//! locale. That check lives here rather than in the cordon-data
+//! catalog validator because the locale only becomes available
+//! on the Bevy side, after asset loading.
 
 use bevy::asset::LoadedFolder;
 use bevy::prelude::*;
 use bevy_fluent::prelude::*;
+use cordon_data::gamedata::GameDataResource;
 use fluent_content::Content;
 
 use crate::AppState;
@@ -24,7 +32,54 @@ impl Plugin for LocalePlugin {
                 .run_if(resource_exists::<LocaleHandle>)
                 .run_if(not(resource_exists::<Localization>)),
         );
+        // Cross-resource validation: runs once both the catalog
+        // and the locale are live. Gated by `L10nValidated` so it
+        // fires exactly once per game session, not every frame.
+        app.add_systems(
+            Update,
+            validate_content_keys
+                .run_if(resource_exists::<GameDataResource>)
+                .run_if(resource_exists::<Localization>)
+                .run_if(not(resource_exists::<L10nValidated>)),
+        );
     }
+}
+
+/// Marker inserted after [`validate_content_keys`] runs, so the
+/// pass doesn't repeat every frame.
+#[derive(Resource)]
+struct L10nValidated;
+
+/// Walk every content definition that carries a fluent key and
+/// warn on missing entries. Runs once when both the catalog and
+/// the locale are loaded.
+///
+/// Currently covers:
+/// - `NpcTemplateDef::name_key`
+///
+/// Extend here when new content types gain localizable fields.
+fn validate_content_keys(
+    mut commands: Commands,
+    data: Res<GameDataResource>,
+    l10n: Res<Localization>,
+) {
+    let mut missing = 0usize;
+    for (id, def) in &data.0.npc_templates {
+        if l10n.content(&def.name_key).is_none() {
+            warn!(
+                "locale: npc template `{}` references missing fluent key `{}`",
+                id.as_str(),
+                def.name_key,
+            );
+            missing += 1;
+        }
+    }
+    if missing == 0 {
+        info!("locale: content key validation passed");
+    } else {
+        warn!("locale: {missing} missing fluent key(s) in content");
+    }
+    commands.insert_resource(L10nValidated);
 }
 
 #[derive(Resource)]

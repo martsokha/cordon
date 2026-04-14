@@ -101,14 +101,11 @@ pub fn enqueue_talk_dialogue(
         let Some(stage) = def.stage(&active.current_stage) else {
             continue;
         };
-        let QuestStageKind::Talk {
-            npc: stage_npc,
-            yarn_node,
-            ..
-        } = &stage.kind
-        else {
+        let QuestStageKind::Talk(talk) = &stage.kind else {
             continue;
         };
+        let stage_npc = &talk.npc;
+        let yarn_node = &talk.yarn_node;
 
         // Visitor-driven path: stage or quest names an NPC
         // template. If it resolves to a real catalog template,
@@ -216,7 +213,7 @@ pub fn on_dialogue_completed(
         .and_then(|active| data.0.quests.get(&active.def_id).map(|def| (active, def)))
         .and_then(|(active, def)| def.stage(&active.current_stage))
         .and_then(|stage| match &stage.kind {
-            QuestStageKind::Talk { npc, .. } => npc.clone(),
+            QuestStageKind::Talk(talk) => talk.npc.clone(),
             _ => None,
         });
     if let Some(template_id) = dismissed_template {

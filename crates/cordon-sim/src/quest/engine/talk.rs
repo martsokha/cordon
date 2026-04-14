@@ -46,10 +46,7 @@ pub fn advance_after_talk(
     let Some(stage) = def.stage(&active.current_stage) else {
         return;
     };
-    let QuestStageKind::Talk {
-        branches, fallback, ..
-    } = &stage.kind
-    else {
+    let QuestStageKind::Talk(talk) = &stage.kind else {
         return;
     };
     // Build a view with the stage clock so any guards that
@@ -63,7 +60,8 @@ pub fn advance_after_talk(
         stage_started_at: Some(active.stage_started_at),
     };
     let next = match choice {
-        Some(c) => branches
+        Some(c) => talk
+            .branches
             .iter()
             .filter(|b| {
                 b.requires
@@ -73,8 +71,8 @@ pub fn advance_after_talk(
             })
             .find(|b| b.choice == c)
             .map(|b| b.next_stage.clone())
-            .unwrap_or_else(|| fallback.clone()),
-        None => fallback.clone(),
+            .unwrap_or_else(|| talk.fallback.clone()),
+        None => talk.fallback.clone(),
     };
     // Mutable re-borrow now that evaluation is done.
     if let Some(active) = log.active_instance_mut(quest) {

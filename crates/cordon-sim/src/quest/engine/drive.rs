@@ -89,7 +89,7 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
             let fail_stage = def
                 .stages
                 .iter()
-                .find(|s| matches!(s.kind, QuestStageKind::Outcome { success: false, .. }))?;
+                .find(|s| matches!(&s.kind, QuestStageKind::Outcome(o) if !o.success))?;
             Some((active.def_id.clone(), fail_stage.id.clone()))
         })
         .collect();
@@ -156,7 +156,7 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
         .filter_map(|active| {
             let def = catalog.quests.get(&active.def_id)?;
             let stage = def.stage(&active.current_stage)?;
-            matches!(stage.kind, QuestStageKind::Outcome { .. }).then(|| active.def_id.clone())
+            matches!(stage.kind, QuestStageKind::Outcome(_)).then(|| active.def_id.clone())
         })
         .collect();
     for def_id in to_complete {
@@ -196,18 +196,13 @@ fn collect_objective_transitions(
         let Some(stage) = def.stage(&active.current_stage) else {
             continue;
         };
-        let QuestStageKind::Objective {
-            condition,
-            timeout,
-            on_success,
-            on_failure,
-        } = &stage.kind
-        else {
+        let QuestStageKind::Objective(obj) = &stage.kind else {
             continue;
         };
 
         let elapsed = now.minutes_since(active.stage_started_at);
-        let timed_out = timeout
+        let timed_out = obj
+            .timeout
             .map(|limit| elapsed >= limit.minutes())
             .unwrap_or(false);
 
@@ -223,10 +218,10 @@ fn collect_objective_transitions(
             stage_started_at: Some(active.stage_started_at),
         };
 
-        if view.evaluate(condition) {
-            out.push((index, on_success.clone()));
+        if view.evaluate(&obj.condition) {
+            out.push((index, obj.on_success.clone()));
         } else if timed_out {
-            match on_failure {
+            match &obj.on_failure {
                 Some(stage) => out.push((index, stage.clone())),
                 None => {
                     // No failure stage: jump to a synthetic
@@ -237,7 +232,7 @@ fn collect_objective_transitions(
                     if let Some(fail_stage) = def
                         .stages
                         .iter()
-                        .find(|s| matches!(s.kind, QuestStageKind::Outcome { success: false, .. }))
+                        .find(|s| matches!(&s.kind, QuestStageKind::Outcome(o) if !o.success))
                     {
                         out.push((index, fail_stage.id.clone()));
                     }
@@ -270,7 +265,7 @@ fn collect_branch_transitions(
         let Some(stage) = def.stage(&active.current_stage) else {
             continue;
         };
-        let QuestStageKind::Branch { arms, fallback } = &stage.kind else {
+        let QuestStageKind::Branch(br) = &stage.kind else {
             continue;
         };
 
@@ -283,11 +278,12 @@ fn collect_branch_transitions(
             stage_started_at: Some(active.stage_started_at),
         };
 
-        let next = arms
+        let next = br
+            .arms
             .iter()
             .find(|arm| view.evaluate(&arm.when))
             .map(|arm| arm.next_stage.clone())
-            .unwrap_or_else(|| fallback.clone());
+            .unwrap_or_else(|| br.fallback.clone());
         out.push((index, next));
     }
     out
@@ -325,19 +321,15 @@ fn complete_quest(
     let Some(stage) = def.stage(&active.current_stage) else {
         return;
     };
-    let QuestStageKind::Outcome {
-        success,
-        consequences,
-    } = &stage.kind
-    else {
+    let QuestStageKind::Outcome(out) = &stage.kind else {
         return;
     };
-    let success = *success;
+    let success = out.success;
     let outcome_stage = active.current_stage.clone();
     let started_at = active.started_at;
     let stage_started_at = active.stage_started_at;
     let flags = active.flags.clone();
-    let bundles = consequences.clone();
+    let bundles = out.consequences.clone();
 
     // First pass: decide which conditional bundles are eligible
     // by evaluating their guards against the live world view.

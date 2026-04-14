@@ -84,6 +84,7 @@ use cordon_core::world::narrative::{
 /// Player ranks are hardcoded in [`PlayerRank`](cordon_core::entity::player::PlayerRank).
 ///
 /// All lookups are by typed ID aliases from [`cordon_core::primitive`].
+#[derive(Default)]
 pub struct GameData {
     /// Item definitions keyed by item ID.
     pub items: HashMap<Id<Item>, ItemDef>,
@@ -367,16 +368,11 @@ impl GameData {
         for stage in &def.stages {
             let stage_ref = format!("{referrer} stage `{}`", stage.id.as_str());
             match &stage.kind {
-                QuestStageKind::Talk {
-                    branches,
-                    fallback,
-                    on_failure,
-                    ..
-                } => {
-                    if !ids.contains(fallback) {
-                        warn!("{stage_ref}: unknown fallback `{}`", fallback.as_str());
+                QuestStageKind::Talk(talk) => {
+                    if !ids.contains(&talk.fallback) {
+                        warn!("{stage_ref}: unknown fallback `{}`", talk.fallback.as_str());
                     }
-                    if let Some(on_failure) = on_failure
+                    if let Some(on_failure) = &talk.on_failure
                         && !ids.contains(on_failure)
                     {
                         warn!(
@@ -388,7 +384,7 @@ impl GameData {
                     // serde keeps the first, so later branches
                     // with the same choice are unreachable.
                     let mut seen_choices: HashSet<&str> = HashSet::new();
-                    for branch in branches {
+                    for branch in &talk.branches {
                         if !seen_choices.insert(branch.choice.as_str()) {
                             warn!(
                                 "{stage_ref}: duplicate TalkBranch choice `{}` — \
@@ -408,19 +404,14 @@ impl GameData {
                         }
                     }
                 }
-                QuestStageKind::Objective {
-                    condition,
-                    on_success,
-                    on_failure,
-                    ..
-                } => {
-                    if !ids.contains(on_success) {
+                QuestStageKind::Objective(obj) => {
+                    if !ids.contains(&obj.on_success) {
                         warn!(
                             "{stage_ref}: on_success → unknown stage `{}`",
-                            on_success.as_str()
+                            obj.on_success.as_str()
                         );
                     }
-                    if let Some(on_failure) = on_failure
+                    if let Some(on_failure) = &obj.on_failure
                         && !ids.contains(on_failure)
                     {
                         warn!(
@@ -428,16 +419,16 @@ impl GameData {
                             on_failure.as_str()
                         );
                     }
-                    self.check_condition(condition, &stage_ref);
+                    self.check_condition(&obj.condition, &stage_ref);
                 }
-                QuestStageKind::Branch { arms, fallback } => {
-                    if !ids.contains(fallback) {
+                QuestStageKind::Branch(br) => {
+                    if !ids.contains(&br.fallback) {
                         warn!(
                             "{stage_ref}: branch fallback → unknown stage `{}`",
-                            fallback.as_str()
+                            br.fallback.as_str()
                         );
                     }
-                    for (i, arm) in arms.iter().enumerate() {
+                    for (i, arm) in br.arms.iter().enumerate() {
                         self.check_condition(&arm.when, &stage_ref);
                         if !ids.contains(&arm.next_stage) {
                             warn!(
@@ -447,8 +438,8 @@ impl GameData {
                         }
                     }
                 }
-                QuestStageKind::Outcome { consequences, .. } => {
-                    for bundle in consequences {
+                QuestStageKind::Outcome(out) => {
+                    for bundle in &out.consequences {
                         self.check_conditional_consequence(bundle, &stage_ref);
                     }
                 }
@@ -616,10 +607,10 @@ impl GameData {
 
         for def in self.quests.values() {
             for stage in &def.stages {
-                let QuestStageKind::Outcome { consequences, .. } = &stage.kind else {
+                let QuestStageKind::Outcome(out) = &stage.kind else {
                     continue;
                 };
-                for bundle in consequences {
+                for bundle in &out.consequences {
                     for consequence in &bundle.apply {
                         count(consequence);
                     }
