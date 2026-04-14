@@ -2,9 +2,11 @@
 //!
 //! [`Squad`] is the **spawn-time / save-game** representation. At
 //! runtime, squads are Bevy entities composed of components defined
-//! in `cordon-sim::components` (`SquadFaction`, `SquadGoal`,
-//! `SquadFormation`, `SquadFacing`, `SquadWaypoints`, `SquadLeader`,
-//! `SquadMembers`, `SquadActivity`).
+//! in `cordon-sim::components` (`FactionId`, `Goal`, `Formation`,
+//! `SquadFacing`, `SquadWaypoints`, `SquadLeader`, `SquadMembers`,
+//! `MovementIntent`, `EngagementTarget`). A `bevy_behave` tree child
+//! drives `MovementIntent` based on `Goal`; the engagement scanner
+//! writes `EngagementTarget` when a hostile squad is in vision.
 //!
 //! Vision and engagement are shared at squad granularity: when any
 //! member spots a hostile, the whole squad knows; when the squad
@@ -62,8 +64,35 @@ pub enum Goal {
     Protect { other: Uid<Squad> },
     /// Locate a target NPC and engage on contact.
     Find { target: Uid<Npc> },
-    /// Carry items to a destination point.
-    Deliver { to: [f32; 2] },
+    /// Travel to a specific world-space point. The `intent` is
+    /// flavour for the UI and future utility AI scorers — the
+    /// squad-movement system only uses `target`.
+    GoTo {
+        target: [f32; 2],
+        #[serde(default)]
+        intent: TravelIntent,
+    },
+}
+
+/// Why a squad is moving to a point. Purely narrative / UI flavour
+/// at present; kept as a field on [`Goal::GoTo`] so future AI work
+/// can reason about travel purpose (a returning NPC is a weaker
+/// interrupt candidate than a fleeing one, etc.).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TravelIntent {
+    /// Heading back to a home settlement after a task.
+    Returning,
+    /// Approaching a destination to start a task there.
+    Arriving,
+    /// Evading a threat.
+    Fleeing,
+    /// Looking into something noticed on the map.
+    Investigating,
+    /// No specific narrative intent.
+    #[default]
+    Generic,
 }
 
 /// Formation the squad walks in when not in combat.

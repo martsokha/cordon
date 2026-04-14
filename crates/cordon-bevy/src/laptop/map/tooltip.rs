@@ -11,7 +11,7 @@ use bevy::prelude::*;
 use bevy_fluent::prelude::*;
 use cordon_core::primitive::Tier;
 use cordon_core::world::area::{AreaDef, AreaKind, SettlementRole};
-use cordon_sim::behavior::{CombatTarget, MovementTarget};
+use cordon_sim::plugin::prelude::{CombatTarget, MovementTarget};
 
 use super::AreaTooltipInfo;
 use crate::laptop::map::relics::RelicIconAssets;
@@ -150,7 +150,13 @@ pub fn format_npc_status(
         cordon_core::entity::squad::Goal::Scavenge { .. } => "scavenging",
         cordon_core::entity::squad::Goal::Protect { .. } => "protecting",
         cordon_core::entity::squad::Goal::Find { .. } => "hunting",
-        cordon_core::entity::squad::Goal::Deliver { .. } => "delivering",
+        cordon_core::entity::squad::Goal::GoTo { intent, .. } => match intent {
+            cordon_core::entity::squad::TravelIntent::Returning => "returning",
+            cordon_core::entity::squad::TravelIntent::Arriving => "arriving",
+            cordon_core::entity::squad::TravelIntent::Fleeing => "fleeing",
+            cordon_core::entity::squad::TravelIntent::Investigating => "investigating",
+            cordon_core::entity::squad::TravelIntent::Generic => "traveling",
+        },
     };
     format!("{doing} ({purpose})")
 }

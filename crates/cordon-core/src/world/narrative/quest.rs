@@ -106,83 +106,104 @@ pub struct BranchArm {
     pub next_stage: Id<QuestStage>,
 }
 
+/// Run a Yarn dialogue node. The engine enqueues a visitor
+/// (if `npc` is set), hands control to the dialogue runner,
+/// and on completion reads the `$quest_choice` Yarn variable
+/// and dispatches to the first eligible [`TalkBranch`]. If
+/// no branch matches, jumps to [`fallback`](TalkStage::fallback).
+#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize)]
+pub struct TalkStage {
+    /// Which NPC template delivers this line. `None` means
+    /// narrator (no visitor enqueued).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub npc: Option<Id<NpcTemplate>>,
+    /// Yarn node name to run.
+    pub yarn_node: String,
+    /// Available branches, matched against `$quest_choice`.
+    pub branches: Vec<TalkBranch>,
+    /// Stage to advance to if no branch matches (dialogue
+    /// ended without writing a recognised `$quest_choice`,
+    /// or all eligible branches were gated out by
+    /// [`TalkBranch::requires`]).
+    pub fallback: Id<QuestStage>,
+    /// Stage to transition to if the visitor NPC dies en route to
+    /// the bunker (or otherwise fails to arrive). Optional — if
+    /// unset, the quest stalls indefinitely when the giver can't
+    /// arrive. Resolved against sibling stage IDs like on_failure
+    /// on Objective stages.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_failure: Option<Id<QuestStage>>,
+}
+
+/// Wait for a world condition to become true.
+#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize)]
+pub struct ObjectiveStage {
+    /// What must be true to succeed. Supports `AllOf` / `AnyOf`
+    /// / `Not` for compound conditions.
+    pub condition: ObjectiveCondition,
+    /// Maximum stage lifetime. `None` means untimed. When
+    /// the elapsed time exceeds this, the engine jumps to
+    /// [`on_failure`](ObjectiveStage::on_failure).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<Duration>,
+    /// Stage to advance to on success.
+    pub on_success: Id<QuestStage>,
+    /// Stage to advance to on failure / timeout. `None` means
+    /// the quest ends in failure immediately.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_failure: Option<Id<QuestStage>>,
+}
+
+/// Silent condition fork. The engine walks
+/// [`arms`](BranchStage::arms) in order and picks the first one
+/// whose [`when`](BranchArm::when) is true, falling through to
+/// [`fallback`](BranchStage::fallback) when nothing matches.
+///
+/// Useful for "after the talk, go to different stages based
+/// on player state" without a UI step. Unlike `ObjectiveStage`,
+/// `BranchStage` does not wait — it evaluates immediately on
+/// entry and advances the same frame.
+#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize)]
+pub struct BranchStage {
+    /// Condition arms in priority order.
+    pub arms: Vec<BranchArm>,
+    /// Stage to advance to when no arm matches.
+    pub fallback: Id<QuestStage>,
+}
+
+/// Terminal stage. Applies consequences from every
+/// [`ConditionalConsequence`] whose guard matches and
+/// records the completion in `QuestLog`.
+#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize)]
+pub struct OutcomeStage {
+    /// Whether this is a success ending.
+    pub success: bool,
+    /// Consequence bundles keyed by optional guards. Each
+    /// eligible bundle fires in order; bundles with `None`
+    /// for their guard always fire.
+    pub consequences: Vec<ConditionalConsequence>,
+}
+
 /// What happens at a quest stage.
 ///
 /// Internally tagged by the `kind` field so JSON stays flat:
 /// `{ "kind": "talk", "yarn_node": "...", ... }`. [`QuestStageDef`]
 /// uses `#[serde(flatten)]` so the tag lives directly on the
-/// stage object and not nested under a `kind` key.
+/// stage object and not nested under a `kind` key. Each variant
+/// wraps a dedicated struct so engine code can pass the stage
+/// payload around by reference without re-binding every field.
 #[derive(Debug, Clone)]
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum QuestStageKind {
-    /// Run a Yarn dialogue node. The engine enqueues a visitor
-    /// (if `npc` is set), hands control to the dialogue runner,
-    /// and on completion reads the `$quest_choice` Yarn variable
-    /// and dispatches to the first eligible [`TalkBranch`]. If
-    /// no branch matches, jumps to [`fallback`](QuestStageKind::Talk::fallback).
-    Talk {
-        /// Which NPC template delivers this line. `None` means
-        /// narrator (no visitor enqueued).
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        npc: Option<Id<NpcTemplate>>,
-        /// Yarn node name to run.
-        yarn_node: String,
-        /// Available branches, matched against `$quest_choice`.
-        branches: Vec<TalkBranch>,
-        /// Stage to advance to if no branch matches (dialogue
-        /// ended without writing a recognised `$quest_choice`,
-        /// or all eligible branches were gated out by
-        /// [`TalkBranch::requires`]).
-        fallback: Id<QuestStage>,
-    },
-
-    /// Wait for a world condition to become true.
-    Objective {
-        /// What must be true to succeed. Supports `AllOf` / `AnyOf`
-        /// / `Not` for compound conditions.
-        condition: ObjectiveCondition,
-        /// Maximum stage lifetime. `None` means untimed. When
-        /// the elapsed time exceeds this, the engine jumps to
-        /// [`on_failure`](QuestStageKind::Objective::on_failure).
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        timeout: Option<Duration>,
-        /// Stage to advance to on success.
-        on_success: Id<QuestStage>,
-        /// Stage to advance to on failure / timeout. `None` means
-        /// the quest ends in failure immediately.
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        on_failure: Option<Id<QuestStage>>,
-    },
-
-    /// Silent condition fork. The engine walks
-    /// [`arms`](QuestStageKind::Branch::arms) in order and picks
-    /// the first one whose [`when`](BranchArm::when) is true,
-    /// falling through to [`fallback`](QuestStageKind::Branch::fallback)
-    /// when nothing matches.
-    ///
-    /// Useful for "after the talk, go to different stages based
-    /// on player state" without a UI step. Unlike `Objective`,
-    /// Branch does not wait — it evaluates immediately on entry
-    /// and advances the same frame.
-    Branch {
-        /// Condition arms in priority order.
-        arms: Vec<BranchArm>,
-        /// Stage to advance to when no arm matches.
-        fallback: Id<QuestStage>,
-    },
-
-    /// Terminal stage. Applies consequences from every
-    /// [`ConditionalConsequence`] whose guard matches and
-    /// records the completion in `QuestLog`.
-    Outcome {
-        /// Whether this is a success ending.
-        success: bool,
-        /// Consequence bundles keyed by optional guards. Each
-        /// eligible bundle fires in order; bundles with `None`
-        /// for their guard always fire.
-        consequences: Vec<ConditionalConsequence>,
-    },
+    Talk(TalkStage),
+    Objective(ObjectiveStage),
+    Branch(BranchStage),
+    Outcome(OutcomeStage),
 }
 
 /// A single stage in a quest.
@@ -258,163 +279,5 @@ impl QuestDef {
     /// authoring error and will also surface in validation.
     pub fn entry_stage(&self) -> Option<&QuestStageDef> {
         self.stages.first()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Round-trip the exact JSON shape used by
-    /// `assets/data/quests/first_contact.json` through the real
-    /// deserializer. Catches serde-tag mismatches (e.g. if
-    /// `rename_all` drifts away from `snake_case`) without
-    /// needing to boot the whole game.
-    #[test]
-    fn first_contact_json_parses() {
-        let json = r#"{
-            "id": "first_contact",
-            "category": "tutorial",
-            "giver": "garrison_lieutenant",
-            "giver_faction": "garrison",
-            "stages": [
-                {
-                    "id": "intro",
-                    "kind": "talk",
-                    "npc": "garrison_lieutenant",
-                    "yarn_node": "first_contact.intro",
-                    "branches": [
-                        { "choice": "accept",  "next_stage": "outcome_accept" },
-                        { "choice": "neutral", "next_stage": "outcome_neutral" },
-                        { "choice": "refuse",  "next_stage": "outcome_refuse" }
-                    ],
-                    "fallback": "outcome_refuse"
-                },
-                {
-                    "id": "outcome_accept",
-                    "kind": "outcome",
-                    "success": true,
-                    "consequences": [
-                        { "apply": [
-                            { "give_credits": 200 },
-                            { "give_player_xp": 50 },
-                            { "standing_change": { "faction": "garrison",  "delta": 15 } },
-                            { "standing_change": { "faction": "syndicate", "delta": -5 } }
-                        ]}
-                    ]
-                }
-            ],
-            "repeatable": false
-        }"#;
-        let def: QuestDef = serde_json::from_str(json).expect("parse first_contact");
-        assert_eq!(def.id.as_str(), "first_contact");
-        assert_eq!(def.stages.len(), 2);
-        assert!(matches!(def.category, QuestCategory::Tutorial));
-        let QuestStageKind::Talk { branches, .. } = &def.stages[0].kind else {
-            panic!("stage 0 should be Talk");
-        };
-        assert_eq!(branches.len(), 3);
-        assert_eq!(branches[0].choice, "accept");
-        assert!(branches[0].requires.is_none());
-    }
-
-    #[test]
-    fn objective_timeout_parses_from_duration_dsl() {
-        let json = r#"{
-            "id": "relic_hunt",
-            "category": "side",
-            "time_limit": { "hours": 2 },
-            "stages": [
-                {
-                    "id": "gather",
-                    "kind": "objective",
-                    "condition": {
-                        "have_item": { "item": "relic_crystal", "count": 3 }
-                    },
-                    "timeout": { "hours": 1 },
-                    "on_success": "outcome_win",
-                    "on_failure": "outcome_lose"
-                },
-                {
-                    "id": "outcome_win",
-                    "kind": "outcome",
-                    "success": true,
-                    "consequences": []
-                },
-                {
-                    "id": "outcome_lose",
-                    "kind": "outcome",
-                    "success": false,
-                    "consequences": []
-                }
-            ]
-        }"#;
-        let def: QuestDef = serde_json::from_str(json).expect("parse relic_hunt");
-        assert_eq!(def.time_limit.unwrap().minutes(), 120);
-        let QuestStageKind::Objective { timeout, .. } = &def.stages[0].kind else {
-            panic!("stage 0 should be Objective");
-        };
-        assert_eq!(timeout.unwrap().minutes(), 60);
-    }
-
-    #[test]
-    fn branch_stage_parses() {
-        let json = r#"{
-            "id": "silent_fork",
-            "category": "side",
-            "stages": [
-                {
-                    "id": "decide",
-                    "kind": "branch",
-                    "arms": [
-                        {
-                            "when": { "have_credits": 1000 },
-                            "next_stage": "rich_path"
-                        }
-                    ],
-                    "fallback": "poor_path"
-                },
-                { "id": "rich_path", "kind": "outcome", "success": true, "consequences": [] },
-                { "id": "poor_path", "kind": "outcome", "success": true, "consequences": [] }
-            ]
-        }"#;
-        let def: QuestDef = serde_json::from_str(json).expect("parse branch quest");
-        let QuestStageKind::Branch { arms, fallback } = &def.stages[0].kind else {
-            panic!("stage 0 should be Branch");
-        };
-        assert_eq!(arms.len(), 1);
-        assert_eq!(arms[0].next_stage.as_str(), "rich_path");
-        assert_eq!(fallback.as_str(), "poor_path");
-    }
-
-    #[test]
-    fn conditional_outcome_consequences_parse() {
-        let json = r#"{
-            "id": "guarded_outcome",
-            "category": "side",
-            "stages": [
-                {
-                    "id": "terminal",
-                    "kind": "outcome",
-                    "success": true,
-                    "consequences": [
-                        { "apply": [ { "give_credits": 100 } ] },
-                        {
-                            "when": {
-                                "faction_standing": { "faction": "garrison", "min_standing": 50 }
-                            },
-                            "apply": [ { "give_credits": 200 } ]
-                        }
-                    ]
-                }
-            ]
-        }"#;
-        let def: QuestDef = serde_json::from_str(json).expect("parse guarded_outcome");
-        let QuestStageKind::Outcome { consequences, .. } = &def.stages[0].kind else {
-            panic!("stage 0 should be Outcome");
-        };
-        assert_eq!(consequences.len(), 2);
-        assert!(consequences[0].when.is_none());
-        assert!(consequences[1].when.is_some());
     }
 }

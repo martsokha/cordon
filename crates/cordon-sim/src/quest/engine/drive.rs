@@ -24,8 +24,11 @@ use cordon_data::catalog::GameData;
 use cordon_data::gamedata::GameDataResource;
 
 use super::super::condition::WorldView;
-use super::super::consequence::{StartQuestRequest, WorldMut, apply};
+use super::super::consequence::{
+    GiveNpcXpRequest, SpawnNpcRequest, StartQuestRequest, WorldMut, apply,
+};
 use super::super::state::{CompletedQuest, QuestLog};
+use crate::quest::registry::TemplateRegistry;
 use crate::resources::{EventLog, GameClock, Player};
 
 /// Mutable bundle used by [`drive_active_quests`] — the only
@@ -37,7 +40,7 @@ use crate::resources::{EventLog, GameClock, Player};
 /// and run in parallel with other read-only systems.
 ///
 /// Also carries the faction index (for
-/// [`spawn_event_instance`](crate::day::events::spawn_event_instance))
+/// [`spawn_event_instance`](crate::day::world_events::spawn_event_instance))
 /// so consequence-driven event fires can roll real random
 /// instances instead of hardcoding def-minimum values.
 #[derive(SystemParam)]
@@ -48,7 +51,10 @@ pub struct QuestEngineCtx<'w> {
     pub player: ResMut<'w, Player>,
     pub events: ResMut<'w, EventLog>,
     pub factions: Res<'w, crate::resources::FactionIndex>,
+    pub registry: Res<'w, TemplateRegistry>,
     pub start_quest_tx: MessageWriter<'w, StartQuestRequest>,
+    pub spawn_npc_tx: MessageWriter<'w, SpawnNpcRequest>,
+    pub give_npc_xp_tx: MessageWriter<'w, GiveNpcXpRequest>,
 }
 
 /// Drive every active quest that is currently on an `Objective`
@@ -83,7 +89,7 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
             let fail_stage = def
                 .stages
                 .iter()
-                .find(|s| matches!(s.kind, QuestStageKind::Outcome { success: false, .. }))?;
+                .find(|s| matches!(&s.kind, QuestStageKind::Outcome(o) if !o.success))?;
             Some((active.def_id.clone(), fail_stage.id.clone()))
         })
         .collect();
@@ -102,8 +108,14 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
     // We must not mutate `log` while evaluating a condition that
     // also borrows `log`. Collect the transitions first, apply
     // them in a second pass.
-    let objective_transitions =
-        collect_objective_transitions(&ctx.log, &ctx.player.0, &ctx.events.0, catalog, now);
+    let objective_transitions = collect_objective_transitions(
+        &ctx.log,
+        &ctx.player.0,
+        &ctx.events.0,
+        &ctx.registry,
+        catalog,
+        now,
+    );
     for (index, next_stage) in objective_transitions {
         if let Some(active) = ctx.log.active.get_mut(index) {
             active.advance_to(next_stage, now);
@@ -115,8 +127,14 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
     // evaluator's immutable borrow of `log` is released before
     // the mutable advance. Run in the same frame as entry so
     // Branch behaves as a silent fork, not a wait state.
-    let branch_transitions =
-        collect_branch_transitions(&ctx.log, &ctx.player.0, &ctx.events.0, catalog, now);
+    let branch_transitions = collect_branch_transitions(
+        &ctx.log,
+        &ctx.player.0,
+        &ctx.events.0,
+        &ctx.registry,
+        catalog,
+        now,
+    );
     for (index, next_stage) in branch_transitions {
         if let Some(active) = ctx.log.active.get_mut(index) {
             active.advance_to(next_stage, now);
@@ -138,7 +156,7 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
         .filter_map(|active| {
             let def = catalog.quests.get(&active.def_id)?;
             let stage = def.stage(&active.current_stage)?;
-            matches!(stage.kind, QuestStageKind::Outcome { .. }).then(|| active.def_id.clone())
+            matches!(stage.kind, QuestStageKind::Outcome(_)).then(|| active.def_id.clone())
         })
         .collect();
     for def_id in to_complete {
@@ -149,9 +167,12 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
             now,
             &mut ctx.player.0,
             &mut ctx.events.0,
+            &ctx.registry,
             &faction_pool,
             &mut rng,
             &mut ctx.start_quest_tx,
+            &mut ctx.spawn_npc_tx,
+            &mut ctx.give_npc_xp_tx,
         );
     }
 }
@@ -163,6 +184,7 @@ fn collect_objective_transitions(
     log: &QuestLog,
     player: &cordon_core::entity::player::PlayerState,
     events: &[cordon_core::world::narrative::ActiveEvent],
+    registry: &TemplateRegistry,
     catalog: &GameData,
     now: GameTime,
 ) -> Vec<(usize, Id<QuestStage>)> {
@@ -174,18 +196,13 @@ fn collect_objective_transitions(
         let Some(stage) = def.stage(&active.current_stage) else {
             continue;
         };
-        let QuestStageKind::Objective {
-            condition,
-            timeout,
-            on_success,
-            on_failure,
-        } = &stage.kind
-        else {
+        let QuestStageKind::Objective(obj) = &stage.kind else {
             continue;
         };
 
         let elapsed = now.minutes_since(active.stage_started_at);
-        let timed_out = timeout
+        let timed_out = obj
+            .timeout
             .map(|limit| elapsed >= limit.minutes())
             .unwrap_or(false);
 
@@ -196,14 +213,15 @@ fn collect_objective_transitions(
             player,
             events,
             quests: log,
+            registry,
             now,
             stage_started_at: Some(active.stage_started_at),
         };
 
-        if view.evaluate(condition) {
-            out.push((index, on_success.clone()));
+        if view.evaluate(&obj.condition) {
+            out.push((index, obj.on_success.clone()));
         } else if timed_out {
-            match on_failure {
+            match &obj.on_failure {
                 Some(stage) => out.push((index, stage.clone())),
                 None => {
                     // No failure stage: jump to a synthetic
@@ -214,7 +232,7 @@ fn collect_objective_transitions(
                     if let Some(fail_stage) = def
                         .stages
                         .iter()
-                        .find(|s| matches!(s.kind, QuestStageKind::Outcome { success: false, .. }))
+                        .find(|s| matches!(&s.kind, QuestStageKind::Outcome(o) if !o.success))
                     {
                         out.push((index, fail_stage.id.clone()));
                     }
@@ -235,6 +253,7 @@ fn collect_branch_transitions(
     log: &QuestLog,
     player: &cordon_core::entity::player::PlayerState,
     events: &[cordon_core::world::narrative::ActiveEvent],
+    registry: &TemplateRegistry,
     catalog: &GameData,
     now: GameTime,
 ) -> Vec<(usize, Id<QuestStage>)> {
@@ -246,7 +265,7 @@ fn collect_branch_transitions(
         let Some(stage) = def.stage(&active.current_stage) else {
             continue;
         };
-        let QuestStageKind::Branch { arms, fallback } = &stage.kind else {
+        let QuestStageKind::Branch(br) = &stage.kind else {
             continue;
         };
 
@@ -254,15 +273,17 @@ fn collect_branch_transitions(
             player,
             events,
             quests: log,
+            registry,
             now,
             stage_started_at: Some(active.stage_started_at),
         };
 
-        let next = arms
+        let next = br
+            .arms
             .iter()
             .find(|arm| view.evaluate(&arm.when))
             .map(|arm| arm.next_stage.clone())
-            .unwrap_or_else(|| fallback.clone());
+            .unwrap_or_else(|| br.fallback.clone());
         out.push((index, next));
     }
     out
@@ -281,9 +302,12 @@ fn complete_quest(
     now: GameTime,
     player: &mut cordon_core::entity::player::PlayerState,
     events: &mut Vec<cordon_core::world::narrative::ActiveEvent>,
+    registry: &TemplateRegistry,
     faction_pool: &[Id<Faction>],
     rng: &mut WyRand,
     start_quest_tx: &mut MessageWriter<StartQuestRequest>,
+    spawn_npc_tx: &mut MessageWriter<SpawnNpcRequest>,
+    give_npc_xp_tx: &mut MessageWriter<GiveNpcXpRequest>,
 ) {
     // Resolve the active instance by def_id. Cloning the
     // scalar state we need here lets us drop the borrow of
@@ -297,19 +321,15 @@ fn complete_quest(
     let Some(stage) = def.stage(&active.current_stage) else {
         return;
     };
-    let QuestStageKind::Outcome {
-        success,
-        consequences,
-    } = &stage.kind
-    else {
+    let QuestStageKind::Outcome(out) = &stage.kind else {
         return;
     };
-    let success = *success;
+    let success = out.success;
     let outcome_stage = active.current_stage.clone();
     let started_at = active.started_at;
     let stage_started_at = active.stage_started_at;
     let flags = active.flags.clone();
-    let bundles = consequences.clone();
+    let bundles = out.consequences.clone();
 
     // First pass: decide which conditional bundles are eligible
     // by evaluating their guards against the live world view.
@@ -320,6 +340,7 @@ fn complete_quest(
             player,
             events,
             quests: log,
+            registry,
             now,
             stage_started_at: Some(stage_started_at),
         };
@@ -344,12 +365,19 @@ fn complete_quest(
         player,
         events,
         data: catalog,
+        registry,
         now,
         rng,
         faction_pool,
     };
     for consequence in &to_apply {
-        apply(consequence, &mut world, start_quest_tx);
+        apply(
+            consequence,
+            &mut world,
+            start_quest_tx,
+            spawn_npc_tx,
+            give_npc_xp_tx,
+        );
     }
 
     // Stable removal: retain() walks once, evicts the matching

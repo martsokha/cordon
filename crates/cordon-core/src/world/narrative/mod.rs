@@ -21,7 +21,7 @@ pub use self::consequence::{ConditionalConsequence, Consequence, ObjectiveCondit
 pub use self::event::{ActiveEvent, Event, EventCategory, EventDef};
 pub use self::flag::{QuestFlagPredicate, QuestFlagValue};
 pub use self::quest::{
-    BranchArm, Quest, QuestCategory, QuestDef, QuestStage, QuestStageDef, QuestStageKind,
-    TalkBranch,
+    BranchArm, BranchStage, ObjectiveStage, OutcomeStage, Quest, QuestCategory, QuestDef,
+    QuestStage, QuestStageDef, QuestStageKind, TalkBranch, TalkStage,
 };
 pub use self::trigger::{QuestTrigger, QuestTriggerDef, QuestTriggerKind};

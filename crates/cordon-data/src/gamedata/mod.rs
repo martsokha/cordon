@@ -27,6 +27,7 @@ use cordon_core::entity::archetype::ArchetypeDef;
 use cordon_core::entity::bunker::UpgradeDef;
 use cordon_core::entity::faction::FactionDef;
 use cordon_core::entity::name::NamePool;
+use cordon_core::entity::npc::NpcTemplateDef;
 use cordon_core::entity::perk::PerkDef;
 use cordon_core::item::ItemDef;
 use cordon_core::primitive::Id;
@@ -78,6 +79,7 @@ struct LoadingFolders {
     factions: Handle<LoadedFolder>,
     items: Handle<LoadedFolder>,
     namepools: Handle<LoadedFolder>,
+    npcs: Handle<LoadedFolder>,
     perks: Handle<LoadedFolder>,
     quests: Handle<LoadedFolder>,
     triggers: Handle<LoadedFolder>,
@@ -92,6 +94,7 @@ impl LoadingFolders {
             && server.is_loaded_with_dependencies(&self.factions)
             && server.is_loaded_with_dependencies(&self.items)
             && server.is_loaded_with_dependencies(&self.namepools)
+            && server.is_loaded_with_dependencies(&self.npcs)
             && server.is_loaded_with_dependencies(&self.perks)
             && server.is_loaded_with_dependencies(&self.quests)
             && server.is_loaded_with_dependencies(&self.triggers)
@@ -140,6 +143,7 @@ fn start_loading(mut commands: Commands, server: Res<AssetServer>) {
         factions: server.load_folder("data/factions"),
         items: server.load_folder("data/items"),
         namepools: server.load_folder("data/namepools"),
+        npcs: server.load_folder("data/npcs"),
         perks: server.load_folder("data/perks"),
         quests: server.load_folder("data/quests"),
         triggers: server.load_folder("data/triggers"),
@@ -172,6 +176,9 @@ fn assemble_game_data<S: FreelyMutableState>(
     let name_pools = parse_folder(&loading.namepools, &folders, &raw, |d: &NamePool| {
         d.id.clone()
     });
+    let npc_templates = parse_folder(&loading.npcs, &folders, &raw, |d: &NpcTemplateDef| {
+        d.id.clone()
+    });
     let perks = parse_folder(&loading.perks, &folders, &raw, |d: &PerkDef| d.id.clone());
     let quests = parse_folder(&loading.quests, &folders, &raw, |d: &QuestDef| d.id.clone());
     let triggers = parse_folder(&loading.triggers, &folders, &raw, |d: &QuestTriggerDef| {
@@ -182,13 +189,14 @@ fn assemble_game_data<S: FreelyMutableState>(
     });
 
     info!(
-        "Game data loaded: {} areas, {} archetypes, {} events, {} factions, {} items, {} namepools, {} perks, {} quests, {} triggers, {} upgrades",
+        "Game data loaded: {} areas, {} archetypes, {} events, {} factions, {} items, {} namepools, {} npcs, {} perks, {} quests, {} triggers, {} upgrades",
         areas.len(),
         archetypes.len(),
         events.len(),
         factions.len(),
         items.len(),
         name_pools.len(),
+        npc_templates.len(),
         perks.len(),
         quests.len(),
         triggers.len(),
@@ -202,6 +210,7 @@ fn assemble_game_data<S: FreelyMutableState>(
         factions,
         items,
         name_pools,
+        npc_templates,
         perks,
         quests,
         triggers,

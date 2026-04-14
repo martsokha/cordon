@@ -22,9 +22,13 @@
 //! without the visitor queue. The first quest uses a giver
 //! every time, so narrator-only stages can wait.
 
+mod arrival;
 mod bridge;
+mod npc_bridge;
 
 use bevy::prelude::*;
+use cordon_data::gamedata::GameDataResource;
+use cordon_sim::resources::FactionSettlements;
 
 use self::bridge::DialogueInFlight;
 use crate::PlayingState;
@@ -39,5 +43,18 @@ impl Plugin for QuestBridgePlugin {
             bridge::enqueue_talk_dialogue.run_if(in_state(PlayingState::Bunker)),
         );
         app.add_observer(bridge::on_dialogue_completed);
+        app.add_systems(
+            Update,
+            (
+                npc_bridge::handle_spawn_npc_requests,
+                npc_bridge::handle_give_npc_xp_requests,
+                npc_bridge::handle_template_npc_deaths,
+                npc_bridge::handle_template_dismissal,
+                arrival::handle_bunker_arrival,
+                arrival::handle_home_arrival,
+            )
+                .run_if(resource_exists::<GameDataResource>)
+                .run_if(resource_exists::<FactionSettlements>),
+        );
     }
 }

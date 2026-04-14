@@ -1,30 +1,30 @@
 //! Day rollover detection and the per-day systems.
 //!
-//! [`detect_day_rollover`] watches the [`GameClock`] each frame and
-//! writes a [`DayRolled`] message whenever the day number advances.
-//! Per-day work — daily event rolls, faction reactions, event
-//! expiry — runs as separate systems gated on the message.
+//! [`systems::detect_day_rollover`] watches [`GameClock`] each frame
+//! and writes a [`DayRolled`] message whenever the day number
+//! advances. Per-day work — daily world-event rolls, faction
+//! reactions, event expiry — runs as separate systems gated on the
+//! message.
+//!
+//! # File layout
+//!
+//! - [`events`] — ECS `Message` types emitted by this plugin
+//!   (currently just [`DayRolled`]).
+//! - [`systems`] — the `detect_day_rollover` / `roll_today_events` /
+//!   `expire_old_events` systems.
+//! - [`world_events`] — pure functions for rolling and expiring
+//!   in-world `ActiveEvent`s (faction_war, coup, radiation_storm).
+//!   Name is deliberately distinct from `events` to separate
+//!   world-state events from ECS messages.
 
 pub mod events;
+pub mod systems;
+pub mod world_events;
 
 use bevy::prelude::*;
-use bevy_prng::WyRand;
-use bevy_rand::prelude::GlobalRng;
-use cordon_core::primitive::Day;
-use cordon_data::gamedata::GameDataResource;
+pub use events::DayRolled;
 
-use crate::day::events::{expire_events, roll_daily_events};
 use crate::plugin::SimSet;
-use crate::resources::{EventLog, FactionIndex, GameClock};
-
-/// In-game day advanced. Fires exactly once per day rollover
-/// from [`detect_day_rollover`]; per-day work (daily event
-/// rolls, faction reactions, event expiry) runs as separate
-/// systems gated on this message.
-#[derive(Message, Debug, Clone, Copy)]
-pub struct DayRolled {
-    pub new_day: Day,
-}
 
 pub struct DayCyclePlugin;
 
@@ -34,60 +34,12 @@ impl Plugin for DayCyclePlugin {
         app.add_systems(
             Update,
             (
-                detect_day_rollover,
-                roll_today_events.run_if(on_message::<DayRolled>),
-                expire_old_events.run_if(on_message::<DayRolled>),
+                systems::detect_day_rollover,
+                systems::roll_today_events.run_if(on_message::<DayRolled>),
+                systems::expire_old_events.run_if(on_message::<DayRolled>),
             )
                 .chain()
                 .in_set(SimSet::Cleanup),
         );
     }
-}
-
-/// Track the previously-seen day so we can fire `DayRolled` exactly
-/// once per in-game day rollover, no matter how many frames pass per
-/// in-game minute.
-#[derive(Default)]
-struct LastDay(Option<Day>);
-
-fn detect_day_rollover(
-    clock: Res<GameClock>,
-    mut last: Local<LastDay>,
-    mut rolled: MessageWriter<DayRolled>,
-) {
-    let today = clock.0.day;
-    if last.0 != Some(today) {
-        if last.0.is_some() {
-            // Genuine rollover (not the very first frame).
-            rolled.write(DayRolled { new_day: today });
-        } else {
-            // First time we see the clock — emit so day-1 systems run too.
-            rolled.write(DayRolled { new_day: today });
-        }
-        last.0 = Some(today);
-    }
-}
-
-fn roll_today_events(
-    clock: Res<GameClock>,
-    game_data: Res<GameDataResource>,
-    factions: Res<FactionIndex>,
-    mut events: ResMut<EventLog>,
-    mut rng: Single<&mut WyRand, With<GlobalRng>>,
-) {
-    let event_defs: Vec<_> = game_data.0.events.values().cloned().collect();
-    // Events don't care about spawn weights — strip them down to just
-    // the ids for `roll_daily_events`.
-    let faction_ids: Vec<_> = factions.0.iter().map(|(id, _)| id.clone()).collect();
-    roll_daily_events(
-        &mut events.0,
-        &event_defs,
-        &faction_ids,
-        clock.0.day,
-        &mut **rng,
-    );
-}
-
-fn expire_old_events(clock: Res<GameClock>, mut events: ResMut<EventLog>) {
-    expire_events(&mut events.0, clock.0.day);
 }

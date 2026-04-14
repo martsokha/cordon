@@ -49,12 +49,11 @@
 //!
 //! - **NamePool refs**: factions' `namepool` → name_pools table.
 //!
-//! # What the validator does *not* cover
-//!
-//! NPC template refs (`Talk.npc`, `QuestDef.giver`, `SpawnNpc.template`,
-//! `NpcAlive`/`NpcDead`/`NpcAtLocation.npc`, `GiveNpcXp.template`).
-//! No NpcTemplate table exists yet (task #104); references are
-//! un-checkable until it lands.
+
+//! - **NPC template refs**: templates (`faction`, `perks[]`,
+//!   `loadout[]`), consequences (`SpawnNpc.template`,
+//!   `GiveNpcXp.template`), conditions (`NpcAlive`, `NpcDead`,
+//!   `NpcAtLocation.npc`).
 
 use std::collections::{HashMap, HashSet};
 
@@ -63,6 +62,7 @@ use cordon_core::entity::archetype::{Archetype, ArchetypeDef, RankLoadout};
 use cordon_core::entity::bunker::{Upgrade, UpgradeDef};
 use cordon_core::entity::faction::{Faction, FactionDef};
 use cordon_core::entity::name::{NamePool, NamePoolMarker};
+use cordon_core::entity::npc::{NpcTemplate, NpcTemplateDef};
 use cordon_core::entity::perk::{Perk, PerkDef};
 use cordon_core::item::{Caliber, Item, ItemData, ItemDef};
 use cordon_core::primitive::{Id, IdMarker};
@@ -84,6 +84,7 @@ use cordon_core::world::narrative::{
 /// Player ranks are hardcoded in [`PlayerRank`](cordon_core::entity::player::PlayerRank).
 ///
 /// All lookups are by typed ID aliases from [`cordon_core::primitive`].
+#[derive(Default)]
 pub struct GameData {
     /// Item definitions keyed by item ID.
     pub items: HashMap<Id<Item>, ItemDef>,
@@ -111,6 +112,10 @@ pub struct GameData {
     /// to the factions table; use [`archetype_for_faction`](Self::archetype_for_faction)
     /// instead of key-indexing by faction id.
     pub archetypes: HashMap<Id<Archetype>, ArchetypeDef>,
+    /// Named NPC templates keyed by template ID. Each entry defines
+    /// a unique, story-relevant character that quests and events can
+    /// reference by stable ID.
+    pub npc_templates: HashMap<Id<NpcTemplate>, NpcTemplateDef>,
 }
 
 impl GameData {
@@ -132,6 +137,11 @@ impl GameData {
     /// Look up a perk definition by ID.
     pub fn perk(&self, id: &Id<Perk>) -> Option<&PerkDef> {
         self.perks.get(id)
+    }
+
+    /// Look up an NPC template by ID.
+    pub fn npc_template(&self, id: &Id<NpcTemplate>) -> Option<&NpcTemplateDef> {
+        self.npc_templates.get(id)
     }
 
     /// Look up the loadout archetype for a faction.
@@ -181,6 +191,7 @@ impl GameData {
         self.validate_factions();
         self.validate_areas();
         self.validate_archetypes();
+        self.validate_npc_templates();
         self.validate_weapons_vs_calibers();
         self.validate_events();
         self.validate_triggers();
@@ -316,12 +327,34 @@ impl GameData {
         }
     }
 
+    fn validate_npc_templates(&self) {
+        for (id, def) in &self.npc_templates {
+            let referrer = format!("npc template `{}`", id.as_str());
+            self.check_faction(&def.faction, &referrer, "faction");
+            for perk in &def.perks {
+                if !self.perks.contains_key(perk) {
+                    warn_missing("perk ref from", &referrer, "perks[]", perk);
+                }
+            }
+            if let Some(items) = &def.loadout {
+                for item_id in items {
+                    if !self.items.contains_key(item_id) {
+                        warn_missing("item ref from", &referrer, "loadout[]", item_id);
+                    }
+                }
+            }
+        }
+    }
+
     fn validate_quests(&self) {
         for (id, def) in &self.quests {
             let referrer = format!("quest `{}`", id.as_str());
             if def.stages.is_empty() {
                 warn!("quest `{}` has no stages", id.as_str());
                 continue;
+            }
+            if let Some(giver) = &def.giver {
+                self.check_npc_template(giver, &referrer, "giver");
             }
             if let Some(faction) = &def.giver_faction {
                 self.check_faction(faction, &referrer, "giver_faction");
@@ -335,17 +368,23 @@ impl GameData {
         for stage in &def.stages {
             let stage_ref = format!("{referrer} stage `{}`", stage.id.as_str());
             match &stage.kind {
-                QuestStageKind::Talk {
-                    branches, fallback, ..
-                } => {
-                    if !ids.contains(fallback) {
-                        warn!("{stage_ref}: unknown fallback `{}`", fallback.as_str());
+                QuestStageKind::Talk(talk) => {
+                    if !ids.contains(&talk.fallback) {
+                        warn!("{stage_ref}: unknown fallback `{}`", talk.fallback.as_str());
+                    }
+                    if let Some(on_failure) = &talk.on_failure
+                        && !ids.contains(on_failure)
+                    {
+                        warn!(
+                            "{stage_ref}: on_failure → unknown stage `{}`",
+                            on_failure.as_str()
+                        );
                     }
                     // Duplicate choice strings silently shadow —
                     // serde keeps the first, so later branches
                     // with the same choice are unreachable.
                     let mut seen_choices: HashSet<&str> = HashSet::new();
-                    for branch in branches {
+                    for branch in &talk.branches {
                         if !seen_choices.insert(branch.choice.as_str()) {
                             warn!(
                                 "{stage_ref}: duplicate TalkBranch choice `{}` — \
@@ -365,19 +404,14 @@ impl GameData {
                         }
                     }
                 }
-                QuestStageKind::Objective {
-                    condition,
-                    on_success,
-                    on_failure,
-                    ..
-                } => {
-                    if !ids.contains(on_success) {
+                QuestStageKind::Objective(obj) => {
+                    if !ids.contains(&obj.on_success) {
                         warn!(
                             "{stage_ref}: on_success → unknown stage `{}`",
-                            on_success.as_str()
+                            obj.on_success.as_str()
                         );
                     }
-                    if let Some(on_failure) = on_failure
+                    if let Some(on_failure) = &obj.on_failure
                         && !ids.contains(on_failure)
                     {
                         warn!(
@@ -385,16 +419,16 @@ impl GameData {
                             on_failure.as_str()
                         );
                     }
-                    self.check_condition(condition, &stage_ref);
+                    self.check_condition(&obj.condition, &stage_ref);
                 }
-                QuestStageKind::Branch { arms, fallback } => {
-                    if !ids.contains(fallback) {
+                QuestStageKind::Branch(br) => {
+                    if !ids.contains(&br.fallback) {
                         warn!(
                             "{stage_ref}: branch fallback → unknown stage `{}`",
-                            fallback.as_str()
+                            br.fallback.as_str()
                         );
                     }
-                    for (i, arm) in arms.iter().enumerate() {
+                    for (i, arm) in br.arms.iter().enumerate() {
                         self.check_condition(&arm.when, &stage_ref);
                         if !ids.contains(&arm.next_stage) {
                             warn!(
@@ -404,8 +438,8 @@ impl GameData {
                         }
                     }
                 }
-                QuestStageKind::Outcome { consequences, .. } => {
-                    for bundle in consequences {
+                QuestStageKind::Outcome(out) => {
+                    for bundle in &out.consequences {
                         self.check_conditional_consequence(bundle, &stage_ref);
                     }
                 }
@@ -437,10 +471,13 @@ impl GameData {
             ObjectiveCondition::QuestFlag { quest, .. } => {
                 self.check_quest(quest, referrer, "QuestFlag.quest");
             }
-            // NPC-template conditions: no table to check against.
-            ObjectiveCondition::NpcAlive(_)
-            | ObjectiveCondition::NpcDead(_)
-            | ObjectiveCondition::NpcAtLocation { .. } => {}
+            ObjectiveCondition::NpcAlive(t) | ObjectiveCondition::NpcDead(t) => {
+                self.check_npc_template(t, referrer, "NpcAlive/NpcDead");
+            }
+            ObjectiveCondition::NpcAtLocation { npc, area } => {
+                self.check_npc_template(npc, referrer, "NpcAtLocation.npc");
+                self.check_area(area, referrer, "NpcAtLocation.area");
+            }
             ObjectiveCondition::Wait { .. } => {}
             ObjectiveCondition::AllOf(conds) | ObjectiveCondition::AnyOf(conds) => {
                 for c in conds {
@@ -488,12 +525,16 @@ impl GameData {
             }
             Consequence::StartQuest(q) => self.check_quest(q, referrer, "StartQuest"),
             Consequence::UnlockUpgrade(u) => self.check_upgrade(u, referrer, "UnlockUpgrade"),
-            Consequence::SpawnNpc { at, .. } => {
+            Consequence::SpawnNpc { template, at } => {
+                self.check_npc_template(template, referrer, "SpawnNpc.template");
                 if let Some(area) = at {
                     self.check_area(area, referrer, "SpawnNpc.at");
                 }
             }
-            Consequence::GivePlayerXp(_) | Consequence::GiveNpcXp { .. } => {}
+            Consequence::GiveNpcXp { template, .. } => {
+                self.check_npc_template(template, referrer, "GiveNpcXp.template");
+            }
+            Consequence::GivePlayerXp(_) => {}
             Consequence::DangerModifier { area, .. } => {
                 if let Some(area) = area {
                     self.check_area(area, referrer, "DangerModifier.area");
@@ -539,6 +580,12 @@ impl GameData {
         }
     }
 
+    fn check_npc_template(&self, id: &Id<NpcTemplate>, referrer: &str, field: &str) {
+        if !self.npc_templates.contains_key(id) {
+            warn_missing("npc template ref from", referrer, field, id);
+        }
+    }
+
     /// Walk every consequence in every quest stage and event def
     /// and count currently-stubbed variants. One summary warning
     /// per stub variant that is actually authored, so quest
@@ -560,10 +607,10 @@ impl GameData {
 
         for def in self.quests.values() {
             for stage in &def.stages {
-                let QuestStageKind::Outcome { consequences, .. } = &stage.kind else {
+                let QuestStageKind::Outcome(out) = &stage.kind else {
                     continue;
                 };
-                for bundle in consequences {
+                for bundle in &out.consequences {
                     for consequence in &bundle.apply {
                         count(consequence);
                     }

@@ -27,6 +27,7 @@ use super::super::condition::WorldView;
 use super::super::consequence::StartQuestRequest;
 use super::super::state::{ActiveQuest, QuestLog};
 use crate::day::DayRolled;
+use crate::quest::registry::TemplateRegistry;
 use crate::resources::{EventLog, GameClock, Player};
 
 /// Read-only bundle for quest-dispatch systems.
@@ -44,6 +45,7 @@ pub struct QuestDispatchCtx<'w> {
     pub clock: Res<'w, GameClock>,
     pub player: Res<'w, Player>,
     pub events: Res<'w, EventLog>,
+    pub registry: Res<'w, TemplateRegistry>,
 }
 
 impl<'w> QuestDispatchCtx<'w> {
@@ -103,6 +105,7 @@ impl<'w> QuestDispatchCtx<'w> {
                     player: &self.player.0,
                     events: &self.events.0,
                     quests: &self.log,
+                    registry: &self.registry,
                     now,
                     stage_started_at: None,
                 };
@@ -294,6 +297,7 @@ pub fn dispatch_on_condition(
             player: &ctx.player.0,
             events: &ctx.events.0,
             quests: &ctx.log,
+            registry: &ctx.registry,
             now,
             // Trigger-requires has no per-stage clock; `Wait`
             // in a trigger is meaningless and the evaluator

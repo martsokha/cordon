@@ -8,7 +8,7 @@
 //! or Esc again exits back to the bunker.
 
 use bevy::prelude::*;
-use cordon_sim::components::{NpcMarker, SquadMembership};
+use cordon_sim::plugin::prelude::{NpcMarker, SquadMembership};
 
 use super::NpcAssets;
 use crate::PlayingState;

@@ -14,10 +14,12 @@
 //! it now runs inline during [`assemble_game_data`](cordon_data::gamedata)
 //! as a method on [`GameData`](cordon_data::catalog::GameData).
 
+mod death;
 mod dispatch;
 mod drive;
 mod talk;
 
+pub use self::death::fail_talk_on_template_death;
 pub use self::dispatch::{
     QuestDispatchCtx, dispatch_on_condition, dispatch_on_day, dispatch_on_event,
     dispatch_on_game_start, process_start_quest_requests,

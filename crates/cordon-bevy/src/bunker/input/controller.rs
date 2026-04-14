@@ -10,9 +10,9 @@ use avian3d::prelude::*;
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 
-use super::FpsCamera;
 use crate::PlayingState;
-use crate::bunker::{CameraMode, VisitorState};
+use crate::bunker::components::FpsCamera;
+use crate::bunker::resources::{CameraMode, MovementLocked};
 
 const MOVE_SPEED: f32 = 4.0;
 const LOOK_SENSITIVITY: f32 = 0.003;
@@ -29,7 +29,7 @@ impl Plugin for ControllerPlugin {
             (fps_look, fps_move)
                 .run_if(in_state(PlayingState::Bunker))
                 .run_if(|mode: Res<CameraMode>| matches!(*mode, CameraMode::Free))
-                .run_if(|state: Res<VisitorState>| !matches!(*state, VisitorState::Inside { .. })),
+                .run_if(not(resource_exists::<MovementLocked>)),
         );
     }
 }

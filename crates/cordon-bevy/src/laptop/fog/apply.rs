@@ -8,7 +8,7 @@
 //! doesn't dirty Bevy's change detection cascade.
 
 use bevy::prelude::*;
-use cordon_sim::components::{NpcMarker, RelicMarker, SquadMembership};
+use cordon_sim::plugin::prelude::{Dead, NpcMarker, RelicMarker, SquadMembership, Vision};
 
 use super::{FogEnabled, FogReveals, PlayerSquads, RevealedAreas};
 use crate::PlayingState;
@@ -50,11 +50,11 @@ pub(super) fn apply_fog(
     state: Res<State<PlayingState>>,
     active_tab: Res<LaptopTab>,
     members: Query<
-        (&Transform, &SquadMembership, &cordon_sim::behavior::Vision),
+        (&Transform, &SquadMembership, &Vision),
         // Dead NPCs (corpses) shouldn't see anything — their
         // vision circle would otherwise reveal a chunk of fog
         // around their corpse forever.
-        (With<NpcMarker>, Without<cordon_sim::behavior::Dead>),
+        (With<NpcMarker>, Without<Dead>),
     >,
     mut area_q: Query<
         (Entity, &Transform, &AreaCircle, &mut Visibility),

@@ -6,7 +6,7 @@ use bevy::shader::ShaderRef;
 use bevy::sprite_render::{AlphaMode2d, Material2d, Material2dPlugin};
 use cordon_core::primitive::Tier;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::behavior::AnomalyZone;
+use cordon_sim::plugin::prelude::AnomalyZone;
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
 pub struct AnomalyMaterial {

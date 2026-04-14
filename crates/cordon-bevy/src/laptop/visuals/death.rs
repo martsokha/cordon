@@ -1,15 +1,14 @@
 //! Visual reaction to NPC deaths.
 //!
-//! The sim layer ([`cordon_sim::death`]) tags entities with `Dead` and
-//! emits `NpcDied`. This module reads those events and replaces the
-//! NPC's round dot mesh with an X marker. Despawn happens sim-side
-//! when the corpse is fully looted or expires; the X mesh children
-//! follow the parent entity into oblivion.
+//! The sim layer ([`cordon_sim::behavior::death`]) tags entities with
+//! `Dead` and emits `NpcDied`. This module reads those events and
+//! replaces the NPC's round dot mesh with an X marker. Despawn
+//! happens sim-side when the corpse is fully looted or expires; the
+//! X mesh children follow the parent entity into oblivion.
 
 use bevy::prelude::*;
-use cordon_sim::components::{FactionId, NpcMarker};
-use cordon_sim::death::NpcDied;
 use cordon_sim::plugin::SimSet;
+use cordon_sim::plugin::prelude::{FactionId, NpcDied, NpcMarker};
 
 use crate::AppState;
 use crate::laptop::FactionPalette;

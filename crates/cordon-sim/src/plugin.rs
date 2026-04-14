@@ -15,16 +15,11 @@ use bevy_rand::prelude::EntropyPlugin;
 use cordon_data::gamedata::GameDataResource;
 
 use crate::behavior::BehaviorPlugin;
-use crate::combat::CombatPlugin;
 use crate::day::DayCyclePlugin;
-use crate::death::DeathPlugin;
-use crate::effects::EffectsPlugin;
-use crate::loot::LootPlugin;
 use crate::quest::QuestPlugin;
 use crate::resources::{GameClock, SquadIdIndex, UidAllocator};
 use crate::spawn;
 use crate::spawn::relics::RelicSpawnPlugin;
-use crate::squad::SquadPlugin;
 
 /// Ordered system set for cordon-sim. The whole chain runs only when
 /// both [`GameClock`] and [`GameDataResource`] are present, so the
@@ -99,28 +94,27 @@ impl Plugin for CordonSimPlugin {
             Update,
             crate::resources::tick_game_time.run_if(resource_exists::<GameClock>),
         );
+        // BehaviorPlugin composes Movement / Vision / Combat /
+        // Death / Loot / Effects / Squad subplugins internally, so we
+        // register one plugin for that bundle.
         app.add_plugins((
             DayCyclePlugin,
             BehaviorPlugin,
-            SquadPlugin,
-            CombatPlugin,
-            EffectsPlugin,
-            DeathPlugin,
-            LootPlugin,
             RelicSpawnPlugin,
             QuestPlugin,
         ));
     }
 }
 
-/// Re-exports for convenience.
+/// Re-exports for convenience. Downstream crates (cordon-bevy
+/// visuals, audio) import from this prelude rather than the
+/// internal subplugin paths so structural changes here don't
+/// ripple outward.
 pub mod prelude {
     // Cordon-core types that derive `Component` directly and are
     // attached to entities as live components, plus the flavour
     // types (`Trust`, `Loyalty`, `Personality`) that are bundled
-    // inside `NpcAttributes`. Re-exported from the prelude so
-    // consumers can pull "anything on an NPC entity" from one
-    // place.
+    // inside `NpcAttributes`.
     pub use cordon_core::entity::name::NpcName;
     pub use cordon_core::entity::npc::Personality;
     pub use cordon_core::entity::squad::{Formation, Goal};
@@ -128,29 +122,38 @@ pub mod prelude {
     pub use cordon_core::primitive::{Credits, Experience, Loyalty, Trust};
 
     pub use super::{CordonSimPlugin, SimSet};
-    pub use crate::behavior::{
-        AnomalyZone, CombatTarget, Dead, FireState, LootState, MovementSpeed, MovementTarget,
-        Vision,
+    // Behavior subplugin exports: each subplugin's component + event
+    // types, grouped per subplugin so consumers can reason about
+    // which subsystem an import comes from.
+    pub use crate::behavior::combat::{CombatTarget, FireState, NpcPoolChanged, ShotFired};
+    pub use crate::behavior::death::{CorpseRemoved, Dead, NpcDied};
+    pub use crate::behavior::loot::{ItemLooted, LootState};
+    pub use crate::behavior::movement::{MovementSpeed, MovementTarget};
+    // Squad components and commands. Squad is split by concern:
+    // identity (who), intent (blackboard), formation (cohesion data).
+    pub use crate::behavior::squad::formation::{SquadFacing, SquadHomePosition, SquadWaypoints};
+    pub use crate::behavior::squad::identity::{
+        SquadBundle, SquadLeader, SquadMarker, SquadMembers, SquadMembership,
     };
-    // Events are re-exported from their producer modules so
-    // external consumers (cordon-bevy visuals, audio) can import
-    // everything from the prelude without knowing the internal
-    // module layout.
-    pub use crate::combat::ShotFired;
-    pub use crate::components::{
-        BaseMaxes, CorruptionPool, Employment, FactionId, HealthPool, NpcAttributes, NpcBundle,
-        NpcMarker, Perks, RelicHome, RelicMarker, SquadActivity, SquadBundle, SquadFacing,
-        SquadHomePosition, SquadLeader, SquadMarker, SquadMembers, SquadMembership, SquadWaypoints,
-        StaminaPool,
-    };
+    pub use crate::behavior::squad::intent::{EngagementTarget, MovementIntent};
+    pub use crate::behavior::squad::{Owned, SquadCommand};
+    pub use crate::behavior::vision::{AnomalyZone, Vision};
+    // Cross-cutting messages and resources.
     pub use crate::day::DayRolled;
-    pub use crate::death::{CorpseRemoved, NpcDied};
-    pub use crate::loot::ItemLooted;
-    pub use crate::quest::{ActiveQuest, CompletedQuest, QuestLog, StartQuestRequest};
+    // Per-entity components not owned by a subplugin.
+    pub use crate::entity::npc::{
+        ActiveEffects, BaseMaxes, Employment, FactionId, NpcAttributes, NpcBundle, NpcMarker,
+        PendingYarnNode, Perks, QuestCritical, SpawnOrigin, TemplateId, TravelingHome,
+        TravelingToBunker,
+    };
+    pub use crate::entity::relic::{RelicHome, RelicMarker};
+    pub use crate::quest::{
+        ActiveQuest, CompletedQuest, GiveNpcXpRequest, QuestLog, SpawnNpcRequest,
+        StartQuestRequest, TemplateRegistry,
+    };
     pub use crate::resources::{
         AreaStates, EventLog, FactionIndex, GameClock, Player, SquadIdIndex, UidAllocator,
     };
     pub use crate::spawn::SquadSpawned;
     pub use crate::spawn::relics::RelicPickedUp;
-    pub use crate::squad::{Owned, SquadCommand};
 }

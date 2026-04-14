@@ -15,13 +15,16 @@
 use bevy::prelude::*;
 use bevy_prng::WyRand;
 use cordon_core::entity::faction::Faction;
+use cordon_core::entity::npc::NpcTemplate;
 use cordon_core::entity::player::PlayerState;
 use cordon_core::item::ItemInstance;
-use cordon_core::primitive::{GameTime, Id};
+use cordon_core::primitive::{Experience, GameTime, Id};
+use cordon_core::world::area::Area;
 use cordon_core::world::narrative::{ActiveEvent, Consequence, Quest};
 use cordon_data::catalog::GameData;
 
-use crate::day::events::{EventOverrides, spawn_event_instance};
+use super::registry::TemplateRegistry;
+use crate::day::world_events::{EventOverrides, spawn_event_instance};
 
 /// Live references the applier may mutate in place.
 ///
@@ -35,6 +38,7 @@ pub struct WorldMut<'a> {
     pub player: &'a mut PlayerState,
     pub events: &'a mut Vec<ActiveEvent>,
     pub data: &'a GameData,
+    pub registry: &'a TemplateRegistry,
     pub now: GameTime,
     pub rng: &'a mut WyRand,
     pub faction_pool: &'a [Id<Faction>],
@@ -48,6 +52,41 @@ pub struct StartQuestRequest {
     pub quest: Id<Quest>,
 }
 
+/// Emitted by `SpawnNpc` consequences. A downstream Bevy system
+/// (in cordon-bevy) consumes these to enqueue the visitor or
+/// place the NPC in the zone, then registers the entity in
+/// [`TemplateRegistry`].
+#[derive(Message, Debug, Clone)]
+pub struct SpawnNpcRequest {
+    pub template: Id<NpcTemplate>,
+    pub at: Option<Id<Area>>,
+    /// When set, the spawned template NPC will dispatch this
+    /// yarn node as its visitor payload when it arrives at the
+    /// bunker. `None` for generic `SpawnNpc` consequences that
+    /// drop the NPC into the world without a conversation.
+    pub yarn_node: Option<String>,
+}
+
+/// Emitted by the dialogue bridge when a template NPC's
+/// conversation completes. Consumed by a Bevy-layer system that
+/// starts the return-travel leg: strips `QuestCritical`, attaches
+/// `TravelingHome`, and builds a fresh 1-member squad that walks
+/// the NPC back to its `SpawnOrigin`.
+#[derive(Message, Debug, Clone)]
+pub struct DismissTemplateNpc {
+    pub entity: Entity,
+    pub template: Id<NpcTemplate>,
+}
+
+/// Emitted by `GiveNpcXp` consequences. Consumed by a downstream
+/// system that resolves the template to a live entity via
+/// [`TemplateRegistry`] and mutates its [`Experience`] component.
+#[derive(Message, Debug, Clone)]
+pub struct GiveNpcXpRequest {
+    pub template: Id<NpcTemplate>,
+    pub amount: Experience,
+}
+
 /// Apply a single consequence.
 ///
 /// Warnings rather than errors: quests are content-authored and
@@ -57,6 +96,8 @@ pub fn apply(
     consequence: &Consequence,
     world: &mut WorldMut<'_>,
     start_quest: &mut MessageWriter<StartQuestRequest>,
+    spawn_npc: &mut MessageWriter<SpawnNpcRequest>,
+    give_npc_xp: &mut MessageWriter<GiveNpcXpRequest>,
 ) {
     match consequence {
         Consequence::StandingChange { faction, delta } => {
@@ -154,22 +195,29 @@ pub fn apply(
         }
 
         Consequence::SpawnNpc { template, at } => {
-            // Visitor enqueueing lives in cordon-bevy's quest
-            // bridge. The sim has no concept of "visitor
-            // queue", so until the bridge observes a spawn
-            // request this is a loud no-op. The `at` override
-            // is captured in the warning so unwired calls
-            // surface the intended spawn location too.
-            let where_ = at
-                .as_ref()
-                .map(|a| a.as_str().to_string())
-                .unwrap_or_else(|| "default".to_string());
-            warn!(
-                "STUB CONSEQUENCE `spawn_npc` fired — no visitor queue bridge yet. \
-                 Template `{}` at `{}` will not appear in-game.",
-                template.as_str(),
-                where_,
-            );
+            let Some(def) = world.data.npc_template(template) else {
+                warn!("SpawnNpc: unknown template `{}`", template.as_str());
+                return;
+            };
+            if def.unique && world.registry.is_alive(template) {
+                info!(
+                    "SpawnNpc: unique template `{}` already alive, skipping",
+                    template.as_str()
+                );
+                return;
+            }
+            if !def.respawnable && world.registry.is_permanently_dead(template) {
+                info!(
+                    "SpawnNpc: non-respawnable template `{}` is permanently dead, skipping",
+                    template.as_str()
+                );
+                return;
+            }
+            spawn_npc.write(SpawnNpcRequest {
+                template: template.clone(),
+                at: at.clone(),
+                yarn_node: None,
+            });
         }
 
         Consequence::GivePlayerXp(xp) => {
@@ -177,14 +225,18 @@ pub fn apply(
         }
 
         Consequence::GiveNpcXp { template, amount } => {
-            // NPC XP grants need a template → entity resolver
-            // in the behavior layer that does not exist yet.
-            warn!(
-                "STUB CONSEQUENCE `give_npc_xp` fired — no template→entity resolver yet. \
-                 Template `{}` will not receive {} xp.",
-                template.as_str(),
-                amount.value(),
-            );
+            if !world.registry.is_alive(template) {
+                warn!(
+                    "GiveNpcXp: template `{}` is not alive, cannot grant {} xp",
+                    template.as_str(),
+                    amount.value(),
+                );
+                return;
+            }
+            give_npc_xp.write(GiveNpcXpRequest {
+                template: template.clone(),
+                amount: *amount,
+            });
         }
 
         Consequence::DangerModifier {

@@ -12,9 +12,9 @@
 use bevy::prelude::*;
 use bevy::ui::UiTargetCamera;
 
-use super::{CurrentDialogue, DialogueChoice};
 use crate::PlayingState;
 use crate::bunker::FpsCamera;
+use crate::bunker::resources::{CurrentDialogue, DialogueChoice};
 
 pub(super) struct DialogueUiPlugin;
 

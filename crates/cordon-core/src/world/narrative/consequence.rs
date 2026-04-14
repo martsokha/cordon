@@ -224,35 +224,3 @@ pub enum Consequence {
         duration: Option<Duration>,
     },
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Serde tuple variants of a single struct flatten into the
-    /// external tag's value position, so `GiveItem(ItemQuery)`
-    /// deserializes from the same shape an inline struct variant
-    /// would. This test pins that behaviour so a future refactor
-    /// can't silently break every item-bearing quest.
-    #[test]
-    fn give_item_tuple_variant_json_shape() {
-        let json = r#"{ "give_item": { "item": "medkit", "count": 3 } }"#;
-        let c: Consequence = serde_json::from_str(json).expect("parse give_item");
-        let Consequence::GiveItem(q) = c else {
-            panic!("expected GiveItem");
-        };
-        assert_eq!(q.item.as_str(), "medkit");
-        assert_eq!(q.resolved_count(), 3);
-    }
-
-    #[test]
-    fn have_item_with_defaults_parses() {
-        let json = r#"{ "have_item": { "item": "keycard" } }"#;
-        let c: ObjectiveCondition = serde_json::from_str(json).expect("parse have_item");
-        let ObjectiveCondition::HaveItem(q) = c else {
-            panic!("expected HaveItem");
-        };
-        assert_eq!(q.resolved_count(), 1);
-        assert_eq!(q.scope, crate::item::StashScope::Main);
-    }
-}

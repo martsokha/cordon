@@ -25,32 +25,14 @@ pub trait PoolKind: 'static + Send + Sync {
 }
 
 /// Marker for a health pool.
-#[derive(
-    Debug,
-    Default,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Serialize,
-    Deserialize
-)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize)]
 pub struct Health;
 impl PoolKind for Health {}
 
 /// Marker for a stamina pool.
-#[derive(
-    Debug,
-    Default,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Serialize,
-    Deserialize
-)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize)]
 pub struct Stamina;
 impl PoolKind for Stamina {}
 
@@ -63,17 +45,8 @@ impl PoolKind for Stamina {}
 /// Zone-stuff into the carrier. Antidote pills and scrubber
 /// relics drain the pool back down. Spawn with [`Pool::empty`]
 /// instead of [`Pool::full`].
-#[derive(
-    Debug,
-    Default,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Serialize,
-    Deserialize
-)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize)]
 pub struct Corruption;
 impl PoolKind for Corruption {}
 
@@ -87,17 +60,8 @@ impl PoolKind for Corruption {}
 /// Serializes as `{"current": N, "max": M}`; the marker type isn't
 /// persisted (the type annotation at the call site is the source of
 /// truth for what kind of pool this is).
-#[derive(
-    Component,
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    Serialize,
-    Deserialize
-)]
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize)]
 pub struct Pool<K: PoolKind> {
     current: u32,
     max: u32,

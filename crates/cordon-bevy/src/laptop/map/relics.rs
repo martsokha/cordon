@@ -100,7 +100,7 @@ fn preload_relic_icons(
 /// needed here.
 fn attach_relic_visuals(
     assets: Res<RelicAssets>,
-    new_relics: Query<Entity, Added<cordon_sim::components::RelicMarker>>,
+    new_relics: Query<Entity, Added<cordon_sim::plugin::prelude::RelicMarker>>,
     mut commands: Commands,
 ) {
     if new_relics.iter().next().is_none() {

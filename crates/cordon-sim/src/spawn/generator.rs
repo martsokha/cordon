@@ -6,16 +6,18 @@ use cordon_core::entity::name::{NameFormat, NamePool, NpcName};
 use cordon_core::entity::npc::{Npc, Personality};
 use cordon_core::entity::squad::{Goal, Squad};
 use cordon_core::item::{Item, ItemDef, Loadout};
-use cordon_core::primitive::{Credits, Experience, Health, Id, Loyalty, Pool, Rank, Trust, Uid};
+use cordon_core::primitive::{
+    Corruption, Credits, Experience, Health, Id, Loyalty, Pool, Rank, Stamina, Trust, Uid,
+};
 use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
-use crate::components::{
-    ActiveEffects, BaseMaxes, CorruptionPool, Employment, FactionId, NpcAttributes, NpcBundle,
-    NpcMarker, Perks, StaminaPool,
+use crate::entity::npc::{
+    ActiveEffects, BaseMaxes, Employment, FactionId, NpcAttributes, NpcBundle, NpcMarker, Perks,
 };
 use crate::resources::{FactionIndex, UidAllocator};
 use crate::spawn::loadout::generate_loadout;
+use crate::spawn::waypoints::roll_area_waypoints;
 
 /// Read-only references the loadout generator needs at NPC spawn time.
 pub struct LoadoutContext<'a> {
@@ -152,8 +154,8 @@ pub trait NpcGenerator {
             faction: FactionId(faction),
             xp,
             hp: health,
-            stamina: StaminaPool::full(),
-            corruption: CorruptionPool::empty(),
+            stamina: Pool::<Stamina>::full(),
+            corruption: Pool::<Corruption>::empty(),
             active_effects: ActiveEffects::default(),
             base_maxes: BaseMaxes {
                 hp: hp_max,
@@ -277,7 +279,15 @@ pub fn roll_population_top_up<R: Rng>(
         // For Patrol/Scavenge goals, scatter 3 waypoints inside the
         // target area so multiple squads patrolling the same area don't
         // converge on a single point.
-        let waypoints = waypoints_for_goal(&goal, loadout_ctx, rng);
+        let waypoints: Vec<[f32; 2]> = match &goal {
+            Goal::Patrol { area } | Goal::Scavenge { area } => {
+                roll_area_waypoints(area, loadout_ctx.areas, rng)
+                    .into_iter()
+                    .map(|v| [v.x, v.y])
+                    .collect()
+            }
+            _ => Vec::new(),
+        };
 
         let squad_uid = uids.alloc::<Squad>();
         let member_count = template.ranks.len() as u32;
@@ -342,28 +352,6 @@ fn resolve_goal<R: Rng>(kind: SquadGoalKind, area_ids: &[Id<Area>], rng: &mut R)
             .map(|area| Goal::Scavenge { area })
             .unwrap_or(Goal::Idle),
     }
-}
-
-/// Roll 3 random waypoints inside the goal's area, scattered around
-/// the area centre at varying angles. Empty for non-area goals.
-fn waypoints_for_goal<R: Rng>(goal: &Goal, ctx: &LoadoutContext<'_>, rng: &mut R) -> Vec<[f32; 2]> {
-    let area_id = match goal {
-        Goal::Patrol { area } | Goal::Scavenge { area } => area,
-        _ => return Vec::new(),
-    };
-    let Some(area) = ctx.areas.get(area_id) else {
-        return Vec::new();
-    };
-    let cx = area.location.x;
-    let cy = area.location.y;
-    let r = area.radius.value() * 0.7; // Stay inside the visible disk.
-    (0..3)
-        .map(|_| {
-            let angle = rng.random_range(0.0_f32..std::f32::consts::TAU);
-            let dist = rng.random_range(r * 0.3..r);
-            [cx + angle.cos() * dist, cy + angle.sin() * dist]
-        })
-        .collect()
 }
 
 /// Weighted pick over `(faction_id, weight)` pairs. Each weight is

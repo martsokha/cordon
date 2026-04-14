@@ -32,10 +32,13 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::Id;
 use cordon_core::world::narrative::{Quest, QuestStageKind};
 use cordon_data::gamedata::GameDataResource;
+use cordon_sim::entity::npc::TemplateId;
 use cordon_sim::plugin::prelude::{EventLog, GameClock, Player, QuestLog};
+use cordon_sim::quest::consequence::{DismissTemplateNpc, SpawnNpcRequest};
 use cordon_sim::quest::engine::advance_after_talk;
+use cordon_sim::quest::registry::TemplateRegistry;
 
-use crate::bunker::dialogue::StartDialogue;
+use crate::bunker::resources::StartDialogue;
 use crate::bunker::{Visitor, VisitorQueue};
 
 /// Bridge-owned dialogue-in-flight slot.
@@ -76,12 +79,15 @@ const FLAG_PREFIX: &str = "$quest_";
 /// and only dispatches when the in-flight slot is empty — a
 /// visitor-driven dialogue already running will always
 /// complete first.
+#[allow(clippy::too_many_arguments)]
 pub fn enqueue_talk_dialogue(
     log: Res<QuestLog>,
     data: Res<GameDataResource>,
+    registry: Res<TemplateRegistry>,
     mut queue: ResMut<VisitorQueue>,
     mut in_flight: ResMut<DialogueInFlight>,
     mut start_dialogue: MessageWriter<StartDialogue>,
+    mut spawn_npc: MessageWriter<SpawnNpcRequest>,
 ) {
     let catalog = &data.0;
     for active in &log.active {
@@ -95,19 +101,42 @@ pub fn enqueue_talk_dialogue(
         let Some(stage) = def.stage(&active.current_stage) else {
             continue;
         };
-        let QuestStageKind::Talk {
-            npc: stage_npc,
-            yarn_node,
-            ..
-        } = &stage.kind
-        else {
+        let QuestStageKind::Talk(talk) = &stage.kind else {
             continue;
         };
+        let stage_npc = &talk.npc;
+        let yarn_node = &talk.yarn_node;
 
         // Visitor-driven path: stage or quest names an NPC
-        // template. Push onto the visitor queue; the existing
-        // knock → admit → dialogue flow runs the yarn node.
+        // template. If it resolves to a real catalog template,
+        // fire a SpawnNpcRequest with the yarn node attached —
+        // the NPC walks from its faction settlement to the
+        // bunker, and the arrival handler enqueues the Visitor.
+        // If it does not resolve, fall back to the legacy
+        // "synthesize a visitor from quest.giver" path so
+        // string-tagged quests keep working.
         if let Some(template) = stage_npc.as_ref().or(def.giver.as_ref()) {
+            if catalog.npc_template(template).is_some() {
+                // Skip re-dispatching while the named template is
+                // still in transit (or inside the bunker) from a
+                // prior firing of this stage.
+                if registry.is_alive(template) {
+                    return;
+                }
+                spawn_npc.write(SpawnNpcRequest {
+                    template: template.clone(),
+                    at: None,
+                    yarn_node: Some(yarn_node.clone()),
+                });
+                in_flight.0 = Some(active.def_id.clone());
+                info!(
+                    "quest `{}` dispatched template `{}` to travel for Talk stage `{}`",
+                    active.def_id.as_str(),
+                    template.as_str(),
+                    active.current_stage.as_str()
+                );
+                return;
+            }
             let faction = def
                 .giver_faction
                 .clone()
@@ -119,7 +148,7 @@ pub fn enqueue_talk_dialogue(
             });
             in_flight.0 = Some(active.def_id.clone());
             info!(
-                "quest `{}` enqueued visitor `{}` for Talk stage `{}`",
+                "quest `{}` enqueued legacy visitor `{}` for Talk stage `{}`",
                 active.def_id.as_str(),
                 template.as_str(),
                 active.current_stage.as_str()
@@ -156,6 +185,7 @@ pub fn enqueue_talk_dialogue(
 /// identically for visitor-driven and narrator-only dialogue
 /// because the slot is the sole source of truth for "which
 /// quest is waiting on this event."
+#[allow(clippy::too_many_arguments)]
 pub fn on_dialogue_completed(
     _event: On<DialogueCompleted>,
     mut log: ResMut<QuestLog>,
@@ -163,14 +193,45 @@ pub fn on_dialogue_completed(
     clock: Res<GameClock>,
     player: Res<Player>,
     events: Res<EventLog>,
+    registry: Res<TemplateRegistry>,
     mut in_flight: ResMut<DialogueInFlight>,
+    mut dismiss: MessageWriter<DismissTemplateNpc>,
     runner_q: Query<&DialogueRunner>,
+    template_q: Query<(Entity, &TemplateId)>,
 ) {
     let Some(quest_id) = in_flight.0.take() else {
         // No quest was waiting on this dialogue — ambient /
         // non-quest dialogue ended. Nothing to do.
         return;
     };
+
+    // Find the template NPC that just finished talking (if any).
+    // The quest's current stage hasn't advanced yet, so we look
+    // up the Talk stage's `npc` to know which template to retire.
+    let dismissed_template = log
+        .active_instance(&quest_id)
+        .and_then(|active| data.0.quests.get(&active.def_id).map(|def| (active, def)))
+        .and_then(|(active, def)| def.stage(&active.current_stage))
+        .and_then(|stage| match &stage.kind {
+            QuestStageKind::Talk(talk) => talk.npc.clone(),
+            _ => None,
+        });
+    if let Some(template_id) = dismissed_template {
+        for (entity, tid) in &template_q {
+            if tid.0 == template_id {
+                dismiss.write(DismissTemplateNpc {
+                    entity,
+                    template: template_id.clone(),
+                });
+                info!(
+                    "quest `{}`: template `{}` dismissed after dialogue, returning home",
+                    quest_id.as_str(),
+                    template_id.as_str()
+                );
+                break;
+            }
+        }
+    }
 
     let Ok(runner) = runner_q.single() else {
         warn!("DialogueCompleted: no dialogue runner entity found");
@@ -208,6 +269,7 @@ pub fn on_dialogue_completed(
         &data.0,
         &player.0,
         &events.0,
+        &registry,
         &quest_id,
         captured_choice.as_deref(),
         clock.0,

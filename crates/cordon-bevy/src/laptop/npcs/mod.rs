@@ -18,8 +18,10 @@ use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::entity::squad::Formation;
 use cordon_core::primitive::Experience;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::behavior::{CombatTarget, FireState, MovementSpeed, MovementTarget, Vision};
-use cordon_sim::components::{FactionId, NpcMarker, SquadHomePosition, SquadMembership};
+use cordon_sim::plugin::prelude::{
+    CombatTarget, FactionId, FireState, MovementSpeed, MovementTarget, NpcMarker, QuestCritical,
+    SquadHomePosition, SquadMembership, Vision,
+};
 
 pub use self::palette::FactionPalette;
 pub use self::selection::SelectedNpc;
@@ -29,6 +31,9 @@ use crate::locale::l10n_or;
 
 const COLOR_NPC_SELECTED: Color = Color::srgb(1.0, 0.9, 0.3);
 const COLOR_NPC_SQUAD: Color = Color::srgb(0.7, 0.6, 0.25);
+const COLOR_QUEST_CRITICAL: Color = Color::srgb(1.0, 0.35, 0.2);
+/// Speed (rad/sec) of the quest-critical outline pulse.
+const QUEST_PULSE_SPEED: f32 = 3.5;
 
 /// Shared mesh + outline material handles for NPC dots. The
 /// per-faction default tints live in [`FactionPalette`]. Selection
@@ -40,9 +45,16 @@ pub struct NpcAssets {
     pub dot_mesh: Handle<Mesh>,
     pub selected_ring_mesh: Handle<Mesh>,
     pub squad_ring_mesh: Handle<Mesh>,
+    pub quest_ring_mesh: Handle<Mesh>,
     pub selected_ring_mat: Handle<ColorMaterial>,
     pub squad_ring_mat: Handle<ColorMaterial>,
 }
+
+/// Marker on the child ring entity that carries the pulsing
+/// quest-critical outline. Pulse animation reads this and
+/// mutates the shared material's alpha each frame.
+#[derive(Component)]
+pub struct QuestCriticalRing;
 
 /// Per-NPC tooltip strings cached at spawn time so the hover
 /// system doesn't have to re-resolve localized names on every
@@ -84,6 +96,16 @@ impl Plugin for NpcsPlugin {
         app.add_systems(
             Update,
             (
+                attach_quest_critical_rings,
+                detach_quest_critical_rings,
+                pulse_quest_critical_rings,
+            )
+                .run_if(in_state(crate::AppState::Playing)),
+        );
+
+        app.add_systems(
+            Update,
+            (
                 selection::handle_npc_click,
                 selection::update_npc_selection,
                 selection::deselect_or_exit,
@@ -103,12 +125,16 @@ fn init_npc_assets(
     let dot_mesh = meshes.add(Circle::new(6.0));
     let selected_ring_mesh = meshes.add(Annulus::new(7.5, 9.0));
     let squad_ring_mesh = meshes.add(Annulus::new(7.0, 8.2));
+    // Quest-critical ring sits outside the selection/squad rings
+    // so it's visible even when the NPC is also selected.
+    let quest_ring_mesh = meshes.add(Annulus::new(8.5, 10.5));
     let selected_ring_mat = materials.add(ColorMaterial::from_color(COLOR_NPC_SELECTED));
     let squad_ring_mat = materials.add(ColorMaterial::from_color(COLOR_NPC_SQUAD));
     commands.insert_resource(NpcAssets {
         dot_mesh,
         selected_ring_mesh,
         squad_ring_mesh,
+        quest_ring_mesh,
         selected_ring_mat,
         squad_ring_mat,
     });
@@ -161,7 +187,7 @@ fn attach_npc_visuals(
     squads: Query<(
         &SquadHomePosition,
         &Formation,
-        &cordon_sim::components::SquadMembers,
+        &cordon_sim::plugin::prelude::SquadMembers,
     )>,
     new_npcs: Query<
         (Entity, &FactionId, &Experience, &NpcName, &SquadMembership),
@@ -224,5 +250,78 @@ fn attach_npc_visuals(
             // ride the same transform) above the cloud layer at z=5.
             Transform::from_xyz(spawn_pos.x, spawn_pos.y, 10.0),
         ));
+    }
+}
+
+/// Attach a pulsing outline ring to any NPC newly tagged with
+/// [`QuestCritical`]. Runs after `attach_npc_visuals` so the
+/// parent transform + dot mesh are already in place.
+fn attach_quest_critical_rings(
+    mut commands: Commands,
+    npc_assets: Res<NpcAssets>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    new_q: Query<Entity, (With<NpcMarker>, Added<QuestCritical>)>,
+) {
+    for entity in &new_q {
+        // One material per ring so the pulse animation doesn't
+        // bleed across unrelated quest NPCs.
+        let mat = materials.add(ColorMaterial::from_color(COLOR_QUEST_CRITICAL));
+        let ring = commands
+            .spawn((
+                QuestCriticalRing,
+                Mesh2d(npc_assets.quest_ring_mesh.clone()),
+                MeshMaterial2d(mat),
+                // Ride on the parent; a tiny z nudge keeps the
+                // ring above the dot without punching through
+                // selection rings in the same stack.
+                Transform::from_xyz(0.0, 0.0, 0.5),
+            ))
+            .id();
+        commands.entity(entity).add_child(ring);
+    }
+}
+
+/// When [`QuestCritical`] is removed from an NPC (they're no longer
+/// quest-relevant — e.g. after dialogue finishes and they head
+/// home), despawn any [`QuestCriticalRing`] children so the pulse
+/// stops. Without this the ring entity outlives its marker and
+/// keeps pulsing forever.
+fn detach_quest_critical_rings(
+    mut commands: Commands,
+    mut removed: RemovedComponents<QuestCritical>,
+    children_q: Query<&Children>,
+    rings_q: Query<Entity, With<QuestCriticalRing>>,
+) {
+    for entity in removed.read() {
+        let Ok(children) = children_q.get(entity) else {
+            continue;
+        };
+        for child in children.iter() {
+            if rings_q.get(child).is_ok() {
+                commands.entity(child).despawn();
+            }
+        }
+    }
+}
+
+/// Modulate each [`QuestCriticalRing`] material's alpha on a
+/// sinusoidal pulse so the outline breathes rather than flashing.
+fn pulse_quest_critical_rings(
+    time: Res<Time>,
+    ring_q: Query<&MeshMaterial2d<ColorMaterial>, With<QuestCriticalRing>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    if ring_q.iter().next().is_none() {
+        return;
+    }
+    let t = time.elapsed_secs();
+    // 0..1 pulse, floored at 0.25 so the ring never vanishes.
+    let pulse = 0.25 + 0.75 * (0.5 + 0.5 * (t * QUEST_PULSE_SPEED).sin());
+    for mat_handle in &ring_q {
+        if let Some(mat) = materials.get_mut(&mat_handle.0) {
+            let mut c = COLOR_QUEST_CRITICAL.to_linear();
+            c.alpha = pulse;
+            mat.color = Color::LinearRgba(c);
+        }
     }
 }

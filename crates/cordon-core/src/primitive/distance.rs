@@ -1,9 +1,20 @@
 //! Distance between two points in map units.
 
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
 
 /// A distance in map units. Always non-negative.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize, Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    PartialOrd,
+    Serialize,
+    Deserialize,
+    Display
+)]
+#[display("{_0:.1}m")]
 pub struct Distance(f32);
 
 impl Distance {
@@ -18,11 +29,5 @@ impl Distance {
     /// Get the raw value in map units.
     pub fn value(self) -> f32 {
         self.0
-    }
-}
-
-impl std::fmt::Display for Distance {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:.1}m", self.0)
     }
 }
