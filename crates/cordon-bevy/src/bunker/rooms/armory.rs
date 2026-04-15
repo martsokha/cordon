@@ -33,37 +33,37 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         );
     }
 
-    // Back-area props sit in the narrow strip south of the T1
-    // side doors, against the T1-south corridor slab at `tj1_south`.
-    // Crates on a pallet: back right corner (opposite the armchair).
-    // Pallet height 0.144m; Crate_01 height 0.513m; stack accordingly.
+    // Back-corner props: pallet + stacked crates + loose box
+    // against the corridor's deep south end (`back_z`), right
+    // wall. Paired with the armchair on the opposite wall so the
+    // corridor terminates in a lived-in scene rather than a bare
+    // slab. Pallet height 0.144 m; Crate_01 height 0.513 m.
     prop(
         ctx.commands,
         ctx.asset_server,
         Prop::EURPallet,
-        Vec3::new(l.hw - 0.6, 0.0, l.tj1_south + 0.5),
+        Vec3::new(l.hw - 0.6, 0.0, l.back_z + 0.5),
         Quat::IDENTITY,
     );
     prop(
         ctx.commands,
         ctx.asset_server,
         Prop::Crate01,
-        Vec3::new(l.hw - 0.6, 0.144, l.tj1_south + 0.5),
+        Vec3::new(l.hw - 0.6, 0.144, l.back_z + 0.5),
         Quat::IDENTITY,
     );
     prop(
         ctx.commands,
         ctx.asset_server,
         Prop::Crate02,
-        Vec3::new(l.hw - 0.6, 0.657, l.tj1_south + 0.5),
+        Vec3::new(l.hw - 0.6, 0.657, l.back_z + 0.5),
         Quat::from_rotation_y(0.3),
     );
-    // Loose box next to the pallet.
     prop(
         ctx.commands,
         ctx.asset_server,
         Prop::Box01,
-        Vec3::new(l.hw - 1.2, 0.0, l.tj1_south + 0.4),
+        Vec3::new(l.hw - 1.2, 0.0, l.back_z + 0.4),
         Quat::from_rotation_y(0.2),
     );
 
@@ -135,12 +135,16 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Quat::IDENTITY,
     );
 
-    // Armchair at the very back left, angled 45°.
+    // Armchair in the deep back corridor corner (left wall),
+    // paired with the pallet+crates on the opposite wall so the
+    // corridor terminates in a lived-in scene. Angled 45° toward
+    // the corridor so someone sitting in it faces back up the
+    // hall.
     prop(
         ctx.commands,
         ctx.asset_server,
         Prop::Armchair1,
-        Vec3::new(-l.hw + 0.5, 0.0, l.tj1_south + 0.5),
+        Vec3::new(-l.hw + 0.5, 0.0, l.back_z + 0.5),
         Quat::from_rotation_y(FRAC_PI_2 / 2.0),
     );
     // Bag on the floor near the armchair.
@@ -148,7 +152,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         ctx.commands,
         ctx.asset_server,
         Prop::Bag01,
-        Vec3::new(-0.3, 0.0, l.tj1_south + 0.3),
+        Vec3::new(-0.3, 0.0, l.back_z + 0.3),
         Quat::from_rotation_y(0.5),
     );
 

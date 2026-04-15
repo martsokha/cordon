@@ -49,6 +49,7 @@ pub(super) fn spawn_bunker(
         rooms::armory::spawn(&mut ctx);
         rooms::kitchen::spawn(&mut ctx);
         rooms::quarters::spawn(&mut ctx);
+        rooms::hall::spawn(&mut ctx);
         rooms::infirmary::spawn(&mut ctx);
         rooms::workshop::spawn(&mut ctx);
     }
@@ -170,7 +171,7 @@ fn spawn_side_wall(
 ) {
     use geometry::*;
 
-    // Four "gap" spans along the Z axis where the wall is solid
+    // Three "gap" spans along the Z axis where the wall is solid
     // (not interrupted by a T door). Each entry is (z_north, z_south).
     let gaps = [
         // Front stub: front_z → T1 door north edge.

@@ -149,9 +149,10 @@ pub(crate) struct Layout {
 
 impl Layout {
     pub(crate) fn new() -> Self {
-        // Original back_z was -7.63. Extend the corridor ~4 m to
-        // fit the second T-junction (~3 m long) plus a 1 m straight
-        // hall segment between the two Ts.
+        // Original back_z was -7.63. Corridor extends past the
+        // original T1 by a 2.35 m straight hall — just long
+        // enough for two 1.14 m storage racks end-to-end on each
+        // wall with a small visual gap — plus a 3 m T2 section.
         Self {
             h: 2.4,
             hw: 2.05,
@@ -161,8 +162,8 @@ impl Layout {
             hole_half: 0.6,
             tj1_north: -4.63,
             tj1_south: -7.63,
-            tj2_north: -8.63,
-            back_z: -11.63,
+            tj2_north: -9.98,
+            back_z: -12.98,
             side_depth: 3.0,
             side_door_width: 1.6,
         }

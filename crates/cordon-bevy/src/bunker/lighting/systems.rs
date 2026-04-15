@@ -46,6 +46,46 @@ pub fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &L
             18000.0,
             lamp_warm,
         ),
+        // In-between hall: one fixture centred on the straight
+        // segment so the passage between the two Ts isn't pitch
+        // black.
+        LightFixtureBundle::ceiling(
+            0.0,
+            (l.tj2_north + l.tj1_south) / 2.0,
+            l.h,
+            40000.0,
+            dim_cool,
+            false,
+        ),
+        // Infirmary: clinical white, slightly brighter than the
+        // kitchen so the medical bay reads as well-lit.
+        LightFixtureBundle::ceiling(
+            l.infirmary_x_center(),
+            l.tj2_center(),
+            l.h,
+            50000.0,
+            white,
+            false,
+        ),
+        // Workshop: cool industrial light.
+        LightFixtureBundle::ceiling(
+            l.workshop_x_center(),
+            l.tj2_center(),
+            l.h,
+            45000.0,
+            cool,
+            false,
+        ),
+        // Back corridor end: dim fixture at the new back wall
+        // so the corridor doesn't fade to black past T2.
+        LightFixtureBundle::ceiling(
+            0.0,
+            l.back_z + 0.8,
+            l.h,
+            35000.0,
+            dim_cool,
+            false,
+        ),
     ];
 
     for fixture in &fixtures {
