@@ -4,10 +4,11 @@ use bevy::prelude::*;
 use cordon_core::primitive::Tier;
 use cordon_sim::resources::GameClock;
 
-use super::{LaptopFont, LaptopTab};
+use super::{LaptopFont, LaptopTab, MapWorldEntity};
 use crate::PlayingState;
 use crate::laptop::LaptopCamera;
 use crate::laptop::input::CameraTarget;
+use crate::laptop::map::Bunker;
 
 #[derive(Component)]
 pub struct ZoomLabel;
@@ -157,8 +158,19 @@ impl Plugin for MapUiPlugin {
 
 fn update_map_ui_visibility(
     active_tab: Res<LaptopTab>,
-    mut ui_q: Query<&mut Visibility, (With<MapOnlyUi>, Without<super::MapWorldEntity>)>,
-    mut world_q: Query<&mut Visibility, (With<super::MapWorldEntity>, Without<MapOnlyUi>)>,
+    mut ui_q: Query<&mut Visibility, (With<MapOnlyUi>, Without<MapWorldEntity>)>,
+    mut world_q: Query<
+        &mut Visibility,
+        (
+            With<MapWorldEntity>,
+            Without<MapOnlyUi>,
+            // The bunker marker is always visible: the fog system
+            // specifically excludes it via `Without<Bunker>`, so if
+            // we ever hid it here we'd have no way to bring it back.
+            // Keeping it out of this hide loop avoids that trap.
+            Without<Bunker>,
+        ),
+    >,
 ) {
     if !active_tab.is_changed() {
         return;

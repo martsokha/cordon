@@ -52,14 +52,21 @@ pub enum CameraMode {
     },
 }
 
-/// Shared material handles used across every room. Four colors —
-/// everything the bunker renders is currently tinted by one of these.
+/// Shared material handles used across every room.
 ///
-/// This is deliberately a small, fixed palette. When the bunker needs
-/// real visual variety (stained concrete zones, metal accent walls,
-/// weathered vs. clean wood, ...) this is the first place to extend
-/// or replace — adding a handful more variants here is cheaper than
-/// switching to per-material lookups per call site.
+/// `concrete` and `concrete_dark` are full PBR materials sharing
+/// one ambientCG texture set (Concrete044C) with only the
+/// base-colour tint differing — keeps GPU memory flat while still
+/// reading as two distinct surfaces. `wood` and `metal` stay flat
+/// because their call sites are tiny accents (a 25 cm counter top
+/// and 2 cm grate bars respectively) where tiling a full PBR set
+/// would be more noise than signal.
+///
+/// Meshes that use these materials are expected to carry UV data
+/// scaled to physical dimensions (see
+/// [`geometry::cuboid_tiled`](super::geometry::cuboid_tiled) and
+/// siblings) — the shared texture samplers are set to `Repeat` so
+/// tiling falls out correctly.
 pub(crate) struct Palette {
     pub concrete: Handle<StandardMaterial>,
     pub concrete_dark: Handle<StandardMaterial>,
@@ -68,18 +75,32 @@ pub(crate) struct Palette {
 }
 
 impl Palette {
-    pub(crate) fn new(mats: &mut Assets<StandardMaterial>) -> Self {
+    pub(crate) fn new(
+        mats: &mut Assets<StandardMaterial>,
+        asset_server: &AssetServer,
+    ) -> Self {
+        // One texture set for every structural concrete surface
+        // (walls, floor, ceiling). Using separate textures for
+        // walls vs. floor created a visible seam at the wall/
+        // floor edge because the two materials' tones didn't
+        // quite match — real bunker interiors are usually one
+        // continuous pour, so mirroring that in-game reads
+        // correctly. `concrete` and `concrete_dark` both bind
+        // the same handle for now; the pair is kept so future
+        // accent-surface variants can slot in without touching
+        // every call site.
+        let concrete_set = super::textures::TextureSet::load_ambient_cg(
+            asset_server,
+            "Concrete024_1K-JPG",
+            "Concrete024_1K-JPG",
+        );
+
+        let concrete = mats.add(concrete_material(&concrete_set, Color::WHITE));
+        let concrete_dark = concrete.clone();
+
         Self {
-            concrete: mats.add(StandardMaterial {
-                base_color: Color::srgb(0.14, 0.13, 0.12),
-                perceptual_roughness: 0.95,
-                ..default()
-            }),
-            concrete_dark: mats.add(StandardMaterial {
-                base_color: Color::srgb(0.10, 0.10, 0.09),
-                perceptual_roughness: 0.95,
-                ..default()
-            }),
+            concrete,
+            concrete_dark,
             wood: mats.add(StandardMaterial {
                 base_color: Color::srgb(0.22, 0.16, 0.10),
                 perceptual_roughness: 0.85,
@@ -92,6 +113,35 @@ impl Palette {
                 ..default()
             }),
         }
+    }
+}
+
+/// Build a concrete `StandardMaterial` from a shared texture set
+/// with a tint. `metallic: 0.0` deliberately zeroes out the
+/// metallic channel of `metallic_roughness_texture` (see
+/// [`textures`](super::textures) module docs).
+fn concrete_material(
+    set: &super::textures::TextureSet,
+    tint: Color,
+) -> StandardMaterial {
+    StandardMaterial {
+        base_color: tint,
+        base_color_texture: Some(set.base_color.clone()),
+        normal_map_texture: set.normal.clone(),
+        metallic_roughness_texture: set.metallic_roughness.clone(),
+        occlusion_texture: set.ambient_occlusion.clone(),
+        // Parallax mapping: adds perceived depth from the height
+        // map so the concrete looks poured, not painted-flat.
+        // Kept shallow (2 cm) because anything deeper starts
+        // warping grazing-angle silhouettes.
+        depth_map: set.depth.clone(),
+        parallax_depth_scale: 0.02,
+        parallax_mapping_method: ParallaxMappingMethod::Relief { max_steps: 4 },
+        max_parallax_layer_count: 16.0,
+        metallic: 0.0,
+        perceptual_roughness: 1.0,
+        alpha_mode: AlphaMode::Opaque,
+        ..default()
     }
 }
 

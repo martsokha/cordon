@@ -25,10 +25,22 @@
 
 use avian3d::prelude::*;
 use bevy::ecs::system::EntityCommands;
+use bevy::mesh::VertexAttributeValues;
 use bevy::prelude::*;
 
 pub use super::props::Prop;
 use super::resources::RoomCtx;
+
+/// Real-world size of one texture tile on concrete surfaces, in
+/// metres. Applied uniformly to walls, floors, ceilings, door-
+/// frames and stairs so adjacent surfaces read as one continuous
+/// concrete pour — the texture's feature scale stays constant
+/// across every visible surface, which matters more than packing
+/// more detail onto small pieces.
+///
+/// ~2.5 m is large enough to hide repetition on corridor walls
+/// without stretching the feature grain to mush.
+pub const TILE_SIZE: f32 = 2.5;
 
 // Ergonomic shortcuts on RoomCtx for the procedural-geometry
 // helpers and prop placement. Rooms prefer `ctx.wall(...)` over
@@ -164,9 +176,11 @@ impl<'a, 'w, 's> RoomCtx<'a, 'w, 's> {
     }
 
     /// Spawn a decorative cuboid (no collider). Used for lintels,
-    /// counter tops, and other fake-geometry ornaments.
+    /// counter tops, and other fake-geometry ornaments. Uses the
+    /// same [`TILE_SIZE`] as structural surfaces so ornaments
+    /// visually continue the adjoining wall/floor texture.
     pub fn decor_box(&mut self, pos: Vec3, size: Vec3, mat: &Handle<StandardMaterial>) {
-        spawn_box(self.commands, self.meshes, mat.clone(), pos, size);
+        spawn_box(self.commands, self.meshes, mat.clone(), pos, size, TILE_SIZE);
     }
 }
 
@@ -288,12 +302,86 @@ pub fn spawn_box(
     mat: Handle<StandardMaterial>,
     pos: Vec3,
     size: Vec3,
+    tile: f32,
 ) {
     commands.spawn((
-        Mesh3d(meshes.add(Cuboid::from_size(size))),
+        Mesh3d(meshes.add(cuboid_tiled(size, tile))),
         MeshMaterial3d(mat),
         Transform::from_translation(pos),
     ));
+}
+
+/// Build a [`Cuboid`] mesh whose UVs tile proportionally to the
+/// cuboid's physical size. Each face shows the texture
+/// `(face_dim / tile)` times along each axis, so the visible
+/// texture scale is constant regardless of how big the face is.
+///
+/// Without this, a 4 m × 2.4 m wall and a 12 m × 3 m floor
+/// sharing one material would stretch the texture to different
+/// apparent sizes — reads as "these are different materials."
+pub fn cuboid_tiled(size: Vec3, tile: f32) -> Mesh {
+    let mut mesh = Cuboid::from_size(size).mesh().build();
+
+    // Cuboid vertex order (see bevy_mesh's cuboid primitive):
+    // 24 verts grouped 4-per-face in order Front, Back, Right,
+    // Left, Top, Bottom. Each face's default UVs span 0..1 along
+    // its own two tangent axes; scaling those by physical size
+    // per axis gives uniform tiling.
+    let face_scales: [(f32, f32); 6] = [
+        (size.x, size.y), // Front  (+Z)
+        (size.x, size.y), // Back   (−Z)
+        (size.z, size.y), // Right  (+X)
+        (size.z, size.y), // Left   (−X)
+        (size.x, size.z), // Top    (+Y)
+        (size.x, size.z), // Bottom (−Y)
+    ];
+
+    if let Some(VertexAttributeValues::Float32x2(uvs)) =
+        mesh.attribute_mut(Mesh::ATTRIBUTE_UV_0)
+    {
+        for (face_idx, (scale_u, scale_v)) in face_scales.iter().enumerate() {
+            let tiles_u = (scale_u / tile).max(0.0);
+            let tiles_v = (scale_v / tile).max(0.0);
+            for vert_idx in 0..4 {
+                let uv = &mut uvs[face_idx * 4 + vert_idx];
+                uv[0] *= tiles_u;
+                uv[1] *= tiles_v;
+            }
+        }
+    }
+
+    // Normal-mapping requires mesh tangents. Bevy's cuboid
+    // primitive ships without them, and the shader's
+    // derivative-based fallback can produce degenerate tangents
+    // on flat thin-edge faces (wall side slabs at 8 cm depth),
+    // which manifests as render artifacts — in particular,
+    // near-zero specular contribution that can read as the wall
+    // being transparent. Generate mikktspace tangents from the
+    // rewritten UVs so the PBR shader always has valid TBN data.
+    let _ = mesh.generate_tangents();
+    mesh
+}
+
+/// Build a [`Plane3d`] mesh whose UVs tile proportionally. The
+/// plane's two tangent axes each span `half_size * 2` metres; the
+/// texture repeats every `tile` metres along each.
+pub fn plane_tiled(normal: Vec3, half_size: Vec2, tile: f32) -> Mesh {
+    let mut mesh = Plane3d::new(normal, half_size).mesh().build();
+    let size = half_size * 2.0;
+    let tiles_u = (size.x / tile).max(0.0);
+    let tiles_v = (size.y / tile).max(0.0);
+    if let Some(VertexAttributeValues::Float32x2(uvs)) =
+        mesh.attribute_mut(Mesh::ATTRIBUTE_UV_0)
+    {
+        for uv in uvs.iter_mut() {
+            uv[0] *= tiles_u;
+            uv[1] *= tiles_v;
+        }
+    }
+    // Same rationale as in [`cuboid_tiled`]: the normal map in
+    // the concrete material needs real vertex tangents.
+    let _ = mesh.generate_tangents();
+    mesh
 }
 
 pub fn spawn_wall(
@@ -310,7 +398,10 @@ pub fn spawn_wall(
     commands.spawn((
         RigidBody::Static,
         Collider::cuboid(width, height, thickness),
-        Mesh3d(meshes.add(Cuboid::new(width, height, thickness))),
+        Mesh3d(meshes.add(cuboid_tiled(
+            Vec3::new(width, height, thickness),
+            TILE_SIZE,
+        ))),
         MeshMaterial3d(mat),
         Transform::from_translation(pos).with_rotation(rot),
     ));
@@ -325,12 +416,12 @@ pub fn spawn_floor_ceiling(
     h: f32,
 ) {
     commands.spawn((
-        Mesh3d(meshes.add(Plane3d::new(Vec3::Y, half_size))),
+        Mesh3d(meshes.add(plane_tiled(Vec3::Y, half_size, TILE_SIZE))),
         MeshMaterial3d(mat.clone()),
         Transform::from_translation(center),
     ));
     commands.spawn((
-        Mesh3d(meshes.add(Plane3d::new(Vec3::NEG_Y, half_size))),
+        Mesh3d(meshes.add(plane_tiled(Vec3::NEG_Y, half_size, TILE_SIZE))),
         MeshMaterial3d(mat),
         Transform::from_xyz(center.x, h, center.z),
     ));
@@ -395,6 +486,7 @@ pub fn spawn_doorframe_x(
         mat.clone(),
         Vec3::new(x, side_y, center_z - hw - 0.05),
         Vec3::new(0.15, side_h, 0.1),
+        TILE_SIZE,
     );
     spawn_box(
         commands,
@@ -402,6 +494,7 @@ pub fn spawn_doorframe_x(
         mat.clone(),
         Vec3::new(x, side_y, center_z + hw + 0.05),
         Vec3::new(0.15, side_h, 0.1),
+        TILE_SIZE,
     );
     spawn_box(
         commands,
@@ -409,6 +502,7 @@ pub fn spawn_doorframe_x(
         mat,
         Vec3::new(x, lintel_y, center_z),
         Vec3::new(0.15, lintel_thickness, width + 0.2),
+        TILE_SIZE,
     );
 }
 
@@ -424,7 +518,10 @@ pub fn spawn_stairs(
         let step_y = 0.25 * (i + 1) as f32;
         let step_z = start_z + 0.4 * i as f32;
         commands.spawn((
-            Mesh3d(meshes.add(Cuboid::new(width, step_y, 0.4))),
+            Mesh3d(meshes.add(cuboid_tiled(
+                Vec3::new(width, step_y, 0.4),
+                TILE_SIZE,
+            ))),
             MeshMaterial3d(mat.clone()),
             Transform::from_xyz(0.0, step_y / 2.0, step_z),
         ));

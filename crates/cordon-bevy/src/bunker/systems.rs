@@ -1,7 +1,9 @@
 use std::f32::consts::PI;
 
 use avian3d::prelude::*;
+use bevy::pbr::ScreenSpaceAmbientOcclusion;
 use bevy::prelude::*;
+use bevy::render::view::Msaa;
 use bevy::ui::UiTargetCamera;
 
 use super::cctv::MonitorPlacement;
@@ -18,7 +20,7 @@ pub(super) fn spawn_bunker(
     player: Res<cordon_sim::resources::Player>,
     game_data: Res<cordon_data::gamedata::GameDataResource>,
 ) {
-    let pal = Palette::new(&mut mats);
+    let pal = Palette::new(&mut mats, &asset_server);
     let l = Layout::new();
 
     commands.insert_resource(MonitorPlacement {
@@ -94,6 +96,14 @@ fn spawn_camera(commands: &mut Commands, l: &Layout) -> Entity {
                 },
                 ..default()
             },
+            // Contact shadows in corners / under props. Huge
+            // readability win for a boxy concrete interior — the
+            // tight wall/floor seams gain proper grounding without
+            // more geometry or lights. Requires MSAA off (the
+            // SSAO pass writes to depth/normal prepass textures
+            // that don't support multisampling).
+            ScreenSpaceAmbientOcclusion::default(),
+            Msaa::Off,
         ))
         .id()
 }

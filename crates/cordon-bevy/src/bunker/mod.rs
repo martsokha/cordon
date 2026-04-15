@@ -16,6 +16,7 @@ mod props;
 pub mod resources;
 mod rooms;
 mod systems;
+mod textures;
 mod visitor;
 
 use bevy::prelude::*;
@@ -41,6 +42,10 @@ impl Plugin for BunkerPlugin {
             laptop::LaptopPlugin,
             particles::BunkerParticlesPlugin,
         ));
+        // SSAO: `ScreenSpaceAmbientOcclusionPlugin` is registered
+        // by `DefaultPlugins::PbrPlugin` already; we just attach
+        // the `ScreenSpaceAmbientOcclusion` component to the FPS
+        // camera in `spawn_camera` to enable the effect.
         // Observer: turns `PropPlacement` components into real
         // prop entities. Registering once here means every room
         // can just `commands.spawn(PropPlacement::new(...))` —
