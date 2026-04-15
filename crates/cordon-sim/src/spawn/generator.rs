@@ -13,7 +13,7 @@ use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
 use crate::entity::npc::{
-    ActiveEffects, BaseMaxes, Employment, FactionId, NpcAttributes, NpcBundle, NpcMarker, Perks,
+    ActiveEffects, BaseMaxes, FactionId, NpcAttributes, NpcBundle, NpcMarker, Perks,
 };
 use crate::resources::{FactionIndex, UidAllocator};
 use crate::spawn::loadout::generate_loadout;
@@ -119,17 +119,6 @@ pub trait NpcGenerator {
         Credits::new((base as f32 * jitter) as u32)
     }
 
-    /// Base daily pay for an employed NPC of a given rank.
-    fn daily_pay(&self, rank: Rank) -> Credits {
-        Credits::new(match rank {
-            Rank::Novice => 100,
-            Rank::Experienced => 150,
-            Rank::Veteran => 250,
-            Rank::Master => 400,
-            Rank::Legend => 700,
-        })
-    }
-
     /// Build a complete NPC bundle from generated parts. The
     /// caller passes in the desired rank explicitly so squad
     /// spawning can produce rank-correct members from a template.
@@ -171,9 +160,6 @@ pub trait NpcGenerator {
             perks: Perks {
                 all: Vec::new(),
                 revealed: Vec::new(),
-            },
-            employment: Employment {
-                daily_pay: self.daily_pay(rank),
             },
         }
     }

@@ -149,9 +149,8 @@ pub mod prelude {
     pub use crate::day::DayRolled;
     // Per-entity components not owned by a subplugin.
     pub use crate::entity::npc::{
-        ActiveEffects, BaseMaxes, Employment, FactionId, NpcAttributes, NpcBundle, NpcMarker,
-        PendingYarnNode, Perks, QuestCritical, SpawnOrigin, TemplateId, TravelingHome,
-        TravelingToBunker,
+        ActiveEffects, BaseMaxes, FactionId, NpcAttributes, NpcBundle, NpcMarker, PendingYarnNode,
+        Perks, QuestCritical, SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker,
     };
     pub use crate::entity::relic::{RelicHome, RelicMarker};
     pub use crate::quest::{
@@ -159,7 +158,8 @@ pub mod prelude {
         StartQuestRequest, TemplateRegistry,
     };
     pub use crate::resources::{
-        AreaStates, EventLog, FactionIndex, GameClock, Player, SquadIdIndex, UidAllocator,
+        AreaStates, EventLog, FactionIndex, GameClock, Player, PlayerSquadEntry, PlayerSquadRoster,
+        SquadIdIndex, UidAllocator,
     };
     pub use crate::shop::{BuyUpgrade, BuyUpgradeFailure, BuyUpgradeOutcome};
     pub use crate::spawn::SquadSpawned;

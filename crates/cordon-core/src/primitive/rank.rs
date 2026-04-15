@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::Experience;
+use super::{Credits, Experience};
 
 /// NPC rank tier. All factions use this 5-step scale internally — the
 /// localized title (`Grunt` vs `Pilgrim` vs `Recruit`) is resolved
@@ -81,6 +81,19 @@ impl Rank {
             Rank::Legend => 15000,
         };
         (lo, hi)
+    }
+
+    /// Daily upkeep cost for one hired NPC of this rank. Summed
+    /// across squad members at payroll time and for UI display —
+    /// dropping a member immediately reduces the squad's bill.
+    pub fn pay(self) -> Credits {
+        Credits::new(match self {
+            Rank::Novice => 100,
+            Rank::Experienced => 150,
+            Rank::Veteran => 250,
+            Rank::Master => 400,
+            Rank::Legend => 700,
+        })
     }
 
     /// All ranks in ascending order.

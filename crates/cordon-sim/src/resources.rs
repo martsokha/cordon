@@ -53,6 +53,60 @@ impl AreaState {
 #[derive(Resource, Default, Debug, Clone)]
 pub struct SquadIdIndex(pub HashMap<Uid<Squad>, Entity>);
 
+/// Per-hire bookkeeping for one squad on the player's roster.
+///
+/// Empty for now — the field exists so future per-hire metadata
+/// (date hired, custom callsign, assignment) can be added without
+/// changing [`PlayerSquadRoster`]'s shape.
+///
+/// Daily pay is intentionally **not** stored here — it's a pure
+/// function of the squad's current member ranks (see
+/// [`Rank::pay`](cordon_core::primitive::Rank::pay)) so member
+/// deaths immediately reduce the bill with no recompute system.
+#[derive(Debug, Clone, Default)]
+pub struct PlayerSquadEntry {}
+
+/// All squads the player has hired. Squads are the only unit of
+/// player ownership — there is no individual NPC hiring.
+///
+/// Keyed by stable [`Uid<Squad>`] so the roster survives respawns
+/// and is save-ready. ECS systems that need entity access find
+/// the live entity via [`SquadIdIndex`] (or, more commonly, through
+/// the derived [`Owned`](crate::behavior::squad::Owned) marker
+/// which is kept in sync by [`sync_owned_marker`]).
+#[derive(Resource, Default, Debug, Clone)]
+pub struct PlayerSquadRoster {
+    entries: HashMap<Uid<Squad>, PlayerSquadEntry>,
+}
+
+impl PlayerSquadRoster {
+    /// Add a squad to the roster. No-op if already hired.
+    pub fn hire(&mut self, squad: Uid<Squad>) {
+        self.entries.entry(squad).or_default();
+    }
+
+    /// Remove a squad from the roster. No-op if not hired.
+    pub fn dismiss(&mut self, squad: &Uid<Squad>) {
+        self.entries.remove(squad);
+    }
+
+    pub fn is_hired(&self, squad: &Uid<Squad>) -> bool {
+        self.entries.contains_key(squad)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&Uid<Squad>, &PlayerSquadEntry)> {
+        self.entries.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+}
+
 /// In-game clock. Advanced by `cordon_bevy::world::tick_game_time`.
 #[derive(Resource, Debug, Clone, Copy, Default)]
 pub struct GameClock(pub GameTime);
@@ -159,6 +213,7 @@ pub fn init_world_resources(mut commands: Commands, game_data: Res<GameDataResou
 
     commands.insert_resource(GameClock::default());
     commands.insert_resource(Player(PlayerState::new(&faction_ids)));
+    commands.insert_resource(PlayerSquadRoster::default());
     commands.insert_resource(FactionIndex(faction_weights));
     commands.insert_resource(FactionSettlements(settlements));
     commands.insert_resource(AreaStates(areas));

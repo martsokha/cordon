@@ -140,13 +140,6 @@ pub struct Perks {
     pub revealed: Vec<Id<Perk>>,
 }
 
-/// Employment status. "Is this NPC hired?" is a single query
-/// touch; `daily_pay` of zero means unemployed.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct Employment {
-    pub daily_pay: Credits,
-}
-
 /// Bundle of every per-NPC component the spawn system attaches
 /// to a fresh entity. Built directly by the generator — there's
 /// no intermediate `Npc` data struct any more.
@@ -166,5 +159,4 @@ pub struct NpcBundle {
     pub wealth: Credits,
     pub attributes: NpcAttributes,
     pub perks: Perks,
-    pub employment: Employment,
 }

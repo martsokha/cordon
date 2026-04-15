@@ -1,13 +1,16 @@
-//! Player state: rank, experience, credits, faction standings, hired
-//! squad, and the bunker's upgrade + storage state.
+//! Player state: rank, experience, credits, faction standings, and
+//! the bunker's upgrade + storage state.
+//!
+//! Hired squads live in the sim layer (`PlayerSquadRoster`), not
+//! here — `PlayerState` is the persistent player profile, not a
+//! god-object.
 
 use serde::{Deserialize, Serialize};
 
 use super::bunker::{Upgrade, UpgradeDef, UpgradeEffect};
 use super::faction::Faction;
-use super::npc::Npc;
 use crate::item::{Item, ItemInstance, Stash, StashScope};
-use crate::primitive::{Credits, Experience, Id, Relation, Uid};
+use crate::primitive::{Credits, Experience, Id, Relation};
 
 /// Player rank tier. Determines squad capacity and unlocks.
 ///
@@ -73,15 +76,11 @@ impl PlayerRank {
     }
 }
 
-/// A hired NPC on the player's roster.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HiredNpc {
-    /// Runtime UID of the hired NPC.
-    pub npc_id: Uid<Npc>,
-}
-
 /// The player's complete state: identity, economy, faction relations,
-/// hired roster, and the bunker (storage + installed upgrades).
+/// and the bunker (storage + installed upgrades).
+///
+/// Hired-squad ownership is *not* stored here — it lives in the
+/// sim-layer `PlayerSquadRoster` resource, keyed by `Uid<Squad>`.
 ///
 /// `BaseState` was previously a separate field on `World`; it's now
 /// inlined here so "the player" is a single source of truth.
@@ -93,8 +92,6 @@ pub struct PlayerState {
     pub credits: Credits,
     /// Relations with each faction, keyed by faction ID.
     pub standings: Vec<(Id<Faction>, Relation)>,
-    /// Currently hired NPCs and their roles.
-    pub hired: Vec<HiredNpc>,
     /// Whether the Garrison bribe has been paid this period.
     pub garrison_bribe_paid: bool,
     /// All installed upgrade IDs (both bunker and camp).
@@ -118,7 +115,6 @@ impl PlayerState {
             xp: Experience::ZERO,
             credits: Credits::new(5000),
             standings,
-            hired: Vec::new(),
             garrison_bribe_paid: false,
             upgrades: Vec::new(),
             storage: Stash::new(),
@@ -151,16 +147,6 @@ impl PlayerState {
             .iter_mut()
             .find(|(f, _)| f == faction)
             .map(|(_, s)| s)
-    }
-
-    /// Number of currently hired NPCs.
-    pub fn hired_count(&self) -> u8 {
-        self.hired.len() as u8
-    }
-
-    /// Whether the player can hire another NPC.
-    pub fn can_hire(&self) -> bool {
-        self.hired_count() < self.rank().max_squads()
     }
 
     /// Check if an upgrade is installed (bunker or camp).

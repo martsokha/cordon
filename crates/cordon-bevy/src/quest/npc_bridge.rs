@@ -16,9 +16,9 @@ use cordon_core::primitive::{Corruption, Experience, Health, Loyalty, Pool, Stam
 use cordon_core::world::BUNKER_MAP_POS;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::{
-    ActiveEffects, BaseMaxes, Employment, FactionId, MovementIntent, NpcAttributes, NpcBundle,
-    NpcDied, NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle,
-    SquadMembership, TemplateId, TravelingHome, TravelingToBunker,
+    ActiveEffects, BaseMaxes, FactionId, MovementIntent, NpcAttributes, NpcBundle, NpcDied,
+    NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle, SquadMembership,
+    TemplateId, TravelingHome, TravelingToBunker,
 };
 use cordon_sim::quest::consequence::{DismissTemplateNpc, GiveNpcXpRequest, SpawnNpcRequest};
 use cordon_sim::quest::registry::TemplateRegistry;
@@ -179,9 +179,6 @@ pub fn handle_spawn_npc_requests(
             perks: Perks {
                 all: def.perks.clone(),
                 revealed: Vec::new(),
-            },
-            employment: Employment {
-                daily_pay: cordon_core::primitive::Credits::new(0),
             },
         };
 

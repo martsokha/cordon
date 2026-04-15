@@ -32,11 +32,11 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
 
     for i in 0..STRAIGHT_SEGMENTS {
         let z = start_z + (i as f32) * PIPE_PIECE_LEN;
-        ctx.prop_scaled(
-            Prop::Pipe1Long,
-            Vec3::new(wall_x, y, z),
-            straight_rot,
-            PIPE_SCALE,
+        ctx.prop_placement(
+            PropPlacement::new(Prop::Pipe1Long, Vec3::new(wall_x, y, z))
+                .rotated(straight_rot)
+                .scaled(PIPE_SCALE)
+                .no_collider(),
         );
     }
 
@@ -45,12 +45,15 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     // so +Z→+Y (the bend-arm goes up into the ceiling).
     let corner_rot = Quat::from_rotation_z(PI) * Quat::from_rotation_x(FRAC_PI_2);
     let corner_z = start_z + (STRAIGHT_SEGMENTS as f32) * PIPE_PIECE_LEN;
-    ctx.prop_scaled(
-        Prop::Pipe1Corner1,
-        // +0.08 counters the PIPE_HANG drop and adds an 8 cm nudge
-        // so the corner centreline matches the straights.
-        Vec3::new(wall_x, y + 0.08, corner_z),
-        corner_rot,
-        PIPE_SCALE,
+    ctx.prop_placement(
+        PropPlacement::new(
+            Prop::Pipe1Corner1,
+            // +0.08 counters the PIPE_HANG drop and adds an 8 cm
+            // nudge so the corner centreline matches the straights.
+            Vec3::new(wall_x, y + 0.08, corner_z),
+        )
+        .rotated(corner_rot)
+        .scaled(PIPE_SCALE)
+        .no_collider(),
     );
 }

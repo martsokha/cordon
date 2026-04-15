@@ -65,6 +65,13 @@ impl<'a, 'w, 's> RoomCtx<'a, 'w, 's> {
             .spawn(PropPlacement::new(kind, pos).rotated(rot).scaled(scale))
     }
 
+    /// Place a prop from a fully-built [`PropPlacement`]. Use when
+    /// you need the builder methods that the short helpers above
+    /// don't expose (e.g. [`PropPlacement::no_collider`]).
+    pub fn prop_placement<'c>(&'c mut self, placement: PropPlacement) -> EntityCommands<'c> {
+        self.commands.spawn(placement)
+    }
+
     /// Spawn a static wall with visual + collider.
     pub fn wall(
         &mut self,
@@ -178,6 +185,11 @@ pub struct PropPlacement {
     pub pos: Vec3,
     pub rotation: Quat,
     pub scale: f32,
+    /// Per-spawn override that suppresses the prop's collider even
+    /// if the registry entry has `collider: true`. Used for purely
+    /// decorative placements (e.g. ceiling pipes) that shouldn't
+    /// block player movement.
+    pub no_collider: bool,
 }
 
 impl PropPlacement {
@@ -189,6 +201,7 @@ impl PropPlacement {
             pos,
             rotation: Quat::IDENTITY,
             scale: 1.0,
+            no_collider: false,
         }
     }
 
@@ -202,6 +215,13 @@ impl PropPlacement {
     /// any scale.
     pub fn scaled(mut self, scale: f32) -> Self {
         self.scale = scale;
+        self
+    }
+
+    /// Suppress the collider for this placement. The visual mesh
+    /// still spawns; only the static collider is skipped.
+    pub fn no_collider(mut self) -> Self {
+        self.no_collider = true;
         self
     }
 }
@@ -250,7 +270,7 @@ pub fn resolve_prop_placement(
             .with_scale(Vec3::splat(p.scale)),
     ));
 
-    if def.collider {
+    if def.collider && !p.no_collider {
         let size = (def.aabb_max - def.aabb_min) * p.scale;
         let collider_center = spawn_pos + p.rotation * local_center;
         commands.spawn((

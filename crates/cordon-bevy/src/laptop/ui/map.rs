@@ -633,13 +633,19 @@ const ROSTER_BOX_EMPTY: Color = Color::srgba(0.10, 0.10, 0.12, 0.85);
 /// mirrors the on-map selection ring color.
 const ROSTER_BOX_SELECTED: Color = Color::srgba(1.0, 0.9, 0.3, 1.0);
 
-/// Build the squad roster rows once [`PlayerSquads`] is populated.
-/// Idempotent — rebuilds only when the panel's children are empty.
-/// A full rebuild on every player-squad change keeps the code
-/// simple; at three squads of five members this is cheap.
+/// Build the squad roster rows once the player has any owned
+/// squads. Idempotent — rebuilds only when the panel's children
+/// are empty. A full rebuild on every player-squad change keeps
+/// the code simple; at three squads of five members this is cheap.
 fn build_squad_roster(
     mut commands: Commands,
-    player_squads: Res<crate::laptop::fog::PlayerSquads>,
+    owned_squads: Query<
+        Entity,
+        (
+            With<cordon_sim::plugin::prelude::SquadMarker>,
+            With<cordon_sim::plugin::prelude::Owned>,
+        ),
+    >,
     panel_q: Query<(Entity, Option<&Children>), With<SquadRosterPanel>>,
     squads: Query<&cordon_sim::plugin::prelude::SquadMembers>,
 ) {
@@ -650,13 +656,13 @@ fn build_squad_roster(
     if already_built {
         return;
     }
-    if player_squads.0.is_empty() {
+    if owned_squads.is_empty() {
         return;
     }
 
-    // Sort squad entities for a stable row order — otherwise HashSet
+    // Sort squad entities for a stable row order — otherwise query
     // iteration would shuffle the rows every time we rebuilt.
-    let mut ordered: Vec<Entity> = player_squads.0.iter().copied().collect();
+    let mut ordered: Vec<Entity> = owned_squads.iter().collect();
     ordered.sort_by_key(|e| e.to_bits());
 
     for squad_entity in ordered {

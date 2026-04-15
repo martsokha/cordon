@@ -7,12 +7,16 @@
 //! Visibility writes are change-guarded so a stable scene
 //! doesn't dirty Bevy's change detection cascade.
 
+use std::collections::HashSet;
+
 use bevy::prelude::*;
 use cordon_core::entity::bunker::UpgradeEffect;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::plugin::prelude::{Dead, NpcMarker, Player, RelicMarker, SquadMembership, Vision};
+use cordon_sim::plugin::prelude::{
+    Dead, NpcMarker, Owned, Player, RelicMarker, SquadMarker, SquadMembership, Vision,
+};
 
-use super::{FogEnabled, FogReveals, PlayerSquads, RevealedAreas};
+use super::{FogEnabled, FogReveals, RevealedAreas};
 use crate::PlayingState;
 use crate::laptop::environment::anomaly::AnomalyVisual;
 use crate::laptop::map::{AreaCircle, Bunker};
@@ -45,7 +49,7 @@ fn set_vis(vis: &mut Mut<Visibility>, target: Visibility) {
 /// seen so their marker persists forever.
 #[allow(clippy::type_complexity)]
 pub(super) fn apply_fog(
-    player_squads: Res<PlayerSquads>,
+    owned_squads: Query<Entity, (With<SquadMarker>, With<Owned>)>,
     mut revealed_areas: ResMut<RevealedAreas>,
     mut fog_reveals: ResMut<FogReveals>,
     fog_enabled: Res<FogEnabled>,
@@ -97,13 +101,18 @@ pub(super) fn apply_fog(
         return;
     }
 
+    // Snapshot the set of player-owned squad entities once per
+    // frame so the per-NPC and per-member loops below can do O(1)
+    // membership checks without re-querying.
+    let owned: HashSet<Entity> = owned_squads.iter().collect();
+
     // Gather reveal circles from player-squad members. We reuse
     // the cache buffer rather than reallocating each frame — it's
     // read back by `sync_fog_material` after this system finishes.
     fog_reveals.0.clear();
     fog_reveals.0.push((Vec2::ZERO, BUNKER_REVEAL_RADIUS));
     for (transform, membership, vision) in &members {
-        if player_squads.0.contains(&membership.squad) {
+        if owned.contains(&membership.squad) {
             fog_reveals
                 .0
                 .push((transform.translation.truncate(), vision.radius));
@@ -185,7 +194,7 @@ pub(super) fn apply_fog(
     // NPCs: real-time. Player-owned squad members are always
     // visible (they're what's doing the revealing).
     for (transform, membership, mut vis) in &mut npc_q {
-        let is_mine = player_squads.0.contains(&membership.squad);
+        let is_mine = owned.contains(&membership.squad);
         let p = transform.translation.truncate();
         set_vis(
             &mut vis,

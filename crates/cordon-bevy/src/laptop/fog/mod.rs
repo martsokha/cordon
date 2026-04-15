@@ -35,15 +35,8 @@ mod sync;
 use std::collections::HashSet;
 
 use bevy::prelude::*;
-use cordon_sim::plugin::prelude::{FactionId, SquadMarker};
 
 pub use self::mask::ScoutMask;
-
-/// Squads the player commands. Membership is set once by
-/// [`pick_player_squads`] and never changes afterward (for now).
-/// Every fog-related system filters through this set.
-#[derive(Resource, Default, Debug)]
-pub struct PlayerSquads(pub HashSet<Entity>);
 
 /// Areas that have ever been in sight of a player squad. Once
 /// an area enters this set it stays forever — scouting intel
@@ -74,16 +67,10 @@ impl Default for FogEnabled {
 #[derive(Resource, Default, Debug)]
 pub struct FogReveals(pub Vec<(Vec2, f32)>);
 
-/// Number of squads the player starts owning. Pulled from the
-/// drifter faction so there's always something to pick from —
-/// drifters are the neutral, always-present faction.
-const PLAYER_SQUAD_COUNT: usize = 3;
-
 pub struct FogPlugin;
 
 impl Plugin for FogPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<PlayerSquads>();
         app.init_resource::<RevealedAreas>();
         app.init_resource::<FogEnabled>();
         app.init_resource::<FogReveals>();
@@ -91,7 +78,6 @@ impl Plugin for FogPlugin {
         app.add_systems(
             Update,
             (
-                pick_player_squads,
                 apply::apply_fog,
                 mask::update_scout_mask,
                 sync::sync_fog_material,
@@ -101,46 +87,4 @@ impl Plugin for FogPlugin {
                 .run_if(in_state(crate::AppState::Playing)),
         );
     }
-}
-
-/// Pick a few drifter squads to be the player's once the sim has
-/// finished spawning. Idempotent — bails if the set is already
-/// non-empty.
-fn pick_player_squads(
-    mut player_squads: ResMut<PlayerSquads>,
-    squads: Query<(Entity, &FactionId), With<SquadMarker>>,
-) {
-    if !player_squads.0.is_empty() {
-        return;
-    }
-
-    // Collect drifter squads first; if there are none yet, bail
-    // and try again next frame. The sim sometimes takes a couple
-    // of frames to finish spawning.
-    let mut candidates: Vec<Entity> = squads
-        .iter()
-        .filter(|(_, f)| f.0.as_str() == "faction_drifters")
-        .map(|(e, _)| e)
-        .collect();
-    if candidates.is_empty() {
-        return;
-    }
-
-    // Deterministic pick: sort by entity bits then stride. Real
-    // randomness isn't needed here and bringing in a dep just
-    // for this would be overkill — a different set every run
-    // would also ruin reproducibility.
-    candidates.sort_by_key(|e| e.to_bits());
-    let step = (candidates.len() / PLAYER_SQUAD_COUNT.max(1)).max(1);
-    for (i, entity) in candidates.into_iter().step_by(step).enumerate() {
-        if i >= PLAYER_SQUAD_COUNT {
-            break;
-        }
-        player_squads.0.insert(entity);
-    }
-
-    info!(
-        "fog: picked {} player squads from drifters",
-        player_squads.0.len()
-    );
 }
