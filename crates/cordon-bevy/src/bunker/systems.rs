@@ -15,6 +15,7 @@ pub(super) fn spawn_bunker(
     mut meshes: ResMut<Assets<Mesh>>,
     mut mats: ResMut<Assets<StandardMaterial>>,
     mut effects: ResMut<Assets<bevy_hanabi::EffectAsset>>,
+    player: Res<cordon_sim::resources::Player>,
 ) {
     let pal = Palette::new(&mut mats);
     let l = Layout::new();
@@ -43,6 +44,7 @@ pub(super) fn spawn_bunker(
             effects: &mut effects,
             pal: &pal,
             l: &l,
+            player: &player.0,
         };
         rooms::entry::spawn(&mut ctx);
         rooms::command::spawn(&mut ctx);
@@ -52,6 +54,7 @@ pub(super) fn spawn_bunker(
         rooms::hall::spawn(&mut ctx);
         rooms::infirmary::spawn(&mut ctx);
         rooms::workshop::spawn(&mut ctx);
+        rooms::pipes::spawn(&mut ctx);
     }
 
     rooms::antechamber::spawn(&mut commands, &mut meshes, &mut mats, &asset_server);

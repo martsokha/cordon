@@ -1,0 +1,10 @@
+{
+  "id": "upgrade_artifact_scanner",
+  "location": "Bunker",
+  "cost": 2000,
+  "requires": [],
+  "source": "Purchasable",
+  "effects": [
+    "RevealRelics"
+  ]
+}

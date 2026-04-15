@@ -1,6 +1,6 @@
 //! Command post zone: desk, laptop, chair, bookshelves, props.
 
-use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::prelude::*;
 
@@ -57,6 +57,15 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Prop::Mug,
         Vec3::new(-0.35, TABLE_TOP, l.desk_z() + 0.05),
         Quat::IDENTITY,
+    );
+    // Radio on the desk, left of the laptop and back from the
+    // player — faces the player so the dials read.
+    prop(
+        ctx.commands,
+        ctx.asset_server,
+        Prop::Radio,
+        Vec3::new(-0.55, TABLE_TOP, l.desk_z() - 0.25),
+        Quat::from_rotation_y(PI),
     );
     // Door button — sits on the table surface. Starts disabled;
     // visitor module enables it when someone is knocking.

@@ -5,5 +5,6 @@ pub(super) mod entry;
 pub(super) mod hall;
 pub(super) mod infirmary;
 pub(super) mod kitchen;
+pub(super) mod pipes;
 pub(super) mod quarters;
 pub(super) mod workshop;

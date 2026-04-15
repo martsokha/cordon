@@ -87,6 +87,13 @@ impl Plugin for CordonSimPlugin {
 
         app.add_message::<spawn::SquadSpawned>();
         app.add_systems(Update, spawn::spawn_population.in_set(SimSet::Spawn));
+        // Shop: handle BuyUpgrade requests from the laptop UI.
+        app.add_message::<crate::shop::BuyUpgrade>();
+        app.add_message::<crate::shop::BuyUpgradeOutcome>();
+        app.add_systems(
+            Update,
+            crate::shop::apply_buy_upgrade.in_set(SimSet::Commands),
+        );
         // Game clock ticks every frame once the world is
         // initialised. Gated on `GameClock` existing so it waits
         // for the cordon-bevy layer's `init_world_resources` call.
@@ -154,6 +161,7 @@ pub mod prelude {
     pub use crate::resources::{
         AreaStates, EventLog, FactionIndex, GameClock, Player, SquadIdIndex, UidAllocator,
     };
+    pub use crate::shop::{BuyUpgrade, BuyUpgradeFailure, BuyUpgradeOutcome};
     pub use crate::spawn::SquadSpawned;
     pub use crate::spawn::relics::RelicPickedUp;
 }

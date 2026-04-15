@@ -69,22 +69,10 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Quat::from_rotation_y(0.3),
     );
 
-    // Radio on a shelf — scavenger's companion.
-    const SHELF: f32 = 0.572;
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::StorageRack01,
-        Vec3::new(l.workshop_x_max() - 0.3, 0.0, l.tj2_center() + 0.2),
-        Quat::from_rotation_y(-FRAC_PI_2),
-    );
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::Radio,
-        Vec3::new(l.workshop_x_max() - 0.3, SHELF, l.tj2_center() + 0.2),
-        Quat::from_rotation_y(-FRAC_PI_2),
-    );
+    // Bucket on the floor near the bench. The rack + radio that
+    // used to sit here moved out: the rack because the scene was
+    // getting cluttered, the radio to the command desk where
+    // it's in the player's line of sight.
     prop(
         ctx.commands,
         ctx.asset_server,

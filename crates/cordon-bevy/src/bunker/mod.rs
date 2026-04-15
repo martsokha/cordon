@@ -53,7 +53,17 @@ impl Plugin for BunkerPlugin {
         );
         app.add_systems(
             Update,
-            (interaction::update_prompt, interaction::interact)
+            (
+                interaction::update_prompt,
+                interaction::interact,
+                // Reactive rack spawner: watches `Player` and
+                // backfills hall racks when the player installs
+                // a rack upgrade after the bunker was first
+                // built. Gated by `BunkerSpawned` so the
+                // initial `rooms::hall::spawn` inside
+                // `spawn_bunker` handles the first fill.
+                rooms::hall::sync_hall_racks.run_if(resource_exists::<BunkerSpawned>),
+            )
                 .run_if(in_state(PlayingState::Bunker)),
         );
     }

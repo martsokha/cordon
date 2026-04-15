@@ -1,47 +1,114 @@
-//! The straight-hall segment between T1 and T2. Not a room —
-//! just a ~2.5 m stretch of corridor (Z range
-//! `[tj2_north, tj1_south]`) whose side walls are lined with
-//! storage racks, two per wall.
+//! The straight-hall segment between T1 and T2. Wall space
+//! along both sides is reserved for storage racks, populated as
+//! the player installs the `racks` / `racks2` upgrades:
+//!
+//! - No rack upgrade → hall is empty.
+//! - `upgrade_racks` installed → 2 racks (north pair).
+//! - `upgrade_racks` + `upgrade_racks2` → 4 racks (both pairs).
+//!
+//! [`spawn`] handles the initial bunker build; it seeds whichever
+//! tiers the player already has. [`sync_hall_racks`] reacts to
+//! later installs (or save-load state shifts) by spawning the
+//! missing tier's pair.
 
 use std::f32::consts::FRAC_PI_2;
 
 use bevy::prelude::*;
+use cordon_core::entity::bunker::Upgrade;
+use cordon_core::primitive::Id;
+use cordon_sim::plugin::prelude::Player;
 
 use crate::bunker::geometry::*;
-use crate::bunker::resources::RoomCtx;
+use crate::bunker::resources::{Layout, RoomCtx};
 
 /// Half the centre-to-centre spacing between the two racks on a
-/// wall. Rack half-width is 0.572 m; placing each centre at
-/// `hall_cz ± 0.58` puts their outer edges at `hall_cz ± 1.152`,
-/// just inside the hall's ±1.175 half-span. Empty wall on the
-/// flanks is ~2 cm, matching the ~2 cm gap the racks leave
-/// between themselves.
+/// wall when both rack upgrades are installed.
 const RACK_OFFSET: f32 = 0.58;
 
 /// Distance from the wall to the rack's lateral centre. Matches
-/// the armory's 0.6 m inset so the racks sit at the same depth
-/// into the room as their older siblings — deeper than strictly
-/// needed to clear the wall, but reads consistent with existing
-/// rack placements.
+/// the armory's 0.6 m inset for consistency.
 const WALL_INSET: f32 = 0.6;
 
-pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
-    let l = ctx.l;
-    let hall_cz = (l.tj2_north + l.tj1_south) / 2.0;
+/// Which rack tier an entity belongs to, so [`sync_hall_racks`]
+/// knows what's already present and what to spawn.
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HallRackTier {
+    /// Pair added by `upgrade_racks`.
+    North,
+    /// Pair added by `upgrade_racks2`.
+    South,
+}
 
+pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
+    let has_racks = ctx.player.has_upgrade(&Id::<Upgrade>::new("upgrade_racks"));
+    let has_racks2 = ctx.player.has_upgrade(&Id::<Upgrade>::new("upgrade_racks2"));
+
+    if has_racks {
+        spawn_pair(ctx.commands, ctx.asset_server, ctx.l, HallRackTier::North);
+    }
+    if has_racks2 {
+        spawn_pair(ctx.commands, ctx.asset_server, ctx.l, HallRackTier::South);
+    }
+}
+
+fn pair_offset(tier: HallRackTier) -> f32 {
+    match tier {
+        HallRackTier::North => RACK_OFFSET,
+        HallRackTier::South => -RACK_OFFSET,
+    }
+}
+
+fn spawn_pair(
+    commands: &mut Commands,
+    asset_server: &AssetServer,
+    l: &Layout,
+    tier: HallRackTier,
+) {
+    let hall_cz = (l.tj2_north + l.tj1_south) / 2.0;
+    let z = hall_cz + pair_offset(tier);
     for side in [-1.0, 1.0] {
         let x = side * (l.hw - WALL_INSET);
-        // Rotate each rack to face the hall interior. `FRAC_PI_2`
-        // on the left wall (x < 0), `-FRAC_PI_2` on the right.
         let rot = Quat::from_rotation_y(-side * FRAC_PI_2);
-        for z_off in [-RACK_OFFSET, RACK_OFFSET] {
-            prop(
-                ctx.commands,
-                ctx.asset_server,
-                Prop::StorageRack01,
-                Vec3::new(x, 0.0, hall_cz + z_off),
-                rot,
-            );
-        }
+        let entity = prop(
+            commands,
+            asset_server,
+            Prop::StorageRack01,
+            Vec3::new(x, 0.0, z),
+            rot,
+        );
+        commands.entity(entity).insert(tier);
+    }
+}
+
+/// Watch the live player state and spawn rack pairs that aren't
+/// already present. Lets rack upgrades installed *after* the
+/// bunker was first built appear without a full respawn.
+pub fn sync_hall_racks(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    player: Res<Player>,
+    existing: Query<&HallRackTier>,
+) {
+    if !player.is_changed() {
+        return;
+    }
+    let l = Layout::new();
+
+    let has_north_already = existing.iter().any(|t| *t == HallRackTier::North);
+    let has_south_already = existing.iter().any(|t| *t == HallRackTier::South);
+
+    if player
+        .0
+        .has_upgrade(&Id::<Upgrade>::new("upgrade_racks"))
+        && !has_north_already
+    {
+        spawn_pair(&mut commands, &asset_server, &l, HallRackTier::North);
+    }
+    if player
+        .0
+        .has_upgrade(&Id::<Upgrade>::new("upgrade_racks2"))
+        && !has_south_already
+    {
+        spawn_pair(&mut commands, &asset_server, &l, HallRackTier::South);
     }
 }

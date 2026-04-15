@@ -106,6 +106,10 @@ pub(crate) struct RoomCtx<'a, 'w, 's> {
     pub effects: &'a mut Assets<bevy_hanabi::EffectAsset>,
     pub pal: &'a Palette,
     pub l: &'a Layout,
+    /// Live player state — so rooms can gate visuals on what the
+    /// player has unlocked/installed (e.g. rack upgrades that add
+    /// storage racks in the hall).
+    pub player: &'a cordon_core::entity::player::PlayerState,
 }
 
 /// Bunker dimensions. Only stores the primary constants; derived

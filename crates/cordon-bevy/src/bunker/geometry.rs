@@ -39,7 +39,6 @@ pub fn prop_scaled(
     let def = prop.def();
     let size = (def.aabb_max - def.aabb_min) * scale;
     let local_center = (def.aabb_min + def.aabb_max) * 0.5 * scale;
-    // Feet-center in scaled model local space.
     let feet_local = Vec3::new(local_center.x, def.aabb_min.y * scale, local_center.z);
     let spawn_pos = pos - rot * feet_local;
 

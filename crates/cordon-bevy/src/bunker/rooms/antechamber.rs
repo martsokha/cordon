@@ -179,20 +179,13 @@ fn spawn_furniture(commands: &mut Commands, asset_server: &AssetServer, hw: f32,
         local_to_world(Vec3::new(-hw + 0.3, 0.0, 0.0)),
         Quat::from_rotation_y(FRAC_PI_2),
     );
-    // Metal rack on the right wall.
-    prop(
-        commands,
-        asset_server,
-        Prop::StorageRack01,
-        local_to_world(Vec3::new(hw - 0.3, 0.0, 0.0)),
-        Quat::from_rotation_y(-FRAC_PI_2),
-    );
-    // Box on one of the rack shelves.
+    // Box against the right wall. Used to sit on a rack shelf,
+    // but the rack was removed to keep the antechamber sparse.
     prop(
         commands,
         asset_server,
         Prop::Box02,
-        local_to_world(Vec3::new(hw - 0.4, 0.6, 0.0)),
+        local_to_world(Vec3::new(hw - 0.4, 0.0, 0.0)),
         Quat::from_rotation_y(0.2),
     );
     // Supply box on the floor.

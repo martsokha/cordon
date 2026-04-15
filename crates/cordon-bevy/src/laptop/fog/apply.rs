@@ -8,7 +8,9 @@
 //! doesn't dirty Bevy's change detection cascade.
 
 use bevy::prelude::*;
-use cordon_sim::plugin::prelude::{Dead, NpcMarker, RelicMarker, SquadMembership, Vision};
+use cordon_core::entity::bunker::Upgrade;
+use cordon_core::primitive::Id;
+use cordon_sim::plugin::prelude::{Dead, NpcMarker, Player, RelicMarker, SquadMembership, Vision};
 
 use super::{FogEnabled, FogReveals, PlayerSquads, RevealedAreas};
 use crate::PlayingState;
@@ -49,6 +51,7 @@ pub(super) fn apply_fog(
     fog_enabled: Res<FogEnabled>,
     state: Res<State<PlayingState>>,
     active_tab: Res<LaptopTab>,
+    player: Res<Player>,
     members: Query<
         (&Transform, &SquadMembership, &Vision),
         // Dead NPCs (corpses) shouldn't see anything — their
@@ -193,12 +196,17 @@ pub(super) fn apply_fog(
         );
     }
 
-    // Relics: real-time.
+    // Relics: real-time, with the artifact-scanner upgrade
+    // bypassing the fog entirely. `has_scanner` is evaluated once
+    // per frame so installing the upgrade immediately reveals all
+    // relics without a map-reload.
+    let scanner_id = Id::<Upgrade>::new("upgrade_artifact_scanner");
+    let has_scanner = player.0.has_upgrade(&scanner_id);
     for (transform, mut vis) in &mut relic_q {
         let p = transform.translation.truncate();
         set_vis(
             &mut vis,
-            if visible_point(p) {
+            if has_scanner || visible_point(p) {
                 Visibility::Visible
             } else {
                 Visibility::Hidden

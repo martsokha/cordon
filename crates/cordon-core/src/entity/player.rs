@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::bunker::Upgrade;
+use super::bunker::{Upgrade, UpgradeDef, UpgradeEffect};
 use super::faction::Faction;
 use super::npc::{Npc, Role};
 use crate::item::{Item, ItemInstance, Stash, StashScope};
@@ -108,6 +108,12 @@ pub struct PlayerState {
 }
 
 impl PlayerState {
+    /// Base size of the main bunker storage before any rack
+    /// upgrades are installed. Rack-category upgrades contribute
+    /// `StorageCapacity(n)` effects that add to this; see
+    /// [`PlayerState::recompute_storage_capacity`].
+    pub const BASE_STORAGE_CAPACITY: u8 = 10;
+
     /// Create a new player state with neutral standings for all given factions
     /// and an empty bunker.
     pub fn new(faction_ids: &[Id<Faction>]) -> Self {
@@ -123,7 +129,10 @@ impl PlayerState {
             hired: Vec::new(),
             garrison_bribe_paid: false,
             upgrades: Vec::new(),
-            storage: Stash::new(20),
+            // Base storage capacity. Rack upgrades add to this;
+            // see `recompute_storage_capacity` which should be
+            // called whenever `upgrades` changes.
+            storage: Stash::new(Self::BASE_STORAGE_CAPACITY),
             hidden_storage: Stash::new(0),
         }
     }
@@ -168,6 +177,38 @@ impl PlayerState {
     /// Check if an upgrade is installed (bunker or camp).
     pub fn has_upgrade(&self, upgrade_id: &Id<Upgrade>) -> bool {
         self.upgrades.iter().any(|u| u == upgrade_id)
+    }
+
+    /// Re-derive the main storage capacity from installed upgrades.
+    ///
+    /// Sums every [`UpgradeEffect::StorageCapacity`] contribution
+    /// across the installed upgrade set and sets the capacity to
+    /// `BASE_STORAGE_CAPACITY + total_bonus`, saturating at the
+    /// `u8` ceiling.
+    ///
+    /// Call this whenever `upgrades` changes (install consequence,
+    /// shop purchase, save-load). Stash item contents are
+    /// preserved; only the capacity field moves. If a new total
+    /// is *below* the current item count, existing items stay —
+    /// the stash just becomes "over capacity" and refuses further
+    /// inserts until space frees up.
+    pub fn recompute_storage_capacity(
+        &mut self,
+        upgrades: &std::collections::HashMap<Id<Upgrade>, UpgradeDef>,
+    ) {
+        let bonus: u32 = self
+            .upgrades
+            .iter()
+            .filter_map(|id| upgrades.get(id))
+            .flat_map(|def| def.effects.iter())
+            .filter_map(|effect| match effect {
+                UpgradeEffect::StorageCapacity(n) => Some(u32::from(*n)),
+                _ => None,
+            })
+            .sum();
+        let total = u32::from(Self::BASE_STORAGE_CAPACITY).saturating_add(bonus);
+        let capped = u8::try_from(total).unwrap_or(u8::MAX);
+        self.storage.set_capacity(capped);
     }
 
     /// Whether the base has a generator (prevents power outages).

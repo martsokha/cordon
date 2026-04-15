@@ -21,6 +21,11 @@ use bevy::prelude::*;
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Prop {
+    Pipe1,
+    Pipe1Corner1,
+    Pipe1Long,
+    Pipe2,
+    Pipe2Segment1,
     TV,
     BreathingAparatus,
     Bucket1,
@@ -143,6 +148,36 @@ pub struct PropDef {
 impl Prop {
     pub const fn def(self) -> PropDef {
         match self {
+            Self::Pipe1 => PropDef {
+                path: "models/atomic/Pipe1.glb",
+                aabb_min: Vec3::new(267.1f32, 6.033e-06f32, -0.438f32),
+                aabb_max: Vec3::new(268.0f32, 1.507f32, 0.438f32),
+                collider: true,
+            },
+            Self::Pipe1Corner1 => PropDef {
+                path: "models/atomic/Pipe1Corner1.glb",
+                aabb_min: Vec3::new(265.7f32, -3.457e-06f32, -0.4379f32),
+                aabb_max: Vec3::new(266.5f32, 1.56f32, 1.123f32),
+                collider: true,
+            },
+            Self::Pipe1Long => PropDef {
+                path: "models/atomic/Pipe1Long.glb",
+                aabb_min: Vec3::new(263.8f32, -3.457e-06f32, -0.4379f32),
+                aabb_max: Vec3::new(264.7f32, 3.0f32, 0.4379f32),
+                collider: true,
+            },
+            Self::Pipe2 => PropDef {
+                path: "models/atomic/Pipe2.glb",
+                aabb_min: Vec3::new(260.6f32, -3.457e-06f32, -1.009f32),
+                aabb_max: Vec3::new(262.6f32, 3.0f32, 1.009f32),
+                collider: true,
+            },
+            Self::Pipe2Segment1 => PropDef {
+                path: "models/atomic/Pipe2Segment1.glb",
+                aabb_min: Vec3::new(226.8f32, -3.457e-06f32, -1.02f32),
+                aabb_max: Vec3::new(229.1f32, 15.0f32, 1.216f32),
+                collider: true,
+            },
             Self::TV => PropDef {
                 path: "models/atomic/TV.glb",
                 aabb_min: Vec3::new(-0.4314f32, 4.324e-05f32, -0.209f32),

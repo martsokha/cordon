@@ -59,47 +59,28 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Quat::from_rotation_y(FRAC_PI_2),
     );
 
-    // Storage rack against the outer wall, further south, holds
-    // medication + breathing gear.
-    const RACK_SHELF: f32 = 0.572;
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::StorageRack01,
-        Vec3::new(l.infirmary_x_min() + 0.3, 0.0, l.tj2_center() + 0.5),
-        Quat::from_rotation_y(FRAC_PI_2),
-    );
+    // Medication + syringe on the floor along the outer wall —
+    // the rack that used to hold them was removed to keep the
+    // scene sparser.
     prop(
         ctx.commands,
         ctx.asset_server,
         Prop::MedicationCluster1,
-        Vec3::new(
-            l.infirmary_x_min() + 0.3,
-            RACK_SHELF,
-            l.tj2_center() + 0.5,
-        ),
+        Vec3::new(l.infirmary_x_min() + 0.3, 0.0, l.tj2_center() + 0.5),
         Quat::IDENTITY,
     );
     prop(
         ctx.commands,
         ctx.asset_server,
         Prop::MedicationBottle,
-        Vec3::new(
-            l.infirmary_x_min() + 0.25,
-            RACK_SHELF,
-            l.tj2_center() + 0.2,
-        ),
+        Vec3::new(l.infirmary_x_min() + 0.25, 0.0, l.tj2_center() + 0.2),
         Quat::IDENTITY,
     );
     prop(
         ctx.commands,
         ctx.asset_server,
         Prop::Syringe,
-        Vec3::new(
-            l.infirmary_x_min() + 0.4,
-            RACK_SHELF,
-            l.tj2_center() + 0.7,
-        ),
+        Vec3::new(l.infirmary_x_min() + 0.4, 0.0, l.tj2_center() + 0.7),
         Quat::from_rotation_y(0.6),
     );
     prop(

@@ -47,6 +47,23 @@ pub enum UpgradeSource {
     Quest,
 }
 
+/// What an installed upgrade *does*. An upgrade carries a list of
+/// these; systems query installed upgrades for effects they care
+/// about rather than matching on upgrade IDs.
+///
+/// Add variants as new mechanical categories of upgrade surface.
+/// Flavour-only upgrades (cosmetic props, wallpaper) get an empty
+/// effects list.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum UpgradeEffect {
+    /// Add this many slots to the main bunker storage. Multiple
+    /// StorageCapacity effects sum across installed upgrades.
+    StorageCapacity(u16),
+    /// Reveal relic markers on the zone map regardless of NPC
+    /// vision / fog-of-war. Consumed by the laptop's fog system.
+    RevealRelics,
+}
+
 /// An upgrade definition loaded from config.
 ///
 /// All upgrades live in a flat list with prerequisite references.
@@ -67,4 +84,9 @@ pub struct UpgradeDef {
     pub requires: Vec<Id<Upgrade>>,
     /// How this upgrade becomes available.
     pub source: UpgradeSource,
+    /// What this upgrade does once installed. Empty for flavour-
+    /// only upgrades; otherwise a list of [`UpgradeEffect`]s that
+    /// downstream systems query for.
+    #[serde(default)]
+    pub effects: Vec<UpgradeEffect>,
 }
