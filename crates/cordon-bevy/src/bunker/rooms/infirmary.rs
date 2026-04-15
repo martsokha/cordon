@@ -9,119 +9,87 @@ use crate::bunker::geometry::*;
 use crate::bunker::resources::RoomCtx;
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
-    let l = ctx.l;
-    let floor_half = Vec2::new(l.side_depth / 2.0, l.tj2_len() / 2.0);
-    spawn_floor_ceiling(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete_dark.clone(),
-        Vec3::new(l.infirmary_x_center(), 0.0, l.tj2_center()),
-        floor_half,
-        l.h,
-    );
+    let concrete = ctx.pal.concrete.clone();
+    let concrete_dark = ctx.pal.concrete_dark.clone();
 
-    // Outer wall (-x).
-    spawn_wall(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete.clone(),
-        Vec3::new(l.infirmary_x_min(), l.hh(), l.tj2_center()),
+    ctx.floor_ceiling(
+        Vec3::new(ctx.l.infirmary_x_center(), 0.0, ctx.l.tj2_center()),
+        Vec2::new(ctx.l.side_depth / 2.0, ctx.l.tj2_len() / 2.0),
+        ctx.l.h,
+        &concrete_dark,
+    );
+    ctx.wall(
+        Vec3::new(ctx.l.infirmary_x_min(), ctx.l.hh(), ctx.l.tj2_center()),
         Quat::from_rotation_y(-FRAC_PI_2),
-        Vec2::new(l.tj2_len() / 2.0, l.hh()),
+        Vec2::new(ctx.l.tj2_len() / 2.0, ctx.l.hh()),
+        &concrete,
     );
-    // North wall (closes off the T2 side room from the corridor
-    // strip between T1 and T2).
-    spawn_wall(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete.clone(),
-        Vec3::new(l.infirmary_x_center(), l.hh(), l.tj2_north),
+    ctx.wall(
+        Vec3::new(ctx.l.infirmary_x_center(), ctx.l.hh(), ctx.l.tj2_north),
         Quat::from_rotation_y(PI),
-        Vec2::new(l.side_depth / 2.0, l.hh()),
+        Vec2::new(ctx.l.side_depth / 2.0, ctx.l.hh()),
+        &concrete,
     );
-    // South wall (= bunker back wall for this side).
-    spawn_wall(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete.clone(),
-        Vec3::new(l.infirmary_x_center(), l.hh(), l.back_z),
+    ctx.wall(
+        Vec3::new(ctx.l.infirmary_x_center(), ctx.l.hh(), ctx.l.back_z),
         Quat::IDENTITY,
-        Vec2::new(l.side_depth / 2.0, l.hh()),
+        Vec2::new(ctx.l.side_depth / 2.0, ctx.l.hh()),
+        &concrete,
     );
 
-    // Wall-mounted machine (diagnostic console) on the outer wall,
-    // at waist height. Faces into the room (+x).
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    // Wall-mounted diagnostic machine.
+    ctx.prop_rot(
         Prop::WallMachine,
-        Vec3::new(l.infirmary_x_min() + 0.1, 0.9, l.tj2_center() - 0.6),
+        Vec3::new(ctx.l.infirmary_x_min() + 0.1, 0.9, ctx.l.tj2_center() - 0.6),
         Quat::from_rotation_y(FRAC_PI_2),
     );
 
-    // Medication + syringe on the floor along the outer wall —
-    // the rack that used to hold them was removed to keep the
-    // scene sparser.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    // Medication + syringe on the floor.
+    ctx.prop(
         Prop::MedicationCluster1,
-        Vec3::new(l.infirmary_x_min() + 0.3, 0.0, l.tj2_center() + 0.5),
-        Quat::IDENTITY,
+        Vec3::new(ctx.l.infirmary_x_min() + 0.3, 0.0, ctx.l.tj2_center() + 0.5),
     );
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop(
         Prop::MedicationBottle,
-        Vec3::new(l.infirmary_x_min() + 0.25, 0.0, l.tj2_center() + 0.2),
-        Quat::IDENTITY,
+        Vec3::new(
+            ctx.l.infirmary_x_min() + 0.25,
+            0.0,
+            ctx.l.tj2_center() + 0.2,
+        ),
     );
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::Syringe,
-        Vec3::new(l.infirmary_x_min() + 0.4, 0.0, l.tj2_center() + 0.7),
+        Vec3::new(ctx.l.infirmary_x_min() + 0.4, 0.0, ctx.l.tj2_center() + 0.7),
         Quat::from_rotation_y(0.6),
     );
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::BreathingAparatus,
-        Vec3::new(l.infirmary_x_min() + 0.35, 0.0, l.back_z + 0.4),
+        Vec3::new(ctx.l.infirmary_x_min() + 0.35, 0.0, ctx.l.back_z + 0.4),
         Quat::from_rotation_y(0.4),
     );
 
-    // Stool for the patient, centred in the room.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    // Stool for the patient.
+    ctx.prop(
         Prop::WoodenStool,
-        Vec3::new(l.infirmary_x_center() + 0.2, 0.0, l.tj2_center()),
-        Quat::IDENTITY,
+        Vec3::new(ctx.l.infirmary_x_center() + 0.2, 0.0, ctx.l.tj2_center()),
     );
 
-    // Face masks in a small pile on the floor by the door.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    // Face masks by the door.
+    ctx.prop_rot(
         Prop::FaceMask1,
-        Vec3::new(l.infirmary_x_center() + 0.8, 0.0, l.tj2_north - 0.3),
+        Vec3::new(ctx.l.infirmary_x_center() + 0.8, 0.0, ctx.l.tj2_north - 0.3),
         Quat::from_rotation_y(0.8),
     );
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::FaceMask2,
-        Vec3::new(l.infirmary_x_center() + 0.9, 0.0, l.tj2_north - 0.5),
+        Vec3::new(ctx.l.infirmary_x_center() + 0.9, 0.0, ctx.l.tj2_north - 0.5),
         Quat::from_rotation_y(1.2),
     );
 
     // Paper trash cluster in the corner.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::PaperTrashCluster1,
-        Vec3::new(l.infirmary_x_center() - 0.4, 0.0, l.back_z + 0.3),
+        Vec3::new(ctx.l.infirmary_x_center() - 0.4, 0.0, ctx.l.back_z + 0.3),
         Quat::from_rotation_y(0.5),
     );
 }

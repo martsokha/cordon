@@ -9,129 +9,108 @@ use crate::bunker::particles;
 use crate::bunker::resources::RoomCtx;
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
-    let l = ctx.l;
-    let floor_half = Vec2::new(l.side_depth / 2.0, l.tj1_len() / 2.0);
-    spawn_floor_ceiling(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete_dark.clone(),
-        Vec3::new(l.kitchen_x_center(), 0.0, l.tj1_center()),
-        floor_half,
-        l.h,
-    );
+    let concrete = ctx.pal.concrete.clone();
+    let concrete_dark = ctx.pal.concrete_dark.clone();
 
-    // Walls.
-    spawn_wall(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete.clone(),
-        Vec3::new(l.kitchen_x_min(), l.hh(), l.tj1_center()),
+    ctx.floor_ceiling(
+        Vec3::new(ctx.l.kitchen_x_center(), 0.0, ctx.l.tj1_center()),
+        Vec2::new(ctx.l.side_depth / 2.0, ctx.l.tj1_len() / 2.0),
+        ctx.l.h,
+        &concrete_dark,
+    );
+    ctx.wall(
+        Vec3::new(ctx.l.kitchen_x_min(), ctx.l.hh(), ctx.l.tj1_center()),
         Quat::from_rotation_y(-FRAC_PI_2),
-        Vec2::new(l.tj1_len() / 2.0, l.hh()),
+        Vec2::new(ctx.l.tj1_len() / 2.0, ctx.l.hh()),
+        &concrete,
     );
-    spawn_wall(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete.clone(),
-        Vec3::new(l.kitchen_x_center(), l.hh(), l.tj1_north),
+    ctx.wall(
+        Vec3::new(ctx.l.kitchen_x_center(), ctx.l.hh(), ctx.l.tj1_north),
         Quat::from_rotation_y(PI),
-        Vec2::new(l.side_depth / 2.0, l.hh()),
+        Vec2::new(ctx.l.side_depth / 2.0, ctx.l.hh()),
+        &concrete,
     );
-    spawn_wall(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete.clone(),
-        Vec3::new(l.kitchen_x_center(), l.hh(), l.tj1_south),
+    ctx.wall(
+        Vec3::new(ctx.l.kitchen_x_center(), ctx.l.hh(), ctx.l.tj1_south),
         Quat::IDENTITY,
-        Vec2::new(l.side_depth / 2.0, l.hh()),
+        Vec2::new(ctx.l.side_depth / 2.0, ctx.l.hh()),
+        &concrete,
     );
 
-    // Fridge against the far wall, near the south corner.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    // Fridge.
+    ctx.prop_rot(
         Prop::AmericanFridge,
-        Vec3::new(l.kitchen_x_min() + 0.4, 0.0, l.tj1_south + 0.5),
+        Vec3::new(ctx.l.kitchen_x_min() + 0.4, 0.0, ctx.l.tj1_south + 0.5),
         Quat::from_rotation_y(FRAC_PI_2),
     );
 
-    // Kitchen shelves as counter surface — centered on the far wall.
-    // KitchenShelves1 top is at y = 0.865 (from measured AABB).
+    // Kitchen shelves as counter surface. Top at y = 0.865.
     const SHELF_SURFACE: f32 = 0.865;
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::KitchenShelves1,
-        Vec3::new(l.kitchen_x_min() + 0.3, 0.0, l.tj1_center() - 0.3),
+        Vec3::new(ctx.l.kitchen_x_min() + 0.3, 0.0, ctx.l.tj1_center() - 0.3),
         Quat::from_rotation_y(FRAC_PI_2),
     );
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::KitchenShelves2,
-        Vec3::new(l.kitchen_x_min() + 0.3, 0.0, l.tj1_center() + 0.7),
+        Vec3::new(ctx.l.kitchen_x_min() + 0.3, 0.0, ctx.l.tj1_center() + 0.7),
         Quat::from_rotation_y(FRAC_PI_2),
     );
 
-    // Items on the shelves — feet at shelf surface height.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    // Items on the shelves.
+    ctx.prop_rot(
         Prop::Microwave,
-        Vec3::new(l.kitchen_x_min() + 0.4, SHELF_SURFACE, l.tj1_center() - 0.3),
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            SHELF_SURFACE,
+            ctx.l.tj1_center() - 0.3,
+        ),
         Quat::from_rotation_y(FRAC_PI_2),
     );
-    let kettle = prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::Kettle,
-        Vec3::new(l.kitchen_x_min() + 0.4, SHELF_SURFACE, l.tj1_center() + 0.7),
-        Quat::from_rotation_y(FRAC_PI_2),
-    );
-    // Steam rising from the spout. Offset is in the kettle's
-    // *local* frame; the kettle is rotated +90° around Y, so
-    // local +Z maps to world +X — the direction the nose points
-    // (toward the player entering the kitchen from the corridor).
+    let kettle = ctx
+        .prop_rot(
+            Prop::Kettle,
+            Vec3::new(
+                ctx.l.kitchen_x_min() + 0.4,
+                SHELF_SURFACE,
+                ctx.l.tj1_center() + 0.7,
+            ),
+            Quat::from_rotation_y(FRAC_PI_2),
+        )
+        .id();
+    // Steam rising from the spout. Offset is in the kettle's local
+    // frame; the kettle is rotated +90° around Y, so local +Z maps
+    // to world +X (the nose direction).
     particles::attach_kettle_steam(ctx.commands, ctx.effects, kettle, Vec3::new(0.0, 0.3, 0.1));
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::Mug,
-        Vec3::new(l.kitchen_x_min() + 0.4, SHELF_SURFACE, l.tj1_center() + 0.3),
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            SHELF_SURFACE,
+            ctx.l.tj1_center() + 0.3,
+        ),
         Quat::from_rotation_y(FRAC_PI_2),
     );
 
-    // Electric box mounted on the south wall.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    // Electric box on the south wall.
+    ctx.prop(
         Prop::ElectricBox01,
-        Vec3::new(l.kitchen_x_center() + 0.5, 0.0, l.tj1_south + 0.05),
-        Quat::IDENTITY,
+        Vec3::new(ctx.l.kitchen_x_center() + 0.5, 0.0, ctx.l.tj1_south + 0.05),
     );
 
-    // Barrel near the doorway.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    // Near the doorway.
+    ctx.prop(
         Prop::Barrel02,
-        Vec3::new(l.kitchen_x_center() + 0.8, 0.0, l.tj1_north - 0.4),
-        Quat::IDENTITY,
+        Vec3::new(ctx.l.kitchen_x_center() + 0.8, 0.0, ctx.l.tj1_north - 0.4),
     );
-
-    // Near the doorway: supply bag and a box.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::Bag01,
-        Vec3::new(l.kitchen_x_center() + 0.8, 0.0, l.tj1_north - 0.3),
+        Vec3::new(ctx.l.kitchen_x_center() + 0.8, 0.0, ctx.l.tj1_north - 0.3),
         Quat::from_rotation_y(0.6),
     );
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::Box01,
-        Vec3::new(l.kitchen_x_center() + 0.3, 0.0, l.tj1_north - 0.5),
+        Vec3::new(ctx.l.kitchen_x_center() + 0.3, 0.0, ctx.l.tj1_north - 0.5),
         Quat::from_rotation_y(0.2),
     );
 }

@@ -1,6 +1,7 @@
-pub(crate) mod antechamber;
+pub(super) mod antechamber;
 pub(super) mod armory;
 pub(super) mod command;
+pub(super) mod corridor;
 pub(super) mod entry;
 pub(super) mod hall;
 pub(super) mod infirmary;

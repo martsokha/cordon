@@ -22,7 +22,11 @@ use bevy::prelude::*;
 
 pub use self::components::FpsCamera;
 pub use self::resources::{BunkerSpawned, CameraMode};
-pub use self::visitor::{Visitor, VisitorQueue, VisitorState};
+// Re-exported only when the steam feature is on: that's the
+// only consumer of `VisitorState` outside this module.
+#[cfg(feature = "steam")]
+pub use self::visitor::VisitorState;
+pub use self::visitor::{Visitor, VisitorQueue};
 use crate::PlayingState;
 
 pub struct BunkerPlugin;
@@ -37,6 +41,12 @@ impl Plugin for BunkerPlugin {
             laptop::LaptopPlugin,
             particles::BunkerParticlesPlugin,
         ));
+        // Observer: turns `PropPlacement` components into real
+        // prop entities. Registering once here means every room
+        // can just `commands.spawn(PropPlacement::new(...))` —
+        // no need to thread `AssetServer` through.
+        app.add_observer(geometry::resolve_prop_placement);
+
         app.insert_resource(CameraMode::Free);
         app.insert_resource(bevy::light::GlobalAmbientLight {
             color: Color::srgb(0.9, 0.85, 0.70),

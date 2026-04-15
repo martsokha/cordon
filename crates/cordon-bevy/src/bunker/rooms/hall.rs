@@ -8,8 +8,7 @@
 //!
 //! [`spawn`] handles the initial bunker build; it seeds whichever
 //! tiers the player already has. [`sync_hall_racks`] reacts to
-//! later installs (or save-load state shifts) by spawning the
-//! missing tier's pair.
+//! later installs by spawning the missing tier's pair.
 
 use std::f32::consts::FRAC_PI_2;
 
@@ -41,13 +40,15 @@ pub enum HallRackTier {
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     let has_racks = ctx.player.has_upgrade(&Id::<Upgrade>::new("upgrade_racks"));
-    let has_racks2 = ctx.player.has_upgrade(&Id::<Upgrade>::new("upgrade_racks2"));
+    let has_racks2 = ctx
+        .player
+        .has_upgrade(&Id::<Upgrade>::new("upgrade_racks2"));
 
     if has_racks {
-        spawn_pair(ctx.commands, ctx.asset_server, ctx.l, HallRackTier::North);
+        spawn_pair(ctx.commands, ctx.l, HallRackTier::North);
     }
     if has_racks2 {
-        spawn_pair(ctx.commands, ctx.asset_server, ctx.l, HallRackTier::South);
+        spawn_pair(ctx.commands, ctx.l, HallRackTier::South);
     }
 }
 
@@ -58,25 +59,19 @@ fn pair_offset(tier: HallRackTier) -> f32 {
     }
 }
 
-fn spawn_pair(
-    commands: &mut Commands,
-    asset_server: &AssetServer,
-    l: &Layout,
-    tier: HallRackTier,
-) {
+/// Spawn one rack pair (left + right wall) and tag each with its
+/// [`HallRackTier`]. The pair's `PropPlacement` components are
+/// resolved asynchronously by the observer in `geometry`.
+fn spawn_pair(commands: &mut Commands, l: &Layout, tier: HallRackTier) {
     let hall_cz = (l.tj2_north + l.tj1_south) / 2.0;
     let z = hall_cz + pair_offset(tier);
     for side in [-1.0, 1.0] {
         let x = side * (l.hw - WALL_INSET);
         let rot = Quat::from_rotation_y(-side * FRAC_PI_2);
-        let entity = prop(
-            commands,
-            asset_server,
-            Prop::StorageRack01,
-            Vec3::new(x, 0.0, z),
-            rot,
-        );
-        commands.entity(entity).insert(tier);
+        commands.spawn((
+            PropPlacement::new(Prop::StorageRack01, Vec3::new(x, 0.0, z)).rotated(rot),
+            tier,
+        ));
     }
 }
 
@@ -85,7 +80,6 @@ fn spawn_pair(
 /// bunker was first built appear without a full respawn.
 pub fn sync_hall_racks(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     player: Res<Player>,
     existing: Query<&HallRackTier>,
 ) {
@@ -97,18 +91,10 @@ pub fn sync_hall_racks(
     let has_north_already = existing.iter().any(|t| *t == HallRackTier::North);
     let has_south_already = existing.iter().any(|t| *t == HallRackTier::South);
 
-    if player
-        .0
-        .has_upgrade(&Id::<Upgrade>::new("upgrade_racks"))
-        && !has_north_already
-    {
-        spawn_pair(&mut commands, &asset_server, &l, HallRackTier::North);
+    if player.0.has_upgrade(&Id::<Upgrade>::new("upgrade_racks")) && !has_north_already {
+        spawn_pair(&mut commands, &l, HallRackTier::North);
     }
-    if player
-        .0
-        .has_upgrade(&Id::<Upgrade>::new("upgrade_racks2"))
-        && !has_south_already
-    {
-        spawn_pair(&mut commands, &asset_server, &l, HallRackTier::South);
+    if player.0.has_upgrade(&Id::<Upgrade>::new("upgrade_racks2")) && !has_south_already {
+        spawn_pair(&mut commands, &l, HallRackTier::South);
     }
 }

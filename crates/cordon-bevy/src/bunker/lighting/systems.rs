@@ -78,14 +78,7 @@ pub fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &L
         ),
         // Back corridor end: dim fixture at the new back wall
         // so the corridor doesn't fade to black past T2.
-        LightFixtureBundle::ceiling(
-            0.0,
-            l.back_z + 0.8,
-            l.h,
-            35000.0,
-            dim_cool,
-            false,
-        ),
+        LightFixtureBundle::ceiling(0.0, l.back_z + 0.8, l.h, 35000.0, dim_cool, false),
     ];
 
     for fixture in &fixtures {

@@ -154,11 +154,7 @@ fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<Effect
         &mut commands,
         &mut effects,
         "bunker_dust_quarters",
-        Vec3::new(
-            l.quarters_x_center(),
-            l.hh(),
-            (t1_min_z + t1_max_z) * 0.5,
-        ),
+        Vec3::new(l.quarters_x_center(), l.hh(), (t1_min_z + t1_max_z) * 0.5),
         Vec3::new(
             (l.side_depth * 0.5) - 0.2,
             l.hh() - 0.2,
@@ -177,11 +173,7 @@ fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<Effect
         &mut commands,
         &mut effects,
         "bunker_dust_infirmary",
-        Vec3::new(
-            l.infirmary_x_center(),
-            l.hh(),
-            (t2_min_z + t2_max_z) * 0.5,
-        ),
+        Vec3::new(l.infirmary_x_center(), l.hh(), (t2_min_z + t2_max_z) * 0.5),
         Vec3::new(
             (l.side_depth * 0.5) - 0.2,
             l.hh() - 0.2,
@@ -194,11 +186,7 @@ fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<Effect
         &mut commands,
         &mut effects,
         "bunker_dust_workshop",
-        Vec3::new(
-            l.workshop_x_center(),
-            l.hh(),
-            (t2_min_z + t2_max_z) * 0.5,
-        ),
+        Vec3::new(l.workshop_x_center(), l.hh(), (t2_min_z + t2_max_z) * 0.5),
         Vec3::new(
             (l.side_depth * 0.5) - 0.2,
             l.hh() - 0.2,

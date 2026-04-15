@@ -100,7 +100,6 @@ impl Palette {
 /// makes adding a new room mechanical and keeps call sites uniform.
 pub(crate) struct RoomCtx<'a, 'w, 's> {
     pub commands: &'a mut Commands<'w, 's>,
-    pub asset_server: &'a AssetServer,
     pub meshes: &'a mut Assets<Mesh>,
     pub mats: &'a mut Assets<StandardMaterial>,
     pub effects: &'a mut Assets<bevy_hanabi::EffectAsset>,

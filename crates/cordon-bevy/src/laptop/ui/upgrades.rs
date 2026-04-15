@@ -43,8 +43,7 @@ impl Plugin for UpgradesUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (refresh_upgrade_panels, handle_buy_clicks)
-                .run_if(in_state(PlayingState::Laptop)),
+            (refresh_upgrade_panels, handle_buy_clicks).run_if(in_state(PlayingState::Laptop)),
         );
     }
 }

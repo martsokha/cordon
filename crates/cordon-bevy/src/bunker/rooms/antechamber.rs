@@ -1,15 +1,22 @@
 //! The hidden antechamber room the CCTV camera films.
 //!
 //! Sealed off and placed far below the main bunker geometry
-//! (`y = -50`) so the player's main camera frustum never accidentally
-//! clips into it. Mirrors the player's room dimensions (4m × 4m,
-//! 2.4m tall) so the visitor stands in a familiar-looking space.
+//! (`y = -50`) so the player's main camera frustum never
+//! accidentally clips into it. Mirrors the player's room
+//! dimensions (4m × 4m, 2.4m tall) so the visitor stands in a
+//! familiar-looking space.
 //!
-//! Geometry only — no behavior. The CCTV camera (in [`super`]) and
-//! the visitor sprite (in [`crate::bunker::visitor`]) are spawned
-//! elsewhere; this module just builds the walls, door, and lamp.
+//! Geometry only — no behavior. The CCTV camera (in [`super`])
+//! and the visitor sprite (in [`crate::bunker::visitor`]) are
+//! spawned elsewhere; this module just builds the walls, door,
+//! and lamp.
+
+use std::f32::consts::FRAC_PI_2;
 
 use bevy::prelude::*;
+
+use crate::bunker::geometry::Prop;
+use crate::bunker::resources::RoomCtx;
 
 /// Antechamber world centre. The room is built around this point.
 const ANTECHAMBER_CENTER: Vec3 = Vec3::new(0.0, -49.0, -50.0);
@@ -27,21 +34,13 @@ fn local_to_world(local: Vec3) -> Vec3 {
     ANTECHAMBER_CENTER + Vec3::new(local.x, local.y - HEIGHT / 2.0, local.z)
 }
 
-/// Build the antechamber: floor, four walls, ceiling, the door
-/// behind the visitor, a ceiling lamp, and some holding-room
-/// furniture.
-pub(crate) fn spawn(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    materials: &mut Assets<StandardMaterial>,
-    asset_server: &AssetServer,
-) {
-    let wall_mat = materials.add(StandardMaterial {
+pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
+    let wall_mat = ctx.mats.add(StandardMaterial {
         base_color: Color::srgb(0.18, 0.17, 0.15),
         perceptual_roughness: 0.92,
         ..default()
     });
-    let floor_mat = materials.add(StandardMaterial {
+    let floor_mat = ctx.mats.add(StandardMaterial {
         base_color: Color::srgb(0.12, 0.11, 0.10),
         perceptual_roughness: 0.95,
         ..default()
@@ -52,83 +51,70 @@ pub(crate) fn spawn(
     let hd = HALF_D;
     let h = HEIGHT;
 
-    // Floor.
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(hw * 2.0, 0.05, hd * 2.0))),
+    // Walls, floor, ceiling. Built as raw Cuboid meshes rather
+    // than going through `ctx.wall` because the antechamber
+    // uses custom wall thickness (0.05 m slabs) and its own
+    // material palette distinct from the main bunker's.
+    ctx.commands.spawn((
+        Mesh3d(ctx.meshes.add(Cuboid::new(hw * 2.0, 0.05, hd * 2.0))),
         MeshMaterial3d(floor_mat),
         Transform::from_translation(center + Vec3::new(0.0, -h / 2.0, 0.0)),
     ));
-    // Ceiling.
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(hw * 2.0, 0.05, hd * 2.0))),
+    ctx.commands.spawn((
+        Mesh3d(ctx.meshes.add(Cuboid::new(hw * 2.0, 0.05, hd * 2.0))),
         MeshMaterial3d(wall_mat.clone()),
         Transform::from_translation(center + Vec3::new(0.0, h / 2.0, 0.0)),
     ));
     // Back wall (-z) — the visitor stands facing +z, so this is
     // *behind* them. The door panel is mounted here.
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(hw * 2.0, h, 0.05))),
+    ctx.commands.spawn((
+        Mesh3d(ctx.meshes.add(Cuboid::new(hw * 2.0, h, 0.05))),
         MeshMaterial3d(wall_mat.clone()),
         Transform::from_translation(center + Vec3::new(0.0, 0.0, -hd)),
     ));
     // Front wall (+z) — the side the CCTV camera is mounted on.
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(hw * 2.0, h, 0.05))),
+    ctx.commands.spawn((
+        Mesh3d(ctx.meshes.add(Cuboid::new(hw * 2.0, h, 0.05))),
         MeshMaterial3d(wall_mat.clone()),
         Transform::from_translation(center + Vec3::new(0.0, 0.0, hd)),
     ));
     // Left wall (-x).
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(0.05, h, hd * 2.0))),
+    ctx.commands.spawn((
+        Mesh3d(ctx.meshes.add(Cuboid::new(0.05, h, hd * 2.0))),
         MeshMaterial3d(wall_mat.clone()),
         Transform::from_translation(center + Vec3::new(-hw, 0.0, 0.0)),
     ));
     // Right wall (+x).
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(0.05, h, hd * 2.0))),
+    ctx.commands.spawn((
+        Mesh3d(ctx.meshes.add(Cuboid::new(0.05, h, hd * 2.0))),
         MeshMaterial3d(wall_mat),
         Transform::from_translation(center + Vec3::new(hw, 0.0, 0.0)),
     ));
 
-    // Back door: real GLB prop (same model + scale as the bunker
-    // entrance). Stands against the back wall (-z), facing the
-    // visitor so they "came through" it. feet land on the floor
-    // via `local_to_world`.
-    {
-        use crate::bunker::geometry::{Prop, prop_scaled};
-        const DOOR_SCALE: f32 = 1.44;
-        // Door2 depth half-extent ~0.07 × 1.44 ≈ 0.10 m. Set back
-        // against the wall with a small gap so it doesn't z-fight.
-        prop_scaled(
-            commands,
-            asset_server,
-            Prop::Door2,
-            local_to_world(Vec3::new(0.0, 0.0, -hd + 0.12)),
-            Quat::IDENTITY,
-            DOOR_SCALE,
-        );
-    }
-    spawn_front_door(commands, meshes, materials, center, hd, h);
-    spawn_lamp(commands, center, h);
-    spawn_furniture(commands, asset_server, hw, hd);
+    // Back door: real GLB prop (same model + scale as the
+    // bunker entrance). Stands against the back wall (-z),
+    // facing the visitor so they "came through" it.
+    const DOOR_SCALE: f32 = 1.44;
+    ctx.prop_scaled(
+        Prop::Door2,
+        local_to_world(Vec3::new(0.0, 0.0, -hd + 0.12)),
+        Quat::IDENTITY,
+        DOOR_SCALE,
+    );
+    spawn_front_door(ctx, center, hd, h);
+    spawn_lamp(ctx, center, h);
+    spawn_furniture(ctx, hw, hd);
 }
 
 /// Door on the front wall (+z) — the side facing the bunker
 /// interior. Mirrors the back door.
-fn spawn_front_door(
-    commands: &mut Commands,
-    meshes: &mut Assets<Mesh>,
-    materials: &mut Assets<StandardMaterial>,
-    center: Vec3,
-    hd: f32,
-    h: f32,
-) {
-    let panel_mat = materials.add(StandardMaterial {
+fn spawn_front_door(ctx: &mut RoomCtx<'_, '_, '_>, center: Vec3, hd: f32, h: f32) {
+    let panel_mat = ctx.mats.add(StandardMaterial {
         base_color: Color::srgb(0.05, 0.05, 0.06),
         perceptual_roughness: 0.6,
         ..default()
     });
-    let frame_mat = materials.add(StandardMaterial {
+    let frame_mat = ctx.mats.add(StandardMaterial {
         base_color: Color::srgb(0.22, 0.20, 0.18),
         perceptual_roughness: 0.5,
         metallic: 0.4,
@@ -139,13 +125,16 @@ fn spawn_front_door(
     let door_z = hd - 0.03;
     let door_y = -h / 2.0 + door_h / 2.0;
 
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(door_w + 0.1, door_h + 0.1, 0.04))),
+    ctx.commands.spawn((
+        Mesh3d(
+            ctx.meshes
+                .add(Cuboid::new(door_w + 0.1, door_h + 0.1, 0.04)),
+        ),
         MeshMaterial3d(frame_mat),
         Transform::from_translation(center + Vec3::new(0.0, door_y, door_z - 0.005)),
     ));
-    commands.spawn((
-        Mesh3d(meshes.add(Cuboid::new(door_w, door_h, 0.04))),
+    ctx.commands.spawn((
+        Mesh3d(ctx.meshes.add(Cuboid::new(door_w, door_h, 0.04))),
         MeshMaterial3d(panel_mat),
         Transform::from_translation(center + Vec3::new(0.0, door_y, door_z - 0.025)),
     ));
@@ -153,64 +142,41 @@ fn spawn_front_door(
 
 /// Holding-room furniture: cold, functional, security-checkpoint
 /// feel. No comfort — visitors don't get that.
-///
-/// Placements are written in the antechamber's local frame (floor at
-/// y = 0, center at x = z = 0) and lifted into world space by
-/// [`local_to_world`] — so they read the same way as room code in
-/// `bunker/room/*`.
-fn spawn_furniture(commands: &mut Commands, asset_server: &AssetServer, hw: f32, _hd: f32) {
-    use std::f32::consts::FRAC_PI_2;
-
-    use crate::bunker::geometry::{Prop, prop};
-
+fn spawn_furniture(ctx: &mut RoomCtx<'_, '_, '_>, hw: f32, _hd: f32) {
     // Stool — the only seat a visitor gets.
-    prop(
-        commands,
-        asset_server,
-        Prop::WoodenStool,
-        local_to_world(Vec3::new(0.6, 0.0, -0.5)),
-        Quat::IDENTITY,
-    );
+    ctx.prop(Prop::WoodenStool, local_to_world(Vec3::new(0.6, 0.0, -0.5)));
     // Locker against the left wall — for confiscated gear.
-    prop(
-        commands,
-        asset_server,
+    ctx.prop_rot(
         Prop::Locker,
         local_to_world(Vec3::new(-hw + 0.3, 0.0, 0.0)),
         Quat::from_rotation_y(FRAC_PI_2),
     );
     // Box against the right wall. Used to sit on a rack shelf,
     // but the rack was removed to keep the antechamber sparse.
-    prop(
-        commands,
-        asset_server,
+    ctx.prop_rot(
         Prop::Box02,
         local_to_world(Vec3::new(hw - 0.4, 0.0, 0.0)),
         Quat::from_rotation_y(0.2),
     );
     // Supply box on the floor.
-    prop(
-        commands,
-        asset_server,
+    ctx.prop_rot(
         Prop::Box01,
         local_to_world(Vec3::new(-0.8, 0.0, 0.8)),
         Quat::from_rotation_y(0.4),
     );
     // Security panel mounted mid-wall.
-    prop(
-        commands,
-        asset_server,
+    ctx.prop_rot(
         Prop::ElectricBox01,
         local_to_world(Vec3::new(hw - 0.05, HEIGHT / 2.0, -0.8)),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
 }
 
-/// Single warm-but-dim ceiling lamp so the camera has something to
-/// see. The antechamber should feel like a holding room, not a
-/// lounge.
-fn spawn_lamp(commands: &mut Commands, center: Vec3, h: f32) {
-    commands.spawn((
+/// Single warm-but-dim ceiling lamp so the camera has something
+/// to see. The antechamber should feel like a holding room, not
+/// a lounge.
+fn spawn_lamp(ctx: &mut RoomCtx<'_, '_, '_>, center: Vec3, h: f32) {
+    ctx.commands.spawn((
         PointLight {
             intensity: 60000.0,
             color: Color::srgb(1.0, 0.85, 0.55),

@@ -72,10 +72,7 @@ pub fn apply_buy_upgrade(
         }
 
         // Prereqs: every required upgrade must already be installed.
-        let missing_prereq = def
-            .requires
-            .iter()
-            .any(|req| !player.0.has_upgrade(req));
+        let missing_prereq = def.requires.iter().any(|req| !player.0.has_upgrade(req));
         if missing_prereq {
             outcomes.write(BuyUpgradeOutcome {
                 upgrade: id.clone(),
@@ -97,11 +94,7 @@ pub fn apply_buy_upgrade(
         player.0.upgrades.push(id.clone());
         player.0.recompute_storage_capacity(&data.upgrades);
 
-        info!(
-            "upgrade installed: `{}` ({})",
-            id.as_str(),
-            def.cost
-        );
+        info!("upgrade installed: `{}` ({})", id.as_str(), def.cost);
         outcomes.write(BuyUpgradeOutcome {
             upgrade: id.clone(),
             result: Ok(()),

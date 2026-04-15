@@ -1,149 +1,109 @@
 //! Entry checkpoint zone: stairs, trade grate, lockers, visitor side.
 
+use std::f32::consts::{FRAC_PI_2, PI};
+
+use avian3d::prelude::{Collider, RigidBody};
 use bevy::prelude::*;
 
 use crate::bunker::geometry::*;
 use crate::bunker::resources::RoomCtx;
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
-    let l = ctx.l;
-    // Entry door: real GLB prop replacing the old hand-built
-    // lintel+jambs. Door2's native height is 1.46 m; the bunker
-    // opening is 2.10 m, so scale by 2.1 / 1.46 ≈ 1.44 to fill
-    // the frame.
+    // Entry door: Door2 scaled 1.44 to match the 2.10 m opening.
     const DOOR_SCALE: f32 = 1.44;
-    prop_scaled(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_scaled(
         Prop::Door2,
-        Vec3::new(0.0, 0.0, l.front_z - 0.1),
+        Vec3::new(0.0, 0.0, ctx.l.front_z - 0.1),
         Quat::IDENTITY,
         DOOR_SCALE,
     );
-    // Matching door on the opposite end of the corridor at
-    // `back_z`. Flush against the back wall, facing the bunker
-    // interior (rotated 180° around Y so its +z hinge/normal
-    // points into the room rather than into the concrete).
-    prop_scaled(
-        ctx.commands,
-        ctx.asset_server,
+    // Matching door on the opposite end of the corridor.
+    ctx.prop_scaled(
         Prop::Door2,
-        Vec3::new(0.0, 0.0, l.back_z + 0.1),
-        Quat::from_rotation_y(std::f32::consts::PI),
+        Vec3::new(0.0, 0.0, ctx.l.back_z + 0.1),
+        Quat::from_rotation_y(PI),
         DOOR_SCALE,
     );
-    spawn_stairs(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete.clone(),
-        l.front_z + 0.3,
-        1.0,
-        6,
-    );
+
+    let concrete = ctx.pal.concrete.clone();
+    let metal = ctx.pal.metal.clone();
+    let wood = ctx.pal.wood.clone();
+    ctx.stairs(ctx.l.front_z + 0.3, 1.0, 6, &concrete);
 
     // Trade grate: sides + bars below counter to block walking.
-    spawn_grate_bars(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.metal.clone(),
-        -l.hw,
-        -l.hole_half,
-        l.trade_z,
-        l.h,
+    ctx.grate_bars(
+        -ctx.l.hw,
+        -ctx.l.hole_half,
+        ctx.l.trade_z,
+        ctx.l.h,
         0.1,
+        &metal,
     );
-    spawn_grate_bars(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.metal.clone(),
-        l.hole_half,
-        l.hw,
-        l.trade_z,
-        l.h,
+    ctx.grate_bars(
+        ctx.l.hole_half,
+        ctx.l.hw,
+        ctx.l.trade_z,
+        ctx.l.h,
         0.1,
+        &metal,
     );
-    spawn_box(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.wood.clone(),
-        Vec3::new(0.0, 0.78, l.trade_z),
-        Vec3::new(l.hole_half * 2.0 + 0.2, 0.04, 0.25),
+    ctx.decor_box(
+        Vec3::new(0.0, 0.78, ctx.l.trade_z),
+        Vec3::new(ctx.l.hole_half * 2.0 + 0.2, 0.04, 0.25),
+        &wood,
     );
-    spawn_grate_bars(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.metal.clone(),
-        -l.hole_half,
-        l.hole_half,
-        l.trade_z,
+    ctx.grate_bars(
+        -ctx.l.hole_half,
+        ctx.l.hole_half,
+        ctx.l.trade_z,
         0.76,
         0.1,
+        &metal,
     );
-    // Invisible full-height collider across the center opening so
-    // the player can't step over the short bars.
+    // Invisible full-height collider across the center opening.
     ctx.commands.spawn((
-        avian3d::prelude::RigidBody::Static,
-        avian3d::prelude::Collider::cuboid(l.hole_half * 2.0, l.h, 0.1),
-        Transform::from_xyz(0.0, l.h / 2.0, l.trade_z),
+        RigidBody::Static,
+        Collider::cuboid(ctx.l.hole_half * 2.0, ctx.l.h, 0.1),
+        Transform::from_xyz(0.0, ctx.l.h / 2.0, ctx.l.trade_z),
     ));
 
     // Kitchen shelves on the visitor side of the trade grate,
     // facing away from the player — hides the player's legs.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop(
         Prop::KitchenShelves2,
-        Vec3::new(0.52, 0.0, l.trade_z + 0.1),
-        Quat::IDENTITY,
+        Vec3::new(0.52, 0.0, ctx.l.trade_z + 0.1),
     );
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop(
         Prop::KitchenShelves2,
-        Vec3::new(-0.52, 0.0, l.trade_z + 0.1),
-        Quat::IDENTITY,
+        Vec3::new(-0.52, 0.0, ctx.l.trade_z + 0.1),
     );
 
     // Lockers along the left wall, starting 0.7 m north of the grate.
     for i in 0..5 {
-        prop(
-            ctx.commands,
-            ctx.asset_server,
+        ctx.prop_rot(
             Prop::Locker,
-            Vec3::new(-l.hw + 0.3, 0.0, l.trade_z + 0.7 + 0.5 * i as f32),
-            Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
+            Vec3::new(-ctx.l.hw + 0.3, 0.0, ctx.l.trade_z + 0.7 + 0.5 * i as f32),
+            Quat::from_rotation_y(FRAC_PI_2),
         );
     }
-    // Bag on the floor near the lockers.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::Bag02,
-        Vec3::new(-l.hw + 0.8, 0.0, l.trade_z + 2.5),
+        Vec3::new(-ctx.l.hw + 0.8, 0.0, ctx.l.trade_z + 2.5),
         Quat::from_rotation_y(0.8),
     );
-    // Barrel in the corner.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop(
         Prop::Barrel03,
-        Vec3::new(l.hw - 0.4, 0.0, l.trade_z + 2.7),
-        Quat::IDENTITY,
+        Vec3::new(ctx.l.hw - 0.4, 0.0, ctx.l.trade_z + 2.7),
     );
-    // Box near lockers.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::Box01,
-        Vec3::new(-l.hw + 0.8, 0.0, l.trade_z + 1.7),
+        Vec3::new(-ctx.l.hw + 0.8, 0.0, ctx.l.trade_z + 1.7),
         Quat::from_rotation_y(0.3),
     );
     // Amp rack on the right wall (opposite lockers).
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::AmpRack01,
-        Vec3::new(l.hw - 0.3, 0.0, l.trade_z + 1.5),
-        Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2),
+        Vec3::new(ctx.l.hw - 0.3, 0.0, ctx.l.trade_z + 1.5),
+        Quat::from_rotation_y(-FRAC_PI_2),
     );
 }
