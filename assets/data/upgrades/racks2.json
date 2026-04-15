@@ -5,6 +5,6 @@
   "requires": ["upgrade_racks"],
   "source": "Purchasable",
   "effects": [
-    { "StorageCapacity": 15 }
+    "HallRackPair"
   ]
 }

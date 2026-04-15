@@ -173,7 +173,6 @@ pub trait NpcGenerator {
                 revealed: Vec::new(),
             },
             employment: Employment {
-                role: None,
                 daily_pay: self.daily_pay(rank),
             },
         }

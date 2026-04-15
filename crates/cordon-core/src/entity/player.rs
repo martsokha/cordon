@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use super::bunker::{Upgrade, UpgradeDef, UpgradeEffect};
 use super::faction::Faction;
-use super::npc::{Npc, Role};
+use super::npc::Npc;
 use crate::item::{Item, ItemInstance, Stash, StashScope};
 use crate::primitive::{Credits, Experience, Id, Relation, Uid};
 
@@ -73,13 +73,11 @@ impl PlayerRank {
     }
 }
 
-/// A hired NPC assigned to a role.
+/// A hired NPC on the player's roster.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HiredNpc {
     /// Runtime UID of the hired NPC.
     pub npc_id: Uid<Npc>,
-    /// Whether this NPC is a runner or guard.
-    pub role: Role,
 }
 
 /// The player's complete state: identity, economy, faction relations,
@@ -108,12 +106,6 @@ pub struct PlayerState {
 }
 
 impl PlayerState {
-    /// Base size of the main bunker storage before any rack
-    /// upgrades are installed. Rack-category upgrades contribute
-    /// `StorageCapacity(n)` effects that add to this; see
-    /// [`PlayerState::recompute_storage_capacity`].
-    pub const BASE_STORAGE_CAPACITY: u8 = 10;
-
     /// Create a new player state with neutral standings for all given factions
     /// and an empty bunker.
     pub fn new(faction_ids: &[Id<Faction>]) -> Self {
@@ -129,11 +121,8 @@ impl PlayerState {
             hired: Vec::new(),
             garrison_bribe_paid: false,
             upgrades: Vec::new(),
-            // Base storage capacity. Rack upgrades add to this;
-            // see `recompute_storage_capacity` which should be
-            // called whenever `upgrades` changes.
-            storage: Stash::new(Self::BASE_STORAGE_CAPACITY),
-            hidden_storage: Stash::new(0),
+            storage: Stash::new(),
+            hidden_storage: Stash::new(),
         }
     }
 
@@ -179,41 +168,22 @@ impl PlayerState {
         self.upgrades.iter().any(|u| u == upgrade_id)
     }
 
-    /// Re-derive the main storage capacity from installed upgrades.
+    /// Iterate every [`UpgradeEffect`] granted by the player's
+    /// currently-installed upgrades, resolved against the game
+    /// data catalog.
     ///
-    /// Sums every [`UpgradeEffect::StorageCapacity`] contribution
-    /// across the installed upgrade set and sets the capacity to
-    /// `BASE_STORAGE_CAPACITY + total_bonus`, saturating at the
-    /// `u8` ceiling.
-    ///
-    /// Call this whenever `upgrades` changes (install consequence,
-    /// shop purchase, save-load). Stash item contents are
-    /// preserved; only the capacity field moves. If a new total
-    /// is *below* the current item count, existing items stay —
-    /// the stash just becomes "over capacity" and refuses further
-    /// inserts until space frees up.
-    pub fn recompute_storage_capacity(
-        &mut self,
-        upgrades: &std::collections::HashMap<Id<Upgrade>, UpgradeDef>,
-    ) {
-        let bonus: u32 = self
-            .upgrades
+    /// Systems that care about mechanical upgrade outcomes should
+    /// query this instead of matching on specific upgrade IDs —
+    /// keeps the code data-driven and lets new upgrades slot in by
+    /// declaring the same effect variant.
+    pub fn installed_effects<'a>(
+        &'a self,
+        upgrades: &'a std::collections::HashMap<Id<Upgrade>, UpgradeDef>,
+    ) -> impl Iterator<Item = &'a UpgradeEffect> + 'a {
+        self.upgrades
             .iter()
             .filter_map(|id| upgrades.get(id))
             .flat_map(|def| def.effects.iter())
-            .filter_map(|effect| match effect {
-                UpgradeEffect::StorageCapacity(n) => Some(u32::from(*n)),
-                _ => None,
-            })
-            .sum();
-        let total = u32::from(Self::BASE_STORAGE_CAPACITY).saturating_add(bonus);
-        let capped = u8::try_from(total).unwrap_or(u8::MAX);
-        self.storage.set_capacity(capped);
-    }
-
-    /// Whether the base has a generator (prevents power outages).
-    pub fn has_power(&self) -> bool {
-        self.has_upgrade(&Id::<Upgrade>::new("upgrade_generator"))
     }
 
     /// Total count of a given item definition across the requested
@@ -245,27 +215,16 @@ impl PlayerState {
 
     /// Insert an item instance into the requested scope.
     ///
-    /// - [`Main`](StashScope::Main): main only; fails when
-    ///   full.
-    /// - [`Hidden`](StashScope::Hidden): hidden only; fails
-    ///   when full.
-    /// - [`Any`](StashScope::Any): main first, hidden as
-    ///   overflow; fails only when both are full.
-    ///
-    /// Returns `Err(instance)` with the original item when
-    /// every targeted stash is full.
-    pub fn add_item(
-        &mut self,
-        instance: ItemInstance,
-        scope: StashScope,
-    ) -> Result<(), ItemInstance> {
+    /// - [`Main`](StashScope::Main): main bunker storage.
+    /// - [`Hidden`](StashScope::Hidden): hidden cache.
+    /// - [`Any`](StashScope::Any): main bunker storage (same as
+    ///   `Main` for now — kept so the scope enum stays meaningful
+    ///   once physical rack placement lands and main storage
+    ///   regains a real capacity).
+    pub fn add_item(&mut self, instance: ItemInstance, scope: StashScope) {
         match scope {
-            StashScope::Main => self.storage.add(instance),
+            StashScope::Main | StashScope::Any => self.storage.add(instance),
             StashScope::Hidden => self.hidden_storage.add(instance),
-            StashScope::Any => match self.storage.add(instance) {
-                Ok(()) => Ok(()),
-                Err(instance) => self.hidden_storage.add(instance),
-            },
         }
     }
 

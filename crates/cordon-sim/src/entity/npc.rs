@@ -11,7 +11,7 @@
 use bevy::prelude::*;
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NpcName;
-use cordon_core::entity::npc::{Npc, NpcTemplate, Personality, Role};
+use cordon_core::entity::npc::{Npc, NpcTemplate, Personality};
 use cordon_core::entity::perk::Perk;
 use cordon_core::item::{Loadout, TimedEffect};
 use cordon_core::primitive::{
@@ -140,12 +140,10 @@ pub struct Perks {
     pub revealed: Vec<Id<Perk>>,
 }
 
-/// Employment status. Bundles the two employment fields from
-/// cordon-core's `Npc` into one component so "is this NPC
-/// hired?" is a single query touch.
+/// Employment status. "Is this NPC hired?" is a single query
+/// touch; `daily_pay` of zero means unemployed.
 #[derive(Component, Debug, Clone, Copy)]
 pub struct Employment {
-    pub role: Option<Role>,
     pub daily_pay: Credits,
 }
 

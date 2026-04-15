@@ -56,9 +56,11 @@ pub enum UpgradeSource {
 /// effects list.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UpgradeEffect {
-    /// Add this many slots to the main bunker storage. Multiple
-    /// StorageCapacity effects sum across installed upgrades.
-    StorageCapacity(u16),
+    /// Spawn a pair of storage racks in the hall. Multiple
+    /// `HallRackPair` effects each add another pair (one upgrade
+    /// → north pair, a second → south pair). Consumed by the
+    /// bunker's `hall` room spawner.
+    HallRackPair,
     /// Reveal relic markers on the zone map regardless of NPC
     /// vision / fog-of-war. Consumed by the laptop's fog system.
     RevealRelics,

@@ -109,6 +109,10 @@ pub(crate) struct RoomCtx<'a, 'w, 's> {
     /// player has unlocked/installed (e.g. rack upgrades that add
     /// storage racks in the hall).
     pub player: &'a cordon_core::entity::player::PlayerState,
+    /// Game-data catalog. Rooms that resolve `UpgradeEffect`s on
+    /// the player's installed upgrades need this to look up effect
+    /// lists by upgrade id.
+    pub game_data: &'a cordon_data::gamedata::GameDataResource,
 }
 
 /// Bunker dimensions. Only stores the primary constants; derived

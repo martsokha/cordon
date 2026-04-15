@@ -123,14 +123,7 @@ pub fn apply(
             };
             let count = q.resolved_count();
             for _ in 0..count {
-                let instance = ItemInstance::new(def);
-                if let Err(dropped) = world.player.add_item(instance, q.scope) {
-                    warn!(
-                        "GiveItem: stash full, dropped `{}` on the floor",
-                        dropped.def_id.as_str()
-                    );
-                    break;
-                }
+                world.player.add_item(ItemInstance::new(def), q.scope);
             }
         }
 
@@ -191,12 +184,6 @@ pub fn apply(
         Consequence::UnlockUpgrade(upgrade) => {
             if !world.player.upgrades.contains(upgrade) {
                 world.player.upgrades.push(upgrade.clone());
-                // Re-derive storage capacity so any
-                // StorageCapacity effects on the newly-installed
-                // upgrade take effect this frame.
-                world
-                    .player
-                    .recompute_storage_capacity(&world.data.upgrades);
             }
         }
 

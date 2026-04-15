@@ -181,7 +181,6 @@ pub fn handle_spawn_npc_requests(
                 revealed: Vec::new(),
             },
             employment: Employment {
-                role: None,
                 daily_pay: cordon_core::primitive::Credits::new(0),
             },
         };

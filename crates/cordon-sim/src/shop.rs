@@ -5,14 +5,15 @@
 //! validates cost + prereq + duplicate-install, deducts credits,
 //! and pushes the upgrade id onto `player.upgrades`.
 //!
-//! Side-effects (storage capacity, fog bypass, visual rack
-//! spawning) are handled by existing systems that watch
-//! `player.upgrades` — this module only touches economy + the
-//! installed list.
+//! Side-effects (fog bypass, visual rack spawning, etc.) are
+//! handled by systems that query `player.installed_effects(...)`
+//! — this module only touches economy + the installed list.
 
 use bevy::prelude::*;
-use cordon_core::entity::bunker::Upgrade;
+use cordon_core::entity::bunker::{Upgrade, UpgradeDef};
+use cordon_core::entity::player::PlayerState;
 use cordon_core::primitive::Id;
+use cordon_data::catalog::GameData;
 use cordon_data::gamedata::GameDataResource;
 
 use crate::resources::Player;
@@ -53,51 +54,39 @@ pub fn apply_buy_upgrade(
 ) {
     for request in requests.read() {
         let id = &request.upgrade;
-        let data = &game_data.0;
-
-        let Some(def) = data.upgrades.get(id) else {
-            outcomes.write(BuyUpgradeOutcome {
-                upgrade: id.clone(),
-                result: Err(BuyUpgradeFailure::UnknownUpgrade),
-            });
-            continue;
-        };
-
-        if player.0.has_upgrade(id) {
-            outcomes.write(BuyUpgradeOutcome {
-                upgrade: id.clone(),
-                result: Err(BuyUpgradeFailure::AlreadyInstalled),
-            });
-            continue;
-        }
-
-        // Prereqs: every required upgrade must already be installed.
-        let missing_prereq = def.requires.iter().any(|req| !player.0.has_upgrade(req));
-        if missing_prereq {
-            outcomes.write(BuyUpgradeOutcome {
-                upgrade: id.clone(),
-                result: Err(BuyUpgradeFailure::MissingPrerequisite),
-            });
-            continue;
-        }
-
-        if player.0.credits.value() < def.cost.value() {
-            outcomes.write(BuyUpgradeOutcome {
-                upgrade: id.clone(),
-                result: Err(BuyUpgradeFailure::Unaffordable),
-            });
-            continue;
-        }
-
-        // All checks passed — charge the cost and install.
-        player.0.credits -= def.cost;
-        player.0.upgrades.push(id.clone());
-        player.0.recompute_storage_capacity(&data.upgrades);
-
-        info!("upgrade installed: `{}` ({})", id.as_str(), def.cost);
+        let result = validate_purchase(&player.0, &game_data.0, id).map(|def| {
+            player.0.credits -= def.cost;
+            player.0.upgrades.push(id.clone());
+            info!("upgrade installed: `{}` ({})", id.as_str(), def.cost);
+        });
         outcomes.write(BuyUpgradeOutcome {
             upgrade: id.clone(),
-            result: Ok(()),
+            result,
         });
     }
+}
+
+/// Check that `id` names a known upgrade the player can legally
+/// install right now (not already installed, prereqs satisfied,
+/// affordable). On success returns the matching [`UpgradeDef`] so
+/// the caller can charge the cost without a second lookup.
+fn validate_purchase<'a>(
+    player: &PlayerState,
+    data: &'a GameData,
+    id: &Id<Upgrade>,
+) -> Result<&'a UpgradeDef, BuyUpgradeFailure> {
+    let def = data
+        .upgrades
+        .get(id)
+        .ok_or(BuyUpgradeFailure::UnknownUpgrade)?;
+    if player.has_upgrade(id) {
+        return Err(BuyUpgradeFailure::AlreadyInstalled);
+    }
+    if def.requires.iter().any(|req| !player.has_upgrade(req)) {
+        return Err(BuyUpgradeFailure::MissingPrerequisite);
+    }
+    if player.credits.value() < def.cost.value() {
+        return Err(BuyUpgradeFailure::Unaffordable);
+    }
+    Ok(def)
 }

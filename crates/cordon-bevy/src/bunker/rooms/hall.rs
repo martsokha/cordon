@@ -1,10 +1,14 @@
 //! The straight-hall segment between T1 and T2. Wall space
-//! along both sides is reserved for storage racks, populated as
-//! the player installs the `racks` / `racks2` upgrades:
+//! along both sides is reserved for storage racks, populated from
+//! the `HallRackPair` upgrade effect:
 //!
-//! - No rack upgrade → hall is empty.
-//! - `upgrade_racks` installed → 2 racks (north pair).
-//! - `upgrade_racks` + `upgrade_racks2` → 4 racks (both pairs).
+//! - 0 pairs declared → hall is empty.
+//! - 1 pair declared → 2 racks (north pair).
+//! - 2 pairs declared → 4 racks (both pairs).
+//!
+//! Which specific upgrades grant `HallRackPair` is a data
+//! concern — the room code just counts occurrences and spawns
+//! pairs by index.
 //!
 //! [`spawn`] handles the initial bunker build; it seeds whichever
 //! tiers the player already has. [`sync_hall_racks`] reacts to
@@ -13,8 +17,8 @@
 use std::f32::consts::FRAC_PI_2;
 
 use bevy::prelude::*;
-use cordon_core::entity::bunker::Upgrade;
-use cordon_core::primitive::Id;
+use cordon_core::entity::bunker::UpgradeEffect;
+use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::Player;
 
 use crate::bunker::geometry::*;
@@ -30,25 +34,39 @@ const WALL_INSET: f32 = 0.6;
 
 /// Which rack tier an entity belongs to, so [`sync_hall_racks`]
 /// knows what's already present and what to spawn.
+///
+/// Slot assignment is index-based: the first installed
+/// `HallRackPair` effect fills `North`, the second fills `South`.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HallRackTier {
-    /// Pair added by `upgrade_racks`.
     North,
-    /// Pair added by `upgrade_racks2`.
     South,
 }
 
-pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
-    let has_racks = ctx.player.has_upgrade(&Id::<Upgrade>::new("upgrade_racks"));
-    let has_racks2 = ctx
-        .player
-        .has_upgrade(&Id::<Upgrade>::new("upgrade_racks2"));
-
-    if has_racks {
-        spawn_pair(ctx.commands, ctx.l, HallRackTier::North);
+impl HallRackTier {
+    /// Tier for the Nth installed `HallRackPair` effect, or `None`
+    /// if the hall can't fit another pair.
+    fn from_index(index: usize) -> Option<Self> {
+        match index {
+            0 => Some(Self::North),
+            1 => Some(Self::South),
+            _ => None,
+        }
     }
-    if has_racks2 {
-        spawn_pair(ctx.commands, ctx.l, HallRackTier::South);
+}
+
+pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
+    let pair_count = ctx
+        .player
+        .installed_effects(&ctx.game_data.0.upgrades)
+        .filter(|e| matches!(e, UpgradeEffect::HallRackPair))
+        .count();
+
+    for i in 0..pair_count {
+        let Some(tier) = HallRackTier::from_index(i) else {
+            break;
+        };
+        spawn_pair(ctx.commands, ctx.l, tier);
     }
 }
 
@@ -81,6 +99,7 @@ fn spawn_pair(commands: &mut Commands, l: &Layout, tier: HallRackTier) {
 pub fn sync_hall_racks(
     mut commands: Commands,
     player: Res<Player>,
+    game_data: Res<GameDataResource>,
     existing: Query<&HallRackTier>,
 ) {
     if !player.is_changed() {
@@ -88,13 +107,19 @@ pub fn sync_hall_racks(
     }
     let l = Layout::new();
 
-    let has_north_already = existing.iter().any(|t| *t == HallRackTier::North);
-    let has_south_already = existing.iter().any(|t| *t == HallRackTier::South);
+    let declared_pairs = player
+        .0
+        .installed_effects(&game_data.0.upgrades)
+        .filter(|e| matches!(e, UpgradeEffect::HallRackPair))
+        .count();
 
-    if player.0.has_upgrade(&Id::<Upgrade>::new("upgrade_racks")) && !has_north_already {
-        spawn_pair(&mut commands, &l, HallRackTier::North);
-    }
-    if player.0.has_upgrade(&Id::<Upgrade>::new("upgrade_racks2")) && !has_south_already {
-        spawn_pair(&mut commands, &l, HallRackTier::South);
+    for i in 0..declared_pairs {
+        let Some(tier) = HallRackTier::from_index(i) else {
+            break;
+        };
+        if existing.iter().any(|t| *t == tier) {
+            continue;
+        }
+        spawn_pair(&mut commands, &l, tier);
     }
 }
