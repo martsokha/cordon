@@ -162,8 +162,8 @@ impl Layout {
             hole_half: 0.6,
             tj1_north: -4.63,
             tj1_south: -7.63,
-            tj2_north: -9.98,
-            back_z: -12.98,
+            tj2_north: -9.58,
+            back_z: -12.58,
             side_depth: 3.0,
             side_door_width: 1.6,
         }
