@@ -2448,6 +2448,8 @@ dependencies = [
  "bevy-steamworks",
  "bevy_fluent",
  "bevy_hanabi",
+ "bevy_prng",
+ "bevy_rand",
  "bevy_yarnspinner",
  "cordon-core",
  "cordon-data",

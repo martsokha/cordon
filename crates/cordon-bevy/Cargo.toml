@@ -33,6 +33,8 @@ cordon-sim = { workspace = true, features = [] }
 # Game engine
 bevy = { workspace = true, features = [] }
 bevy-inspector-egui = { workspace = true, features = [] }
+bevy_rand = { workspace = true, features = [] }
+bevy_prng = { workspace = true, features = [] }
 rand = { workspace = true, features = [] }
 
 # Localization and dialogue

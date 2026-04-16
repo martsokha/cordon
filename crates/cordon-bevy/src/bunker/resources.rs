@@ -75,10 +75,7 @@ pub(crate) struct Palette {
 }
 
 impl Palette {
-    pub(crate) fn new(
-        mats: &mut Assets<StandardMaterial>,
-        asset_server: &AssetServer,
-    ) -> Self {
+    pub(crate) fn new(mats: &mut Assets<StandardMaterial>, asset_server: &AssetServer) -> Self {
         // One texture set for every structural concrete surface
         // (walls, floor, ceiling). Using separate textures for
         // walls vs. floor created a visible seam at the wall/
@@ -120,10 +117,7 @@ impl Palette {
 /// with a tint. `metallic: 0.0` deliberately zeroes out the
 /// metallic channel of `metallic_roughness_texture` (see
 /// [`textures`](super::textures) module docs).
-fn concrete_material(
-    set: &super::textures::TextureSet,
-    tint: Color,
-) -> StandardMaterial {
+fn concrete_material(set: &super::textures::TextureSet, tint: Color) -> StandardMaterial {
     StandardMaterial {
         base_color: tint,
         base_color_texture: Some(set.base_color.clone()),

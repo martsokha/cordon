@@ -18,9 +18,10 @@ const MOVE_SPEED: f32 = 4.0;
 const LOOK_SENSITIVITY: f32 = 0.003;
 
 /// Distance (in metres) the player walks between consecutive
-/// footstep events. ~0.7 m matches a natural stride at
-/// [`MOVE_SPEED`] = 4 m/s.
-const STEP_DISTANCE: f32 = 0.7;
+/// footstep events. At [`MOVE_SPEED`] = 4 m/s, 1.8 m per step
+/// gives ~2.2 steps/second — a natural jog cadence that doesn't
+/// machine-gun the footstep SFX.
+const STEP_DISTANCE: f32 = 1.8;
 
 /// Height of the FPS camera above the floor — matches the hard
 /// pin in [`fps_move`] (`transform.translation.y = CAMERA_EYE_Y`).
@@ -28,7 +29,7 @@ const STEP_DISTANCE: f32 = 0.7;
 /// events instead of assuming `y = 0`.
 pub(crate) const CAMERA_EYE_Y: f32 = 1.6;
 
-pub(crate) const PLAYER_RADIUS: f32 = 0.3;
+pub(crate) const PLAYER_RADIUS: f32 = 0.25;
 pub(crate) const PLAYER_HEIGHT: f32 = 1.0;
 
 /// Fired whenever the player walks far enough for a new footstep.

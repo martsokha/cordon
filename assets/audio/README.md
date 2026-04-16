@@ -23,3 +23,10 @@ Avoid FLAC unless shipping a lossless soundtrack.
 - Channels: mono for positional SFX, stereo for music / UI / screen glow.
 - OGG encoding quality: `-q 4` to `-q 6` (ffmpeg `-qscale:a 4`).
 - Keep SFX ≤ 1 MB per file; anything longer should be OGG.
+
+## Sources
+
+Most sound effects currently in `sfx/` come from **Must-Have Horror Sound Effects** by Your Pal Rob:
+<https://yourpalrob.itch.io/must-have-horror-sound-effects>
+
+When adding new SFX from other packs or original recordings, note the source in this file so licensing stays traceable.

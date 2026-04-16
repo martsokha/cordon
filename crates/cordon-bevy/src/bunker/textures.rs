@@ -60,7 +60,11 @@ impl TextureSet {
     ///
     /// Optional maps (normal, roughness, AO) are included only if
     /// the corresponding file exists on disk.
-    pub(crate) fn load_ambient_cg(asset_server: &AssetServer, folder: &str, basename: &str) -> Self {
+    pub(crate) fn load_ambient_cg(
+        asset_server: &AssetServer,
+        folder: &str,
+        basename: &str,
+    ) -> Self {
         let base_color = asset_server.load_with_settings(
             format!("textures/{folder}/{basename}_Color.jpg"),
             repeat_sampler_srgb,

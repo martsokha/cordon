@@ -232,8 +232,7 @@ impl LightFixtureBundle {
                         outer_angle: 55.0_f32.to_radians(),
                         ..default()
                     },
-                    Transform::from_translation(self.light_pos)
-                        .looking_to(Vec3::NEG_Y, Vec3::Z),
+                    Transform::from_translation(self.light_pos).looking_to(Vec3::NEG_Y, Vec3::Z),
                 ));
             }
         }

@@ -368,7 +368,7 @@ impl Prop {
                 path: "models/interior/CeilingLamp.glb",
                 aabb_min: Vec3::new(-0.216f32, -0.5372f32, -0.2215f32),
                 aabb_max: Vec3::new(0.216f32, 0.0f32, 0.1996f32),
-                collider: true,
+                collider: false,
             },
             Self::CookerUnit => PropDef {
                 path: "models/interior/CookerUnit.glb",

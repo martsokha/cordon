@@ -180,7 +180,14 @@ impl<'a, 'w, 's> RoomCtx<'a, 'w, 's> {
     /// same [`TILE_SIZE`] as structural surfaces so ornaments
     /// visually continue the adjoining wall/floor texture.
     pub fn decor_box(&mut self, pos: Vec3, size: Vec3, mat: &Handle<StandardMaterial>) {
-        spawn_box(self.commands, self.meshes, mat.clone(), pos, size, TILE_SIZE);
+        spawn_box(
+            self.commands,
+            self.meshes,
+            mat.clone(),
+            pos,
+            size,
+            TILE_SIZE,
+        );
     }
 }
 
@@ -336,9 +343,7 @@ pub fn cuboid_tiled(size: Vec3, tile: f32) -> Mesh {
         (size.x, size.z), // Bottom (−Y)
     ];
 
-    if let Some(VertexAttributeValues::Float32x2(uvs)) =
-        mesh.attribute_mut(Mesh::ATTRIBUTE_UV_0)
-    {
+    if let Some(VertexAttributeValues::Float32x2(uvs)) = mesh.attribute_mut(Mesh::ATTRIBUTE_UV_0) {
         for (face_idx, (scale_u, scale_v)) in face_scales.iter().enumerate() {
             let tiles_u = (scale_u / tile).max(0.0);
             let tiles_v = (scale_v / tile).max(0.0);
@@ -370,9 +375,7 @@ pub fn plane_tiled(normal: Vec3, half_size: Vec2, tile: f32) -> Mesh {
     let size = half_size * 2.0;
     let tiles_u = (size.x / tile).max(0.0);
     let tiles_v = (size.y / tile).max(0.0);
-    if let Some(VertexAttributeValues::Float32x2(uvs)) =
-        mesh.attribute_mut(Mesh::ATTRIBUTE_UV_0)
-    {
+    if let Some(VertexAttributeValues::Float32x2(uvs)) = mesh.attribute_mut(Mesh::ATTRIBUTE_UV_0) {
         for uv in uvs.iter_mut() {
             uv[0] *= tiles_u;
             uv[1] *= tiles_v;
@@ -398,10 +401,7 @@ pub fn spawn_wall(
     commands.spawn((
         RigidBody::Static,
         Collider::cuboid(width, height, thickness),
-        Mesh3d(meshes.add(cuboid_tiled(
-            Vec3::new(width, height, thickness),
-            TILE_SIZE,
-        ))),
+        Mesh3d(meshes.add(cuboid_tiled(Vec3::new(width, height, thickness), TILE_SIZE))),
         MeshMaterial3d(mat),
         Transform::from_translation(pos).with_rotation(rot),
     ));
@@ -518,10 +518,7 @@ pub fn spawn_stairs(
         let step_y = 0.25 * (i + 1) as f32;
         let step_z = start_z + 0.4 * i as f32;
         commands.spawn((
-            Mesh3d(meshes.add(cuboid_tiled(
-                Vec3::new(width, step_y, 0.4),
-                TILE_SIZE,
-            ))),
+            Mesh3d(meshes.add(cuboid_tiled(Vec3::new(width, step_y, 0.4), TILE_SIZE))),
             MeshMaterial3d(mat.clone()),
             Transform::from_xyz(0.0, step_y / 2.0, step_z),
         ));
