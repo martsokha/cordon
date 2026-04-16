@@ -16,9 +16,9 @@ use cordon_core::primitive::{Corruption, Experience, Health, Loyalty, Pool, Stam
 use cordon_core::world::BUNKER_MAP_POS;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::{
-    ActiveEffects, BaseMaxes, FactionId, MovementIntent, NpcAttributes, NpcBundle, NpcDied,
-    NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle, SquadMembership,
-    TemplateId, TravelingHome, TravelingToBunker,
+    ActiveEffects, BaseMaxes, Essential, FactionId, MovementIntent, NpcAttributes, NpcBundle,
+    NpcDied, NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle,
+    SquadMembership, TemplateId, TravelingHome, TravelingToBunker,
 };
 use cordon_sim::quest::consequence::{DismissTemplateNpc, GiveNpcXpRequest, SpawnNpcRequest};
 use cordon_sim::quest::registry::TemplateRegistry;
@@ -111,6 +111,9 @@ pub fn handle_spawn_npc_requests(
                     squad: squad_entity,
                     slot: 0,
                 });
+            if def.essential {
+                entity_cmds.insert(Essential);
+            }
             if let Some(yarn) = req.yarn_node.clone() {
                 entity_cmds.insert(PendingYarnNode(yarn));
             }
@@ -215,6 +218,9 @@ pub fn handle_spawn_npc_requests(
             SpawnOrigin(spawn_pos),
             transform,
         ));
+        if def.essential {
+            entity_cmds.insert(Essential);
+        }
         if let Some(yarn) = req.yarn_node.clone() {
             entity_cmds.insert(PendingYarnNode(yarn));
         }

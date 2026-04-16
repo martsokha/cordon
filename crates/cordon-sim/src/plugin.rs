@@ -145,13 +145,14 @@ pub mod prelude {
     pub use crate::behavior::squad::intent::{EngagementTarget, MovementIntent};
     pub use crate::behavior::squad::{Owned, SquadCommand};
     pub use crate::behavior::vision::{AnomalyZone, Vision};
+    pub use crate::day::DayRolled;
     // Cross-cutting messages and resources.
     pub use crate::day::payroll::LastDailyExpenses;
-    pub use crate::day::DayRolled;
     // Per-entity components not owned by a subplugin.
     pub use crate::entity::npc::{
-        ActiveEffects, BaseMaxes, FactionId, NpcAttributes, NpcBundle, NpcMarker, PendingYarnNode,
-        Perks, QuestCritical, SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker,
+        ActiveEffects, BaseMaxes, Essential, FactionId, NpcAttributes, NpcBundle, NpcMarker,
+        PendingYarnNode, Perks, QuestCritical, SpawnOrigin, TemplateId, TravelingHome,
+        TravelingToBunker,
     };
     pub use crate::entity::relic::{RelicHome, RelicMarker};
     pub use crate::quest::{

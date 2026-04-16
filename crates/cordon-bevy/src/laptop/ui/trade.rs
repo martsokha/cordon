@@ -142,7 +142,13 @@ fn refresh_expense_panel(
     let normal = Color::srgb(0.75, 0.75, 0.7);
     let red = Color::srgb(0.9, 0.3, 0.3);
 
-    let heading = spawn_text(&mut commands, "DAILY EXPENSES", 11.0, &font_handle, Color::srgb(0.8, 0.8, 0.6));
+    let heading = spawn_text(
+        &mut commands,
+        "DAILY EXPENSES",
+        11.0,
+        &font_handle,
+        Color::srgb(0.8, 0.8, 0.6),
+    );
     commands.entity(panel).add_child(heading);
 
     let Some(report) = &expenses.0 else {
@@ -191,13 +197,8 @@ fn refresh_expense_panel(
     // Debt line if any.
     let debt = player.0.debt.value();
     if debt > 0 {
-        let debt_row = spawn_expense_row(
-            &mut commands,
-            "Outstanding debt",
-            debt,
-            &font_handle,
-            red,
-        );
+        let debt_row =
+            spawn_expense_row(&mut commands, "Outstanding debt", debt, &font_handle, red);
         commands.entity(panel).add_child(debt_row);
     }
 

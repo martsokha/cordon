@@ -12,7 +12,7 @@ use super::components::{CombatTarget, FireState};
 use super::events::{NpcPoolChanged, ShotFired};
 use super::helpers::{equipped_ballistic, find_ammo_idx};
 use crate::behavior::death::components::Dead;
-use crate::entity::npc::NpcMarker;
+use crate::entity::npc::{Essential, NpcMarker};
 
 /// One pending hit produced by the shooter loop and applied to the
 /// target in a separate pass. Decoupling lets us hold one mutable
@@ -252,7 +252,7 @@ pub fn resolve_combat(
     mut pool_changed: MessageWriter<NpcPoolChanged>,
     mut sets: ParamSet<(
         // Read-only snapshot pass.
-        Query<(Entity, &Transform, &Loadout), (With<NpcMarker>, Without<Dead>)>,
+        Query<(Entity, &Transform, &Loadout), (With<NpcMarker>, Without<Dead>, Without<Essential>)>,
         // Shooter mutation pass.
         Query<
             (
@@ -262,10 +262,10 @@ pub fn resolve_combat(
                 &mut FireState,
                 &mut Loadout,
             ),
-            Without<Dead>,
+            (Without<Dead>, Without<Essential>),
         >,
         // Target apply pass.
-        Query<&mut Pool<Health>, Without<Dead>>,
+        Query<&mut Pool<Health>, (Without<Dead>, Without<Essential>)>,
     )>,
 ) {
     let items = &game_data.0.items;
@@ -287,7 +287,10 @@ pub fn resolve_combat(
 /// holding a borrow on `Pool<Health>` or `Loadout`, which keeps
 /// the ParamSet dance honest.
 fn snapshot_targets(
-    query: &Query<(Entity, &Transform, &Loadout), (With<NpcMarker>, Without<Dead>)>,
+    query: &Query<
+        (Entity, &Transform, &Loadout),
+        (With<NpcMarker>, Without<Dead>, Without<Essential>),
+    >,
     items: &HashMap<Id<Item>, ItemDef>,
 ) -> HashMap<Entity, TargetInfo> {
     let mut m = HashMap::with_capacity(1024);
@@ -316,7 +319,7 @@ fn fire_shooters(
             &mut FireState,
             &mut Loadout,
         ),
-        Without<Dead>,
+        (Without<Dead>, Without<Essential>),
     >,
     target_snapshot: &HashMap<Entity, TargetInfo>,
     items: &HashMap<Id<Item>, ItemDef>,
@@ -386,7 +389,7 @@ fn fire_shooters(
 /// effect dispatcher detect threshold crossings (e.g. `OnLowHealth`)
 /// without storing its own previous-state tracking.
 fn apply_hits(
-    targets: &mut Query<&mut Pool<Health>, Without<Dead>>,
+    targets: &mut Query<&mut Pool<Health>, (Without<Dead>, Without<Essential>)>,
     hits: Vec<HitIntent>,
     pool_changed: &mut MessageWriter<NpcPoolChanged>,
 ) {

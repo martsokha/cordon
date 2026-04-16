@@ -11,8 +11,8 @@ use bevy::prelude::*;
 use cordon_core::entity::player::{DailyExpenseReport, ExpenseKind, ExpenseLine};
 use cordon_core::primitive::{Credits, Experience, Rank};
 
-use crate::behavior::squad::identity::SquadMembers;
 use crate::behavior::squad::Owned;
+use crate::behavior::squad::identity::SquadMembers;
 use crate::resources::{GameClock, Player};
 
 /// Fixed daily bribe the Garrison demands for "protection."

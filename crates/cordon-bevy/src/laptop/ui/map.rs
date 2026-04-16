@@ -161,11 +161,7 @@ fn update_map_ui_visibility(
     mut ui_q: Query<&mut Visibility, (With<MapOnlyUi>, Without<MapWorldEntity>)>,
     mut world_q: Query<
         &mut Visibility,
-        (
-            With<MapWorldEntity>,
-            Without<MapOnlyUi>,
-            Without<Bunker>,
-        ),
+        (With<MapWorldEntity>, Without<MapOnlyUi>, Without<Bunker>),
     >,
     mut bunker_q: Query<&mut Visibility, (With<Bunker>, Without<MapOnlyUi>)>,
 ) {

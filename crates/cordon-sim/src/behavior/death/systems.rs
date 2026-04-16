@@ -7,7 +7,7 @@ use cordon_core::primitive::{GameTime, Health, Pool};
 use super::components::Dead;
 use super::constants::{CLEANUP_INTERVAL_SECS, CORPSE_PERSISTENCE_MINUTES, MAX_DEAD_NPCS};
 use super::events::{CorpseRemoved, NpcDied};
-use crate::entity::npc::NpcMarker;
+use crate::entity::npc::{Essential, NpcMarker};
 use crate::resources::GameClock;
 
 /// Throttle gate used by corpse-cleanup systems. Accumulates
@@ -24,11 +24,14 @@ pub(crate) fn on_cleanup_tick(time: Res<Time>, mut throttle: Local<f32>) -> bool
 }
 
 /// Tag NPCs whose HP hit zero as dead and emit [`NpcDied`].
+/// [`Essential`] NPCs are excluded — they don't participate in
+/// combat at all (filtered out of targeting and damage), so this
+/// check is belt-and-suspenders.
 pub fn handle_deaths(
     clock: Res<GameClock>,
     mut commands: Commands,
     mut died: MessageWriter<NpcDied>,
-    q: Query<(Entity, &Pool<Health>), (With<NpcMarker>, Without<Dead>)>,
+    q: Query<(Entity, &Pool<Health>), (With<NpcMarker>, Without<Dead>, Without<Essential>)>,
 ) {
     let now = clock.0;
     for (entity, hp) in &q {

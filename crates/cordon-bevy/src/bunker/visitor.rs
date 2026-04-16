@@ -33,6 +33,21 @@ use super::resources::{
 };
 use crate::PlayingState;
 
+/// Preloaded door audio handles.
+#[derive(Resource)]
+struct DoorSfx {
+    alarm: Handle<AudioSource>,
+    open: Handle<AudioSource>,
+    close: Handle<AudioSource>,
+}
+
+/// Tag on the alarm audio entity so we can despawn it when the
+/// player admits the visitor.
+#[derive(Component)]
+struct AlarmSound;
+
+const DOOR_VOLUME: f32 = 0.6;
+
 pub struct VisitorPlugin;
 
 impl Plugin for VisitorPlugin {
@@ -40,6 +55,7 @@ impl Plugin for VisitorPlugin {
         app.insert_resource(VisitorQueue::default());
         app.insert_resource(VisitorState::Quiet);
         app.add_message::<AdmitVisitor>();
+        app.add_systems(Startup, load_door_sfx);
         app.add_systems(
             Update,
             (
@@ -103,6 +119,14 @@ struct KnockingPreview;
 /// the point the camera turns to face during dialogue.
 const VISITOR_SPRITE_POS: Vec3 = Vec3::new(0.0, 1.2, 2.4);
 
+fn load_door_sfx(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.insert_resource(DoorSfx {
+        alarm: asset_server.load("audio/sfx/door/alarm.ogg"),
+        open: asset_server.load("audio/sfx/door/open.ogg"),
+        close: asset_server.load("audio/sfx/door/close.ogg"),
+    });
+}
+
 /// When the door is quiet and the queue is non-empty, pop the next
 /// visitor, transition to Knocking, and spawn a preview sprite in
 /// the hidden antechamber so the CCTV camera has something to film.
@@ -112,6 +136,7 @@ fn arrive_next_visitor(
     mut queue: ResMut<VisitorQueue>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    door_sfx: Res<DoorSfx>,
 ) {
     if !matches!(*state, VisitorState::Quiet) {
         return;
@@ -137,6 +162,11 @@ fn arrive_next_visitor(
             .looking_at(ANTECHAMBER_VISITOR_POS + Vec3::new(0.0, 0.0, 1.0), Vec3::Y),
     ));
 
+    commands.spawn((
+        AlarmSound,
+        AudioPlayer(door_sfx.alarm.clone()),
+        PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(DOOR_VOLUME)),
+    ));
     info!("visitor arrived: {}", visitor.display_name);
     *state = VisitorState::Knocking { visitor };
 }
@@ -211,6 +241,8 @@ fn apply_admit_visitor(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     event_assets: Res<super::particles::EventEffectAssets>,
+    door_sfx: Res<DoorSfx>,
+    alarm_q: Query<Entity, With<AlarmSound>>,
 ) {
     if requests.read().next().is_none() {
         return;
@@ -259,8 +291,15 @@ fn apply_admit_visitor(
         node: visitor.yarn_node.clone(),
     });
 
+    for entity in &alarm_q {
+        commands.entity(entity).despawn();
+    }
     commands.insert_resource(InteractionLocked);
     commands.insert_resource(MovementLocked);
+    commands.spawn((
+        AudioPlayer(door_sfx.open.clone()),
+        PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(DOOR_VOLUME)),
+    ));
     info!("visitor admitted: {}", visitor.display_name);
     *state = VisitorState::Inside {
         visitor,
@@ -284,6 +323,7 @@ fn dismiss_on_dialogue_complete(
     mut camera_mode: ResMut<CameraMode>,
     current: Res<CurrentDialogue>,
     mut was_active: Local<bool>,
+    door_sfx: Res<DoorSfx>,
 ) {
     let now_active = !matches!(*current, CurrentDialogue::Idle);
     let just_ended = *was_active && !now_active;
@@ -306,6 +346,10 @@ fn dismiss_on_dialogue_complete(
         *state = VisitorState::Quiet;
         commands.remove_resource::<InteractionLocked>();
         commands.remove_resource::<MovementLocked>();
+        commands.spawn((
+            AudioPlayer(door_sfx.close.clone()),
+            PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(DOOR_VOLUME)),
+        ));
         info!("visitor dismissed: {name}");
     }
 }

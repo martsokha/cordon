@@ -66,6 +66,12 @@ pub struct NpcTemplateDef {
     /// If false, death is permanent.
     #[serde(default)]
     pub respawnable: bool,
+    /// When true the NPC is excluded from the combat simulation
+    /// entirely: squads won't target them, shots won't land, and
+    /// the death system ignores them. Use for story-critical
+    /// characters who must survive to fulfil their narrative role.
+    #[serde(default)]
+    pub essential: bool,
 }
 
 fn default_true() -> bool {

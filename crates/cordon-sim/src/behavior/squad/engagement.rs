@@ -43,7 +43,7 @@ use crate::behavior::combat::components::CombatTarget;
 use crate::behavior::combat::helpers::{is_hostile, line_blocked};
 use crate::behavior::death::components::Dead;
 use crate::behavior::vision::components::{AnomalyZone, Vision};
-use crate::entity::npc::{FactionId, NpcMarker};
+use crate::entity::npc::{Essential, FactionId, NpcMarker};
 
 pub(super) fn update_squad_engagement(
     game_data: Res<GameDataResource>,
@@ -53,7 +53,7 @@ pub(super) fn update_squad_engagement(
     anomalies: Query<(&Transform, &AnomalyZone)>,
     members_q: Query<
         (Entity, &SquadMembership, &Vision, &Transform),
-        (With<NpcMarker>, Without<Dead>),
+        (With<NpcMarker>, Without<Dead>, Without<Essential>),
     >,
     squads_q: Query<(Entity, &FactionId, &SquadLeader), With<SquadMarker>>,
     mut squad_state_q: Query<(
@@ -62,7 +62,7 @@ pub(super) fn update_squad_engagement(
         &mut SquadFacing,
         &SquadLeader,
     )>,
-    mut combat_targets_q: Query<&mut CombatTarget, Without<Dead>>,
+    mut combat_targets_q: Query<&mut CombatTarget, (Without<Dead>, Without<Essential>)>,
 ) {
     *throttle += time.delta_secs();
     if *throttle < SCAN_INTERVAL_SECS {

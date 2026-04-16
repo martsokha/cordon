@@ -104,12 +104,11 @@ fn despawn_expired_emitters(
     }
 }
 
-/// Warm dark grey — main corridor, kitchen, quarters. Barely
-/// visible; the motes should only register when the player
-/// looks for them, not compete with the scene.
-const DUST_WARM: Vec4 = Vec4::new(0.45, 0.42, 0.38, 0.12);
-/// Cool dark grey — T2 side rooms.
-const DUST_COOL: Vec4 = Vec4::new(0.38, 0.42, 0.48, 0.10);
+/// Warm grey — main corridor, kitchen, quarters. Visible when
+/// backlit by a fixture but not competing with the scene.
+const DUST_WARM: Vec4 = Vec4::new(0.65, 0.60, 0.52, 0.4);
+/// Cool grey — T2 side rooms.
+const DUST_COOL: Vec4 = Vec4::new(0.52, 0.58, 0.65, 0.35);
 
 fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<EffectAsset>>) {
     let l = Layout::new();
@@ -249,11 +248,11 @@ fn build_dust_effect(half_extents: Vec3, rate: f32, color: Vec4) -> EffectAsset 
     color_grad.add_key(0.85, color);
     color_grad.add_key(1.0, Vec4::new(color.x, color.y, color.z, 0.0));
 
-    // World-space size in meters — 3 mm specks, subtle but
-    // visible when backlit by a fixture.
+    // World-space size in meters — 4 mm specks, visible at arm's
+    // reach but not paper-sheet-sized.
     let mut size_grad = HanabiGradient::new();
-    size_grad.add_key(0.0, Vec3::splat(0.003));
-    size_grad.add_key(1.0, Vec3::splat(0.003));
+    size_grad.add_key(0.0, Vec3::splat(0.004));
+    size_grad.add_key(1.0, Vec3::splat(0.004));
 
     EffectAsset::new(512, spawner, writer.finish())
         .with_name("bunker_dust")

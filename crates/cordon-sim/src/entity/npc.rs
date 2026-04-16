@@ -105,6 +105,13 @@ pub struct TravelingHome;
 #[derive(Component, Debug, Clone, Copy)]
 pub struct QuestCritical;
 
+/// Excludes an NPC from the combat simulation entirely: squads
+/// won't target them, shots won't land, the death system ignores
+/// them. Inserted at spawn for template NPCs with
+/// `NpcTemplateDef::essential == true`.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct Essential;
+
 /// Yarn node this template NPC should dispatch when admitted
 /// as a visitor. Set at SpawnNpc time, read on arrival.
 #[derive(Component, Debug, Clone)]
