@@ -12,6 +12,7 @@ pub mod interaction;
 pub mod laptop;
 pub mod lighting;
 mod particles;
+mod pills;
 mod props;
 pub mod rack;
 pub mod resources;
@@ -42,6 +43,7 @@ impl Plugin for BunkerPlugin {
             cctv::CctvPlugin,
             laptop::LaptopPlugin,
             particles::BunkerParticlesPlugin,
+            pills::PillsPlugin,
             rack::RackPlugin,
         ));
         // SSAO: `ScreenSpaceAmbientOcclusionPlugin` is registered
