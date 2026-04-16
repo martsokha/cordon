@@ -36,7 +36,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         &concrete,
     );
 
-    // Wide sofa against the far wall. Cushion top at y = 0.4.
+    // Wide sofa against the far wall, centred on the room's Z.
     const SOFA_CUSHION: f32 = 0.4;
     ctx.prop_rot(
         Prop::WideSofa,
@@ -51,28 +51,6 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
             ctx.l.tj1_center() + 0.5,
         ),
     );
-    ctx.prop(
-        Prop::Rug,
-        Vec3::new(ctx.l.quarters_x_center(), 0.0, ctx.l.tj1_center()),
-    );
-    ctx.prop_rot(
-        Prop::SingleBookshelf,
-        Vec3::new(ctx.l.quarters_x_max() - 0.3, 0.0, ctx.l.tj1_south + 0.3),
-        Quat::from_rotation_y(-FRAC_PI_2),
-    );
-    ctx.prop_rot(
-        Prop::Suitcase01,
-        Vec3::new(ctx.l.quarters_x_center() - 0.3, 0.0, ctx.l.tj1_south + 0.3),
-        Quat::from_rotation_y(0.4),
-    );
-    ctx.prop(
-        Prop::Lamp1,
-        Vec3::new(ctx.l.quarters_x_max() - 0.3, 0.0, ctx.l.tj1_center() - 0.8),
-    );
-    ctx.prop(
-        Prop::PlantPot2,
-        Vec3::new(ctx.l.hw + 0.4, 0.0, ctx.l.tj1_south + 0.3),
-    );
     ctx.prop_rot(
         Prop::Pillow,
         Vec3::new(
@@ -82,14 +60,58 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         ),
         Quat::from_rotation_y(0.5),
     );
-    // PlantPot1 top is at y = 0.48 (measured).
-    const POT1_TOP: f32 = 0.480;
     ctx.prop(
-        Prop::PlantPot1,
-        Vec3::new(ctx.l.hw + 0.4, 0.0, ctx.l.tj1_center() + 1.0),
+        Prop::Rug,
+        Vec3::new(ctx.l.quarters_x_center(), 0.0, ctx.l.tj1_center()),
+    );
+
+    // Bookshelf against the south wall (not the far wall where
+    // the sofa is — avoids the overlap).
+    ctx.prop_rot(
+        Prop::SingleBookshelf,
+        Vec3::new(ctx.l.quarters_x_center() + 0.3, 0.0, ctx.l.tj1_south + 0.25),
+        Quat::IDENTITY,
+    );
+
+    // Suitcase in the south-west corner.
+    ctx.prop_rot(
+        Prop::Suitcase01,
+        Vec3::new(ctx.l.hw + 0.4, 0.0, ctx.l.tj1_south + 0.3),
+        Quat::from_rotation_y(0.4),
+    );
+
+    // Coffee table rotated 90° and pulled away from the sofa.
+    const TABLE_TOP: f32 = 0.4;
+    let table_x = ctx.l.quarters_x_center() + 0.2;
+    let table_z = ctx.l.tj1_center();
+    ctx.prop_rot(
+        Prop::ModernCoffeeTable,
+        Vec3::new(table_x, 0.0, table_z),
+        Quat::from_rotation_y(FRAC_PI_2),
+    );
+    // Medication props on the coffee table.
+    ctx.prop(
+        Prop::MedicationCluster1,
+        Vec3::new(table_x - 0.05, TABLE_TOP, table_z + 0.1),
+    );
+    ctx.prop(
+        Prop::MedicationBottle,
+        Vec3::new(table_x + 0.1, TABLE_TOP, table_z - 0.08),
+    );
+    ctx.prop(
+        Prop::Mug,
+        Vec3::new(table_x - 0.15, TABLE_TOP, table_z - 0.05),
+    );
+
+    // PlantPot2 (the nicer pot) with cactus, near the corridor
+    // entrance so it greets you as you walk in.
+    const POT2_TOP: f32 = 0.488;
+    ctx.prop(
+        Prop::PlantPot2,
+        Vec3::new(ctx.l.hw + 0.4, 0.0, ctx.l.tj1_north - 0.4),
     );
     ctx.prop(
         Prop::Cactus,
-        Vec3::new(ctx.l.hw + 0.4, POT1_TOP, ctx.l.tj1_center() + 1.0),
+        Vec3::new(ctx.l.hw + 0.4, POT2_TOP, ctx.l.tj1_north - 0.4),
     );
 }
