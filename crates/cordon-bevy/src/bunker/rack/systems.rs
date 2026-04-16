@@ -176,7 +176,8 @@ fn on_slot_interact(
 
             let shelf_instance = slot.item.take().unwrap();
 
-            let new_vis = spawn_slot_visual(&mut commands, &game_data, slot_entity, &carried.instance);
+            let new_vis =
+                spawn_slot_visual(&mut commands, &game_data, slot_entity, &carried.instance);
             slot.visual = Some(new_vis);
             slot.item = Some(carried.instance);
 
@@ -255,9 +256,7 @@ pub(super) fn drop_carried(
         let forward = cam.forward().as_vec3();
         let drop_pos = cam.translation + forward * 1.0;
         let drop_pos = Vec3::new(drop_pos.x, 0.0, drop_pos.z);
-        commands.spawn(
-            PropPlacement::new(Prop::Box01, drop_pos).no_collider(),
-        );
+        commands.spawn(PropPlacement::new(Prop::Box01, drop_pos).no_collider());
     }
 
     play_sfx(&mut commands, &sfx.place);
@@ -385,3 +384,25 @@ pub(super) fn populate_starter_items(
 /// Flag so [`populate_starter_items`] only runs once.
 #[derive(Resource)]
 pub(super) struct RacksPopulated;
+
+/// Drain items from `PlayerState.pending_items` onto the first
+/// available rack slots. Quest consequences push items there;
+/// this system moves them into the physical world each frame.
+pub(super) fn drain_pending_to_racks(
+    mut commands: Commands,
+    game_data: Res<GameDataResource>,
+    mut player: ResMut<cordon_sim::resources::Player>,
+    mut slots: Query<(Entity, &mut RackSlot)>,
+) {
+    while !player.0.pending_items.is_empty() {
+        let Some((slot_entity, mut slot)) = slots.iter_mut().find(|(_, s)| s.item.is_none()) else {
+            break;
+        };
+        let Some(instance) = player.0.pending_items.remove(0) else {
+            break;
+        };
+        let vis = spawn_slot_visual(&mut commands, &game_data, slot_entity, &instance);
+        slot.item = Some(instance);
+        slot.visual = Some(vis);
+    }
+}

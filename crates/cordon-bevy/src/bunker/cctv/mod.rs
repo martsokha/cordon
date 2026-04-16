@@ -1,3 +1,4 @@
+mod audio;
 pub mod bundles;
 pub mod components;
 pub mod materials;
@@ -18,6 +19,7 @@ pub struct CctvPlugin;
 impl Plugin for CctvPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(MaterialPlugin::<CctvMaterial>::default());
+        app.add_systems(Startup, audio::load);
         app.add_systems(
             Update,
             (
@@ -25,6 +27,7 @@ impl Plugin for CctvPlugin {
                 ensure_fullscreen_plane,
                 apply_cctv_fullscreen,
                 follow_fps_camera,
+                audio::play_on_mode_change,
             )
                 .chain()
                 .run_if(in_state(PlayingState::Bunker)),

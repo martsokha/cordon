@@ -32,6 +32,7 @@ impl Plugin for RackPlugin {
                 systems::animate_carried_bob,
                 systems::drop_carried,
                 systems::populate_starter_items,
+                systems::drain_pending_to_racks,
             )
                 .run_if(in_state(PlayingState::Bunker)),
         );

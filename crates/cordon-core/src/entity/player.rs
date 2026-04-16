@@ -134,8 +134,11 @@ pub struct PlayerState {
     pub standings: Vec<(Id<Faction>, Relation)>,
     /// All installed upgrade IDs (both bunker and camp).
     pub upgrades: Vec<Id<Upgrade>>,
-    /// Main bunker storage.
-    pub storage: Stash,
+    /// Items waiting to be placed on a rack slot. Quest
+    /// consequences push here; a bevy-side drain system moves
+    /// them onto the first available rack slot each frame.
+    /// Should be empty most of the time — not real storage.
+    pub pending_items: Stash,
     /// Hidden storage (survives raids, invisible during inspections).
     pub hidden_storage: Stash,
 }
@@ -155,7 +158,7 @@ impl PlayerState {
             debt: Credits::new(0),
             standings,
             upgrades: Vec::new(),
-            storage: Stash::new(),
+            pending_items: Stash::new(),
             hidden_storage: Stash::new(),
         }
     }
@@ -224,9 +227,9 @@ impl PlayerState {
                 .sum()
         };
         match scope {
-            StashScope::Main => sum(&self.storage),
+            StashScope::Main => sum(&self.pending_items),
             StashScope::Hidden => sum(&self.hidden_storage),
-            StashScope::Any => sum(&self.storage) + sum(&self.hidden_storage),
+            StashScope::Any => sum(&self.pending_items) + sum(&self.hidden_storage),
         }
     }
 
@@ -247,7 +250,7 @@ impl PlayerState {
     ///   regains a real capacity).
     pub fn add_item(&mut self, instance: ItemInstance, scope: StashScope) {
         match scope {
-            StashScope::Main | StashScope::Any => self.storage.add(instance),
+            StashScope::Main | StashScope::Any => self.pending_items.add(instance),
             StashScope::Hidden => self.hidden_storage.add(instance),
         }
     }
@@ -261,10 +264,10 @@ impl PlayerState {
             stash.remove(index)
         };
         match scope {
-            StashScope::Main => take_from(&mut self.storage),
+            StashScope::Main => take_from(&mut self.pending_items),
             StashScope::Hidden => take_from(&mut self.hidden_storage),
             StashScope::Any => {
-                take_from(&mut self.storage).or_else(|| take_from(&mut self.hidden_storage))
+                take_from(&mut self.pending_items).or_else(|| take_from(&mut self.hidden_storage))
             }
         }
     }
