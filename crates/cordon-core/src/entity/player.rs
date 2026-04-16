@@ -10,7 +10,41 @@ use serde::{Deserialize, Serialize};
 use super::bunker::{Upgrade, UpgradeDef, UpgradeEffect};
 use super::faction::Faction;
 use crate::item::{Item, ItemInstance, Stash, StashScope};
-use crate::primitive::{Credits, Experience, Id, Relation};
+use crate::primitive::{Credits, Day, Experience, Id, Relation};
+
+/// A categorised daily expense line item. Multiple line items
+/// compose a [`DailyExpenseReport`].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExpenseLine {
+    pub kind: ExpenseKind,
+    pub amount: Credits,
+}
+
+/// What a daily expense pays for. New cost categories are added
+/// here; the payroll system in cordon-sim produces the lines,
+/// and the UI in cordon-bevy reads them for display.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExpenseKind {
+    /// Per-member pay for hired squads, summed from `Rank::pay`.
+    SquadUpkeep,
+    /// Protection money to the Garrison faction.
+    GarrisonBribe,
+    /// Interest on outstanding [`PlayerState::debt`].
+    SyndicateInterest,
+}
+
+/// Snapshot of one day's expenses. Produced by the payroll system
+/// on each day rollover and stored in a resource so the UI can
+/// display "last day's costs" at any time.
+#[derive(Debug, Clone)]
+pub struct DailyExpenseReport {
+    pub day: Day,
+    pub lines: Vec<ExpenseLine>,
+    pub total: Credits,
+    /// Portion of the total that couldn't be covered by available
+    /// credits and was added to [`PlayerState::debt`].
+    pub shortfall: Credits,
+}
 
 /// Player rank tier. Determines squad capacity and unlocks.
 ///
@@ -90,10 +124,14 @@ pub struct PlayerState {
     pub xp: Experience,
     /// Available credits (the Zone's currency).
     pub credits: Credits,
+    /// Accumulated unpaid expenses from previous days. Carried
+    /// forward each day-rollover; reduced when the player earns
+    /// enough to cover it. Separate from `credits` so spending
+    /// and owing are distinct — the player can have cash *and*
+    /// debt simultaneously (e.g. earns 200 but owes 500).
+    pub debt: Credits,
     /// Relations with each faction, keyed by faction ID.
     pub standings: Vec<(Id<Faction>, Relation)>,
-    /// Whether the Garrison bribe has been paid this period.
-    pub garrison_bribe_paid: bool,
     /// All installed upgrade IDs (both bunker and camp).
     pub upgrades: Vec<Id<Upgrade>>,
     /// Main bunker storage.
@@ -114,8 +152,8 @@ impl PlayerState {
         Self {
             xp: Experience::ZERO,
             credits: Credits::new(5000),
+            debt: Credits::new(0),
             standings,
-            garrison_bribe_paid: false,
             upgrades: Vec::new(),
             storage: Stash::new(),
             hidden_storage: Stash::new(),

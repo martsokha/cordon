@@ -164,13 +164,10 @@ fn update_map_ui_visibility(
         (
             With<MapWorldEntity>,
             Without<MapOnlyUi>,
-            // The bunker marker is always visible: the fog system
-            // specifically excludes it via `Without<Bunker>`, so if
-            // we ever hid it here we'd have no way to bring it back.
-            // Keeping it out of this hide loop avoids that trap.
             Without<Bunker>,
         ),
     >,
+    mut bunker_q: Query<&mut Visibility, (With<Bunker>, Without<MapOnlyUi>)>,
 ) {
     if !active_tab.is_changed() {
         return;
@@ -183,11 +180,23 @@ fn update_map_ui_visibility(
             Visibility::Hidden
         };
     }
-    // When leaving the Map tab, hide every world entity. On *entry*
-    // we deliberately don't force them visible — the fog-of-war
-    // system ([`laptop::fog::apply_fog`]) owns per-entity visibility
-    // based on player squad line-of-sight, and blindly showing
-    // everything here would un-fog the map for one frame.
+    // The bunker marker is always-visible on the Map tab and
+    // hidden on every other tab. It's handled separately because
+    // the fog system excludes it (`Without<Bunker>`), so it can't
+    // rely on `apply_fog` to restore its visibility on tab-entry
+    // the way other world entities do.
+    for mut vis in &mut bunker_q {
+        *vis = if visible {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
+    }
+    // When leaving the Map tab, hide every non-bunker world
+    // entity. On *entry* we deliberately don't force them visible
+    // — the fog-of-war system owns per-entity visibility based on
+    // player squad line-of-sight, and blindly showing everything
+    // here would un-fog the map for one frame.
     if !visible {
         for mut vis in &mut world_q {
             *vis = Visibility::Hidden;

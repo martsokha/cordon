@@ -104,13 +104,12 @@ fn despawn_expired_emitters(
     }
 }
 
-/// Warm off-white — main corridor, kitchen, quarters. Alpha kept
-/// low so motes read as subtle floating flecks rather than bright
-/// dots, especially against the newly-dim ambient lighting.
-const DUST_WARM: Vec4 = Vec4::new(0.85, 0.80, 0.72, 0.25);
-/// Cool pale blue — T-junction (command/armory), lit by the CCTV
-/// bank so cool tones read better there.
-const DUST_COOL: Vec4 = Vec4::new(0.72, 0.78, 0.85, 0.22);
+/// Warm dark grey — main corridor, kitchen, quarters. Barely
+/// visible; the motes should only register when the player
+/// looks for them, not compete with the scene.
+const DUST_WARM: Vec4 = Vec4::new(0.45, 0.42, 0.38, 0.12);
+/// Cool dark grey — T2 side rooms.
+const DUST_COOL: Vec4 = Vec4::new(0.38, 0.42, 0.48, 0.10);
 
 fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<EffectAsset>>) {
     let l = Layout::new();
@@ -130,9 +129,7 @@ fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<Effect
             l.hh() - 0.2,
             (corridor_max_z - corridor_min_z) * 0.5,
         ),
-        // Longer corridor, more particles. Old rate (25) over a
-        // ~12 m span -> density ~2/m. Keep the same density here.
-        40.0,
+        5.0,
         DUST_WARM,
     );
 
@@ -149,7 +146,7 @@ fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<Effect
             l.hh() - 0.2,
             (t1_max_z - t1_min_z) * 0.5,
         ),
-        15.0,
+        2.0,
         DUST_WARM,
     );
     spawn_dust(
@@ -162,7 +159,7 @@ fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<Effect
             l.hh() - 0.2,
             (t1_max_z - t1_min_z) * 0.5,
         ),
-        15.0,
+        2.0,
         DUST_WARM,
     );
 
@@ -181,7 +178,7 @@ fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<Effect
             l.hh() - 0.2,
             (t2_max_z - t2_min_z) * 0.5,
         ),
-        15.0,
+        2.0,
         DUST_COOL,
     );
     spawn_dust(
@@ -194,7 +191,7 @@ fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<Effect
             l.hh() - 0.2,
             (t2_max_z - t2_min_z) * 0.5,
         ),
-        15.0,
+        2.0,
         DUST_COOL,
     );
 
@@ -252,12 +249,11 @@ fn build_dust_effect(half_extents: Vec3, rate: f32, color: Vec4) -> EffectAsset 
     color_grad.add_key(0.85, color);
     color_grad.add_key(1.0, Vec4::new(color.x, color.y, color.z, 0.0));
 
-    // World-space size in meters (not screen-space — that made
-    // particles look like giant sheets of paper when near the
-    // camera in 3D). 5 mm reads as a point speck at any distance.
+    // World-space size in meters — 3 mm specks, subtle but
+    // visible when backlit by a fixture.
     let mut size_grad = HanabiGradient::new();
-    size_grad.add_key(0.0, Vec3::splat(0.005));
-    size_grad.add_key(1.0, Vec3::splat(0.005));
+    size_grad.add_key(0.0, Vec3::splat(0.003));
+    size_grad.add_key(1.0, Vec3::splat(0.003));
 
     EffectAsset::new(512, spawner, writer.finish())
         .with_name("bunker_dust")

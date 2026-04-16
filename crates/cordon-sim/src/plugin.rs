@@ -146,6 +146,7 @@ pub mod prelude {
     pub use crate::behavior::squad::{Owned, SquadCommand};
     pub use crate::behavior::vision::{AnomalyZone, Vision};
     // Cross-cutting messages and resources.
+    pub use crate::day::payroll::LastDailyExpenses;
     pub use crate::day::DayRolled;
     // Per-entity components not owned by a subplugin.
     pub use crate::entity::npc::{
