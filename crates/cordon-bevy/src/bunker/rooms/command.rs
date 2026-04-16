@@ -62,7 +62,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     ctx.commands.spawn((
         DoorButton,
         Interactable {
-            prompt: "[E] Open Door",
+            prompt: "[E] Open Door".into(),
             enabled: false,
         },
         Mesh3d(button_mesh),

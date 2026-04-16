@@ -11,10 +11,16 @@ use super::resources::{CameraMode, InteractionLocked};
 
 const INTERACT_DIST: f32 = 3.5;
 
+/// Minimum dot product between camera forward and the direction
+/// to a candidate. 0.7 ≈ 45° half-angle cone — generous enough
+/// to reach top shelves when looking up, tight enough to not
+/// grab things behind or beside the player.
+const MIN_AIM_DOT: f32 = 0.7;
+
 /// Attach to any entity the player can interact with via E.
 #[derive(Component)]
 pub struct Interactable {
-    pub prompt: &'static str,
+    pub prompt: String,
     pub enabled: bool,
 }
 
@@ -43,7 +49,7 @@ pub(super) fn update_prompt(
     for (mut text, mut vis) in &mut prompt_q {
         match best {
             Some((_, interactable)) => {
-                text.0 = interactable.prompt.into();
+                text.0 = interactable.prompt.clone();
                 *vis = Visibility::Visible;
             }
             None => *vis = Visibility::Hidden,
@@ -93,14 +99,19 @@ fn pick_best<'a>(
             continue;
         }
         let to_target = gt.translation() - cam_pos;
-        if to_target.length() > INTERACT_DIST {
+        let dist = to_target.length();
+        if !(0.01..=INTERACT_DIST).contains(&dist) {
             continue;
         }
         let dir = to_target.normalize_or_zero();
         let dot = cam_forward.dot(dir);
-        if dot < -0.2 {
+        if dot < MIN_AIM_DOT {
             continue;
         }
+        // Among candidates in the aiming cone, pick the one
+        // most aligned with the crosshair (highest dot). This
+        // means the player's gaze direction decides which slot
+        // wins when multiple are within range.
         if best.as_ref().is_none_or(|(_, _, d)| dot > *d) {
             best = Some((entity, interactable, dot));
         }

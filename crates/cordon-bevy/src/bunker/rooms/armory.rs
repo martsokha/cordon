@@ -46,45 +46,6 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Quat::from_rotation_y(0.2),
     );
 
-    // Boxes and crates on the rack shelves.
-    const SHELF_BOTTOM: f32 = 0.65;
-    const SHELF_MIDDLE: f32 = 1.30;
-    const SHELF_TOP: f32 = 1.85;
-    // Left wall.
-    ctx.prop(
-        Prop::Box02,
-        Vec3::new(-ctx.l.hw + 0.6, SHELF_MIDDLE, rack_north_z),
-    );
-    ctx.prop(
-        Prop::Crate01,
-        Vec3::new(-ctx.l.hw + 0.6, SHELF_BOTTOM, rack_north_z),
-    );
-    ctx.prop(
-        Prop::Box01,
-        Vec3::new(-ctx.l.hw + 0.6, SHELF_BOTTOM, rack_south_z),
-    );
-    ctx.prop(
-        Prop::Box02,
-        Vec3::new(-ctx.l.hw + 0.6, SHELF_TOP, rack_south_z),
-    );
-    // Right wall.
-    ctx.prop(
-        Prop::Box01,
-        Vec3::new(ctx.l.hw - 0.6, SHELF_MIDDLE, rack_north_z),
-    );
-    ctx.prop(
-        Prop::Box02,
-        Vec3::new(ctx.l.hw - 0.6, SHELF_TOP, rack_north_z),
-    );
-    ctx.prop(
-        Prop::Crate01,
-        Vec3::new(ctx.l.hw - 0.6, SHELF_BOTTOM, rack_south_z),
-    );
-    ctx.prop(
-        Prop::Box01,
-        Vec3::new(ctx.l.hw - 0.6, SHELF_MIDDLE, rack_south_z),
-    );
-
     // Armchair + bag in the deep back corridor corner (left wall).
     ctx.prop_rot(
         Prop::Armchair1,
