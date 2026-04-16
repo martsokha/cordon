@@ -3,7 +3,12 @@ use bevy::prelude::*;
 use super::bundles::LightFixtureBundle;
 use crate::bunker::resources::Layout;
 
-pub fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &Layout) {
+pub fn spawn_lighting(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    mats: &mut Assets<StandardMaterial>,
+    l: &Layout,
+) {
     let warm = Color::srgb(1.0, 0.82, 0.50);
     let cool = Color::srgb(0.85, 0.9, 1.0);
     let dim_cool = Color::srgb(0.8, 0.85, 0.95);
@@ -82,6 +87,6 @@ pub fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &L
     ];
 
     for fixture in &fixtures {
-        fixture.spawn(commands, asset_server);
+        fixture.spawn(commands, meshes, mats);
     }
 }

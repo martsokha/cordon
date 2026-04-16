@@ -55,7 +55,11 @@ impl Plugin for BunkerPlugin {
         app.insert_resource(CameraMode::Free);
         app.insert_resource(bevy::light::GlobalAmbientLight {
             color: Color::srgb(0.9, 0.85, 0.70),
-            brightness: 80.0,
+            // Dim ambient so the zones between point-light
+            // fixtures fall into proper shadow — makes the
+            // bunker read as lived-in and tunnel-like instead
+            // of uniformly lit.
+            brightness: 50.0,
             ..default()
         });
         app.add_systems(OnEnter(PlayingState::Bunker), camera::enable_bunker_camera);

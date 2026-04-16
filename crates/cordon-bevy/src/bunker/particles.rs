@@ -104,11 +104,13 @@ fn despawn_expired_emitters(
     }
 }
 
-/// Warm off-white — main corridor, kitchen, quarters.
-const DUST_WARM: Vec4 = Vec4::new(0.95, 0.9, 0.8, 0.6);
+/// Warm off-white — main corridor, kitchen, quarters. Alpha kept
+/// low so motes read as subtle floating flecks rather than bright
+/// dots, especially against the newly-dim ambient lighting.
+const DUST_WARM: Vec4 = Vec4::new(0.85, 0.80, 0.72, 0.25);
 /// Cool pale blue — T-junction (command/armory), lit by the CCTV
 /// bank so cool tones read better there.
-const DUST_COOL: Vec4 = Vec4::new(0.82, 0.88, 0.95, 0.55);
+const DUST_COOL: Vec4 = Vec4::new(0.72, 0.78, 0.85, 0.22);
 
 fn spawn_dust_emitters(mut commands: Commands, mut effects: ResMut<Assets<EffectAsset>>) {
     let l = Layout::new();

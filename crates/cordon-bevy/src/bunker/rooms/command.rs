@@ -44,9 +44,14 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Quat::from_rotation_y(PI),
     );
 
-    // Door button — sits on the table surface. Starts disabled;
-    // visitor module enables it when someone is knocking.
-    let button_mesh = ctx.meshes.add(Sphere::new(0.025));
+    // Door button — sits on the table surface. A flat cylinder
+    // so it reads as a push button at a glance rather than a
+    // mystery ball. Starts unlit; the visitor module's
+    // `update_button_glow` flips `emissive` on this material when
+    // someone is knocking.
+    const BUTTON_RADIUS: f32 = 0.035;
+    const BUTTON_HEIGHT: f32 = 0.015;
+    let button_mesh = ctx.meshes.add(Cylinder::new(BUTTON_RADIUS, BUTTON_HEIGHT));
     let button_mat = ctx.mats.add(StandardMaterial {
         base_color: Color::srgb(0.35, 0.05, 0.05),
         perceptual_roughness: 0.4,
@@ -62,7 +67,9 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         },
         Mesh3d(button_mesh),
         MeshMaterial3d(button_mat),
-        Transform::from_xyz(0.35, TABLE_TOP + 0.03, ctx.l.desk_z()),
+        // Centre sits half the cylinder height above the desk
+        // surface so it rests flush instead of hovering.
+        Transform::from_xyz(0.35, TABLE_TOP + BUTTON_HEIGHT / 2.0, ctx.l.desk_z()),
     ));
     // Bin between the table legs.
     ctx.prop_scaled(

@@ -35,7 +35,7 @@ pub(super) fn spawn_bunker(
     });
 
     let fps_camera_entity = spawn_camera(&mut commands, &l);
-    super::lighting::spawn_lighting(&mut commands, &asset_server, &l);
+    super::lighting::spawn_lighting(&mut commands, &mut meshes, &mut mats, &l);
 
     {
         let mut ctx = RoomCtx {

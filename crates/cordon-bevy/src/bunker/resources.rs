@@ -132,10 +132,11 @@ fn concrete_material(
         occlusion_texture: set.ambient_occlusion.clone(),
         // Parallax mapping: adds perceived depth from the height
         // map so the concrete looks poured, not painted-flat.
-        // Kept shallow (2 cm) because anything deeper starts
-        // warping grazing-angle silhouettes.
+        // 5 cm reads as real formwork relief without distorting
+        // grazing-angle silhouettes (beyond ~8 cm the edges
+        // warp obviously).
         depth_map: set.depth.clone(),
-        parallax_depth_scale: 0.02,
+        parallax_depth_scale: 0.05,
         parallax_mapping_method: ParallaxMappingMethod::Relief { max_steps: 4 },
         max_parallax_layer_count: 16.0,
         metallic: 0.0,
@@ -237,8 +238,12 @@ impl Layout {
         self.h - 0.3
     }
 
+    /// Command desk centre, south of the trade grate. The offset
+    /// leaves enough room for the chair + a player-sized gap so
+    /// the desk doesn't visually clip the grate bars from inside
+    /// the command post.
     pub fn desk_z(&self) -> f32 {
-        self.trade_z - 0.5
+        self.trade_z - 0.6
     }
 
     /// Centre of the first T-junction's Z extent.
