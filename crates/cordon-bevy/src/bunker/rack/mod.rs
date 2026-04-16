@@ -21,12 +21,16 @@ pub struct RackPlugin;
 impl Plugin for RackPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<Carrying>();
+        app.add_systems(Startup, systems::load_rack_sfx);
         app.add_systems(
             Update,
             (
                 systems::spawn_rack_slots,
                 systems::attach_slot_observers,
                 systems::update_slot_prompts,
+                systems::block_non_rack_interactions,
+                systems::animate_carried_bob,
+                systems::drop_carried,
                 systems::populate_starter_items,
             )
                 .run_if(in_state(PlayingState::Bunker)),

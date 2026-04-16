@@ -10,7 +10,6 @@ use crate::bunker::geometry::Prop;
 
 /// Extension trait on [`ItemCategory`] that picks the prop model
 /// to display when this category of item sits on a rack shelf.
-#[allow(dead_code)]
 pub trait ShelfProp {
     fn shelf_prop(&self) -> Prop;
 }

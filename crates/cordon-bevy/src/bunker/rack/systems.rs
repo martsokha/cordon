@@ -3,25 +3,44 @@
 //! carried-item visual attached to the camera.
 
 use bevy::prelude::*;
+use bevy_fluent::prelude::Localization;
 use cordon_core::item::ItemInstance;
 use cordon_core::primitive::Id;
 use cordon_data::gamedata::GameDataResource;
 
 use super::components::*;
+use super::shelf_prop::ShelfProp;
 use crate::bunker::components::FpsCamera;
 use crate::bunker::geometry::{Prop, PropPlacement};
 use crate::bunker::interaction::{Interact, Interactable};
+use crate::locale::l10n_or;
 
-/// Local offset of the carried box relative to the camera.
-/// Pushed well below and forward so it reads as "held at waist
-/// level in front of the player" — not glued to the face.
-const CARRY_OFFSET: Vec3 = Vec3::new(0.3, -0.65, -0.7);
+/// In camera-local space: centred, below the crosshair, forward.
+const CARRY_OFFSET: Vec3 = Vec3::new(0.0, -0.35, -0.55);
+
+/// Amplitude / speed of the carry-bob when walking.
+const BOB_AMPLITUDE: f32 = 0.012;
+const BOB_SPEED: f32 = 5.0;
+
+const RACK_SFX_VOLUME: f32 = 0.5;
+
+/// Preloaded rack take/place audio handles.
+#[derive(Resource)]
+pub(super) struct RackSfx {
+    take: Handle<AudioSource>,
+    place: Handle<AudioSource>,
+}
+
+pub(super) fn load_rack_sfx(mut commands: Commands, asset_server: Res<AssetServer>) {
+    commands.insert_resource(RackSfx {
+        take: asset_server.load("audio/sfx/rack/take.ogg"),
+        place: asset_server.load("audio/sfx/rack/place.ogg"),
+    });
+}
 
 /// Detect rack prop entities that have been resolved by the
 /// `PropPlacement` observer (they now have both `PropPlacement`
-/// and `SceneRoot`) but don't yet have a `Rack` component. This
-/// ensures the observer has already set the correct `Transform`
-/// so slot world positions are accurate.
+/// and `SceneRoot`) but don't yet have a `Rack` component.
 pub(super) fn spawn_rack_slots(
     mut commands: Commands,
     new_racks: Query<(Entity, &PropPlacement, &Transform), (With<SceneRoot>, Without<Rack>)>,
@@ -60,11 +79,11 @@ pub(super) fn spawn_rack_slots(
     }
 }
 
-/// Refresh the `Interactable` prompt on each rack slot based on
-/// whether the slot is occupied and whether the player is carrying.
+/// Refresh the `Interactable` prompt on each rack slot.
 pub(super) fn update_slot_prompts(
     carrying: Res<Carrying>,
     mut slots: Query<(&RackSlot, &mut Interactable)>,
+    localization: Option<Res<Localization>>,
 ) {
     for (slot, mut interactable) in &mut slots {
         let has_item = slot.item.is_some();
@@ -72,11 +91,40 @@ pub(super) fn update_slot_prompts(
 
         interactable.enabled = has_item || carrying_item;
         interactable.prompt = match (has_item, carrying_item) {
-            (true, false) => format!("[E] Take {}", slot_item_name(slot)),
+            (true, false) => {
+                let name = slot_item_name(slot, localization.as_deref());
+                format!("[E] Take {name}")
+            }
             (false, true) => "[E] Place item".into(),
-            (true, true) => format!("[E] Swap with {}", slot_item_name(slot)),
+            (true, true) => {
+                let name = slot_item_name(slot, localization.as_deref());
+                format!("[E] Swap with {name}")
+            }
             (false, false) => String::new(),
         };
+    }
+}
+
+/// Disable non-rack interactables while the player is carrying.
+/// Re-enables them when hands are empty.
+pub(super) fn block_non_rack_interactions(
+    carrying: Res<Carrying>,
+    mut interactables: Query<&mut Interactable, Without<RackSlot>>,
+) {
+    if !carrying.is_changed() {
+        return;
+    }
+    let holding = carrying.0.is_some();
+    for mut i in &mut interactables {
+        if holding {
+            i.enabled = false;
+        } else {
+            // Re-enable. The owning systems (visitor button,
+            // laptop, CCTV) will set their own enabled state on
+            // the next frame — force-enabling here is a one-frame
+            // blip that those systems immediately correct.
+            i.enabled = true;
+        }
     }
 }
 
@@ -89,6 +137,8 @@ fn on_slot_interact(
     mut carrying: ResMut<Carrying>,
     mut slots: Query<&mut RackSlot>,
     camera_q: Query<Entity, With<FpsCamera>>,
+    sfx: Res<RackSfx>,
+    game_data: Res<GameDataResource>,
 ) {
     let slot_entity = trigger.event().entity;
     let Ok(mut slot) = slots.get_mut(slot_entity) else {
@@ -107,13 +157,15 @@ fn on_slot_interact(
             let visual =
                 spawn_carried_visual(&mut commands, &mut meshes, &mut mats, &camera_q, &instance);
             carrying.0 = Some(CarriedItem { instance, visual });
+            play_sfx(&mut commands, &sfx.take);
         }
         (false, true) => {
             let carried = carrying.0.take().unwrap();
             commands.entity(carried.visual).despawn();
-            let vis = spawn_slot_visual(&mut commands, slot_entity, &carried.instance);
+            let vis = spawn_slot_visual(&mut commands, &game_data, slot_entity, &carried.instance);
             slot.visual = Some(vis);
             slot.item = Some(carried.instance);
+            play_sfx(&mut commands, &sfx.place);
         }
         (true, true) => {
             let carried = carrying.0.take().unwrap();
@@ -124,7 +176,7 @@ fn on_slot_interact(
 
             let shelf_instance = slot.item.take().unwrap();
 
-            let new_vis = spawn_slot_visual(&mut commands, slot_entity, &carried.instance);
+            let new_vis = spawn_slot_visual(&mut commands, &game_data, slot_entity, &carried.instance);
             slot.visual = Some(new_vis);
             slot.item = Some(carried.instance);
 
@@ -139,6 +191,7 @@ fn on_slot_interact(
                 instance: shelf_instance,
                 visual: new_carried_vis,
             });
+            play_sfx(&mut commands, &sfx.take);
         }
         (false, false) => {}
     }
@@ -155,11 +208,79 @@ pub(super) fn attach_slot_observers(
     }
 }
 
-fn slot_item_name(slot: &RackSlot) -> &str {
-    slot.item
+/// Gentle bob on the carried visual while the player moves.
+pub(super) fn animate_carried_bob(
+    carrying: Res<Carrying>,
+    time: Res<Time>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut transforms: Query<&mut Transform>,
+) {
+    let Some(carried) = &carrying.0 else {
+        return;
+    };
+    let moving = keys.any_pressed([KeyCode::KeyW, KeyCode::KeyA, KeyCode::KeyS, KeyCode::KeyD]);
+    let Ok(mut t) = transforms.get_mut(carried.visual) else {
+        return;
+    };
+    if moving {
+        let phase = time.elapsed_secs() * BOB_SPEED;
+        t.translation.y = CARRY_OFFSET.y + phase.sin() * BOB_AMPLITUDE;
+        t.translation.x = CARRY_OFFSET.x + (phase * 0.5).cos() * BOB_AMPLITUDE * 0.5;
+    } else {
+        t.translation.y = CARRY_OFFSET.y;
+        t.translation.x = CARRY_OFFSET.x;
+    }
+}
+
+/// Drop carried item with Q — spawns a slot-visual on the ground
+/// (not on a rack) and clears the carry state. For now, the item
+/// is lost — there's no floor-item pickup system yet.
+pub(super) fn drop_carried(
+    mut commands: Commands,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut carrying: ResMut<Carrying>,
+    camera_q: Query<&Transform, With<FpsCamera>>,
+    sfx: Res<RackSfx>,
+) {
+    if !keys.just_pressed(KeyCode::KeyQ) {
+        return;
+    }
+    let Some(carried) = carrying.0.take() else {
+        return;
+    };
+    commands.entity(carried.visual).despawn();
+
+    // Spawn the box on the floor in front of the player.
+    if let Ok(cam) = camera_q.single() {
+        let forward = cam.forward().as_vec3();
+        let drop_pos = cam.translation + forward * 1.0;
+        let drop_pos = Vec3::new(drop_pos.x, 0.0, drop_pos.z);
+        commands.spawn(
+            PropPlacement::new(Prop::Box01, drop_pos).no_collider(),
+        );
+    }
+
+    play_sfx(&mut commands, &sfx.place);
+    info!("dropped item: {}", carried.instance.def_id.as_str());
+}
+
+fn slot_item_name(slot: &RackSlot, l10n: Option<&Localization>) -> String {
+    let id = slot
+        .item
         .as_ref()
         .map(|i| i.def_id.as_str())
-        .unwrap_or("item")
+        .unwrap_or("item");
+    match l10n {
+        Some(l) => l10n_or(l, id, id),
+        None => id.to_string(),
+    }
+}
+
+fn play_sfx(commands: &mut Commands, handle: &Handle<AudioSource>) {
+    commands.spawn((
+        AudioPlayer(handle.clone()),
+        PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(RACK_SFX_VOLUME)),
+    ));
 }
 
 fn spawn_carried_visual(
@@ -172,9 +293,6 @@ fn spawn_carried_visual(
     let Ok(camera) = camera_q.single() else {
         return Entity::PLACEHOLDER;
     };
-    // Simple placeholder cube in camera-local space. Using a raw
-    // mesh (not a GLB scene) avoids async-load timing issues and
-    // the PropPlacement observer overriding the local offset.
     let mesh = meshes.add(Cuboid::new(0.25, 0.18, 0.25));
     let mat = mats.add(StandardMaterial {
         base_color: Color::srgb(0.35, 0.25, 0.15),
@@ -186,6 +304,7 @@ fn spawn_carried_visual(
             Mesh3d(mesh),
             MeshMaterial3d(mat),
             Transform::from_translation(CARRY_OFFSET),
+            Visibility::Visible,
         ))
         .id();
     commands.entity(camera).add_child(child);
@@ -194,12 +313,19 @@ fn spawn_carried_visual(
 
 fn spawn_slot_visual(
     commands: &mut Commands,
+    game_data: &GameDataResource,
     slot_entity: Entity,
-    _instance: &ItemInstance,
+    instance: &ItemInstance,
 ) -> Entity {
+    let prop = game_data
+        .0
+        .items
+        .get(&instance.def_id)
+        .map(|def| def.data.category().shelf_prop())
+        .unwrap_or(Prop::Box01);
     let child = commands
         .spawn((
-            PropPlacement::new(Prop::Box01, Vec3::ZERO).no_collider(),
+            PropPlacement::new(prop, Vec3::ZERO).no_collider(),
             Transform::default(),
         ))
         .id();
@@ -207,8 +333,7 @@ fn spawn_slot_visual(
     child
 }
 
-/// Starter items for testing. Lists `(item_id, slot_count)` pairs
-/// — each item gets placed on the next available rack slot.
+/// Starter items for testing.
 const STARTER_ITEMS: &[&str] = &[
     "item_bandage",
     "item_bandage",
@@ -217,8 +342,7 @@ const STARTER_ITEMS: &[&str] = &[
 ];
 
 /// One-shot system: populate empty rack slots with a few starter
-/// items so the player has something to interact with. Runs once
-/// by inserting a flag resource after filling.
+/// items so the player has something to interact with.
 pub(super) fn populate_starter_items(
     mut commands: Commands,
     game_data: Res<GameDataResource>,
@@ -228,7 +352,6 @@ pub(super) fn populate_starter_items(
     if populated.is_some() {
         return;
     }
-    // Wait until at least one slot exists.
     if slots.is_empty() {
         return;
     }
@@ -245,12 +368,11 @@ pub(super) fn populate_starter_items(
 
         let instance = ItemInstance::new(def);
 
-        // Find the next empty slot.
         let Some((slot_entity, mut slot)) = slots.iter_mut().find(|(_, s)| s.item.is_none()) else {
             break;
         };
 
-        let vis = spawn_slot_visual(&mut commands, slot_entity, &instance);
+        let vis = spawn_slot_visual(&mut commands, &game_data, slot_entity, &instance);
         slot.item = Some(instance);
         slot.visual = Some(vis);
         placed += 1;

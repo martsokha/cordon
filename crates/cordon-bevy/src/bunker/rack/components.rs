@@ -11,7 +11,7 @@ pub const SLOTS_PER_RACK: usize = 3;
 /// the rack's feet-centre origin. Eyeballed from StorageRack01's
 /// AABB (0 → 2.55 m tall, 3 shelves roughly evenly spaced).
 pub const SLOT_OFFSETS: [Vec3; SLOTS_PER_RACK] = [
-    Vec3::new(0.0, 0.55, 0.0),
+    Vec3::new(0.0, 0.65, 0.0),
     Vec3::new(0.0, 1.30, 0.0),
     Vec3::new(0.0, 1.85, 0.0),
 ];
@@ -19,10 +19,8 @@ pub const SLOT_OFFSETS: [Vec3; SLOTS_PER_RACK] = [
 /// Attached to the rack prop entity. Tracks which slot entities
 /// belong to this rack.
 #[derive(Component)]
+#[allow(dead_code)]
 pub struct Rack {
-    /// Slot entities spawned as children. Used for rack-level
-    /// queries (e.g. "how full is this rack?").
-    #[allow(dead_code)]
     pub slots: [Option<Entity>; SLOTS_PER_RACK],
 }
 
@@ -31,10 +29,8 @@ pub struct Rack {
 /// item (if occupied) and an `Interactable` for the prompt.
 #[derive(Component)]
 pub struct RackSlot {
-    /// Which rack owns this slot (for save/load reconstruction).
     #[allow(dead_code)]
     pub rack: Entity,
-    /// Shelf index (0 = bottom, 2 = top).
     #[allow(dead_code)]
     pub index: usize,
     pub item: Option<ItemInstance>,
