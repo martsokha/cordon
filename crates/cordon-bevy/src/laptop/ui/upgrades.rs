@@ -11,7 +11,8 @@ use bevy_fluent::prelude::*;
 use cordon_core::entity::bunker::{Upgrade, UpgradeDef, UpgradeLocation};
 use cordon_core::primitive::Id;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::plugin::prelude::{BuyUpgrade, Player};
+use cordon_sim::plugin::prelude::BuyUpgrade;
+use cordon_sim::resources::{PlayerIdentity, PlayerUpgrades};
 
 use super::{LaptopFont, LaptopTab, TabContent};
 use crate::PlayingState;
@@ -121,7 +122,8 @@ fn spawn_heading(col: &mut ChildSpawnerCommands, font: &Handle<Font>, text: &str
 #[allow(clippy::type_complexity)]
 fn refresh_upgrade_panels(
     mut commands: Commands,
-    player: Res<Player>,
+    identity: Res<PlayerIdentity>,
+    upgrades: Res<PlayerUpgrades>,
     data: Res<GameDataResource>,
     l10n: Option<Res<Localization>>,
     font: Res<LaptopFont>,
@@ -141,7 +143,7 @@ fn refresh_upgrade_panels(
     let camp_needs_fill = camp_q
         .iter()
         .any(|(_, c)| non_heading_count(c, &heading_q) == 0);
-    let dirty = player.is_changed() || data.is_changed();
+    let dirty = identity.is_changed() || upgrades.is_changed() || data.is_changed();
 
     if !dirty && !bunker_needs_fill && !camp_needs_fill {
         return;
@@ -165,7 +167,7 @@ fn refresh_upgrade_panels(
         clear_non_heading(&mut commands, children, &heading_q);
         for def in &bunker_defs {
             commands.entity(panel).with_children(|col| {
-                spawn_row(col, &font.0, &l10n, def, &player.0);
+                spawn_row(col, &font.0, &l10n, def, &identity, &upgrades);
             });
         }
     }
@@ -173,7 +175,7 @@ fn refresh_upgrade_panels(
         clear_non_heading(&mut commands, children, &heading_q);
         for def in &camp_defs {
             commands.entity(panel).with_children(|col| {
-                spawn_row(col, &font.0, &l10n, def, &player.0);
+                spawn_row(col, &font.0, &l10n, def, &identity, &upgrades);
             });
         }
     }
@@ -209,14 +211,15 @@ fn spawn_row(
     font: &Handle<Font>,
     l10n: &Localization,
     def: &UpgradeDef,
-    player: &cordon_core::entity::player::PlayerState,
+    identity: &PlayerIdentity,
+    upgrades: &PlayerUpgrades,
 ) {
     let name_key = format!("{}-name", def.id.as_str().replace('_', "-"));
     let name = l10n_or(l10n, &name_key, def.id.as_str());
 
-    let installed = player.has_upgrade(&def.id);
-    let prereqs_met = def.requires.iter().all(|r| player.has_upgrade(r));
-    let affordable = player.credits.value() >= def.cost.value();
+    let installed = upgrades.has_upgrade(&def.id);
+    let prereqs_met = def.requires.iter().all(|r| upgrades.has_upgrade(r));
+    let affordable = identity.credits.value() >= def.cost.value();
 
     let (status_text, status_color) = if installed {
         ("INSTALLED", Color::srgb(0.5, 0.9, 0.5))

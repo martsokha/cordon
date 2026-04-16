@@ -11,12 +11,11 @@
 
 use bevy::prelude::*;
 use cordon_core::entity::bunker::{Upgrade, UpgradeDef};
-use cordon_core::entity::player::PlayerState;
 use cordon_core::primitive::Id;
 use cordon_data::catalog::GameData;
 use cordon_data::gamedata::GameDataResource;
 
-use crate::resources::Player;
+use crate::resources::{PlayerIdentity, PlayerUpgrades};
 
 /// Request to purchase and install the named upgrade. Emitted by
 /// the laptop UI; handled by [`apply_buy_upgrade`].
@@ -49,14 +48,15 @@ pub struct BuyUpgradeOutcome {
 pub fn apply_buy_upgrade(
     mut requests: MessageReader<BuyUpgrade>,
     mut outcomes: MessageWriter<BuyUpgradeOutcome>,
-    mut player: ResMut<Player>,
+    mut identity: ResMut<PlayerIdentity>,
+    mut upgrades: ResMut<PlayerUpgrades>,
     game_data: Res<GameDataResource>,
 ) {
     for request in requests.read() {
         let id = &request.upgrade;
-        let result = validate_purchase(&player.0, &game_data.0, id).map(|def| {
-            player.0.credits -= def.cost;
-            player.0.upgrades.push(id.clone());
+        let result = validate_purchase(&identity, &upgrades, &game_data.0, id).map(|def| {
+            identity.credits -= def.cost;
+            upgrades.upgrades.push(id.clone());
             info!("upgrade installed: `{}` ({})", id.as_str(), def.cost);
         });
         outcomes.write(BuyUpgradeOutcome {
@@ -71,7 +71,8 @@ pub fn apply_buy_upgrade(
 /// affordable). On success returns the matching [`UpgradeDef`] so
 /// the caller can charge the cost without a second lookup.
 fn validate_purchase<'a>(
-    player: &PlayerState,
+    identity: &PlayerIdentity,
+    upgrades: &PlayerUpgrades,
     data: &'a GameData,
     id: &Id<Upgrade>,
 ) -> Result<&'a UpgradeDef, BuyUpgradeFailure> {
@@ -79,13 +80,13 @@ fn validate_purchase<'a>(
         .upgrades
         .get(id)
         .ok_or(BuyUpgradeFailure::UnknownUpgrade)?;
-    if player.has_upgrade(id) {
+    if upgrades.has_upgrade(id) {
         return Err(BuyUpgradeFailure::AlreadyInstalled);
     }
-    if def.requires.iter().any(|req| !player.has_upgrade(req)) {
+    if def.requires.iter().any(|req| !upgrades.has_upgrade(req)) {
         return Err(BuyUpgradeFailure::MissingPrerequisite);
     }
-    if player.credits.value() < def.cost.value() {
+    if identity.credits.value() < def.cost.value() {
         return Err(BuyUpgradeFailure::Unaffordable);
     }
     Ok(def)

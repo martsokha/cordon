@@ -616,7 +616,7 @@ fn update_time_label(
 }
 
 fn update_money_label(
-    player: Option<Res<cordon_sim::resources::Player>>,
+    identity: Option<Res<cordon_sim::resources::PlayerIdentity>>,
     mut label_q: Query<
         &mut Text,
         (
@@ -627,8 +627,8 @@ fn update_money_label(
         ),
     >,
 ) {
-    let Some(player) = player else { return };
-    let credits = player.0.credits.value();
+    let Some(identity) = identity else { return };
+    let credits = identity.credits.value();
     let new_text = format!("{credits} ¢");
     for mut text in &mut label_q {
         if text.0 != new_text {

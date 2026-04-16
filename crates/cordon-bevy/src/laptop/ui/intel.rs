@@ -18,7 +18,8 @@ use bevy_fluent::prelude::*;
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::{Id, Relation};
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::plugin::prelude::{Player, QuestLog};
+use cordon_sim::plugin::prelude::QuestLog;
+use cordon_sim::resources::PlayerStandings;
 
 use super::{LaptopFont, LaptopTab, TabContent};
 use crate::locale::l10n_or;
@@ -102,7 +103,7 @@ impl Plugin for IntelUiPlugin {
             Update,
             (refresh_quest_list, refresh_faction_standings)
                 .run_if(resource_exists::<QuestLog>)
-                .run_if(resource_exists::<Player>)
+                .run_if(resource_exists::<PlayerStandings>)
                 .run_if(resource_exists::<GameDataResource>),
         );
     }
@@ -390,14 +391,14 @@ fn refresh_quest_list(
 /// the laptop UI is built later on `OnEnter(PlayingState::Laptop)`).
 fn refresh_faction_standings(
     mut commands: Commands,
-    player: Res<Player>,
+    standings: Res<PlayerStandings>,
     l10n: Option<Res<Localization>>,
     font: Res<LaptopFont>,
     panel_q: Query<(Entity, Option<&Children>), With<FactionStandingsPanel>>,
     heading_q: Query<(), With<FactionStandingsHeading>>,
 ) {
     let Some(panel_entity) =
-        prepare_panel_rebuild(&mut commands, &panel_q, &heading_q, player.is_changed())
+        prepare_panel_rebuild(&mut commands, &panel_q, &heading_q, standings.is_changed())
     else {
         return;
     };
@@ -408,7 +409,7 @@ fn refresh_faction_standings(
     // `PlayerState::new` seeds the list in `faction_ids()`
     // iteration order, which is `HashMap` order — visually
     // unstable. Clone + sort on display rather than on mutation.
-    let mut rows: Vec<(Id<Faction>, Relation)> = player.0.standings.clone();
+    let mut rows: Vec<(Id<Faction>, Relation)> = standings.standings.clone();
     rows.sort_by(|a, b| a.0.as_str().cmp(b.0.as_str()));
 
     for (faction, standing) in rows {

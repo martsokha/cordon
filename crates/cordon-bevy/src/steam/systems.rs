@@ -106,11 +106,11 @@ pub fn track_first_quest(
 }
 
 pub fn track_rich(
-    player: Option<Res<cordon_sim::resources::Player>>,
+    identity: Option<Res<cordon_sim::resources::PlayerIdentity>>,
     mut unlocks: MessageWriter<UnlockAchievement>,
 ) {
-    let Some(player) = player else { return };
-    if player.0.credits.value() >= 10_000 {
+    let Some(identity) = identity else { return };
+    if identity.credits.value() >= 10_000 {
         unlocks.write(UnlockAchievement(Achievement::Rich));
     }
 }

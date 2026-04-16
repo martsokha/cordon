@@ -19,7 +19,7 @@ use std::f32::consts::FRAC_PI_2;
 use bevy::prelude::*;
 use cordon_core::entity::bunker::UpgradeEffect;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::plugin::prelude::Player;
+use cordon_sim::resources::PlayerUpgrades;
 
 use crate::bunker::geometry::*;
 use crate::bunker::resources::{Layout, RoomCtx};
@@ -57,7 +57,7 @@ impl HallRackTier {
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     let pair_count = ctx
-        .player
+        .upgrades
         .installed_effects(&ctx.game_data.0.upgrades)
         .filter(|e| matches!(e, UpgradeEffect::HallRackPair))
         .count();
@@ -98,17 +98,16 @@ fn spawn_pair(commands: &mut Commands, l: &Layout, tier: HallRackTier) {
 /// bunker was first built appear without a full respawn.
 pub fn sync_hall_racks(
     mut commands: Commands,
-    player: Res<Player>,
+    upgrades: Res<PlayerUpgrades>,
     game_data: Res<GameDataResource>,
     existing: Query<&HallRackTier>,
 ) {
-    if !player.is_changed() {
+    if !upgrades.is_changed() {
         return;
     }
     let l = Layout::new();
 
-    let declared_pairs = player
-        .0
+    let declared_pairs = upgrades
         .installed_effects(&game_data.0.upgrades)
         .filter(|e| matches!(e, UpgradeEffect::HallRackPair))
         .count();

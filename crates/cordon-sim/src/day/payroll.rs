@@ -13,7 +13,7 @@ use cordon_core::primitive::{Credits, Experience, Rank};
 
 use crate::behavior::squad::Owned;
 use crate::behavior::squad::identity::SquadMembers;
-use crate::resources::{GameClock, Player};
+use crate::resources::{GameClock, PlayerIdentity};
 
 /// Fixed daily bribe the Garrison demands for "protection."
 const GARRISON_BRIBE: u32 = 50;
@@ -31,7 +31,7 @@ pub struct LastDailyExpenses(pub Option<DailyExpenseReport>);
 /// push any shortfall onto debt, and store the report for the UI.
 pub(super) fn process_daily_expenses(
     clock: Res<GameClock>,
-    mut player: ResMut<Player>,
+    mut identity: ResMut<PlayerIdentity>,
     mut last: ResMut<LastDailyExpenses>,
     owned_squads: Query<&SquadMembers, With<Owned>>,
     members_xp: Query<&Experience>,
@@ -64,7 +64,7 @@ pub(super) fn process_daily_expenses(
     });
 
     // Syndicate interest on outstanding debt.
-    let debt_val = player.0.debt.value();
+    let debt_val = identity.debt.value();
     if debt_val > 0 {
         let interest = ((debt_val as u64 * SYNDICATE_INTEREST_BPS as u64 / 10_000) as u32).max(1);
         lines.push(ExpenseLine {
@@ -76,16 +76,16 @@ pub(super) fn process_daily_expenses(
     // Total and deduct.
     let total_val: u32 = lines.iter().map(|l| l.amount.value()).sum();
     let total = Credits::new(total_val);
-    let available = player.0.credits.value();
+    let available = identity.credits.value();
 
     let shortfall = if available >= total_val {
-        player.0.credits -= total;
+        identity.credits -= total;
         0
     } else {
-        player.0.credits = Credits::new(0);
+        identity.credits = Credits::new(0);
         total_val - available
     };
-    player.0.debt += Credits::new(shortfall);
+    identity.debt += Credits::new(shortfall);
 
     last.0 = Some(DailyExpenseReport {
         day: clock.0.day,
@@ -99,6 +99,6 @@ pub(super) fn process_daily_expenses(
         clock.0.day.value(),
         total_val,
         shortfall,
-        player.0.debt.value(),
+        identity.debt.value(),
     );
 }

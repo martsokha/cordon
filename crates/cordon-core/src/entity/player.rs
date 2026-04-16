@@ -7,9 +7,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::bunker::{Upgrade, UpgradeDef, UpgradeEffect};
+use super::bunker::Upgrade;
 use super::faction::Faction;
-use crate::item::{Item, ItemInstance, Stash, StashScope};
+use crate::item::{Item, Stash, StashScope};
 use crate::primitive::{Credits, Day, Experience, Id, Relation};
 
 /// A categorised daily expense line item. Multiple line items
@@ -168,11 +168,6 @@ impl PlayerState {
         PlayerRank::from_xp(self.xp)
     }
 
-    /// Add experience points.
-    pub fn add_xp(&mut self, amount: u32) {
-        self.xp.add(amount);
-    }
-
     /// Get the player's standing with a faction.
     pub fn standing(&self, faction: &Id<Faction>) -> Relation {
         self.standings
@@ -195,28 +190,13 @@ impl PlayerState {
         self.upgrades.iter().any(|u| u == upgrade_id)
     }
 
-    /// Iterate every [`UpgradeEffect`] granted by the player's
-    /// currently-installed upgrades, resolved against the game
-    /// data catalog.
-    ///
-    /// Systems that care about mechanical upgrade outcomes should
-    /// query this instead of matching on specific upgrade IDs —
-    /// keeps the code data-driven and lets new upgrades slot in by
-    /// declaring the same effect variant.
-    pub fn installed_effects<'a>(
-        &'a self,
-        upgrades: &'a std::collections::HashMap<Id<Upgrade>, UpgradeDef>,
-    ) -> impl Iterator<Item = &'a UpgradeEffect> + 'a {
-        self.upgrades
-            .iter()
-            .filter_map(|id| upgrades.get(id))
-            .flat_map(|def| def.effects.iter())
+    /// Whether the player holds at least `count` of the given item
+    /// def within the scope.
+    pub fn has_item(&self, item: &Id<Item>, count: u32, scope: StashScope) -> bool {
+        self.item_count(item, scope) >= count
     }
 
-    /// Total count of a given item definition across the requested
-    /// scope. For weapons and consumables this counts *instances*
-    /// (one per entry in the stash); for ammo it sums the `count`
-    /// field across matching instances (rounds across boxes).
+    /// Total count of a given item definition across the requested scope.
     pub fn item_count(&self, item: &Id<Item>, scope: StashScope) -> u32 {
         let sum = |stash: &Stash| -> u32 {
             stash
@@ -230,45 +210,6 @@ impl PlayerState {
             StashScope::Main => sum(&self.pending_items),
             StashScope::Hidden => sum(&self.hidden_storage),
             StashScope::Any => sum(&self.pending_items) + sum(&self.hidden_storage),
-        }
-    }
-
-    /// Whether the player holds at least `count` of the given item
-    /// def within the scope. Uses [`item_count`](Self::item_count)
-    /// semantics — one instance of a 30-round ammo box counts as 30.
-    pub fn has_item(&self, item: &Id<Item>, count: u32, scope: StashScope) -> bool {
-        self.item_count(item, scope) >= count
-    }
-
-    /// Insert an item instance into the requested scope.
-    ///
-    /// - [`Main`](StashScope::Main): main bunker storage.
-    /// - [`Hidden`](StashScope::Hidden): hidden cache.
-    /// - [`Any`](StashScope::Any): main bunker storage (same as
-    ///   `Main` for now — kept so the scope enum stays meaningful
-    ///   once physical rack placement lands and main storage
-    ///   regains a real capacity).
-    pub fn add_item(&mut self, instance: ItemInstance, scope: StashScope) {
-        match scope {
-            StashScope::Main | StashScope::Any => self.pending_items.add(instance),
-            StashScope::Hidden => self.hidden_storage.add(instance),
-        }
-    }
-
-    /// Remove and return the first instance of the given item def
-    /// within the scope, or `None` if nothing matches. Under
-    /// [`StashScope::Any`] main is searched first.
-    pub fn remove_first(&mut self, item: &Id<Item>, scope: StashScope) -> Option<ItemInstance> {
-        let take_from = |stash: &mut Stash| -> Option<ItemInstance> {
-            let index = stash.items().iter().position(|i| &i.def_id == item)?;
-            stash.remove(index)
-        };
-        match scope {
-            StashScope::Main => take_from(&mut self.pending_items),
-            StashScope::Hidden => take_from(&mut self.hidden_storage),
-            StashScope::Any => {
-                take_from(&mut self.pending_items).or_else(|| take_from(&mut self.hidden_storage))
-            }
         }
     }
 }

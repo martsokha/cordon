@@ -23,12 +23,14 @@ use cordon_core::world::narrative::{
 };
 use cordon_data::gamedata::GameDataResource;
 
-use super::super::condition::WorldView;
+use super::super::condition::{PlayerView, WorldView};
 use super::super::consequence::StartQuestRequest;
 use super::super::state::{ActiveQuest, QuestLog};
 use crate::day::DayRolled;
 use crate::quest::registry::TemplateRegistry;
-use crate::resources::{EventLog, GameClock, Player};
+use crate::resources::{
+    EventLog, GameClock, PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades,
+};
 
 /// Read-only bundle for quest-dispatch systems.
 ///
@@ -36,14 +38,17 @@ use crate::resources::{EventLog, GameClock, Player};
 /// quest log, catalog, clock, player, events — and mutates
 /// only the quest log. Bundling them as a derive
 /// [`SystemParam`] keeps the parameter list stable across
-/// dispatchers and avoids `ResMut<Player>` / `ResMut<EventLog>`
+/// dispatchers and avoids `ResMut<PlayerIdentity>` / `ResMut<EventLog>`
 /// claims that would block parallelism with other systems.
 #[derive(SystemParam)]
 pub struct QuestDispatchCtx<'w> {
     pub log: ResMut<'w, QuestLog>,
     pub data: Res<'w, GameDataResource>,
     pub clock: Res<'w, GameClock>,
-    pub player: Res<'w, Player>,
+    pub identity: Res<'w, PlayerIdentity>,
+    pub standings: Res<'w, PlayerStandings>,
+    pub upgrades: Res<'w, PlayerUpgrades>,
+    pub stash: Res<'w, PlayerStash>,
     pub events: Res<'w, EventLog>,
     pub registry: Res<'w, TemplateRegistry>,
 }
@@ -102,7 +107,12 @@ impl<'w> QuestDispatchCtx<'w> {
             None => true,
             Some(cond) => {
                 let view = WorldView {
-                    player: &self.player.0,
+                    player: PlayerView {
+                        identity: &self.identity,
+                        standings: &self.standings,
+                        upgrades: &self.upgrades,
+                        stash: &self.stash,
+                    },
                     events: &self.events.0,
                     quests: &self.log,
                     registry: &self.registry,
@@ -294,14 +304,16 @@ pub fn dispatch_on_condition(
     let mut to_fire: Vec<QuestTriggerDef> = Vec::new();
     {
         let view = WorldView {
-            player: &ctx.player.0,
+            player: PlayerView {
+                identity: &ctx.identity,
+                standings: &ctx.standings,
+                upgrades: &ctx.upgrades,
+                stash: &ctx.stash,
+            },
             events: &ctx.events.0,
             quests: &ctx.log,
             registry: &ctx.registry,
             now,
-            // Trigger-requires has no per-stage clock; `Wait`
-            // in a trigger is meaningless and the evaluator
-            // will warn if it appears.
             stage_started_at: None,
         };
         for (trigger, cond) in &triggers {

@@ -3,7 +3,8 @@
 
 use bevy::prelude::*;
 use cordon_core::entity::player::ExpenseKind;
-use cordon_sim::plugin::prelude::{LastDailyExpenses, Player};
+use cordon_sim::plugin::prelude::LastDailyExpenses;
+use cordon_sim::resources::PlayerIdentity;
 
 use super::{LaptopFont, LaptopTab, TabContent};
 use crate::PlayingState;
@@ -119,11 +120,11 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
 fn refresh_expense_panel(
     mut commands: Commands,
     expenses: Res<LastDailyExpenses>,
-    player: Res<Player>,
+    identity: Res<PlayerIdentity>,
     font: Res<LaptopFont>,
     panel_q: Query<(Entity, Option<&Children>), With<ExpensePanel>>,
 ) {
-    if !expenses.is_changed() && !player.is_changed() {
+    if !expenses.is_changed() && !identity.is_changed() {
         return;
     }
     let Ok((panel, children)) = panel_q.single() else {
@@ -195,7 +196,7 @@ fn refresh_expense_panel(
     commands.entity(panel).add_child(total_row);
 
     // Debt line if any.
-    let debt = player.0.debt.value();
+    let debt = identity.debt.value();
     if debt > 0 {
         let debt_row =
             spawn_expense_row(&mut commands, "Outstanding debt", debt, &font_handle, red);
@@ -203,7 +204,7 @@ fn refresh_expense_panel(
     }
 
     // Balance.
-    let bal_color = if player.0.credits.value() == 0 && debt > 0 {
+    let bal_color = if identity.credits.value() == 0 && debt > 0 {
         red
     } else {
         normal
@@ -211,7 +212,7 @@ fn refresh_expense_panel(
     let bal_row = spawn_expense_row(
         &mut commands,
         "Balance",
-        player.0.credits.value(),
+        identity.credits.value(),
         &font_handle,
         bal_color,
     );

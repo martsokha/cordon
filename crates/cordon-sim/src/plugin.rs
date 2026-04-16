@@ -160,8 +160,9 @@ pub mod prelude {
         StartQuestRequest, TemplateRegistry,
     };
     pub use crate::resources::{
-        AreaStates, EventLog, FactionIndex, GameClock, Player, PlayerSquadEntry, PlayerSquadRoster,
-        SquadIdIndex, UidAllocator,
+        AreaStates, EventLog, FactionIndex, GameClock, PlayerIdentity, PlayerSquadEntry,
+        PlayerSquadRoster, PlayerStandings, PlayerStash, PlayerUpgrades, SquadIdIndex,
+        UidAllocator,
     };
     pub use crate::shop::{BuyUpgrade, BuyUpgradeFailure, BuyUpgradeOutcome};
     pub use crate::spawn::SquadSpawned;

@@ -391,14 +391,14 @@ pub(super) struct RacksPopulated;
 pub(super) fn drain_pending_to_racks(
     mut commands: Commands,
     game_data: Res<GameDataResource>,
-    mut player: ResMut<cordon_sim::resources::Player>,
+    mut stash: ResMut<cordon_sim::resources::PlayerStash>,
     mut slots: Query<(Entity, &mut RackSlot)>,
 ) {
-    while !player.0.pending_items.is_empty() {
+    while !stash.pending_items.is_empty() {
         let Some((slot_entity, mut slot)) = slots.iter_mut().find(|(_, s)| s.item.is_none()) else {
             break;
         };
-        let Some(instance) = player.0.pending_items.remove(0) else {
+        let Some(instance) = stash.pending_items.remove(0) else {
             break;
         };
         let vis = spawn_slot_visual(&mut commands, &game_data, slot_entity, &instance);

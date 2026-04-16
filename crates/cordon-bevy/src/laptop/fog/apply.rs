@@ -13,8 +13,9 @@ use bevy::prelude::*;
 use cordon_core::entity::bunker::UpgradeEffect;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::{
-    Dead, NpcMarker, Owned, Player, RelicMarker, SquadMarker, SquadMembership, Vision,
+    Dead, NpcMarker, Owned, RelicMarker, SquadMarker, SquadMembership, Vision,
 };
+use cordon_sim::resources::PlayerUpgrades;
 
 use super::{FogEnabled, FogReveals, RevealedAreas};
 use crate::PlayingState;
@@ -55,7 +56,7 @@ pub(super) fn apply_fog(
     fog_enabled: Res<FogEnabled>,
     state: Res<State<PlayingState>>,
     active_tab: Res<LaptopTab>,
-    player: Res<Player>,
+    upgrades: Res<PlayerUpgrades>,
     game_data: Res<GameDataResource>,
     members: Query<
         (&Transform, &SquadMembership, &Vision),
@@ -210,8 +211,7 @@ pub(super) fn apply_fog(
     // (currently the artifact scanner) bypassing the fog entirely.
     // `has_scanner` is evaluated once per frame so installing the
     // upgrade immediately reveals all relics without a map-reload.
-    let has_scanner = player
-        .0
+    let has_scanner = upgrades
         .installed_effects(&game_data.0.upgrades)
         .any(|e| matches!(e, UpgradeEffect::RevealRelics));
     for (transform, mut vis) in &mut relic_q {
