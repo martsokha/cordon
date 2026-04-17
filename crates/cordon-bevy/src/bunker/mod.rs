@@ -22,6 +22,7 @@ mod rooms;
 mod sleep;
 mod systems;
 mod textures;
+mod toast;
 mod visitor;
 
 use bevy::prelude::*;
@@ -51,6 +52,7 @@ impl Plugin for BunkerPlugin {
             radio::RadioPlugin,
             rack::RackPlugin,
             sleep::SleepPlugin,
+            toast::ToastPlugin,
         ));
         // SSAO: `ScreenSpaceAmbientOcclusionPlugin` is registered
         // by `DefaultPlugins::PbrPlugin` already; we just attach

@@ -27,8 +27,9 @@ use cordon_data::gamedata::GameDataResource;
 
 use self::tooltip::build_area_info;
 use crate::PlayingState;
+use crate::fonts::UiFont;
 pub use crate::laptop::ui::MapWorldEntity;
-use crate::laptop::ui::{LaptopFont, spawn_ui};
+use crate::laptop::ui::spawn_ui;
 
 const COLOR_AREA: Color = Color::srgba(1.0, 1.0, 1.0, 0.08);
 const COLOR_AREA_BORDER: Color = Color::srgba(1.0, 1.0, 1.0, 0.25);
@@ -83,7 +84,7 @@ impl Plugin for MapPlugin {
 
 fn spawn_map(
     game_data: Res<GameDataResource>,
-    laptop_font: Res<LaptopFont>,
+    laptop_font: Res<UiFont>,
     l10n: Option<Res<Localization>>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,

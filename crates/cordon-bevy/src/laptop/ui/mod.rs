@@ -22,10 +22,6 @@ pub enum LaptopTab {
     Upgrades,
 }
 
-/// Font handle for all laptop UI text.
-#[derive(Resource)]
-pub struct LaptopFont(pub Handle<Font>);
-
 /// Marker for all 2D world entities that belong to the map view.
 #[derive(Component)]
 pub struct MapWorldEntity;
@@ -51,7 +47,6 @@ impl Plugin for UiPlugin {
             intel::IntelUiPlugin,
             upgrades::UpgradesUiPlugin,
         ));
-        app.add_systems(Startup, load_font);
         app.add_systems(
             Update,
             (handle_tab_clicks, update_tab_visibility)
@@ -59,10 +54,6 @@ impl Plugin for UiPlugin {
                 .run_if(in_state(PlayingState::Laptop)),
         );
     }
-}
-
-fn load_font(mut commands: Commands, server: Res<AssetServer>) {
-    commands.insert_resource(LaptopFont(server.load("fonts/PTMono-Regular.ttf")));
 }
 
 /// Spawn the tab bar and all tab content panels.

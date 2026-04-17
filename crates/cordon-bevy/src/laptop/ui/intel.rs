@@ -21,7 +21,8 @@ use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::QuestLog;
 use cordon_sim::resources::{PlayerIntel, PlayerStandings};
 
-use super::{LaptopFont, LaptopTab, TabContent};
+use super::{LaptopTab, TabContent};
+use crate::fonts::UiFont;
 use crate::locale::l10n_or;
 
 /// Marker on the flex column that holds the quest-list entries.
@@ -242,7 +243,7 @@ fn refresh_quest_list(
     log: Res<QuestLog>,
     data: Res<GameDataResource>,
     l10n: Option<Res<Localization>>,
-    font: Res<LaptopFont>,
+    font: Res<UiFont>,
     panel_q: Query<(Entity, Option<&Children>), With<QuestListPanel>>,
     heading_q: Query<(), With<QuestListHeading>>,
 ) {
@@ -409,7 +410,7 @@ fn refresh_faction_standings(
     mut commands: Commands,
     standings: Res<PlayerStandings>,
     l10n: Option<Res<Localization>>,
-    font: Res<LaptopFont>,
+    font: Res<UiFont>,
     panel_q: Query<(Entity, Option<&Children>), With<FactionStandingsPanel>>,
     heading_q: Query<(), With<FactionStandingsHeading>>,
 ) {
@@ -517,7 +518,7 @@ fn refresh_intel_feed(
     intel: Res<PlayerIntel>,
     data: Res<GameDataResource>,
     l10n: Option<Res<Localization>>,
-    font: Res<LaptopFont>,
+    font: Res<UiFont>,
     panel_q: Query<(Entity, Option<&Children>), With<IntelFeedPanel>>,
     heading_q: Query<(), With<IntelFeedHeading>>,
 ) {

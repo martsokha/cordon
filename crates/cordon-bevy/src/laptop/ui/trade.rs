@@ -6,8 +6,9 @@ use cordon_core::entity::player::ExpenseKind;
 use cordon_sim::plugin::prelude::LastDailyExpenses;
 use cordon_sim::resources::PlayerIdentity;
 
-use super::{LaptopFont, LaptopTab, TabContent};
+use super::{LaptopTab, TabContent};
 use crate::PlayingState;
+use crate::fonts::UiFont;
 
 #[derive(Component)]
 struct ExpensePanel;
@@ -121,7 +122,7 @@ fn refresh_expense_panel(
     mut commands: Commands,
     expenses: Res<LastDailyExpenses>,
     identity: Res<PlayerIdentity>,
-    font: Res<LaptopFont>,
+    font: Res<UiFont>,
     panel_q: Query<(Entity, Option<&Children>), With<ExpensePanel>>,
 ) {
     if !expenses.is_changed() && !identity.is_changed() {

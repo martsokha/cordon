@@ -51,7 +51,7 @@ pub(super) fn attach_sleep_target(
         commands.entity(entity).insert((
             SleepTarget,
             Interactable {
-                prompt: "[E] Sleep".into(),
+                key: "interact-sleep".into(),
                 enabled: true,
             },
         ));

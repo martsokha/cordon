@@ -41,7 +41,7 @@ pub(super) fn attach_interactable(
         commands.entity(entity).insert((
             PillsInteractable,
             Interactable {
-                prompt: "[E] Take pills".into(),
+                key: "interact-pills".into(),
                 enabled: true,
             },
         ));

@@ -5,9 +5,11 @@
 //! observer handles.
 
 use bevy::prelude::*;
+use bevy_fluent::prelude::*;
 
 use super::components::{FpsCamera, InteractPrompt};
 use super::resources::{CameraMode, InteractionLocked};
+use crate::locale::l10n_or;
 
 const INTERACT_DIST: f32 = 3.5;
 
@@ -18,9 +20,14 @@ const INTERACT_DIST: f32 = 3.5;
 const MIN_AIM_DOT: f32 = 0.7;
 
 /// Attach to any entity the player can interact with via E.
+///
+/// `key` is a Fluent localisation key (e.g. `"interact-laptop"`).
+/// The displayed prompt is resolved through [`Localization`] at
+/// render time, falling back to the raw key when no translation
+/// exists.
 #[derive(Component)]
 pub struct Interactable {
-    pub prompt: String,
+    pub key: String,
     pub enabled: bool,
 }
 
@@ -34,11 +41,18 @@ pub(super) fn update_prompt(
     camera_q: Query<&Transform, With<FpsCamera>>,
     interactables: Query<(Entity, &GlobalTransform, &Interactable)>,
     camera_mode: Res<CameraMode>,
-    mut prompt_q: Query<(&mut Text, &mut Visibility), With<InteractPrompt>>,
+    l10n: Option<Res<Localization>>,
+    mut prompt_q: Query<(&Children, &mut Visibility), With<InteractPrompt>>,
+    mut text_q: Query<&mut Text>,
 ) {
     if matches!(*camera_mode, CameraMode::AtCctv { .. }) {
-        for (mut text, mut vis) in &mut prompt_q {
-            text.0 = "[E] Exit Camera".into();
+        let resolved = resolve(l10n.as_deref(), "interact-exit-camera");
+        for (children, mut vis) in &mut prompt_q {
+            if let Some(&child) = children.first() {
+                if let Ok(mut t) = text_q.get_mut(child) {
+                    t.0 = resolved.clone();
+                }
+            }
             *vis = Visibility::Visible;
         }
         return;
@@ -46,15 +60,24 @@ pub(super) fn update_prompt(
 
     let best = pick_best(&camera_q, &interactables);
 
-    for (mut text, mut vis) in &mut prompt_q {
+    for (children, mut vis) in &mut prompt_q {
         match best {
             Some((_, interactable)) => {
-                text.0 = interactable.prompt.clone();
+                if let Some(&child) = children.first() {
+                    if let Ok(mut t) = text_q.get_mut(child) {
+                        t.0 = resolve(l10n.as_deref(), &interactable.key);
+                    }
+                }
                 *vis = Visibility::Visible;
             }
             None => *vis = Visibility::Hidden,
         }
     }
+}
+
+fn resolve(l10n: Option<&Localization>, key: &str) -> String {
+    l10n.map(|l| l10n_or(l, key, key))
+        .unwrap_or_else(|| key.to_string())
 }
 
 pub(super) fn interact(

@@ -61,7 +61,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     ctx.commands.spawn((
         DoorButton,
         Interactable {
-            prompt: "[E] Open Door".into(),
+            key: "interact-door".into(),
             enabled: false,
         },
         Mesh3d(button_mesh),
@@ -95,6 +95,4 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     }
     // Rug in front of the desk.
     ctx.prop(Prop::Rug, Vec3::new(0.0, 0.0, ctx.l.desk_z() - 0.3));
-    // Filing cabinet behind the chair.
-    ctx.prop(Prop::Cabinet01, Vec3::new(0.6, 0.0, ctx.l.desk_z() - 0.8));
 }

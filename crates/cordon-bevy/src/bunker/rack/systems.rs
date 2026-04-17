@@ -65,7 +65,7 @@ pub(super) fn spawn_rack_slots(
                         visual: None,
                     },
                     Interactable {
-                        prompt: String::new(),
+                        key: String::new(),
                         enabled: false,
                     },
                     Transform::from_translation(world_pos),
@@ -90,15 +90,15 @@ pub(super) fn update_slot_prompts(
         let carrying_item = carrying.0.is_some();
 
         interactable.enabled = has_item || carrying_item;
-        interactable.prompt = match (has_item, carrying_item) {
+        interactable.key = match (has_item, carrying_item) {
             (true, false) => {
                 let name = slot_item_name(slot, localization.as_deref());
-                format!("[E] Take {name}")
+                format!("interact-rack-take?item={name}")
             }
-            (false, true) => "[E] Place item".into(),
+            (false, true) => "interact-rack-place".into(),
             (true, true) => {
                 let name = slot_item_name(slot, localization.as_deref());
-                format!("[E] Swap with {name}")
+                format!("interact-rack-swap?item={name}")
             }
             (false, false) => String::new(),
         };

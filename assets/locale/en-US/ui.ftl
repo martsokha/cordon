@@ -25,8 +25,23 @@ intel-quest-log = QUEST LOG
 intel-quest-log-empty = No active quests.
 intel-quest-log-completed = RECENT
 intel-faction-standings = FACTION STANDINGS
-intel-recent-events = RECENT EVENTS
-intel-events-empty = No events.
+
+# Intel feed
+intel-feed = INTEL
+intel-feed-empty = No intel.
+
+# Interaction prompts
+interact-laptop = Use laptop
+interact-sleep = Sleep
+interact-pills = Take pills
+interact-cctv = View camera
+interact-door = Open door
+interact-radio-on = Turn on radio
+interact-radio-off = Turn off radio
+interact-rack-take = Take { $item }
+interact-rack-place = Place item
+interact-rack-swap = Swap with { $item }
+interact-exit-camera = Exit camera
 
 # Faction standing buckets. Mirror `Relation::is_*` helpers in
 # `cordon-core/src/primitive/relation.rs` — if the thresholds

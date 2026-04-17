@@ -10,6 +10,7 @@ use super::cctv::MonitorPlacement;
 use super::components::*;
 use super::resources::*;
 use super::rooms;
+use crate::fonts::UiFont;
 
 pub(super) fn spawn_bunker(
     mut commands: Commands,
@@ -19,6 +20,7 @@ pub(super) fn spawn_bunker(
     mut effects: ResMut<Assets<bevy_hanabi::EffectAsset>>,
     upgrades: Res<cordon_sim::resources::PlayerUpgrades>,
     game_data: Res<cordon_data::gamedata::GameDataResource>,
+    font: Res<UiFont>,
 ) {
     let pal = Palette::new(&mut mats, &asset_server);
     let l = Layout::new();
@@ -61,7 +63,7 @@ pub(super) fn spawn_bunker(
         rooms::antechamber::spawn(&mut ctx);
     }
 
-    spawn_ui(&mut commands, fps_camera_entity);
+    spawn_ui(&mut commands, fps_camera_entity, &font.0);
     commands.insert_resource(BunkerSpawned);
 }
 
@@ -109,22 +111,51 @@ fn spawn_camera(commands: &mut Commands, l: &Layout) -> Entity {
         .id()
 }
 
-fn spawn_ui(commands: &mut Commands, fps_camera_entity: Entity) {
-    commands.spawn((
-        InteractPrompt,
-        UiTargetCamera(fps_camera_entity),
-        Node {
-            position_type: PositionType::Absolute,
-            left: Val::Percent(50.0),
-            top: Val::Percent(55.0),
-            ..default()
-        },
-        Text::new(""),
-        TextFont {
-            font_size: 14.0,
-            ..default()
-        },
-        TextColor(Color::srgba(1.0, 1.0, 1.0, 0.8)),
-        Visibility::Hidden,
-    ));
+fn spawn_ui(commands: &mut Commands, fps_camera_entity: Entity, font: &Handle<Font>) {
+    // Interaction prompt (below crosshair), centred horizontally.
+    commands
+        .spawn((
+            InteractPrompt,
+            UiTargetCamera(fps_camera_entity),
+            Node {
+                position_type: PositionType::Absolute,
+                width: Val::Percent(100.0),
+                top: Val::Percent(55.0),
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            Visibility::Hidden,
+        ))
+        .with_child((
+            Text::new(""),
+            TextFont {
+                font: font.clone(),
+                font_size: 14.0,
+                ..default()
+            },
+            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.8)),
+        ));
+
+    // Crosshair dot.
+    commands
+        .spawn((
+            UiTargetCamera(fps_camera_entity),
+            Node {
+                position_type: PositionType::Absolute,
+                width: Val::Percent(100.0),
+                top: Val::Percent(50.0),
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+            GlobalZIndex(50),
+        ))
+        .with_child((
+            Text::new("•"),
+            TextFont {
+                font: font.clone(),
+                font_size: 6.0,
+                ..default()
+            },
+            TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5)),
+        ));
 }

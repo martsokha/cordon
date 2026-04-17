@@ -4,8 +4,9 @@ use bevy::prelude::*;
 use cordon_core::primitive::Tier;
 use cordon_sim::resources::GameClock;
 
-use super::{LaptopFont, LaptopTab, MapWorldEntity};
+use super::{LaptopTab, MapWorldEntity};
 use crate::PlayingState;
+use crate::fonts::UiFont;
 use crate::laptop::LaptopCamera;
 use crate::laptop::input::CameraTarget;
 use crate::laptop::map::Bunker;
@@ -385,7 +386,7 @@ fn update_tooltip(
     mut header_q: Query<&mut Text, (With<TooltipHeader>, Without<TooltipRoot>)>,
     icons_q: Query<(Entity, Option<&Children>), (With<TooltipIcons>, Without<TooltipRoot>)>,
     mut commands: Commands,
-    font: Option<Res<LaptopFont>>,
+    font: Option<Res<UiFont>>,
 ) {
     if !tooltip.is_changed() {
         return;

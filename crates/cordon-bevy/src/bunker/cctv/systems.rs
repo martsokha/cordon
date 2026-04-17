@@ -43,7 +43,7 @@ pub(super) fn spawn_cctv(
     commands
         .entity(monitor)
         .insert(Interactable {
-            prompt: "[E] View Camera".into(),
+            key: "interact-cctv".into(),
             enabled: true,
         })
         .observe(

@@ -29,7 +29,7 @@ pub(super) fn spawn_laptop(
         .spawn((
             LaptopObject,
             Interactable {
-                prompt: "[E] Use Laptop".into(),
+                key: "interact-laptop".into(),
                 enabled: true,
             },
             SceneRoot(scene),

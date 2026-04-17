@@ -7,6 +7,7 @@
 mod bunker;
 #[cfg(debug_assertions)]
 mod debug;
+mod fonts;
 mod laptop;
 mod locale;
 mod quest;
@@ -57,6 +58,7 @@ fn main() {
         ready: AppState::Playing,
     })
     .add_plugins(locale::LocalePlugin)
+    .add_plugins(fonts::FontsPlugin)
     .add_plugins(avian3d::PhysicsPlugins::default())
     .add_plugins(bevy_hanabi::HanabiPlugin)
     .insert_resource(avian3d::prelude::Gravity(Vec3::ZERO))

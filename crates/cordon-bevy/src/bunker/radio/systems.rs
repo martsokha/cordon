@@ -54,7 +54,7 @@ pub(super) fn spawn_radio(
             RadioMarker,
             RadioOn(true),
             Interactable {
-                prompt: "[E] Turn off radio".into(),
+                key: "interact-radio-off".into(),
                 enabled: true,
             },
             SceneRoot(scene),
@@ -104,11 +104,11 @@ fn on_toggle(
 
     let pos = transform.translation();
     if on.0 {
-        interactable.prompt = "[E] Turn off radio".into();
+        interactable.key = "interact-radio-off".into();
         spawn_oneshot(&mut commands, &sfx.enable, TOGGLE_VOLUME, pos, true);
         spawn_static_audio(&mut commands, radio_entity, &sfx);
     } else {
-        interactable.prompt = "[E] Turn on radio".into();
+        interactable.key = "interact-radio-on".into();
         // Kill all radio audio (static, chatter, enable sound).
         for entity in &audio_q {
             commands.entity(entity).despawn();
@@ -152,8 +152,6 @@ pub(super) fn play_broadcast(
     mut heard_tx: MessageWriter<BroadcastHeard>,
 ) {
     let Ok((on, transform)) = radio_q.single() else {
-        // No radio entity yet — consume messages so they don't
-        // pile up, but don't confirm heard.
         broadcasts.read().for_each(drop);
         return;
     };

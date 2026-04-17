@@ -14,8 +14,9 @@ use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::BuyUpgrade;
 use cordon_sim::resources::{PlayerIdentity, PlayerUpgrades};
 
-use super::{LaptopFont, LaptopTab, TabContent};
+use super::{LaptopTab, TabContent};
 use crate::PlayingState;
+use crate::fonts::UiFont;
 use crate::locale::l10n_or;
 
 /// Marker for the BUNKER column's row container.
@@ -126,7 +127,7 @@ fn refresh_upgrade_panels(
     upgrades: Res<PlayerUpgrades>,
     data: Res<GameDataResource>,
     l10n: Option<Res<Localization>>,
-    font: Res<LaptopFont>,
+    font: Res<UiFont>,
     bunker_q: Query<
         (Entity, Option<&Children>),
         (With<BunkerUpgradesPanel>, Without<CampUpgradesPanel>),
