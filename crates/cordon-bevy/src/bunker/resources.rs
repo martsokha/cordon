@@ -19,6 +19,12 @@ pub struct LaptopPlacement {
     pub rot: Quat,
 }
 
+#[derive(Resource)]
+pub struct RadioPlacement {
+    pub pos: Vec3,
+    pub rot: Quat,
+}
+
 pub const ANTECHAMBER_VISITOR_POS: Vec3 = Vec3::new(0.0, -49.75, -49.5);
 pub(crate) const CCTV_CAMERA_POS: Vec3 = Vec3::new(-1.85, -47.9, -48.15);
 

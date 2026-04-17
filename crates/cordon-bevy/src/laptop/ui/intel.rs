@@ -1,6 +1,6 @@
-//! Intel tab: quest log, event feed, faction standings.
+//! Intel tab: quest log, intel feed, faction standings.
 //!
-//! The static panel layout is built once on [`spawn`]. Two
+//! The static panel layout is built once on [`spawn`]. Three
 //! containers are tagged with marker components so per-frame
 //! refresh systems can rebuild their children from live world
 //! state:
@@ -8,18 +8,18 @@
 //! - [`QuestListPanel`] — rebuilt by [`refresh_quest_list`]
 //!   whenever [`QuestLog`] changes.
 //! - [`FactionStandingsPanel`] — rebuilt by
-//!   [`refresh_faction_standings`] whenever [`Player`] changes.
-//!
-//! The event feed is still a placeholder until an event log
-//! refresh system lands.
+//!   [`refresh_faction_standings`] whenever standings change.
+//! - [`IntelFeedPanel`] — rebuilt by [`refresh_intel_feed`]
+//!   whenever [`PlayerIntel`] changes.
 
 use bevy::prelude::*;
 use bevy_fluent::prelude::*;
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::{Id, Relation};
+use cordon_core::world::narrative::IntelCategory;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::QuestLog;
-use cordon_sim::resources::PlayerStandings;
+use cordon_sim::resources::{PlayerIntel, PlayerStandings};
 
 use super::{LaptopFont, LaptopTab, TabContent};
 use crate::locale::l10n_or;
@@ -45,6 +45,15 @@ pub struct FactionStandingsPanel;
 /// when rebuilding the list.
 #[derive(Component)]
 pub struct FactionStandingsHeading;
+
+/// Marker on the flex column that holds the intel-feed entries.
+/// Refreshed in-place by [`refresh_intel_feed`].
+#[derive(Component)]
+pub struct IntelFeedPanel;
+
+/// Marker on the heading row of the intel feed.
+#[derive(Component)]
+pub struct IntelFeedHeading;
 
 /// Shared first-fill + rebuild helper used by
 /// [`refresh_quest_list`] and [`refresh_faction_standings`].
@@ -101,9 +110,14 @@ impl Plugin for IntelUiPlugin {
         // resources.
         app.add_systems(
             Update,
-            (refresh_quest_list, refresh_faction_standings)
+            (
+                refresh_quest_list,
+                refresh_faction_standings,
+                refresh_intel_feed,
+            )
                 .run_if(resource_exists::<QuestLog>)
                 .run_if(resource_exists::<PlayerStandings>)
+                .run_if(resource_exists::<PlayerIntel>)
                 .run_if(resource_exists::<GameDataResource>),
         );
     }
@@ -112,8 +126,7 @@ impl Plugin for IntelUiPlugin {
 pub fn spawn(commands: &mut Commands, font: &Handle<Font>, l10n: &Localization) {
     let quest_log_heading = l10n_or(l10n, "intel-quest-log", "QUEST LOG");
     let faction_standings_heading = l10n_or(l10n, "intel-faction-standings", "FACTION STANDINGS");
-    let recent_events_heading = l10n_or(l10n, "intel-recent-events", "RECENT EVENTS");
-    let events_empty = l10n_or(l10n, "intel-events-empty", "No events.");
+    let intel_feed_heading = l10n_or(l10n, "intel-feed", "INTEL");
 
     commands
         .spawn((
@@ -194,23 +207,26 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>, l10n: &Localization) 
                     });
 
                     col.spawn((
-                        Text::new(recent_events_heading),
-                        TextFont {
-                            font: font.clone(),
-                            font_size: 13.0,
+                        IntelFeedPanel,
+                        Node {
+                            flex_direction: FlexDirection::Column,
+                            row_gap: Val::Px(4.0),
+                            margin: UiRect::top(Val::Px(8.0)),
                             ..default()
                         },
-                        TextColor(Color::srgb(0.8, 0.8, 0.6)),
-                    ));
-                    col.spawn((
-                        Text::new(events_empty),
-                        TextFont {
-                            font: font.clone(),
-                            font_size: 11.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgba(0.5, 0.5, 0.5, 0.6)),
-                    ));
+                    ))
+                    .with_children(|panel| {
+                        panel.spawn((
+                            IntelFeedHeading,
+                            Text::new(intel_feed_heading),
+                            TextFont {
+                                font: font.clone(),
+                                font_size: 13.0,
+                                ..default()
+                            },
+                            TextColor(Color::srgb(0.8, 0.8, 0.6)),
+                        ));
+                    });
                 });
         });
 }
@@ -490,5 +506,100 @@ fn standing_color(standing: Relation) -> Color {
         Color::srgba(0.55, 0.80, 0.60, 0.90)
     } else {
         Color::srgba(0.70, 0.70, 0.70, 0.85)
+    }
+}
+
+/// Rebuild the intel feed whenever [`PlayerIntel`] changes.
+/// Shows known intel entries sorted newest-first, with a
+/// category tag and colour per entry.
+fn refresh_intel_feed(
+    mut commands: Commands,
+    intel: Res<PlayerIntel>,
+    data: Res<GameDataResource>,
+    l10n: Option<Res<Localization>>,
+    font: Res<LaptopFont>,
+    panel_q: Query<(Entity, Option<&Children>), With<IntelFeedPanel>>,
+    heading_q: Query<(), With<IntelFeedHeading>>,
+) {
+    let Some(panel_entity) =
+        prepare_panel_rebuild(&mut commands, &panel_q, &heading_q, intel.is_changed())
+    else {
+        return;
+    };
+
+    let font = font.0.clone();
+
+    if intel.entries.is_empty() {
+        let empty_text = l10n
+            .as_deref()
+            .map(|l| l10n_or(l, "intel-feed-empty", "No intel."))
+            .unwrap_or_else(|| "No intel.".to_string());
+        let empty = commands
+            .spawn((
+                Text::new(empty_text),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 11.0,
+                    ..default()
+                },
+                TextColor(Color::srgba(0.5, 0.5, 0.5, 0.6)),
+            ))
+            .id();
+        commands.entity(panel_entity).add_child(empty);
+        return;
+    }
+
+    // Show newest entries first, capped at 10.
+    const MAX_ENTRIES: usize = 10;
+    for entry in intel.entries.iter().rev().take(MAX_ENTRIES) {
+        let id_str = entry.id.as_str();
+        let title_key = format!("intel.{id_str}.title");
+        let title = l10n
+            .as_deref()
+            .map(|l| l10n_or(l, &title_key, id_str))
+            .unwrap_or_else(|| id_str.to_string());
+
+        let (tag, color) = match data.0.intel.get(&entry.id) {
+            Some(def) => (
+                intel_category_tag(def.category),
+                intel_category_color(def.category),
+            ),
+            None => ("???", Color::srgba(0.5, 0.5, 0.5, 0.7)),
+        };
+
+        let row = commands
+            .spawn((
+                Text::new(format!("[{tag}] {title}")),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 10.0,
+                    ..default()
+                },
+                TextColor(color),
+            ))
+            .id();
+        commands.entity(panel_entity).add_child(row);
+    }
+}
+
+/// Short uppercase tag for the intel category.
+fn intel_category_tag(cat: IntelCategory) -> &'static str {
+    match cat {
+        IntelCategory::Faction => "FAC",
+        IntelCategory::Environmental => "ENV",
+        IntelCategory::Economic => "ECO",
+        IntelCategory::Rumour => "RUM",
+        IntelCategory::Mission => "MSN",
+    }
+}
+
+/// Row colour per intel category.
+fn intel_category_color(cat: IntelCategory) -> Color {
+    match cat {
+        IntelCategory::Faction => Color::srgba(0.65, 0.75, 0.90, 0.90),
+        IntelCategory::Environmental => Color::srgba(0.70, 0.85, 0.55, 0.90),
+        IntelCategory::Economic => Color::srgba(0.90, 0.80, 0.50, 0.90),
+        IntelCategory::Rumour => Color::srgba(0.75, 0.65, 0.80, 0.85),
+        IntelCategory::Mission => Color::srgba(0.85, 0.70, 0.50, 0.90),
     }
 }

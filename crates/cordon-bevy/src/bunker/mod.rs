@@ -2,6 +2,7 @@
 //! the player meets visitors at the counter inside the bunker, not on
 //! the laptop map.
 
+mod ambient;
 mod camera;
 pub mod cctv;
 pub mod components;
@@ -15,6 +16,7 @@ mod particles;
 mod pills;
 mod props;
 pub mod rack;
+mod radio;
 pub mod resources;
 mod rooms;
 mod sleep;
@@ -38,6 +40,7 @@ pub struct BunkerPlugin;
 impl Plugin for BunkerPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((
+            ambient::AmbientPlugin,
             input::InputPlugin,
             dialogue::DialoguePlugin,
             visitor::VisitorPlugin,
@@ -45,6 +48,7 @@ impl Plugin for BunkerPlugin {
             laptop::LaptopPlugin,
             particles::BunkerParticlesPlugin,
             pills::PillsPlugin,
+            radio::RadioPlugin,
             rack::RackPlugin,
             sleep::SleepPlugin,
         ));

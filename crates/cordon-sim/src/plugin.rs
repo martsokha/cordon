@@ -153,6 +153,7 @@ pub mod prelude {
     pub use crate::day::DayRolled;
     // Cross-cutting messages and resources.
     pub use crate::day::payroll::LastDailyExpenses;
+    pub use crate::day::radio::{BroadcastHeard, RadioBroadcast};
     // Per-entity components not owned by a subplugin.
     pub use crate::entity::npc::{
         ActiveEffects, BaseMaxes, Essential, FactionId, NpcAttributes, NpcBundle, NpcMarker,
@@ -165,9 +166,9 @@ pub mod prelude {
         StartQuestRequest, TemplateRegistry,
     };
     pub use crate::resources::{
-        AreaStates, EventLog, FactionIndex, GameClock, PlayerIdentity, PlayerSquadEntry,
-        PlayerSquadRoster, PlayerStandings, PlayerStash, PlayerUpgrades, Sim, SimSpeed,
-        SquadIdIndex, UidAllocator,
+        AreaStates, EventLog, FactionIndex, GameClock, KnownIntel, PlayerIdentity, PlayerIntel,
+        PlayerSquadEntry, PlayerSquadRoster, PlayerStandings, PlayerStash, PlayerUpgrades, Sim,
+        SimSpeed, SquadIdIndex, UidAllocator,
     };
     pub use crate::shop::{BuyUpgrade, BuyUpgradeFailure, BuyUpgradeOutcome};
     pub use crate::spawn::SquadSpawned;

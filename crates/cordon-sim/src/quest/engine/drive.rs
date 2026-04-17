@@ -30,7 +30,7 @@ use super::super::consequence::{
 use super::super::state::{CompletedQuest, QuestLog};
 use crate::quest::registry::TemplateRegistry;
 use crate::resources::{
-    EventLog, GameClock, PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades,
+    EventLog, GameClock, PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades,
 };
 
 /// Mutable bundle used by [`drive_active_quests`] — the only
@@ -54,6 +54,7 @@ pub struct QuestEngineCtx<'w> {
     pub standings: ResMut<'w, PlayerStandings>,
     pub upgrades: ResMut<'w, PlayerUpgrades>,
     pub stash: ResMut<'w, PlayerStash>,
+    pub intel: ResMut<'w, PlayerIntel>,
     pub events: ResMut<'w, EventLog>,
     pub factions: Res<'w, crate::resources::FactionIndex>,
     pub registry: Res<'w, TemplateRegistry>,
@@ -118,6 +119,7 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
         standings: &ctx.standings,
         upgrades: &ctx.upgrades,
         stash: &ctx.stash,
+        intel: &ctx.intel,
     };
     let objective_transitions = collect_objective_transitions(
         &ctx.log,
@@ -143,6 +145,7 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
         standings: &ctx.standings,
         upgrades: &ctx.upgrades,
         stash: &ctx.stash,
+        intel: &ctx.intel,
     };
     let branch_transitions = collect_branch_transitions(
         &ctx.log,
@@ -186,6 +189,7 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
             &mut ctx.standings,
             &mut ctx.upgrades,
             &mut ctx.stash,
+            &mut ctx.intel,
             &mut ctx.events.0,
             &ctx.registry,
             &faction_pool,
@@ -235,6 +239,7 @@ fn collect_objective_transitions(
                 standings: player.standings,
                 upgrades: player.upgrades,
                 stash: player.stash,
+                intel: player.intel,
             },
             events,
             quests: log,
@@ -300,6 +305,7 @@ fn collect_branch_transitions(
                 standings: player.standings,
                 upgrades: player.upgrades,
                 stash: player.stash,
+                intel: player.intel,
             },
             events,
             quests: log,
@@ -334,6 +340,7 @@ fn complete_quest(
     standings: &mut PlayerStandings,
     upgrades: &mut PlayerUpgrades,
     stash: &mut PlayerStash,
+    intel: &mut PlayerIntel,
     events: &mut Vec<cordon_core::world::narrative::ActiveEvent>,
     registry: &TemplateRegistry,
     faction_pool: &[Id<Faction>],
@@ -375,6 +382,7 @@ fn complete_quest(
                 standings,
                 upgrades,
                 stash,
+                intel,
             },
             events,
             quests: log,
@@ -404,6 +412,7 @@ fn complete_quest(
         standings,
         upgrades,
         stash,
+        intel,
         events,
         data: catalog,
         registry,

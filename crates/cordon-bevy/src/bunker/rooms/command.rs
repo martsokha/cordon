@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use crate::bunker::components::DoorButton;
 use crate::bunker::geometry::*;
 use crate::bunker::interaction::Interactable;
-use crate::bunker::resources::RoomCtx;
+use crate::bunker::resources::{RadioPlacement, RoomCtx};
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     // Divider grate.
@@ -37,12 +37,11 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Prop::Mug,
         Vec3::new(-0.35, TABLE_TOP, ctx.l.desk_z() + 0.05),
     );
-    // Radio on the desk, left of the laptop, facing the player.
-    ctx.prop_rot(
-        Prop::Radio,
-        Vec3::new(-0.55, TABLE_TOP, ctx.l.desk_z() - 0.25),
-        Quat::from_rotation_y(PI),
-    );
+    // Radio placement: the radio module owns the spawn (like laptop).
+    ctx.commands.insert_resource(RadioPlacement {
+        pos: Vec3::new(-0.55, TABLE_TOP, ctx.l.desk_z() - 0.25),
+        rot: Quat::from_rotation_y(PI),
+    });
 
     // Door button — sits on the table surface. A flat cylinder
     // so it reads as a push button at a glance rather than a

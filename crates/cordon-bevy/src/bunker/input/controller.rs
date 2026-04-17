@@ -27,7 +27,7 @@ const STEP_DISTANCE: f32 = 1.8;
 /// pin in [`fps_move`] (`transform.translation.y = CAMERA_EYE_Y`).
 /// Used to derive floor-level from camera position for footstep
 /// events instead of assuming `y = 0`.
-pub(crate) const CAMERA_EYE_Y: f32 = 1.6;
+pub(crate) const CAMERA_EYE_Y: f32 = 1.65;
 
 pub(crate) const PLAYER_RADIUS: f32 = 0.25;
 pub(crate) const PLAYER_HEIGHT: f32 = 1.0;

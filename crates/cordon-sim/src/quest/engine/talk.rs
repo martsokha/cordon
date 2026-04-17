@@ -14,7 +14,7 @@ use cordon_data::catalog::GameData;
 use super::super::condition::{PlayerView, WorldView};
 use super::super::registry::TemplateRegistry;
 use super::super::state::QuestLog;
-use crate::resources::{PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades};
+use crate::resources::{PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades};
 
 /// After a Yarn dialogue tied to a `Talk` stage finishes, jump
 /// to the first eligible branch whose `choice` matches the
@@ -35,6 +35,7 @@ pub fn advance_after_talk(
     standings: &PlayerStandings,
     upgrades: &PlayerUpgrades,
     stash: &PlayerStash,
+    intel: &PlayerIntel,
     events: &[cordon_core::world::narrative::ActiveEvent],
     registry: &TemplateRegistry,
     quest: &Id<Quest>,
@@ -61,6 +62,7 @@ pub fn advance_after_talk(
             standings,
             upgrades,
             stash,
+            intel,
         },
         events,
         quests: log,

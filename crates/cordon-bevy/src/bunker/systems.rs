@@ -104,6 +104,7 @@ fn spawn_camera(commands: &mut Commands, l: &Layout) -> Entity {
             // that don't support multisampling).
             ScreenSpaceAmbientOcclusion::default(),
             Msaa::Off,
+            bevy::audio::SpatialListener::default(),
         ))
         .id()
 }

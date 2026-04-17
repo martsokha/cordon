@@ -1,25 +1,28 @@
-//! Narrative system: quests, consequences, conditions, events, triggers.
+//! Narrative system: quests, consequences, conditions, events, triggers, intel.
 //!
-//! Four modules, one flat namespace. Callers import everything
+//! Five modules, one flat namespace. Callers import everything
 //! through `cordon_core::world::narrative` — sub-module paths are
 //! an implementation detail.
 //!
 //! - [`quest`] — quest definitions, stages, categories.
 //! - [`consequence`] — `ObjectiveCondition` and `Consequence`,
 //!   the shared vocabulary quest stages and events both use.
-//! - [`event`] — zone event definitions and live instances.
+//! - [`event`] — zone event definitions, live instances, and radio entries.
+//! - [`intel`] — data-driven intel definitions and categories.
 //! - [`trigger`] — rules that start quests in response to world
 //!   events, day rollovers, or condition state changes.
 
 mod consequence;
 mod event;
 mod flag;
+mod intel;
 mod quest;
 mod trigger;
 
 pub use self::consequence::{ConditionalConsequence, Consequence, ObjectiveCondition};
-pub use self::event::{ActiveEvent, Event, EventCategory, EventDef};
+pub use self::event::{ActiveEvent, Event, EventCategory, EventDef, RadioEntry};
 pub use self::flag::{QuestFlagPredicate, QuestFlagValue};
+pub use self::intel::{Intel, IntelCategory, IntelDef};
 pub use self::quest::{
     BranchArm, BranchStage, ObjectiveStage, OutcomeStage, Quest, QuestCategory, QuestDef,
     QuestStage, QuestStageDef, QuestStageKind, TalkBranch, TalkStage,

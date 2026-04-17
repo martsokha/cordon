@@ -24,7 +24,7 @@ use cordon_data::catalog::GameData;
 
 use super::registry::TemplateRegistry;
 use crate::day::world_events::{EventOverrides, spawn_event_instance};
-use crate::resources::{PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades};
+use crate::resources::{PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades};
 
 /// Live references the applier may mutate in place.
 ///
@@ -39,6 +39,7 @@ pub struct WorldMut<'a> {
     pub standings: &'a mut PlayerStandings,
     pub upgrades: &'a mut PlayerUpgrades,
     pub stash: &'a mut PlayerStash,
+    pub intel: &'a mut PlayerIntel,
     pub events: &'a mut Vec<ActiveEvent>,
     pub data: &'a GameData,
     pub registry: &'a TemplateRegistry,
@@ -188,6 +189,10 @@ pub fn apply(
             if !world.upgrades.upgrades.contains(upgrade) {
                 world.upgrades.upgrades.push(upgrade.clone());
             }
+        }
+
+        Consequence::GiveIntel(intel_id) => {
+            world.intel.grant(intel_id.clone(), world.now.day);
         }
 
         Consequence::SpawnNpc { template, at } => {

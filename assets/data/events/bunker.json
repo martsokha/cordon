@@ -1,0 +1,28 @@
+[
+  {
+    "id": "event_power_flicker",
+    "category": "bunker",
+    "base_probability": 0.12,
+    "min_duration": 1,
+    "max_duration": 1,
+    "max_instances": 1,
+    "target_areas": [],
+    "involved_factions": [],
+    "earliest_day": 1,
+    "consequences": [],
+    "chain_events": []
+  },
+  {
+    "id": "event_infestation",
+    "category": "bunker",
+    "base_probability": 0.03,
+    "min_duration": 2,
+    "max_duration": 4,
+    "max_instances": 1,
+    "target_areas": [],
+    "involved_factions": [],
+    "earliest_day": 10,
+    "consequences": [],
+    "chain_events": []
+  }
+]

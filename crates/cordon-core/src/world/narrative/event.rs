@@ -10,6 +10,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::consequence::Consequence;
+use super::intel::Intel;
 use crate::entity::faction::Faction;
 use crate::primitive::{Day, Id, IdMarker};
 use crate::world::area::Area;
@@ -37,6 +38,32 @@ pub enum EventCategory {
     Bunker,
     /// Runner losses, betrayals, special visitors, encounters.
     Personal,
+}
+
+/// Optional radio broadcast tied to an event. When present the radio
+/// announces the event to the player after a configurable delay and
+/// can grant intel entries on broadcast.
+///
+/// Display text is derived from the event's own ID: `event.{id}.radio`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RadioEntry {
+    /// Game-minutes after event start before the broadcast.
+    /// Zero means the broadcast fires immediately.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub delay_minutes: u32,
+    /// When true (default), the broadcast fires once — if the
+    /// radio is off at that moment, the player misses it. When
+    /// false, the broadcast stays queued until the radio is on
+    /// or the day ends.
+    #[serde(default = "default_true")]
+    pub missable: bool,
+    /// Intel entries this broadcast unlocks for the player.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub grants_intel: Vec<Id<Intel>>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 /// An event definition loaded from config.
@@ -83,6 +110,11 @@ pub struct EventDef {
     pub consequences: Vec<Consequence>,
     /// IDs of events that chain from this one (e.g., surge → relic rush).
     pub chain_events: Vec<Id<Event>>,
+    /// Optional radio broadcast. Events without this field happen
+    /// silently in the background; events with it are announced to
+    /// the player via the radio and can grant intel.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radio: Option<RadioEntry>,
 }
 
 /// An active event instance in the game world.
@@ -117,4 +149,8 @@ impl ActiveEvent {
         let end = self.day_started.value() + self.duration_days as u32;
         end.saturating_sub(current_day.value())
     }
+}
+
+fn is_zero(v: &u32) -> bool {
+    *v == 0
 }

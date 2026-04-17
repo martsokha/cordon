@@ -15,9 +15,9 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::entity::player::{PlayerRank, PlayerState};
 use cordon_core::entity::squad::Squad;
 use cordon_core::item::{Item, ItemInstance, Stash, StashScope};
-use cordon_core::primitive::{Credits, Experience, GameTime, Id, Relation, Uid};
+use cordon_core::primitive::{Credits, Day, Experience, GameTime, Id, Relation, Uid};
 use cordon_core::world::area::{Area, AreaKind};
-use cordon_core::world::narrative::ActiveEvent;
+use cordon_core::world::narrative::{ActiveEvent, Intel, IntelDef};
 use cordon_data::gamedata::GameDataResource;
 
 /// Live state of an area in the world.
@@ -288,6 +288,63 @@ pub struct AreaStates(pub HashMap<Id<Area>, AreaState>);
 #[derive(Resource, Debug, Clone, Default)]
 pub struct EventLog(pub Vec<ActiveEvent>);
 
+/// One piece of intel the player has discovered.
+#[derive(Debug, Clone)]
+pub struct KnownIntel {
+    /// Which intel definition this is.
+    pub id: Id<Intel>,
+    /// The day the player learned this intel.
+    pub day_acquired: Day,
+}
+
+/// All intel entries the player currently knows. Populated by
+/// radio broadcasts, quest consequences, and dialogue.
+#[derive(Resource, Debug, Clone, Default)]
+pub struct PlayerIntel {
+    pub entries: Vec<KnownIntel>,
+}
+
+impl PlayerIntel {
+    /// Whether the player already knows this intel entry.
+    pub fn has(&self, id: &Id<Intel>) -> bool {
+        self.entries.iter().any(|e| &e.id == id)
+    }
+
+    /// Grant an intel entry. No-op if already known.
+    pub fn grant(&mut self, id: Id<Intel>, day: Day) {
+        if !self.has(&id) {
+            self.entries.push(KnownIntel {
+                id,
+                day_acquired: day,
+            });
+        }
+    }
+
+    /// Remove expired entries given the current day and the intel
+    /// catalog. Entries whose definition has `expires_after: Some(d)`
+    /// are pruned when the elapsed days since acquisition exceed `d`
+    /// converted to whole days. Runs on day rollover, so day
+    /// granularity is appropriate.
+    pub fn expire(&mut self, current_day: Day, defs: &HashMap<Id<Intel>, IntelDef>) {
+        self.entries.retain(|entry| {
+            let Some(def) = defs.get(&entry.id) else {
+                return true;
+            };
+            let Some(ttl) = def.expires_after else {
+                return true;
+            };
+            let elapsed_days = current_day
+                .value()
+                .saturating_sub(entry.day_acquired.value());
+            // Duration stores minutes; convert to whole days
+            // (rounding up so a 1-hour TTL still survives at
+            // least until the next day rollover).
+            let ttl_days = (ttl.minutes() + 24 * 60 - 1) / (24 * 60);
+            elapsed_days < ttl_days
+        });
+    }
+}
+
 /// Monotonic Uid allocator. Each call to [`UidAllocator::alloc`]
 /// returns a fresh `Uid<T>` typed for the caller's marker.
 #[derive(Resource, Debug, Clone)]
@@ -414,6 +471,7 @@ pub fn init_world_resources(mut commands: Commands, game_data: Res<GameDataResou
     commands.insert_resource(FactionSettlements(settlements));
     commands.insert_resource(AreaStates(areas));
     commands.insert_resource(EventLog::default());
+    commands.insert_resource(PlayerIntel::default());
     commands.insert_resource(TimeAccumulator::default());
 
     info!("World initialised; population will be spawned by cordon-sim");

@@ -15,7 +15,7 @@ use cordon_core::world::narrative::{
 
 use super::registry::TemplateRegistry;
 use super::state::QuestLog;
-use crate::resources::{PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades};
+use crate::resources::{PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades};
 
 /// Read-only view of the player's sub-resources. Used by
 /// [`WorldView`] so the evaluator can read from all four
@@ -25,6 +25,7 @@ pub struct PlayerView<'a> {
     pub standings: &'a PlayerStandings,
     pub upgrades: &'a PlayerUpgrades,
     pub stash: &'a PlayerStash,
+    pub intel: &'a PlayerIntel,
 }
 
 /// Live world state the evaluator reads from. Kept as a single
@@ -71,6 +72,7 @@ impl<'a> WorldView<'a> {
                 min_standing,
             } => self.player.standings.standing(faction) >= *min_standing,
             ObjectiveCondition::HaveUpgrade(upgrade) => self.player.upgrades.has_upgrade(upgrade),
+            ObjectiveCondition::HaveIntel(intel) => self.player.intel.has(intel),
             ObjectiveCondition::EventActive(event) => {
                 self.events.iter().any(|e| &e.def_id == event)
             }
@@ -208,13 +210,16 @@ mod tests {
     use super::{PlayerView, WorldView, yarn_value_equals};
     use crate::quest::registry::TemplateRegistry;
     use crate::quest::state::{ActiveQuest, CompletedQuest, QuestLog};
-    use crate::resources::{PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades};
+    use crate::resources::{
+        PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades,
+    };
 
     struct TestPlayer {
         identity: PlayerIdentity,
         standings: PlayerStandings,
         upgrades: PlayerUpgrades,
         stash: PlayerStash,
+        intel: PlayerIntel,
     }
 
     impl TestPlayer {
@@ -224,6 +229,7 @@ mod tests {
                 standings: &self.standings,
                 upgrades: &self.upgrades,
                 stash: &self.stash,
+                intel: &self.intel,
             }
         }
     }
@@ -247,6 +253,7 @@ mod tests {
                 pending_items: state.pending_items,
                 hidden_storage: state.hidden_storage,
             },
+            intel: PlayerIntel::default(),
         }
     }
 

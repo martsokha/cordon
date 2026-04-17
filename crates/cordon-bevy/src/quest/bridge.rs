@@ -37,7 +37,9 @@ use cordon_sim::plugin::prelude::{EventLog, GameClock, QuestLog};
 use cordon_sim::quest::consequence::{DismissTemplateNpc, SpawnNpcRequest};
 use cordon_sim::quest::engine::advance_after_talk;
 use cordon_sim::quest::registry::TemplateRegistry;
-use cordon_sim::resources::{PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades};
+use cordon_sim::resources::{
+    PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades,
+};
 
 use crate::bunker::resources::StartDialogue;
 use crate::bunker::{Visitor, VisitorQueue};
@@ -196,6 +198,7 @@ pub fn on_dialogue_completed(
     standings: Res<PlayerStandings>,
     upgrades: Res<PlayerUpgrades>,
     stash: Res<PlayerStash>,
+    intel: Res<PlayerIntel>,
     events: Res<EventLog>,
     registry: Res<TemplateRegistry>,
     mut in_flight: ResMut<DialogueInFlight>,
@@ -275,6 +278,7 @@ pub fn on_dialogue_completed(
         &standings,
         &upgrades,
         &stash,
+        &intel,
         &events.0,
         &registry,
         &quest_id,

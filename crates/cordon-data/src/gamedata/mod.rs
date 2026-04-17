@@ -33,7 +33,7 @@ use cordon_core::item::ItemDef;
 use cordon_core::primitive::Id;
 use cordon_core::world::area::AreaDef;
 use cordon_core::world::loot::LootTables;
-use cordon_core::world::narrative::{EventDef, QuestDef, QuestTriggerDef};
+use cordon_core::world::narrative::{EventDef, IntelDef, QuestDef, QuestTriggerDef};
 
 use crate::catalog::GameData;
 
@@ -77,6 +77,7 @@ struct LoadingFolders {
     archetypes: Handle<LoadedFolder>,
     events: Handle<LoadedFolder>,
     factions: Handle<LoadedFolder>,
+    intel: Handle<LoadedFolder>,
     items: Handle<LoadedFolder>,
     namepools: Handle<LoadedFolder>,
     npcs: Handle<LoadedFolder>,
@@ -92,6 +93,7 @@ impl LoadingFolders {
             && server.is_loaded_with_dependencies(&self.archetypes)
             && server.is_loaded_with_dependencies(&self.events)
             && server.is_loaded_with_dependencies(&self.factions)
+            && server.is_loaded_with_dependencies(&self.intel)
             && server.is_loaded_with_dependencies(&self.items)
             && server.is_loaded_with_dependencies(&self.namepools)
             && server.is_loaded_with_dependencies(&self.npcs)
@@ -141,6 +143,7 @@ fn start_loading(mut commands: Commands, server: Res<AssetServer>) {
         archetypes: server.load_folder("data/archetypes"),
         events: server.load_folder("data/events"),
         factions: server.load_folder("data/factions"),
+        intel: server.load_folder("data/intel"),
         items: server.load_folder("data/items"),
         namepools: server.load_folder("data/namepools"),
         npcs: server.load_folder("data/npcs"),
@@ -172,6 +175,7 @@ fn assemble_game_data<S: FreelyMutableState>(
     let factions = parse_folder(&loading.factions, &folders, &raw, |d: &FactionDef| {
         d.id.clone()
     });
+    let intel = parse_folder(&loading.intel, &folders, &raw, |d: &IntelDef| d.id.clone());
     let items = parse_folder(&loading.items, &folders, &raw, |d: &ItemDef| d.id.clone());
     let name_pools = parse_folder(&loading.namepools, &folders, &raw, |d: &NamePool| {
         d.id.clone()
@@ -189,11 +193,12 @@ fn assemble_game_data<S: FreelyMutableState>(
     });
 
     info!(
-        "Game data loaded: {} areas, {} archetypes, {} events, {} factions, {} items, {} namepools, {} npcs, {} perks, {} quests, {} triggers, {} upgrades",
+        "Game data loaded: {} areas, {} archetypes, {} events, {} factions, {} intel, {} items, {} namepools, {} npcs, {} perks, {} quests, {} triggers, {} upgrades",
         areas.len(),
         archetypes.len(),
         events.len(),
         factions.len(),
+        intel.len(),
         items.len(),
         name_pools.len(),
         npc_templates.len(),
@@ -208,6 +213,7 @@ fn assemble_game_data<S: FreelyMutableState>(
         archetypes,
         events,
         factions,
+        intel,
         items,
         name_pools,
         npc_templates,

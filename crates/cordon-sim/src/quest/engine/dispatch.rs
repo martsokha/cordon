@@ -29,7 +29,7 @@ use super::super::state::{ActiveQuest, QuestLog};
 use crate::day::DayRolled;
 use crate::quest::registry::TemplateRegistry;
 use crate::resources::{
-    EventLog, GameClock, PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades,
+    EventLog, GameClock, PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades,
 };
 
 /// Read-only bundle for quest-dispatch systems.
@@ -49,6 +49,7 @@ pub struct QuestDispatchCtx<'w> {
     pub standings: Res<'w, PlayerStandings>,
     pub upgrades: Res<'w, PlayerUpgrades>,
     pub stash: Res<'w, PlayerStash>,
+    pub intel: Res<'w, PlayerIntel>,
     pub events: Res<'w, EventLog>,
     pub registry: Res<'w, TemplateRegistry>,
 }
@@ -112,6 +113,7 @@ impl<'w> QuestDispatchCtx<'w> {
                         standings: &self.standings,
                         upgrades: &self.upgrades,
                         stash: &self.stash,
+                        intel: &self.intel,
                     },
                     events: &self.events.0,
                     quests: &self.log,
@@ -309,6 +311,7 @@ pub fn dispatch_on_condition(
                 standings: &ctx.standings,
                 upgrades: &ctx.upgrades,
                 stash: &ctx.stash,
+                intel: &ctx.intel,
             },
             events: &ctx.events.0,
             quests: &ctx.log,

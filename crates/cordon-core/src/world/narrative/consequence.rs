@@ -19,6 +19,7 @@ use serde::{Deserialize, Serialize};
 
 use super::event::Event;
 use super::flag::QuestFlagPredicate;
+use super::intel::Intel;
 use super::quest::Quest;
 use crate::entity::bunker::Upgrade;
 use crate::entity::faction::Faction;
@@ -53,6 +54,8 @@ pub enum ObjectiveCondition {
     },
     /// The given upgrade is installed.
     HaveUpgrade(Id<Upgrade>),
+    /// The player has the given intel entry.
+    HaveIntel(Id<Intel>),
     /// The given event is currently active.
     EventActive(Id<Event>),
     /// The given quest is currently active.
@@ -182,6 +185,8 @@ pub enum Consequence {
     StartQuest(Id<Quest>),
     /// Unlock a bunker upgrade for purchase / installation.
     UnlockUpgrade(Id<Upgrade>),
+    /// Grant the player an intel entry. No-op if already known.
+    GiveIntel(Id<Intel>),
     /// Spawn a visitor from the given NPC template, optionally
     /// at a specific area. `at` = `None` defers to the template's
     /// default spawn location (bunker visitor queue today; may

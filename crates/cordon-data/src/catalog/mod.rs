@@ -69,8 +69,8 @@ use cordon_core::primitive::{Id, IdMarker};
 use cordon_core::world::area::{Area, AreaDef, AreaKind};
 use cordon_core::world::loot::LootTables;
 use cordon_core::world::narrative::{
-    ConditionalConsequence, Consequence, Event, EventDef, ObjectiveCondition, Quest, QuestDef,
-    QuestStageKind, QuestTrigger, QuestTriggerDef, QuestTriggerKind,
+    ConditionalConsequence, Consequence, Event, EventDef, Intel, IntelDef, ObjectiveCondition,
+    Quest, QuestDef, QuestStageKind, QuestTrigger, QuestTriggerDef, QuestTriggerKind,
 };
 
 /// The read-only game database.
@@ -98,6 +98,8 @@ pub struct GameData {
     pub upgrades: HashMap<Id<Upgrade>, UpgradeDef>,
     /// Event definitions keyed by event ID.
     pub events: HashMap<Id<Event>, EventDef>,
+    /// Intel definitions keyed by intel ID.
+    pub intel: HashMap<Id<Intel>, IntelDef>,
     /// Quest definitions keyed by quest ID.
     pub quests: HashMap<Id<Quest>, QuestDef>,
     /// Quest trigger rules keyed by trigger ID. Each trigger
@@ -132,6 +134,11 @@ impl GameData {
     /// Look up an area definition by ID.
     pub fn area(&self, id: &Id<Area>) -> Option<&AreaDef> {
         self.areas.get(id)
+    }
+
+    /// Look up an intel definition by ID.
+    pub fn intel(&self, id: &Id<Intel>) -> Option<&IntelDef> {
+        self.intel.get(id)
     }
 
     /// Look up a perk definition by ID.
@@ -309,6 +316,11 @@ impl GameData {
             for consequence in &def.consequences {
                 self.check_consequence(consequence, &referrer);
             }
+            if let Some(radio) = &def.radio {
+                for intel_id in &radio.grants_intel {
+                    self.check_intel(intel_id, &referrer, "radio.grants_intel");
+                }
+            }
         }
     }
 
@@ -459,6 +471,9 @@ impl GameData {
             ObjectiveCondition::HaveUpgrade(u) => {
                 self.check_upgrade(u, referrer, "HaveUpgrade");
             }
+            ObjectiveCondition::HaveIntel(i) => {
+                self.check_intel(i, referrer, "HaveIntel");
+            }
             ObjectiveCondition::EventActive(e) => {
                 self.check_event(e, referrer, "EventActive");
             }
@@ -525,6 +540,7 @@ impl GameData {
             }
             Consequence::StartQuest(q) => self.check_quest(q, referrer, "StartQuest"),
             Consequence::UnlockUpgrade(u) => self.check_upgrade(u, referrer, "UnlockUpgrade"),
+            Consequence::GiveIntel(i) => self.check_intel(i, referrer, "GiveIntel"),
             Consequence::SpawnNpc { template, at } => {
                 self.check_npc_template(template, referrer, "SpawnNpc.template");
                 if let Some(area) = at {
@@ -583,6 +599,12 @@ impl GameData {
     fn check_npc_template(&self, id: &Id<NpcTemplate>, referrer: &str, field: &str) {
         if !self.npc_templates.contains_key(id) {
             warn_missing("npc template ref from", referrer, field, id);
+        }
+    }
+
+    fn check_intel(&self, id: &Id<Intel>, referrer: &str, field: &str) {
+        if !self.intel.contains_key(id) {
+            warn_missing("intel ref from", referrer, field, id);
         }
     }
 
