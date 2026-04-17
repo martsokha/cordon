@@ -27,6 +27,13 @@ const SYNDICATE_INTEREST_BPS: u32 = 500;
 #[derive(Resource, Default)]
 pub struct LastDailyExpenses(pub Option<DailyExpenseReport>);
 
+/// Emitted when daily expenses are processed. Consumed by the
+/// toast system.
+#[derive(Message, Debug, Clone)]
+pub struct DailyExpensesProcessed {
+    pub total: Credits,
+}
+
 /// Compute all daily expenses, deduct from the player's credits,
 /// push any shortfall onto debt, and store the report for the UI.
 pub(super) fn process_daily_expenses(
@@ -35,6 +42,7 @@ pub(super) fn process_daily_expenses(
     mut last: ResMut<LastDailyExpenses>,
     owned_squads: Query<&SquadMembers, With<Owned>>,
     members_xp: Query<&Experience>,
+    mut processed_tx: MessageWriter<DailyExpensesProcessed>,
 ) {
     let mut lines = Vec::new();
 
@@ -93,6 +101,10 @@ pub(super) fn process_daily_expenses(
         total,
         shortfall: Credits::new(shortfall),
     });
+
+    if total_val > 0 {
+        processed_tx.write(DailyExpensesProcessed { total });
+    }
 
     info!(
         "day {} payroll: {} total, {} shortfall (debt now {})",

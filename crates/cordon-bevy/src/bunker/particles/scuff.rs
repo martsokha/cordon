@@ -4,10 +4,8 @@ use bevy::prelude::*;
 use bevy_hanabi::Gradient as HanabiGradient;
 use bevy_hanabi::prelude::*;
 
-use super::EmitterTtl;
+use super::{EmitterTtl, EventEffectAssets};
 use crate::bunker::input::controller::FootstepScuffed;
-
-use super::EventEffectAssets;
 
 const SCUFF_TTL_SECS: f32 = 0.7;
 

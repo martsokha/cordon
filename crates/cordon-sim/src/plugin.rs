@@ -90,6 +90,7 @@ impl Plugin for CordonSimPlugin {
         app.add_message::<spawn::SquadSpawned>();
         app.add_systems(Update, spawn::spawn_population.in_set(SimSet::Spawn));
         // Shop: handle BuyUpgrade requests from the laptop UI.
+        app.add_message::<crate::quest::consequence::StandingChanged>();
         app.add_message::<crate::shop::BuyUpgrade>();
         app.add_message::<crate::shop::BuyUpgradeOutcome>();
         app.add_systems(
@@ -152,7 +153,7 @@ pub mod prelude {
     pub use crate::behavior::vision::{AnomalyZone, Vision};
     pub use crate::day::DayRolled;
     // Cross-cutting messages and resources.
-    pub use crate::day::payroll::LastDailyExpenses;
+    pub use crate::day::payroll::{DailyExpensesProcessed, LastDailyExpenses};
     pub use crate::day::radio::{BroadcastHeard, RadioBroadcast};
     // Per-entity components not owned by a subplugin.
     pub use crate::entity::npc::{
@@ -162,7 +163,7 @@ pub mod prelude {
     };
     pub use crate::entity::relic::{RelicHome, RelicMarker};
     pub use crate::quest::{
-        ActiveQuest, CompletedQuest, GiveNpcXpRequest, QuestLog, SpawnNpcRequest,
+        ActiveQuest, CompletedQuest, GiveNpcXpRequest, QuestLog, SpawnNpcRequest, StandingChanged,
         StartQuestRequest, TemplateRegistry,
     };
     pub use crate::resources::{

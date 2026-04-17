@@ -26,7 +26,9 @@ pub mod travel;
 
 use bevy::prelude::*;
 
-pub use self::consequence::{GiveNpcXpRequest, SpawnNpcRequest, StartQuestRequest};
+pub use self::consequence::{
+    GiveNpcXpRequest, SpawnNpcRequest, StandingChanged, StartQuestRequest,
+};
 pub use self::registry::TemplateRegistry;
 pub use self::state::{ActiveQuest, CompletedQuest, QuestLog};
 pub use self::travel::{BunkerArrival, HomeArrival};

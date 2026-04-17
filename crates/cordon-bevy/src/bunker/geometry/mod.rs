@@ -8,7 +8,6 @@ pub use meshes::*;
 pub use placement::*;
 
 pub use super::props::Prop;
-
 use super::resources::RoomCtx;
 
 /// Real-world size of one texture tile on concrete surfaces, in

@@ -35,6 +35,7 @@ impl Plugin for DayCyclePlugin {
         app.add_message::<DayRolled>();
         app.add_message::<radio::RadioBroadcast>();
         app.add_message::<radio::BroadcastHeard>();
+        app.add_message::<payroll::DailyExpensesProcessed>();
         app.init_resource::<payroll::LastDailyExpenses>();
         app.init_resource::<radio::DeliveredBroadcasts>();
         app.add_systems(

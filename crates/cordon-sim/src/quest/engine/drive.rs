@@ -25,7 +25,7 @@ use cordon_data::gamedata::GameDataResource;
 
 use super::super::condition::{PlayerView, WorldView};
 use super::super::consequence::{
-    GiveNpcXpRequest, SpawnNpcRequest, StartQuestRequest, WorldMut, apply,
+    GiveNpcXpRequest, SpawnNpcRequest, StandingChanged, StartQuestRequest, WorldMut, apply,
 };
 use super::super::state::{CompletedQuest, QuestLog};
 use crate::quest::registry::TemplateRegistry;
@@ -61,6 +61,7 @@ pub struct QuestEngineCtx<'w> {
     pub start_quest_tx: MessageWriter<'w, StartQuestRequest>,
     pub spawn_npc_tx: MessageWriter<'w, SpawnNpcRequest>,
     pub give_npc_xp_tx: MessageWriter<'w, GiveNpcXpRequest>,
+    pub standing_changed_tx: MessageWriter<'w, StandingChanged>,
 }
 
 /// Drive every active quest that is currently on an `Objective`
@@ -197,6 +198,7 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
             &mut ctx.start_quest_tx,
             &mut ctx.spawn_npc_tx,
             &mut ctx.give_npc_xp_tx,
+            &mut ctx.standing_changed_tx,
         );
     }
 }
@@ -348,6 +350,7 @@ fn complete_quest(
     start_quest_tx: &mut MessageWriter<StartQuestRequest>,
     spawn_npc_tx: &mut MessageWriter<SpawnNpcRequest>,
     give_npc_xp_tx: &mut MessageWriter<GiveNpcXpRequest>,
+    standing_changed_tx: &mut MessageWriter<StandingChanged>,
 ) {
     // Resolve the active instance by def_id. Cloning the
     // scalar state we need here lets us drop the borrow of
@@ -427,6 +430,7 @@ fn complete_quest(
             start_quest_tx,
             spawn_npc_tx,
             give_npc_xp_tx,
+            standing_changed_tx,
         );
     }
 

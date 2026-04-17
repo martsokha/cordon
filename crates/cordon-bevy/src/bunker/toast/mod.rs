@@ -5,7 +5,6 @@
 mod systems;
 
 use bevy::prelude::*;
-use cordon_sim::plugin::prelude::LastDailyExpenses;
 
 use crate::PlayingState;
 
@@ -18,7 +17,8 @@ impl Plugin for ToastPlugin {
             Update,
             (
                 systems::on_radio_broadcast,
-                systems::on_daily_expenses.run_if(resource_exists::<LastDailyExpenses>),
+                systems::on_daily_expenses,
+                systems::on_standing_change,
                 systems::spawn_toasts,
                 systems::animate_toasts,
             )

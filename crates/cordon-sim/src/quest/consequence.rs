@@ -17,7 +17,7 @@ use bevy_prng::WyRand;
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::npc::NpcTemplate;
 use cordon_core::item::ItemInstance;
-use cordon_core::primitive::{Experience, GameTime, Id};
+use cordon_core::primitive::{Experience, GameTime, Id, RelationDelta};
 use cordon_core::world::area::Area;
 use cordon_core::world::narrative::{ActiveEvent, Consequence, Quest};
 use cordon_data::catalog::GameData;
@@ -91,6 +91,14 @@ pub struct GiveNpcXpRequest {
     pub amount: Experience,
 }
 
+/// Emitted when a `StandingChange` consequence fires. Consumed
+/// by the toast system to show relation change notifications.
+#[derive(Message, Debug, Clone)]
+pub struct StandingChanged {
+    pub faction: Id<Faction>,
+    pub delta: RelationDelta,
+}
+
 /// Apply a single consequence.
 ///
 /// Warnings rather than errors: quests are content-authored and
@@ -102,11 +110,16 @@ pub fn apply(
     start_quest: &mut MessageWriter<StartQuestRequest>,
     spawn_npc: &mut MessageWriter<SpawnNpcRequest>,
     give_npc_xp: &mut MessageWriter<GiveNpcXpRequest>,
+    standing_changed: &mut MessageWriter<StandingChanged>,
 ) {
     match consequence {
         Consequence::StandingChange { faction, delta } => {
             if let Some(standing) = world.standings.standing_mut(faction) {
                 standing.apply(*delta);
+                standing_changed.write(StandingChanged {
+                    faction: faction.clone(),
+                    delta: *delta,
+                });
             } else {
                 warn!("StandingChange: unknown faction `{}`", faction.as_str());
             }

@@ -1,9 +1,12 @@
 use bevy::image::TextureAtlasLayout;
 use bevy::prelude::*;
+use bevy_fluent::prelude::Localization;
+use cordon_sim::day::payroll::DailyExpensesProcessed;
 use cordon_sim::day::radio::RadioBroadcast;
-use cordon_sim::plugin::prelude::LastDailyExpenses;
+use cordon_sim::quest::consequence::StandingChanged;
 
 use crate::bunker::camera::FpsCamera;
+use crate::locale::l10n_or;
 
 const CELL_SIZE: u32 = 16;
 const GRID_COLS: u32 = 8;
@@ -21,6 +24,9 @@ const ICON_RELATION_DOWN: usize = 20;
 const ICON_NEW_INTEL: usize = 34;
 const ICON_DAILY_SPENDING: usize = 36;
 
+const TEXT_COLOR: Color = Color::srgba(0.85, 0.85, 0.85, 1.0);
+const ICON_COLOR: Color = Color::WHITE;
+
 #[derive(Resource)]
 pub(super) struct IconAtlas {
     image: Handle<Image>,
@@ -30,20 +36,16 @@ pub(super) struct IconAtlas {
 struct PendingToast {
     icon_index: usize,
     text: String,
-    color: Color,
 }
 
-/// Internal queue filled by subscriber systems, drained by
-/// [`spawn_toasts`] in the same frame.
 #[derive(Resource, Default)]
 pub(super) struct ToastQueue(Vec<PendingToast>);
 
 impl ToastQueue {
-    fn push(&mut self, icon_index: usize, text: impl Into<String>, color: Color) {
+    fn push(&mut self, icon_index: usize, text: impl Into<String>) {
         self.0.push(PendingToast {
             icon_index,
             text: text.into(),
-            color,
         });
     }
 }
@@ -103,25 +105,38 @@ pub(super) fn on_radio_broadcast(
     } else {
         format!("{intel_count} new intel received")
     };
-    queue.push(ICON_NEW_INTEL, label, Color::srgb(0.7, 0.85, 0.55));
+    queue.push(ICON_NEW_INTEL, label);
 }
 
-pub(super) fn on_daily_expenses(expenses: Res<LastDailyExpenses>, mut queue: ResMut<ToastQueue>) {
-    if !expenses.is_changed() {
-        return;
+pub(super) fn on_daily_expenses(
+    mut events: MessageReader<DailyExpensesProcessed>,
+    mut queue: ResMut<ToastQueue>,
+) {
+    for msg in events.read() {
+        let total = msg.total.value();
+        queue.push(ICON_DAILY_SPENDING, format!("Daily expenses: {total}cr"));
     }
-    let Some(report) = &expenses.0 else {
-        return;
-    };
-    let total = report.total.value();
-    if total == 0 {
-        return;
+}
+
+pub(super) fn on_standing_change(
+    l10n: Option<Res<Localization>>,
+    mut changes: MessageReader<StandingChanged>,
+    mut queue: ResMut<ToastQueue>,
+) {
+    for msg in changes.read() {
+        let name = l10n
+            .as_deref()
+            .map(|l| l10n_or(l, msg.faction.as_str(), msg.faction.as_str()))
+            .unwrap_or_else(|| msg.faction.as_str().to_string());
+
+        let delta = msg.delta.value();
+        let (icon, sign) = if delta > 0 {
+            (ICON_RELATION_UP, "+")
+        } else {
+            (ICON_RELATION_DOWN, "")
+        };
+        queue.push(icon, format!("{name}: {sign}{delta}"));
     }
-    queue.push(
-        ICON_DAILY_SPENDING,
-        format!("Daily expenses: {total}cr"),
-        Color::srgb(0.9, 0.7, 0.4),
-    );
 }
 
 pub(super) fn spawn_toasts(
@@ -152,7 +167,7 @@ pub(super) fn spawn_toasts(
                         index: toast.icon_index,
                     },
                 )
-                .with_color(toast.color),
+                .with_color(ICON_COLOR),
                 Node {
                     width: Val::Px(ICON_DISPLAY_SIZE),
                     height: Val::Px(ICON_DISPLAY_SIZE),
@@ -168,7 +183,7 @@ pub(super) fn spawn_toasts(
                     font_size: FONT_SIZE,
                     ..default()
                 },
-                TextColor(toast.color),
+                TextColor(TEXT_COLOR),
             ))
             .id();
 
@@ -186,7 +201,7 @@ pub(super) fn spawn_toasts(
                     padding: UiRect::axes(Val::Px(8.0), Val::Px(4.0)),
                     ..default()
                 },
-                BackgroundColor(Color::srgba(0.02, 0.02, 0.04, 0.75)),
+                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
                 GlobalZIndex(110),
             ))
             .add_children(&[icon_node, text_node]);
@@ -216,14 +231,10 @@ pub(super) fn animate_toasts(
 
         for child in children.iter() {
             if let Ok(mut tc) = text_q.get_mut(child) {
-                let mut c = tc.0.to_srgba();
-                c.alpha = alpha;
-                tc.0 = c.into();
+                tc.0 = Color::srgba(0.85, 0.85, 0.85, alpha);
             }
             if let Ok(mut img) = image_q.get_mut(child) {
-                let mut c = img.color.to_srgba();
-                c.alpha = alpha;
-                img.color = c.into();
+                img.color = Color::srgba(1.0, 1.0, 1.0, alpha);
             }
         }
 
@@ -243,7 +254,7 @@ pub(super) fn animate_toasts(
                 padding: UiRect::axes(Val::Px(8.0), Val::Px(4.0)),
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.02, 0.02, 0.04, 0.75 * alpha)),
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6 * alpha)),
         ));
     }
 }
