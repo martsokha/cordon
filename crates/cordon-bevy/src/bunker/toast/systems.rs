@@ -1,12 +1,12 @@
 use bevy::image::TextureAtlasLayout;
 use bevy::prelude::*;
-use bevy_fluent::prelude::Localization;
+
 use cordon_sim::day::payroll::DailyExpensesProcessed;
 use cordon_sim::day::radio::RadioBroadcast;
 use cordon_sim::quest::messages::{QuestFinished, QuestStarted, QuestUpdated, StandingChanged};
 
 use crate::bunker::camera::FpsCamera;
-use crate::locale::l10n_or;
+use crate::locale::L10n;
 
 const CELL_SIZE: u32 = 16;
 const GRID_COLS: u32 = 8;
@@ -120,16 +120,12 @@ pub(super) fn on_daily_expenses(
 }
 
 pub(super) fn on_standing_change(
-    l10n: Option<Res<Localization>>,
+    l10n: L10n,
     mut changes: MessageReader<StandingChanged>,
     mut queue: ResMut<ToastQueue>,
 ) {
     for msg in changes.read() {
-        let name = l10n
-            .as_deref()
-            .map(|l| l10n_or(l, msg.faction.as_str(), msg.faction.as_str()))
-            .unwrap_or_else(|| msg.faction.as_str().to_string());
-
+        let name = l10n.get(msg.faction.as_str());
         let delta = msg.delta.value();
         let (icon, sign) = if delta > 0 {
             (ICON_RELATION_UP, "+")
@@ -141,43 +137,38 @@ pub(super) fn on_standing_change(
 }
 
 pub(super) fn on_quest_started(
-    l10n: Option<Res<Localization>>,
+    l10n: L10n,
     mut started: MessageReader<QuestStarted>,
     mut queue: ResMut<ToastQueue>,
 ) {
     for msg in started.read() {
-        let name = l10n
-            .as_deref()
-            .map(|l| l10n_or(l, msg.quest.as_str(), msg.quest.as_str()))
-            .unwrap_or_else(|| msg.quest.as_str().to_string());
-        queue.push(ICON_QUEST, format!("New quest: {name}"));
+        queue.push(
+            ICON_QUEST,
+            format!("New quest: {}", l10n.get(msg.quest.as_str())),
+        );
     }
 }
 
 pub(super) fn on_quest_updated(
-    l10n: Option<Res<Localization>>,
+    l10n: L10n,
     mut updated: MessageReader<QuestUpdated>,
     mut queue: ResMut<ToastQueue>,
 ) {
     for msg in updated.read() {
-        let name = l10n
-            .as_deref()
-            .map(|l| l10n_or(l, msg.quest.as_str(), msg.quest.as_str()))
-            .unwrap_or_else(|| msg.quest.as_str().to_string());
-        queue.push(ICON_QUEST, format!("Quest updated: {name}"));
+        queue.push(
+            ICON_QUEST,
+            format!("Quest updated: {}", l10n.get(msg.quest.as_str())),
+        );
     }
 }
 
 pub(super) fn on_quest_finished(
-    l10n: Option<Res<Localization>>,
+    l10n: L10n,
     mut finished: MessageReader<QuestFinished>,
     mut queue: ResMut<ToastQueue>,
 ) {
     for msg in finished.read() {
-        let name = l10n
-            .as_deref()
-            .map(|l| l10n_or(l, msg.quest.as_str(), msg.quest.as_str()))
-            .unwrap_or_else(|| msg.quest.as_str().to_string());
+        let name = l10n.get(msg.quest.as_str());
         let status = if msg.success { "completed" } else { "failed" };
         queue.push(ICON_QUEST, format!("Quest {status}: {name}"));
     }

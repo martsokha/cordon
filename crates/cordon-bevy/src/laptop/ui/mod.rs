@@ -7,9 +7,9 @@ pub mod trade;
 pub mod upgrades;
 
 use bevy::prelude::*;
-use bevy_fluent::prelude::Localization;
 
 use crate::PlayingState;
+use crate::locale::L10n;
 
 /// Which tab is currently active on the laptop.
 #[derive(Resource, Default, Clone, Copy, PartialEq, Eq, Debug)]
@@ -61,8 +61,8 @@ impl Plugin for UiPlugin {
 /// `l10n` is used for any static label that is *authored
 /// once* at spawn time (panel headings, empty-state text).
 /// Runtime-updated strings still go through the usual
-/// `Res<Localization>` lookup inside their refresh systems.
-pub fn spawn_ui(commands: &mut Commands, font: &Handle<Font>, l10n: &Localization) {
+/// `L10n` lookup inside their refresh systems.
+pub fn spawn_ui(commands: &mut Commands, font: &Handle<Font>, l10n: &L10n) {
     spawn_tab_bar(commands, font);
     map::spawn(commands, font);
     trade::spawn(commands, font);

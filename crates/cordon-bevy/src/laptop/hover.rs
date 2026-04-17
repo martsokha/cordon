@@ -11,7 +11,6 @@
 //! module just picks the target and calls them on transitions.
 
 use bevy::prelude::*;
-use bevy_fluent::prelude::*;
 use cordon_core::entity::squad::Goal;
 use cordon_core::item::{ItemData, ItemInstance};
 use cordon_data::gamedata::GameDataResource;
@@ -26,6 +25,7 @@ use crate::laptop::map::tooltip::{build_relic_tooltip, format_npc_status};
 use crate::laptop::map::{AreaCircle, AreaData, COLOR_AREA_HOVER};
 use crate::laptop::npcs::NpcDotInfo;
 use crate::laptop::ui::map::{TooltipContent, cursor_world_pos};
+use crate::locale::L10n;
 
 pub struct HoverPlugin;
 
@@ -55,7 +55,7 @@ fn update_hover(
     cam_proj: Query<&Projection, With<LaptopCamera>>,
     game_data: Res<GameDataResource>,
     relic_icons: Option<Res<RelicIconAssets>>,
-    l10n: Option<Res<Localization>>,
+    l10n: L10n,
     areas: Query<(
         Entity,
         &AreaCircle,
@@ -180,9 +180,7 @@ fn update_hover(
                 && let ItemData::Relic(relic_data) = &def.data
                 && let Some(icons) = relic_icons.as_deref()
             {
-                let empty_l10n = Localization::default();
-                let l10n = l10n.as_deref().unwrap_or(&empty_l10n);
-                out = build_relic_tooltip(l10n, icons, def, relic_data);
+                out = build_relic_tooltip(&l10n, icons, def, relic_data);
             }
             out
         }

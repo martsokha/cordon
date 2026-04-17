@@ -7,7 +7,6 @@
 //! reflect immediately.
 
 use bevy::prelude::*;
-use bevy_fluent::prelude::*;
 use cordon_core::entity::bunker::{Upgrade, UpgradeDef, UpgradeLocation};
 use cordon_core::primitive::Id;
 use cordon_data::gamedata::GameDataResource;
@@ -17,7 +16,7 @@ use cordon_sim::resources::{PlayerIdentity, PlayerUpgrades};
 use super::{LaptopTab, TabContent};
 use crate::PlayingState;
 use crate::fonts::UiFont;
-use crate::locale::l10n_or;
+use crate::locale::L10n;
 
 /// Marker for the BUNKER column's row container.
 #[derive(Component)]
@@ -126,7 +125,7 @@ fn refresh_upgrade_panels(
     identity: Res<PlayerIdentity>,
     upgrades: Res<PlayerUpgrades>,
     data: Res<GameDataResource>,
-    l10n: Option<Res<Localization>>,
+    l10n: L10n,
     font: Res<UiFont>,
     bunker_q: Query<
         (Entity, Option<&Children>),
@@ -149,9 +148,6 @@ fn refresh_upgrade_panels(
     if !dirty && !bunker_needs_fill && !camp_needs_fill {
         return;
     }
-    let Some(l10n) = l10n else {
-        return;
-    };
 
     let mut bunker_defs: Vec<&UpgradeDef> = Vec::new();
     let mut camp_defs: Vec<&UpgradeDef> = Vec::new();
@@ -210,13 +206,13 @@ fn clear_non_heading(
 fn spawn_row(
     col: &mut ChildSpawnerCommands,
     font: &Handle<Font>,
-    l10n: &Localization,
+    l10n: &L10n,
     def: &UpgradeDef,
     identity: &PlayerIdentity,
     upgrades: &PlayerUpgrades,
 ) {
     let name_key = format!("{}-name", def.id.as_str().replace('_', "-"));
-    let name = l10n_or(l10n, &name_key, def.id.as_str());
+    let name = l10n.get(&name_key);
 
     let installed = upgrades.has_upgrade(&def.id);
     let prereqs_met = def.requires.iter().all(|r| upgrades.has_upgrade(r));

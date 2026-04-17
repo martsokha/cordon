@@ -21,7 +21,6 @@ pub mod relics;
 pub mod tooltip;
 
 use bevy::prelude::*;
-use bevy_fluent::prelude::*;
 use cordon_core::primitive::Tier;
 use cordon_data::gamedata::GameDataResource;
 
@@ -30,6 +29,7 @@ use crate::PlayingState;
 use crate::fonts::UiFont;
 pub use crate::laptop::ui::MapWorldEntity;
 use crate::laptop::ui::spawn_ui;
+use crate::locale::L10n;
 
 const COLOR_AREA: Color = Color::srgba(1.0, 1.0, 1.0, 0.08);
 const COLOR_AREA_BORDER: Color = Color::srgba(1.0, 1.0, 1.0, 0.25);
@@ -85,16 +85,14 @@ impl Plugin for MapPlugin {
 fn spawn_map(
     game_data: Res<GameDataResource>,
     laptop_font: Res<UiFont>,
-    l10n: Option<Res<Localization>>,
+    l10n: L10n,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let data = &game_data.0;
-    let empty_l10n = Localization::default();
-    let l10n = l10n.as_deref().unwrap_or(&empty_l10n);
 
-    spawn_ui(&mut commands, &laptop_font.0, l10n);
+    spawn_ui(&mut commands, &laptop_font.0, &l10n);
 
     // Shared border material — safe to share because nothing ever
     // mutates the border color at runtime. Disk materials, by
@@ -109,7 +107,7 @@ fn spawn_map(
         let x = area.location.x;
         let y = area.location.y;
         let radius = area.radius.value();
-        let info = build_area_info(l10n, area);
+        let info = build_area_info(&l10n, area);
 
         // All areas share the same neutral wash — no per-faction
         // tint on the map disk itself (faction is still readable

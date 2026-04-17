@@ -8,7 +8,6 @@
 //! lets the hover system stay focused on cursor resolution.
 
 use bevy::prelude::*;
-use bevy_fluent::prelude::*;
 use cordon_core::primitive::Tier;
 use cordon_core::world::area::{AreaDef, AreaKind, SettlementRole};
 use cordon_sim::plugin::prelude::{CombatTarget, MovementTarget};
@@ -17,7 +16,7 @@ use super::AreaTooltipInfo;
 use crate::laptop::map::relics::RelicIconAssets;
 use crate::laptop::npcs::faction_icon_str;
 use crate::laptop::ui::map::TooltipContent;
-use crate::locale::l10n_or;
+use crate::locale::L10n;
 
 fn tier_key(t: &Tier) -> &'static str {
     match t {
@@ -33,9 +32,8 @@ fn tier_key(t: &Tier) -> &'static str {
 /// area at map spawn time, stored in [`AreaData`](super::AreaData)
 /// so the hover system doesn't re-resolve localization strings
 /// every frame.
-pub fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
-    let tier_label =
-        |t: Tier| -> (String, Tier) { (l10n_or(l10n, tier_key(&t), &format!("{:?}", t)), t) };
+pub fn build_area_info(l10n: &L10n, area: &AreaDef) -> AreaTooltipInfo {
+    let tier_label = |t: Tier| -> (String, Tier) { (l10n.get(tier_key(&t)), t) };
 
     let kind_key = match &area.kind {
         AreaKind::Settlement { .. } => "areakind-settlement",
@@ -51,7 +49,7 @@ pub fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
                 SettlementRole::Outpost => "settlement-role-outpost",
                 SettlementRole::Market => "settlement-role-market",
             };
-            l10n_or(l10n, key, key)
+            l10n.get(key)
         }),
         _ => None,
     };
@@ -62,11 +60,8 @@ pub fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
 
     AreaTooltipInfo {
         faction_icon: faction_icon_str(area.kind.faction().map(|f| f.as_str())).to_string(),
-        // FTL keys mirror the raw ID 1:1 after the category-
-        // prefix rename, so we pass the id string straight
-        // through instead of formatting a `area-` prefix.
-        name: l10n_or(l10n, area.id.as_str(), area.id.as_str()),
-        kind_label: l10n_or(l10n, kind_key, kind_key),
+        name: l10n.get(area.id.as_str()),
+        kind_label: l10n.get(kind_key),
         role,
         creatures,
         corruption,
@@ -80,7 +75,7 @@ pub fn build_area_info(l10n: &Localization, area: &AreaDef) -> AreaTooltipInfo {
 /// entity, and means localization updates apply immediately
 /// without rebuilding dots.
 pub fn build_relic_tooltip(
-    l10n: &Localization,
+    l10n: &L10n,
     icons: &RelicIconAssets,
     def: &cordon_core::item::ItemDef,
     data: &cordon_core::item::RelicData,
@@ -88,25 +83,25 @@ pub fn build_relic_tooltip(
     use cordon_core::item::{PassiveModifier, StatTarget};
     use cordon_core::primitive::Rarity;
 
-    let name = l10n_or(l10n, def.id.as_str(), def.id.as_str());
+    let name = l10n.get(def.id.as_str());
     let rarity_key = match def.rarity {
         Rarity::Common => "rarity-common",
         Rarity::Uncommon => "rarity-uncommon",
         Rarity::Rare => "rarity-rare",
     };
-    let rarity = l10n_or(l10n, rarity_key, rarity_key);
+    let rarity = l10n.get(rarity_key);
 
     let passives: Vec<String> = data
         .passive
         .iter()
         .map(|PassiveModifier { target, value }| {
-            let (stat_key, fallback) = match target {
-                StatTarget::MaxHealth => ("stat-max-health", "Max HP"),
-                StatTarget::MaxStamina => ("stat-max-stamina", "Max Stamina"),
-                StatTarget::BallisticResistance => ("resistance-ballistic", "Ballistic"),
-                StatTarget::CorruptionResistance => ("resistance-corruption", "Corruption"),
+            let stat_key = match target {
+                StatTarget::MaxHealth => "stat-max-health",
+                StatTarget::MaxStamina => "stat-max-stamina",
+                StatTarget::BallisticResistance => "resistance-ballistic",
+                StatTarget::CorruptionResistance => "resistance-corruption",
             };
-            let label = l10n_or(l10n, stat_key, fallback);
+            let label = l10n.get(stat_key);
             let sign = if *value >= 0.0 { "+" } else { "" };
             format!("{label}: {sign}{value:.0}")
         })

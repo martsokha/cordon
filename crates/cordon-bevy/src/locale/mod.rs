@@ -1,6 +1,7 @@
 //! Fluent localization loading and resolution.
 
 use bevy::asset::LoadedFolder;
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_fluent::prelude::*;
 use fluent_content::Content;
@@ -24,6 +25,24 @@ impl Plugin for LocalePlugin {
     }
 }
 
+/// Localization lookup. Use this as a system parameter instead
+/// of `Option<Res<Localization>>`. Returns the key itself when
+/// no translation is found or localization hasn't loaded yet.
+#[derive(SystemParam)]
+pub struct L10n<'w> {
+    inner: Option<Res<'w, Localization>>,
+}
+
+impl L10n<'_> {
+    /// Resolve a Fluent key. Falls back to the raw key string.
+    pub fn get(&self, key: &str) -> String {
+        self.inner
+            .as_ref()
+            .and_then(|l| l.content(key))
+            .unwrap_or_else(|| key.to_string())
+    }
+}
+
 #[derive(Resource)]
 struct LocaleHandle(Handle<LoadedFolder>);
 
@@ -43,9 +62,4 @@ fn build_localization(
     let l10n = builder.build(&handle.0);
     info!("Localization built: {:?}", l10n);
     commands.insert_resource(l10n);
-}
-
-/// Resolve a fluent key or return the fallback.
-pub fn l10n_or(l10n: &Localization, key: &str, fallback: &str) -> String {
-    l10n.content(key).unwrap_or_else(|| fallback.to_string())
 }

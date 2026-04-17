@@ -12,7 +12,6 @@ pub mod palette;
 mod selection;
 
 use bevy::prelude::*;
-use bevy_fluent::prelude::*;
 use cordon_core::entity::faction::RankScheme;
 use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::entity::squad::Formation;
@@ -27,7 +26,7 @@ pub use self::palette::FactionPalette;
 pub use self::selection::SelectedNpc;
 use crate::PlayingState;
 use crate::laptop::map::MapWorldEntity;
-use crate::locale::l10n_or;
+use crate::locale::L10n;
 
 const COLOR_NPC_SELECTED: Color = Color::srgb(1.0, 0.9, 0.3);
 const COLOR_NPC_SQUAD: Color = Color::srgb(0.7, 0.6, 0.25);
@@ -160,16 +159,16 @@ fn rank_scheme_key(scheme: &RankScheme) -> &'static str {
     }
 }
 
-fn resolve_npc_name(l10n: &Localization, name: &NpcName) -> String {
-    let first = l10n_or(l10n, &name.first, &name.first);
+fn resolve_npc_name(l10n: &L10n, name: &NpcName) -> String {
+    let first = l10n.get(&name.first);
     match (&name.format, &name.second) {
         (NameFormat::Alias, _) => first,
         (NameFormat::FirstSurname, Some(second)) => {
-            let second = l10n_or(l10n, second, second);
+            let second = l10n.get(second);
             format!("{first} {second}")
         }
         (NameFormat::FirstAlias, Some(second)) => {
-            let second = l10n_or(l10n, second, second);
+            let second = l10n.get(second);
             format!("{first} \"{second}\"")
         }
         _ => first,
@@ -183,7 +182,7 @@ fn attach_npc_visuals(
     game_data: Res<GameDataResource>,
     npc_assets: Res<NpcAssets>,
     palette: Res<FactionPalette>,
-    l10n: Option<Res<Localization>>,
+    l10n: L10n,
     squads: Query<(
         &SquadHomePosition,
         &Formation,
@@ -199,20 +198,18 @@ fn attach_npc_visuals(
         return;
     }
     let data = &game_data.0;
-    let empty_l10n = Localization::default();
-    let l10n = l10n.as_deref().unwrap_or(&empty_l10n);
 
     for (entity, faction, xp, name, membership) in &new_npcs {
         let faction_str = faction.0.as_str();
         let faction_icon = faction_icon_str(Some(faction_str)).to_string();
-        let faction_name = l10n_or(l10n, faction_str, faction_str);
-        let name_display = resolve_npc_name(l10n, name);
+        let faction_name = l10n.get(faction_str);
+        let name_display = resolve_npc_name(&l10n, name);
         let rank = xp.npc_rank();
         let rank_title = data
             .faction(&faction.0)
             .map(|fdef| {
                 let key = format!("rank-{}-{}", rank_scheme_key(&fdef.rank_scheme), rank.key());
-                l10n_or(l10n, &key, &key)
+                l10n.get(&key)
             })
             .unwrap_or_else(|| format!("Rank {}", rank.key()));
 

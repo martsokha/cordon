@@ -3,7 +3,6 @@
 //! carried-item visual attached to the camera.
 
 use bevy::prelude::*;
-use bevy_fluent::prelude::Localization;
 use cordon_core::item::ItemInstance;
 use cordon_core::primitive::Id;
 use cordon_data::gamedata::GameDataResource;
@@ -13,7 +12,7 @@ use super::shelf_prop::ShelfProp;
 use crate::bunker::camera::FpsCamera;
 use crate::bunker::geometry::{Prop, PropPlacement};
 use crate::bunker::interaction::{Interact, Interactable};
-use crate::locale::l10n_or;
+use crate::locale::L10n;
 
 /// In camera-local space: centred, below the crosshair, forward.
 const CARRY_OFFSET: Vec3 = Vec3::new(0.0, -0.35, -0.55);
@@ -83,7 +82,7 @@ pub(super) fn spawn_rack_slots(
 pub(super) fn update_slot_prompts(
     carrying: Res<Carrying>,
     mut slots: Query<(&RackSlot, &mut Interactable)>,
-    localization: Option<Res<Localization>>,
+    l10n: L10n,
 ) {
     for (slot, mut interactable) in &mut slots {
         let has_item = slot.item.is_some();
@@ -92,16 +91,16 @@ pub(super) fn update_slot_prompts(
         interactable.enabled = has_item || carrying_item;
         interactable.key = match (has_item, carrying_item) {
             (true, false) => {
-                let name = slot_item_name(slot, localization.as_deref());
+                let name = slot_item_name(slot, &l10n);
                 format!("interact-rack-take?item={name}")
             }
             (false, true) => {
-                let name = carried_item_name(&carrying, localization.as_deref());
+                let name = carried_item_name(&carrying, &l10n);
                 format!("interact-rack-place?item={name}")
             }
             (true, true) => {
-                let slot_name = slot_item_name(slot, localization.as_deref());
-                let carry_name = carried_item_name(&carrying, localization.as_deref());
+                let slot_name = slot_item_name(slot, &l10n);
+                let carry_name = carried_item_name(&carrying, &l10n);
                 format!("interact-rack-swap?slot={slot_name}&carry={carry_name}")
             }
             (false, false) => String::new(),
@@ -267,29 +266,22 @@ pub(super) fn drop_carried(
     info!("dropped item: {}", carried.instance.def_id.as_str());
 }
 
-fn item_name(id: &str, l10n: Option<&Localization>) -> String {
-    match l10n {
-        Some(l) => l10n_or(l, id, id),
-        None => id.to_string(),
-    }
-}
-
-fn slot_item_name(slot: &RackSlot, l10n: Option<&Localization>) -> String {
+fn slot_item_name(slot: &RackSlot, l10n: &L10n) -> String {
     let id = slot
         .item
         .as_ref()
         .map(|i| i.def_id.as_str())
         .unwrap_or("item");
-    item_name(id, l10n)
+    l10n.get(id)
 }
 
-fn carried_item_name(carrying: &Carrying, l10n: Option<&Localization>) -> String {
+fn carried_item_name(carrying: &Carrying, l10n: &L10n) -> String {
     let id = carrying
         .0
         .as_ref()
         .map(|c| c.instance.def_id.as_str())
         .unwrap_or("item");
-    item_name(id, l10n)
+    l10n.get(id)
 }
 
 fn play_sfx(commands: &mut Commands, handle: &Handle<AudioSource>) {

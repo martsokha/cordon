@@ -82,8 +82,9 @@ impl QuestCtx<'_> {
         };
         let result = self.log.try_start(def, now);
         if result.is_some() {
-            self.quest_started_tx
-                .write(QuestStarted { quest: quest.clone() });
+            self.quest_started_tx.write(QuestStarted {
+                quest: quest.clone(),
+            });
         }
         result
     }

@@ -7,7 +7,6 @@
 //! template-spawned NPC dies.
 
 use bevy::prelude::*;
-use bevy_fluent::prelude::Localization;
 use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::{Formation, Goal, Squad};
@@ -26,7 +25,7 @@ use cordon_sim::resources::{FactionSettlements, SquadIdIndex, UidAllocator};
 use cordon_sim::spawn::loadout::generate_loadout;
 use rand::RngExt;
 
-use crate::locale::l10n_or;
+use crate::locale::L10n;
 
 /// Consume [`SpawnNpcRequest`] messages, spawning a template NPC
 /// entity for each one and registering it in the
@@ -36,7 +35,7 @@ pub fn handle_spawn_npc_requests(
     mut requests: MessageReader<SpawnNpcRequest>,
     data: Res<GameDataResource>,
     settlements: Res<FactionSettlements>,
-    localization: Option<Res<Localization>>,
+    l10n: L10n,
     mut registry: ResMut<TemplateRegistry>,
     mut uids: ResMut<UidAllocator>,
     mut squad_index: ResMut<SquadIdIndex>,
@@ -117,10 +116,7 @@ pub fn handle_spawn_npc_requests(
                 entity_cmds.insert(PendingYarnNode(yarn));
             }
 
-            let name = match localization.as_deref() {
-                Some(l10n) => l10n_or(l10n, &def.name_key, &def.name_key),
-                None => def.name_key.clone(),
-            };
+            let name = l10n.get(&def.name_key);
             info!("{name} is heading back to the bunker.");
             continue;
         }
@@ -310,7 +306,7 @@ pub fn handle_template_dismissal(
     mut commands: Commands,
     mut requests: MessageReader<DismissTemplateNpc>,
     data: Res<GameDataResource>,
-    localization: Option<Res<Localization>>,
+    l10n: L10n,
     dismissed_q: Query<(&Transform, &SpawnOrigin, &FactionId)>,
     mut uids: ResMut<UidAllocator>,
     mut squad_index: ResMut<SquadIdIndex>,
@@ -363,10 +359,7 @@ pub fn handle_template_dismissal(
         let name = data
             .0
             .npc_template(&req.template)
-            .map(|def| match localization.as_deref() {
-                Some(l10n) => l10n_or(l10n, &def.name_key, &def.name_key),
-                None => def.name_key.clone(),
-            })
+            .map(|def| l10n.get(&def.name_key))
             .unwrap_or_else(|| req.template.as_str().to_string());
         info!("{name} is heading home.");
     }

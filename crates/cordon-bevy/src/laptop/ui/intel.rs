@@ -13,7 +13,6 @@
 //!   whenever [`PlayerIntel`] changes.
 
 use bevy::prelude::*;
-use bevy_fluent::prelude::*;
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::{Id, Relation};
 use cordon_core::world::narrative::IntelCategory;
@@ -23,7 +22,7 @@ use cordon_sim::resources::{PlayerIntel, PlayerStandings};
 
 use super::{LaptopTab, TabContent};
 use crate::fonts::UiFont;
-use crate::locale::l10n_or;
+use crate::locale::L10n;
 
 /// Marker on the flex column that holds the quest-list entries.
 /// Refreshed in-place by [`refresh_quest_list`].
@@ -124,10 +123,10 @@ impl Plugin for IntelUiPlugin {
     }
 }
 
-pub fn spawn(commands: &mut Commands, font: &Handle<Font>, l10n: &Localization) {
-    let quest_log_heading = l10n_or(l10n, "intel-quest-log", "QUEST LOG");
-    let faction_standings_heading = l10n_or(l10n, "intel-faction-standings", "FACTION STANDINGS");
-    let intel_feed_heading = l10n_or(l10n, "intel-feed", "INTEL");
+pub fn spawn(commands: &mut Commands, font: &Handle<Font>, l10n: &L10n) {
+    let quest_log_heading = l10n.get("intel-quest-log");
+    let faction_standings_heading = l10n.get("intel-faction-standings");
+    let intel_feed_heading = l10n.get("intel-feed");
 
     commands
         .spawn((
@@ -242,7 +241,7 @@ fn refresh_quest_list(
     mut commands: Commands,
     log: Res<QuestLog>,
     data: Res<GameDataResource>,
-    l10n: Option<Res<Localization>>,
+    l10n: L10n,
     font: Res<UiFont>,
     panel_q: Query<(Entity, Option<&Children>), With<QuestListPanel>>,
     heading_q: Query<(), With<QuestListHeading>>,
@@ -257,10 +256,7 @@ fn refresh_quest_list(
     let catalog = &data.0;
 
     if log.active.is_empty() {
-        let empty_text = l10n
-            .as_deref()
-            .map(|l| l10n_or(l, "intel-quest-log-empty", "No active quests."))
-            .unwrap_or_else(|| "No active quests.".to_string());
+        let empty_text = l10n.get("intel-quest-log-empty");
         let empty = commands
             .spawn((
                 Text::new(empty_text),
@@ -280,17 +276,11 @@ fn refresh_quest_list(
 
         // FTL keys mirror the raw quest ID after the category-
         // prefix rename; stage hints use `{quest_id}_stage_{stage_id}`.
-        let title = l10n
-            .as_deref()
-            .map(|l| l10n_or(l, def_id, def_id))
-            .unwrap_or_else(|| def_id.to_string());
+        let title = l10n.get(def_id);
 
         let stage_id = active.current_stage.as_str();
         let hint_key = format!("{def_id}_stage_{stage_id}");
-        let hint_text = l10n
-            .as_deref()
-            .map(|l| l10n_or(l, &hint_key, stage_id))
-            .unwrap_or_else(|| stage_id.to_string());
+        let hint_text = l10n.get(&hint_key);
 
         // One container per quest so title + hint read as a
         // single block, not as two sibling lines alternating
@@ -350,10 +340,7 @@ fn refresh_quest_list(
     // chronologically forward.
     const MAX_COMPLETED: usize = 5;
     if !log.completed.is_empty() {
-        let heading_text = l10n
-            .as_deref()
-            .map(|l| l10n_or(l, "intel-quest-log-completed", "RECENT"))
-            .unwrap_or_else(|| "RECENT".to_string());
+        let heading_text = l10n.get("intel-quest-log-completed");
         let heading = commands
             .spawn((
                 Text::new(heading_text),
@@ -373,10 +360,7 @@ fn refresh_quest_list(
 
         for done in log.completed.iter().rev().take(MAX_COMPLETED) {
             let def_id = done.def_id.as_str();
-            let title = l10n
-                .as_deref()
-                .map(|l| l10n_or(l, def_id, def_id))
-                .unwrap_or_else(|| def_id.to_string());
+            let title = l10n.get(def_id);
             let marker = if done.success { "✓" } else { "✗" };
             let color = if done.success {
                 Color::srgba(0.55, 0.80, 0.60, 0.85)
@@ -409,7 +393,7 @@ fn refresh_quest_list(
 fn refresh_faction_standings(
     mut commands: Commands,
     standings: Res<PlayerStandings>,
-    l10n: Option<Res<Localization>>,
+    l10n: L10n,
     font: Res<UiFont>,
     panel_q: Query<(Entity, Option<&Children>), With<FactionStandingsPanel>>,
     heading_q: Query<(), With<FactionStandingsHeading>>,
@@ -431,17 +415,10 @@ fn refresh_faction_standings(
 
     for (faction, standing) in rows {
         let id_str = faction.as_str();
-        let display_name = l10n
-            .as_deref()
-            .map(|l| l10n_or(l, id_str, id_str))
-            .unwrap_or_else(|| id_str.to_string());
+        let display_name = l10n.get(id_str);
 
         let label_key = standing_label_key(standing);
-        let label_fallback = standing_label_fallback(standing);
-        let label = l10n
-            .as_deref()
-            .map(|l| l10n_or(l, label_key, label_fallback))
-            .unwrap_or_else(|| label_fallback.to_string());
+        let label = l10n.get(label_key);
         let value = standing.value();
         let color = standing_color(standing);
 
@@ -477,22 +454,6 @@ fn standing_label_key(standing: Relation) -> &'static str {
     }
 }
 
-/// English fallback used when [`Localization`] has not been
-/// built yet (loading-state frames before the bundle is live).
-fn standing_label_fallback(standing: Relation) -> &'static str {
-    if standing.is_hostile() {
-        "Hostile"
-    } else if standing.is_unfriendly() {
-        "Unfriendly"
-    } else if standing.is_allied() {
-        "Allied"
-    } else if standing.is_friendly() {
-        "Friendly"
-    } else {
-        "Neutral"
-    }
-}
-
 /// Row text colour matching the standing bucket. Mild shifts
 /// only — the intel panel is quiet by design, standings are
 /// the most dynamic piece and don't need to scream.
@@ -517,7 +478,7 @@ fn refresh_intel_feed(
     mut commands: Commands,
     intel: Res<PlayerIntel>,
     data: Res<GameDataResource>,
-    l10n: Option<Res<Localization>>,
+    l10n: L10n,
     font: Res<UiFont>,
     panel_q: Query<(Entity, Option<&Children>), With<IntelFeedPanel>>,
     heading_q: Query<(), With<IntelFeedHeading>>,
@@ -531,10 +492,7 @@ fn refresh_intel_feed(
     let font = font.0.clone();
 
     if intel.entries.is_empty() {
-        let empty_text = l10n
-            .as_deref()
-            .map(|l| l10n_or(l, "intel-feed-empty", "No intel."))
-            .unwrap_or_else(|| "No intel.".to_string());
+        let empty_text = l10n.get("intel-feed-empty");
         let empty = commands
             .spawn((
                 Text::new(empty_text),
@@ -555,10 +513,7 @@ fn refresh_intel_feed(
     for entry in intel.entries.iter().rev().take(MAX_ENTRIES) {
         let id_str = entry.id.as_str();
         let title_key = format!("intel.{id_str}.title");
-        let title = l10n
-            .as_deref()
-            .map(|l| l10n_or(l, &title_key, id_str))
-            .unwrap_or_else(|| id_str.to_string());
+        let title = l10n.get(&title_key);
 
         let (tag, color) = match data.0.intel.get(&entry.id) {
             Some(def) => (

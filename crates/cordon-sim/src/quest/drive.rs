@@ -46,9 +46,7 @@ pub fn drive_active_quests(mut ctx: QuestCtx, mut rng: Single<&mut WyRand, With<
                 fail_stage.as_str()
             );
             active.advance_to(fail_stage, now);
-            ctx.quest_updated_tx.write(QuestUpdated {
-                quest: quest_id,
-            });
+            ctx.quest_updated_tx.write(QuestUpdated { quest: quest_id });
         }
     }
 

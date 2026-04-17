@@ -15,7 +15,6 @@
 //! settlement and can be re-dispatched to the bunker later.
 
 use bevy::prelude::*;
-use bevy_fluent::prelude::Localization;
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::{Formation, Goal, Squad};
 use cordon_data::gamedata::GameDataResource;
@@ -24,12 +23,12 @@ use cordon_sim::quest::travel::{BunkerArrival, HomeArrival};
 use cordon_sim::resources::{SquadIdIndex, UidAllocator};
 
 use crate::bunker::{Visitor, VisitorQueue};
-use crate::locale::l10n_or;
+use crate::locale::L10n;
 
 pub fn handle_bunker_arrival(
     mut arrivals: MessageReader<BunkerArrival>,
     data: Res<GameDataResource>,
-    localization: Option<Res<Localization>>,
+    l10n: L10n,
     mut queue: ResMut<VisitorQueue>,
     pending_q: Query<&PendingYarnNode>,
     mut commands: Commands,
@@ -42,10 +41,7 @@ pub fn handle_bunker_arrival(
             );
             continue;
         };
-        let display_name = match localization.as_deref() {
-            Some(l10n) => l10n_or(l10n, &template.name_key, &template.name_key),
-            None => template.name_key.clone(),
-        };
+        let display_name = l10n.get(&template.name_key);
         // PendingYarnNode is required: without it the visitor
         // would admit to an empty-named yarn node, which panics the
         // runner. Skip enqueue if missing — log loudly so the
@@ -82,7 +78,7 @@ pub fn handle_bunker_arrival(
 pub fn handle_home_arrival(
     mut arrivals: MessageReader<HomeArrival>,
     data: Res<GameDataResource>,
-    localization: Option<Res<Localization>>,
+    l10n: L10n,
     mut uids: ResMut<UidAllocator>,
     mut squad_index: ResMut<SquadIdIndex>,
     entity_q: Query<(&Transform, &FactionId, &SquadMembership)>,
@@ -92,10 +88,7 @@ pub fn handle_home_arrival(
         let name = data
             .0
             .npc_template(&arrival.template)
-            .map(|def| match localization.as_deref() {
-                Some(l10n) => l10n_or(l10n, &def.name_key, &def.name_key),
-                None => def.name_key.clone(),
-            })
+            .map(|def| l10n.get(&def.name_key))
             .unwrap_or_else(|| arrival.template.as_str().to_string());
 
         let Ok((transform, faction, membership)) = entity_q.get(arrival.entity) else {

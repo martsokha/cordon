@@ -5,15 +5,14 @@
 //! observer handles.
 
 use bevy::prelude::*;
-use bevy_fluent::prelude::*;
 
 use super::camera::FpsCamera;
 use super::resources::{CameraMode, InteractionLocked};
+use crate::locale::L10n;
 
 /// Marker on the interaction prompt UI container.
 #[derive(Component)]
 pub struct InteractPrompt;
-use crate::locale::l10n_or;
 
 const INTERACT_DIST: f32 = 3.5;
 
@@ -26,7 +25,7 @@ const MIN_AIM_DOT: f32 = 0.7;
 /// Attach to any entity the player can interact with via E.
 ///
 /// `key` is a Fluent localisation key (e.g. `"interact-laptop"`).
-/// The displayed prompt is resolved through [`Localization`] at
+/// The displayed prompt is resolved through [`L10n`] at
 /// render time, falling back to the raw key when no translation
 /// exists.
 #[derive(Component)]
@@ -45,12 +44,12 @@ pub(super) fn update_prompt(
     camera_q: Query<&Transform, With<FpsCamera>>,
     interactables: Query<(Entity, &GlobalTransform, &Interactable)>,
     camera_mode: Res<CameraMode>,
-    l10n: Option<Res<Localization>>,
+    l10n: L10n,
     mut prompt_q: Query<(&Children, &mut Visibility), With<InteractPrompt>>,
     mut text_q: Query<&mut Text>,
 ) {
     if matches!(*camera_mode, CameraMode::AtCctv { .. }) {
-        let resolved = resolve(l10n.as_deref(), "interact-exit-camera");
+        let resolved = l10n.get("interact-exit-camera");
         for (children, mut vis) in &mut prompt_q {
             if let Some(&child) = children.first() {
                 if let Ok(mut t) = text_q.get_mut(child) {
@@ -69,7 +68,7 @@ pub(super) fn update_prompt(
             Some((_, interactable)) => {
                 if let Some(&child) = children.first() {
                     if let Ok(mut t) = text_q.get_mut(child) {
-                        t.0 = resolve(l10n.as_deref(), &interactable.key);
+                        t.0 = l10n.get(&interactable.key);
                     }
                 }
                 *vis = Visibility::Visible;
@@ -77,11 +76,6 @@ pub(super) fn update_prompt(
             None => *vis = Visibility::Hidden,
         }
     }
-}
-
-fn resolve(l10n: Option<&Localization>, key: &str) -> String {
-    l10n.map(|l| l10n_or(l, key, key))
-        .unwrap_or_else(|| key.to_string())
 }
 
 pub(super) fn interact(
