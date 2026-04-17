@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy_fluent::prelude::Localization;
 use cordon_sim::day::payroll::DailyExpensesProcessed;
 use cordon_sim::day::radio::RadioBroadcast;
-use cordon_sim::quest::messages::StandingChanged;
+use cordon_sim::quest::messages::{QuestFinished, QuestStarted, QuestUpdated, StandingChanged};
 
 use crate::bunker::camera::FpsCamera;
 use crate::locale::l10n_or;
@@ -23,6 +23,7 @@ const ICON_RELATION_UP: usize = 4;
 const ICON_RELATION_DOWN: usize = 20;
 const ICON_NEW_INTEL: usize = 34;
 const ICON_DAILY_SPENDING: usize = 36;
+const ICON_QUEST: usize = 34;
 
 const TEXT_COLOR: Color = Color::srgba(0.85, 0.85, 0.85, 1.0);
 const ICON_COLOR: Color = Color::WHITE;
@@ -136,6 +137,49 @@ pub(super) fn on_standing_change(
             (ICON_RELATION_DOWN, "")
         };
         queue.push(icon, format!("{name}: {sign}{delta}"));
+    }
+}
+
+pub(super) fn on_quest_started(
+    l10n: Option<Res<Localization>>,
+    mut started: MessageReader<QuestStarted>,
+    mut queue: ResMut<ToastQueue>,
+) {
+    for msg in started.read() {
+        let name = l10n
+            .as_deref()
+            .map(|l| l10n_or(l, msg.quest.as_str(), msg.quest.as_str()))
+            .unwrap_or_else(|| msg.quest.as_str().to_string());
+        queue.push(ICON_QUEST, format!("New quest: {name}"));
+    }
+}
+
+pub(super) fn on_quest_updated(
+    l10n: Option<Res<Localization>>,
+    mut updated: MessageReader<QuestUpdated>,
+    mut queue: ResMut<ToastQueue>,
+) {
+    for msg in updated.read() {
+        let name = l10n
+            .as_deref()
+            .map(|l| l10n_or(l, msg.quest.as_str(), msg.quest.as_str()))
+            .unwrap_or_else(|| msg.quest.as_str().to_string());
+        queue.push(ICON_QUEST, format!("Quest updated: {name}"));
+    }
+}
+
+pub(super) fn on_quest_finished(
+    l10n: Option<Res<Localization>>,
+    mut finished: MessageReader<QuestFinished>,
+    mut queue: ResMut<ToastQueue>,
+) {
+    for msg in finished.read() {
+        let name = l10n
+            .as_deref()
+            .map(|l| l10n_or(l, msg.quest.as_str(), msg.quest.as_str()))
+            .unwrap_or_else(|| msg.quest.as_str().to_string());
+        let status = if msg.success { "completed" } else { "failed" };
+        queue.push(ICON_QUEST, format!("Quest {status}: {name}"));
     }
 }
 

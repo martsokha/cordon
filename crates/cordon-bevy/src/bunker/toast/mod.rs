@@ -19,6 +19,9 @@ impl Plugin for ToastPlugin {
                 systems::on_radio_broadcast,
                 systems::on_daily_expenses,
                 systems::on_standing_change,
+                systems::on_quest_started,
+                systems::on_quest_updated,
+                systems::on_quest_finished,
                 systems::spawn_toasts,
                 systems::animate_toasts,
             )

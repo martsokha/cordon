@@ -42,6 +42,26 @@ pub struct StandingChanged {
     pub delta: RelationDelta,
 }
 
+/// A quest was started.
+#[derive(Message, Debug, Clone)]
+pub struct QuestStarted {
+    pub quest: Id<Quest>,
+}
+
+/// A quest advanced to a new stage (objective met, branch
+/// resolved, talk completed).
+#[derive(Message, Debug, Clone)]
+pub struct QuestUpdated {
+    pub quest: Id<Quest>,
+}
+
+/// A quest reached its outcome stage and completed.
+#[derive(Message, Debug, Clone)]
+pub struct QuestFinished {
+    pub quest: Id<Quest>,
+    pub success: bool,
+}
+
 /// A Talk stage's dialogue completed. Emitted by the cordon-bevy
 /// Yarn bridge after copying flags; consumed by the drive system
 /// to advance the quest stage.

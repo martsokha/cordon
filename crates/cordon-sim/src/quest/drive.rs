@@ -10,7 +10,7 @@ use cordon_core::world::narrative::{Consequence, Quest, QuestStage, QuestStageKi
 
 use super::consequence;
 use super::context::QuestCtx;
-use super::messages::TalkCompleted;
+use super::messages::{QuestFinished, QuestUpdated, TalkCompleted};
 use super::state::CompletedQuest;
 
 /// Drive all active quests: expire timed-out quests, evaluate
@@ -46,6 +46,9 @@ pub fn drive_active_quests(mut ctx: QuestCtx, mut rng: Single<&mut WyRand, With<
                 fail_stage.as_str()
             );
             active.advance_to(fail_stage, now);
+            ctx.quest_updated_tx.write(QuestUpdated {
+                quest: quest_id,
+            });
         }
     }
 
@@ -53,7 +56,9 @@ pub fn drive_active_quests(mut ctx: QuestCtx, mut rng: Single<&mut WyRand, With<
     let objective_transitions = collect_objective_transitions(&ctx);
     for (index, next_stage) in objective_transitions {
         if let Some(active) = ctx.log.active.get_mut(index) {
+            let quest = active.def_id.clone();
             active.advance_to(next_stage, now);
+            ctx.quest_updated_tx.write(QuestUpdated { quest });
         }
     }
 
@@ -139,6 +144,9 @@ pub fn handle_talk_completed(mut ctx: QuestCtx, mut completed: MessageReader<Tal
         };
         if let Some(active) = ctx.log.active_instance_mut(&ev.quest) {
             active.advance_to(next, now);
+            ctx.quest_updated_tx.write(QuestUpdated {
+                quest: ev.quest.clone(),
+            });
         }
     }
 }
@@ -255,6 +263,10 @@ fn complete_quest(
         success,
         outcome_stage,
         flags,
+    });
+    ctx.quest_finished_tx.write(QuestFinished {
+        quest: def_id.clone(),
+        success,
     });
     info!(
         "quest `{}` completed ({})",

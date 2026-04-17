@@ -12,7 +12,10 @@ use cordon_core::world::narrative::{ObjectiveCondition, Quest, QuestTriggerDef};
 use cordon_data::gamedata::GameDataResource;
 
 use super::condition;
-use super::messages::{GiveNpcXpRequest, SpawnNpcRequest, StandingChanged, StartQuestRequest};
+use super::messages::{
+    GiveNpcXpRequest, QuestFinished, QuestStarted, QuestUpdated, SpawnNpcRequest, StandingChanged,
+    StartQuestRequest,
+};
 use super::registry::TemplateRegistry;
 use super::state::QuestLog;
 use crate::resources::{
@@ -37,6 +40,9 @@ pub struct QuestCtx<'w> {
     pub spawn_npc_tx: MessageWriter<'w, SpawnNpcRequest>,
     pub give_npc_xp_tx: MessageWriter<'w, GiveNpcXpRequest>,
     pub standing_changed_tx: MessageWriter<'w, StandingChanged>,
+    pub quest_started_tx: MessageWriter<'w, QuestStarted>,
+    pub quest_updated_tx: MessageWriter<'w, QuestUpdated>,
+    pub quest_finished_tx: MessageWriter<'w, QuestFinished>,
 }
 
 impl QuestCtx<'_> {
@@ -74,7 +80,12 @@ impl QuestCtx<'_> {
             warn!("start_quest: unknown quest `{}`", quest.as_str());
             return None;
         };
-        self.log.try_start(def, now)
+        let result = self.log.try_start(def, now);
+        if result.is_some() {
+            self.quest_started_tx
+                .write(QuestStarted { quest: quest.clone() });
+        }
+        result
     }
 
     /// Evaluate a trigger's `requires` clause and start its quest
