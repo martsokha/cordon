@@ -50,12 +50,7 @@ pub fn drive_active_quests(mut ctx: QuestCtx, mut rng: Single<&mut WyRand, With<
     }
 
     // 2. Objective stages: collect transitions immutably, apply mutably.
-    let objective_transitions = collect_stage_transitions(&ctx, |kind| {
-        let QuestStageKind::Objective(obj) = kind else {
-            return None;
-        };
-        Some(obj)
-    });
+    let objective_transitions = collect_objective_transitions(&ctx);
     for (index, next_stage) in objective_transitions {
         if let Some(active) = ctx.log.active.get_mut(index) {
             active.advance_to(next_stage, now);
@@ -148,12 +143,7 @@ pub fn handle_talk_completed(mut ctx: QuestCtx, mut completed: MessageReader<Tal
     }
 }
 
-/// Collect stage transitions for objective stages. The extractor
-/// returns the objective data if the stage kind matches.
-fn collect_stage_transitions(
-    ctx: &QuestCtx,
-    _extractor: impl Fn(&QuestStageKind) -> Option<&cordon_core::world::narrative::ObjectiveStage>,
-) -> Vec<(usize, Id<QuestStage>)> {
+fn collect_objective_transitions(ctx: &QuestCtx) -> Vec<(usize, Id<QuestStage>)> {
     let catalog = &ctx.data.0;
     let now = ctx.now();
     let mut out = Vec::new();
@@ -164,7 +154,7 @@ fn collect_stage_transitions(
         let Some(stage) = def.stage(&active.current_stage) else {
             continue;
         };
-        let Some(obj) = _extractor(&stage.kind) else {
+        let QuestStageKind::Objective(obj) = &stage.kind else {
             continue;
         };
 

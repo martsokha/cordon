@@ -130,4 +130,27 @@ impl QuestLog {
     pub fn active_instance_mut(&mut self, quest: &Id<Quest>) -> Option<&mut ActiveQuest> {
         self.active.iter_mut().find(|q| &q.def_id == quest)
     }
+
+    /// Validate and start a quest. Returns the index of the new
+    /// active entry, or `None` if the start was suppressed
+    /// (already active, non-repeatable + completed, no stages).
+    pub fn try_start(
+        &mut self,
+        def: &cordon_core::world::narrative::QuestDef,
+        now: GameTime,
+    ) -> Option<usize> {
+        if !def.repeatable {
+            if self.is_active(&def.id) {
+                return None;
+            }
+            if self.is_completed_successfully(&def.id) {
+                return None;
+            }
+        }
+        let entry = def.entry_stage()?;
+        self.active
+            .push(ActiveQuest::new(def.id.clone(), entry.id.clone(), now));
+        info!("quest `{}` started", def.id.as_str());
+        Some(self.active.len() - 1)
+    }
 }

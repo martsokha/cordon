@@ -14,7 +14,7 @@ use cordon_data::gamedata::GameDataResource;
 use super::condition;
 use super::messages::{GiveNpcXpRequest, SpawnNpcRequest, StandingChanged, StartQuestRequest};
 use super::registry::TemplateRegistry;
-use super::state::{ActiveQuest, QuestLog};
+use super::state::QuestLog;
 use crate::resources::{
     EventLog, FactionIndex, GameClock, PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash,
     PlayerUpgrades,
@@ -67,37 +67,14 @@ impl QuestCtx<'_> {
         self.factions.0.iter().map(|(id, _)| id.clone()).collect()
     }
 
-    /// Start a quest if eligible (not already active, not
-    /// completed if non-repeatable).
+    /// Start a quest if eligible. Delegates validation to
+    /// [`QuestLog::try_start`].
     pub fn start_quest(&mut self, quest: &Id<Quest>, now: GameTime) -> Option<usize> {
         let Some(def) = self.data.0.quests.get(quest) else {
             warn!("start_quest: unknown quest `{}`", quest.as_str());
             return None;
         };
-        if !def.repeatable {
-            if self.log.is_active(quest) {
-                return None;
-            }
-            if self
-                .log
-                .completed
-                .iter()
-                .any(|c| &c.def_id == quest && c.success)
-            {
-                return None;
-            }
-        }
-        let Some(entry) = def.entry_stage() else {
-            warn!(
-                "start_quest: quest `{}` has no stages, skipping",
-                quest.as_str()
-            );
-            return None;
-        };
-        let active = ActiveQuest::new(quest.clone(), entry.id.clone(), now);
-        self.log.active.push(active);
-        info!("quest `{}` started", quest.as_str());
-        Some(self.log.active.len() - 1)
+        self.log.try_start(def, now)
     }
 
     /// Evaluate a trigger's `requires` clause and start its quest

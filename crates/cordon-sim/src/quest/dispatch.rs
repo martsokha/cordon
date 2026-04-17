@@ -28,21 +28,7 @@ pub fn process_start_quest_requests(
             warn!("start_quest: unknown quest `{}`", quest.as_str());
             continue;
         };
-        if !def.repeatable {
-            if log.is_active(&quest) {
-                continue;
-            }
-            if log.completed.iter().any(|c| c.def_id == quest && c.success) {
-                continue;
-            }
-        }
-        let Some(entry) = def.entry_stage() else {
-            warn!("start_quest: quest `{}` has no stages", quest.as_str());
-            continue;
-        };
-        let active = super::state::ActiveQuest::new(quest.clone(), entry.id.clone(), now);
-        log.active.push(active);
-        info!("quest `{}` started (via request)", quest.as_str());
+        log.try_start(def, now);
     }
 }
 
