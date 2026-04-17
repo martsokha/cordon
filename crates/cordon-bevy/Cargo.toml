@@ -23,6 +23,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [features]
 default = ["steam"]
 steam = ["dep:bevy-steamworks"]
+profile = ["bevy/trace_tracy"]
 
 [dependencies]
 # Internal crates

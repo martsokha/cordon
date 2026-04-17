@@ -15,6 +15,7 @@ mod particles;
 mod pills;
 mod props;
 pub mod rack;
+mod sleep;
 pub mod resources;
 mod rooms;
 mod systems;
@@ -45,6 +46,7 @@ impl Plugin for BunkerPlugin {
             particles::BunkerParticlesPlugin,
             pills::PillsPlugin,
             rack::RackPlugin,
+            sleep::SleepPlugin,
         ));
         // SSAO: `ScreenSpaceAmbientOcclusionPlugin` is registered
         // by `DefaultPlugins::PbrPlugin` already; we just attach

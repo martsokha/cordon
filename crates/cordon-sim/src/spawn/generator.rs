@@ -167,7 +167,7 @@ pub trait NpcGenerator {
     /// Target alive-NPC population in the Zone. Spawning replenishes
     /// toward this number rather than dumping a fixed batch each day.
     fn target_population(&self, _day: u32) -> u32 {
-        200
+        20
     }
 }
 
