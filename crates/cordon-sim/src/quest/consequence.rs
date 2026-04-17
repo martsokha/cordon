@@ -1,112 +1,37 @@
 //! [`Consequence`] application.
 //!
-//! Single-entry mutator that walks a [`Consequence`] and writes
-//! the corresponding change into world state. Quest outcomes,
-//! event triggers, choice effects, and any future narrative
-//! hook all go through [`apply`] so the behaviour of each
-//! variant is defined in exactly one place.
-//!
-//! The applier borrows a [`WorldMut`] bundle of mutable
-//! references. Side-effects that can't be performed through
-//! borrows alone — starting a new quest, firing an event —
-//! queue messages for downstream systems rather than mutating
-//! the caller's world directly.
+//! Single free function that pattern-matches a [`Consequence`]
+//! and writes the corresponding mutation. Quest outcomes, event
+//! triggers, and choice effects all route through [`apply`].
 
 use bevy::prelude::*;
 use bevy_prng::WyRand;
 use cordon_core::entity::faction::Faction;
-use cordon_core::entity::npc::NpcTemplate;
 use cordon_core::item::ItemInstance;
-use cordon_core::primitive::{Experience, GameTime, Id, RelationDelta};
-use cordon_core::world::area::Area;
-use cordon_core::world::narrative::{ActiveEvent, Consequence, Quest};
+use cordon_core::primitive::{GameTime, Id};
+use cordon_core::world::narrative::{ActiveEvent, Consequence};
 use cordon_data::catalog::GameData;
 
+use super::messages::{GiveNpcXpRequest, SpawnNpcRequest, StandingChanged, StartQuestRequest};
 use super::registry::TemplateRegistry;
 use crate::day::world_events::{EventOverrides, spawn_event_instance};
 use crate::resources::{PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades};
 
-/// Live references the applier may mutate in place.
-///
-/// `rng` and `faction_pool` are threaded through so
-/// consequences that need randomness (e.g.
-/// [`TriggerEvent`](Consequence::TriggerEvent)) can build
-/// realistic instances through the shared
-/// [`spawn_event_instance`] helper instead of hardcoding
-/// def-minimum values.
-pub struct WorldMut<'a> {
-    pub identity: &'a mut PlayerIdentity,
-    pub standings: &'a mut PlayerStandings,
-    pub upgrades: &'a mut PlayerUpgrades,
-    pub stash: &'a mut PlayerStash,
-    pub intel: &'a mut PlayerIntel,
-    pub events: &'a mut Vec<ActiveEvent>,
-    pub data: &'a GameData,
-    pub registry: &'a TemplateRegistry,
-    pub now: GameTime,
-    pub rng: &'a mut WyRand,
-    pub faction_pool: &'a [Id<Faction>],
-}
-
-/// Message emitted by the applier whenever a consequence asks
-/// for a new quest to be started outside of the regular trigger
-/// flow. Consumed by the quest dispatcher system.
-#[derive(Message, Debug, Clone)]
-pub struct StartQuestRequest {
-    pub quest: Id<Quest>,
-}
-
-/// Emitted by `SpawnNpc` consequences. A downstream Bevy system
-/// (in cordon-bevy) consumes these to enqueue the visitor or
-/// place the NPC in the zone, then registers the entity in
-/// [`TemplateRegistry`].
-#[derive(Message, Debug, Clone)]
-pub struct SpawnNpcRequest {
-    pub template: Id<NpcTemplate>,
-    pub at: Option<Id<Area>>,
-    /// When set, the spawned template NPC will dispatch this
-    /// yarn node as its visitor payload when it arrives at the
-    /// bunker. `None` for generic `SpawnNpc` consequences that
-    /// drop the NPC into the world without a conversation.
-    pub yarn_node: Option<String>,
-}
-
-/// Emitted by the dialogue bridge when a template NPC's
-/// conversation completes. Consumed by a Bevy-layer system that
-/// starts the return-travel leg: strips `QuestCritical`, attaches
-/// `TravelingHome`, and builds a fresh 1-member squad that walks
-/// the NPC back to its `SpawnOrigin`.
-#[derive(Message, Debug, Clone)]
-pub struct DismissTemplateNpc {
-    pub entity: Entity,
-    pub template: Id<NpcTemplate>,
-}
-
-/// Emitted by `GiveNpcXp` consequences. Consumed by a downstream
-/// system that resolves the template to a live entity via
-/// [`TemplateRegistry`] and mutates its [`Experience`] component.
-#[derive(Message, Debug, Clone)]
-pub struct GiveNpcXpRequest {
-    pub template: Id<NpcTemplate>,
-    pub amount: Experience,
-}
-
-/// Emitted when a `StandingChange` consequence fires. Consumed
-/// by the toast system to show relation change notifications.
-#[derive(Message, Debug, Clone)]
-pub struct StandingChanged {
-    pub faction: Id<Faction>,
-    pub delta: RelationDelta,
-}
-
-/// Apply a single consequence.
-///
-/// Warnings rather than errors: quests are content-authored and
-/// a typo in a reward item ID should not crash the sim. Missing
-/// lookups log and skip.
+/// Apply a single consequence. Warnings rather than panics so
+/// content typos don't crash the sim.
 pub fn apply(
     consequence: &Consequence,
-    world: &mut WorldMut<'_>,
+    identity: &mut PlayerIdentity,
+    standings: &mut PlayerStandings,
+    upgrades: &mut PlayerUpgrades,
+    stash: &mut PlayerStash,
+    intel: &mut PlayerIntel,
+    events: &mut Vec<ActiveEvent>,
+    data: &GameData,
+    registry: &TemplateRegistry,
+    now: GameTime,
+    rng: &mut WyRand,
+    faction_pool: &[Id<Faction>],
     start_quest: &mut MessageWriter<StartQuestRequest>,
     spawn_npc: &mut MessageWriter<SpawnNpcRequest>,
     give_npc_xp: &mut MessageWriter<GiveNpcXpRequest>,
@@ -114,7 +39,7 @@ pub fn apply(
 ) {
     match consequence {
         Consequence::StandingChange { faction, delta } => {
-            if let Some(standing) = world.standings.standing_mut(faction) {
+            if let Some(standing) = standings.standing_mut(faction) {
                 standing.apply(*delta);
                 standing_changed.write(StandingChanged {
                     faction: faction.clone(),
@@ -126,21 +51,21 @@ pub fn apply(
         }
 
         Consequence::GiveCredits(amount) => {
-            world.identity.credits += *amount;
+            identity.credits += *amount;
         }
 
         Consequence::TakeCredits(amount) => {
-            world.identity.credits -= *amount;
+            identity.credits -= *amount;
         }
 
         Consequence::GiveItem(q) => {
-            let Some(def) = world.data.item(&q.item) else {
+            let Some(def) = data.item(&q.item) else {
                 warn!("GiveItem: unknown item `{}`", q.item.as_str());
                 return;
             };
             let count = q.resolved_count();
             for _ in 0..count {
-                world.stash.add_item(ItemInstance::new(def), q.scope);
+                stash.add_item(ItemInstance::new(def), q.scope);
             }
         }
 
@@ -148,7 +73,7 @@ pub fn apply(
             let count = q.resolved_count();
             let mut removed = 0u32;
             for _ in 0..count {
-                if world.stash.remove_first(&q.item, q.scope).is_none() {
+                if stash.remove_first(&q.item, q.scope).is_none() {
                     break;
                 }
                 removed += 1;
@@ -168,28 +93,17 @@ pub fn apply(
             involved_factions,
             duration_days,
         } => {
-            let Some(def) = world.data.events.get(event) else {
+            let Some(def) = data.events.get(event) else {
                 warn!("TriggerEvent: unknown event `{}`", event.as_str());
                 return;
             };
-            // Share the same instancing helper the day-cycle
-            // roll uses so the two paths can never drift on
-            // duration / faction / target-area randomness.
-            // Any consequence-supplied override pins its field;
-            // the rest falls through to the def-driven rng.
             let overrides = EventOverrides {
                 target_area: target_area.clone(),
                 involved_factions: involved_factions.clone(),
                 duration_days: *duration_days,
             };
-            let instance = spawn_event_instance(
-                def,
-                world.faction_pool,
-                world.now.day,
-                &overrides,
-                world.rng,
-            );
-            world.events.push(instance);
+            let instance = spawn_event_instance(def, faction_pool, now.day, &overrides, rng);
+            events.push(instance);
         }
 
         Consequence::StartQuest(quest_id) => {
@@ -199,28 +113,28 @@ pub fn apply(
         }
 
         Consequence::UnlockUpgrade(upgrade) => {
-            if !world.upgrades.upgrades.contains(upgrade) {
-                world.upgrades.upgrades.push(upgrade.clone());
+            if !upgrades.upgrades.contains(upgrade) {
+                upgrades.upgrades.push(upgrade.clone());
             }
         }
 
         Consequence::GiveIntel(intel_id) => {
-            world.intel.grant(intel_id.clone(), world.now.day);
+            intel.grant(intel_id.clone(), now.day);
         }
 
         Consequence::SpawnNpc { template, at } => {
-            let Some(def) = world.data.npc_template(template) else {
+            let Some(def) = data.npc_template(template) else {
                 warn!("SpawnNpc: unknown template `{}`", template.as_str());
                 return;
             };
-            if def.unique && world.registry.is_alive(template) {
+            if def.unique && registry.is_alive(template) {
                 info!(
                     "SpawnNpc: unique template `{}` already alive, skipping",
                     template.as_str()
                 );
                 return;
             }
-            if !def.respawnable && world.registry.is_permanently_dead(template) {
+            if !def.respawnable && registry.is_permanently_dead(template) {
                 info!(
                     "SpawnNpc: non-respawnable template `{}` is permanently dead, skipping",
                     template.as_str()
@@ -235,11 +149,11 @@ pub fn apply(
         }
 
         Consequence::GivePlayerXp(xp) => {
-            world.identity.add_xp(xp.value());
+            identity.add_xp(xp.value());
         }
 
         Consequence::GiveNpcXp { template, amount } => {
-            if !world.registry.is_alive(template) {
+            if !registry.is_alive(template) {
                 warn!(
                     "GiveNpcXp: template `{}` is not alive, cannot grant {} xp",
                     template.as_str(),
@@ -258,11 +172,6 @@ pub fn apply(
             delta,
             duration,
         } => {
-            // `AreaStates` is a separate resource; routing
-            // through the applier needs a dedicated message
-            // channel that does not exist yet. The duration
-            // override is included in the warning so the full
-            // intent surfaces before the bridge is wired.
             let target = area
                 .as_ref()
                 .map(|a| a.as_str().to_string())
@@ -270,10 +179,7 @@ pub fn apply(
             let lifetime = duration
                 .map(|d| d.to_string())
                 .unwrap_or_else(|| "permanent".to_string());
-            warn!(
-                "STUB CONSEQUENCE `danger_modifier` fired — no AreaStates bridge yet. \
-                 Area `{target}` will not receive danger delta {delta} (lifetime {lifetime})."
-            );
+            warn!("STUB `danger_modifier`: area `{target}`, delta {delta}, lifetime {lifetime}.");
         }
 
         Consequence::PriceModifier {
@@ -281,15 +187,10 @@ pub fn apply(
             multiplier,
             duration,
         } => {
-            // The trade loop is still a stub; no market
-            // system to receive price shifts.
             let lifetime = duration
                 .map(|d| d.to_string())
                 .unwrap_or_else(|| "permanent".to_string());
-            warn!(
-                "STUB CONSEQUENCE `price_modifier` fired — no market system yet. \
-                 Category {category:?} will not be multiplied by {multiplier} (lifetime {lifetime})."
-            );
+            warn!("STUB `price_modifier`: {category:?} ×{multiplier}, lifetime {lifetime}.");
         }
     }
 }

@@ -33,13 +33,9 @@ use cordon_core::primitive::Id;
 use cordon_core::world::narrative::{Quest, QuestStageKind};
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::entity::npc::TemplateId;
-use cordon_sim::plugin::prelude::{EventLog, GameClock, QuestLog};
-use cordon_sim::quest::consequence::{DismissTemplateNpc, SpawnNpcRequest};
-use cordon_sim::quest::engine::advance_after_talk;
+use cordon_sim::plugin::prelude::QuestLog;
+use cordon_sim::quest::messages::{DismissTemplateNpc, SpawnNpcRequest, TalkCompleted};
 use cordon_sim::quest::registry::TemplateRegistry;
-use cordon_sim::resources::{
-    PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades,
-};
 
 use crate::bunker::resources::StartDialogue;
 use crate::bunker::{Visitor, VisitorQueue};
@@ -188,33 +184,21 @@ pub fn enqueue_talk_dialogue(
 /// identically for visitor-driven and narrator-only dialogue
 /// because the slot is the sole source of truth for "which
 /// quest is waiting on this event."
-#[allow(clippy::too_many_arguments)]
 pub fn on_dialogue_completed(
     _event: On<DialogueCompleted>,
     mut log: ResMut<QuestLog>,
     data: Res<GameDataResource>,
-    clock: Res<GameClock>,
-    identity: Res<PlayerIdentity>,
-    standings: Res<PlayerStandings>,
-    upgrades: Res<PlayerUpgrades>,
-    stash: Res<PlayerStash>,
-    intel: Res<PlayerIntel>,
-    events: Res<EventLog>,
-    registry: Res<TemplateRegistry>,
     mut in_flight: ResMut<DialogueInFlight>,
     mut dismiss: MessageWriter<DismissTemplateNpc>,
+    mut talk_completed: MessageWriter<TalkCompleted>,
     runner_q: Query<&DialogueRunner>,
     template_q: Query<(Entity, &TemplateId)>,
 ) {
     let Some(quest_id) = in_flight.0.take() else {
-        // No quest was waiting on this dialogue — ambient /
-        // non-quest dialogue ended. Nothing to do.
         return;
     };
 
-    // Find the template NPC that just finished talking (if any).
-    // The quest's current stage hasn't advanced yet, so we look
-    // up the Talk stage's `npc` to know which template to retire.
+    // Dismiss the template NPC that just finished talking.
     let dismissed_template = log
         .active_instance(&quest_id)
         .and_then(|active| data.0.quests.get(&active.def_id).map(|def| (active, def)))
@@ -231,7 +215,7 @@ pub fn on_dialogue_completed(
                     template: template_id.clone(),
                 });
                 info!(
-                    "quest `{}`: template `{}` dismissed after dialogue, returning home",
+                    "quest `{}`: template `{}` dismissed after dialogue",
                     quest_id.as_str(),
                     template_id.as_str()
                 );
@@ -240,16 +224,13 @@ pub fn on_dialogue_completed(
         }
     }
 
+    // Drain Yarn variables into the quest's flag bag.
     let Ok(runner) = runner_q.single() else {
         warn!("DialogueCompleted: no dialogue runner entity found");
         return;
     };
     let variables = runner.variable_storage().variables();
 
-    // Copy every $quest_* variable into the active quest's
-    // flag bag, overwriting any previous value with the same
-    // key. This includes `$quest_choice` itself so later
-    // conditions can read it via `QuestFlag` too.
     let mut captured_choice: Option<String> = None;
     if let Some(active) = log.active_instance_mut(&quest_id) {
         for (name, value) in variables {
@@ -265,24 +246,16 @@ pub fn on_dialogue_completed(
         }
     } else {
         warn!(
-            "DialogueCompleted: visitor tagged quest `{}` not in active log",
+            "DialogueCompleted: quest `{}` not in active log",
             quest_id.as_str()
         );
         return;
     }
 
-    advance_after_talk(
-        &mut log,
-        &data.0,
-        &identity,
-        &standings,
-        &upgrades,
-        &stash,
-        &intel,
-        &events.0,
-        &registry,
-        &quest_id,
-        captured_choice.as_deref(),
-        clock.0,
-    );
+    // Emit message — the sim-side drive system handles the
+    // stage advance.
+    talk_completed.write(TalkCompleted {
+        quest: quest_id,
+        choice: captured_choice,
+    });
 }

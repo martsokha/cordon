@@ -1,10 +1,9 @@
 //! Pure [`ObjectiveCondition`] evaluation.
 //!
-//! Single-entry recursive evaluator over world state. Quest
-//! stages, quest triggers, and anywhere else that needs a
-//! boolean over player + world state all route through
-//! [`evaluate`]. Extending the vocabulary means adding one arm
-//! here and nothing else.
+//! Single free function over world state. Quest stages, triggers,
+//! and anything else that needs a boolean over player + world
+//! state all call [`evaluate`]. Adding a new condition variant
+//! means adding one arm here.
 
 use bevy::log::warn;
 use bevy_yarnspinner::prelude::YarnValue;
@@ -17,164 +16,131 @@ use super::registry::TemplateRegistry;
 use super::state::QuestLog;
 use crate::resources::{PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades};
 
-/// Read-only view of the player's sub-resources. Used by
-/// [`WorldView`] so the evaluator can read from all four
-/// resources without requiring a full `PlayerState`.
-pub struct PlayerView<'a> {
-    pub identity: &'a PlayerIdentity,
-    pub standings: &'a PlayerStandings,
-    pub upgrades: &'a PlayerUpgrades,
-    pub stash: &'a PlayerStash,
-    pub intel: &'a PlayerIntel,
-}
-
-/// Live world state the evaluator reads from. Kept as a single
-/// struct so [`evaluate`](Self::evaluate) has one clean receiver
-/// instead of a growing tuple of references, and so adding a new
-/// piece of evaluator context is a field-add instead of threading
-/// an argument through every caller.
-pub struct WorldView<'a> {
-    pub player: PlayerView<'a>,
-    pub events: &'a [ActiveEvent],
-    pub quests: &'a QuestLog,
-    pub registry: &'a TemplateRegistry,
-    /// The current game clock. Used by `Wait` and any future
-    /// time-sensitive leaf conditions.
-    pub now: GameTime,
-    /// When the current quest stage was entered, if the
-    /// evaluator is running inside a stage context. `None`
-    /// means the caller is a trigger `requires`, a standalone
-    /// check, or somewhere else with no per-stage clock — any
-    /// stage-aware condition falls back to a warning + false.
-    pub stage_started_at: Option<GameTime>,
-}
-
-impl<'a> WorldView<'a> {
-    /// Evaluate a condition against this view.
-    ///
-    /// Recursive for [`AllOf`](ObjectiveCondition::AllOf),
-    /// [`AnyOf`](ObjectiveCondition::AnyOf), and
-    /// [`Not`](ObjectiveCondition::Not). Leaf conditions do
-    /// simple lookups against the player state, event log, or
-    /// quest log.
-    pub fn evaluate(&self, cond: &ObjectiveCondition) -> bool {
-        match cond {
-            ObjectiveCondition::HaveItem(q) => {
-                self.player
-                    .stash
-                    .has_item(&q.item, q.resolved_count(), q.scope)
-            }
-            ObjectiveCondition::HaveCredits(amount) => {
-                self.player.identity.credits.can_afford(*amount)
-            }
-            ObjectiveCondition::FactionStanding {
-                faction,
-                min_standing,
-            } => self.player.standings.standing(faction) >= *min_standing,
-            ObjectiveCondition::HaveUpgrade(upgrade) => self.player.upgrades.has_upgrade(upgrade),
-            ObjectiveCondition::HaveIntel(intel) => self.player.intel.has(intel),
-            ObjectiveCondition::EventActive(event) => {
-                self.events.iter().any(|e| &e.def_id == event)
-            }
-            ObjectiveCondition::QuestActive(quest) => self.quests.is_active(quest),
-            ObjectiveCondition::QuestCompleted(quest) => {
-                self.quests.is_completed_successfully(quest)
-            }
-            ObjectiveCondition::QuestFlag {
-                quest,
-                key,
-                predicate,
-            } => self.evaluate_quest_flag(quest, key, predicate),
-
-            ObjectiveCondition::NpcAlive(npc) => self.registry.is_alive(npc),
-            ObjectiveCondition::NpcDead(npc) => !self.registry.is_alive(npc),
-            ObjectiveCondition::NpcAtLocation { npc, area } => {
-                // Location resolution requires ECS queries that the
-                // pure-function evaluator does not have access to.
-                // Stays as a warning stub until WorldView carries
-                // area-position data or is replaced by a query-based
-                // evaluator.
-                warn!(
-                    "NpcAtLocation({}, {}) evaluated — location tracking not wired yet, returning false",
-                    npc.as_str(),
-                    area.as_str()
-                );
-                false
-            }
-
-            ObjectiveCondition::Wait { duration } => {
-                let Some(started_at) = self.stage_started_at else {
-                    // Evaluator was called without a stage clock
-                    // — e.g. from a trigger `requires`. `Wait`
-                    // is only meaningful inside a stage;
-                    // anywhere else is an authoring mistake.
-                    warn!("Wait condition evaluated without a stage clock — returning false");
-                    return false;
-                };
-                let elapsed = self.now.minutes_since(started_at);
-                elapsed >= duration.minutes()
-            }
-
-            ObjectiveCondition::AllOf(conds) => conds.iter().all(|c| self.evaluate(c)),
-            ObjectiveCondition::AnyOf(conds) => conds.iter().any(|c| self.evaluate(c)),
-            ObjectiveCondition::Not(inner) => !self.evaluate(inner),
+/// Evaluate a condition against live world state.
+pub fn evaluate(
+    cond: &ObjectiveCondition,
+    identity: &PlayerIdentity,
+    standings: &PlayerStandings,
+    upgrades: &PlayerUpgrades,
+    stash: &PlayerStash,
+    intel: &PlayerIntel,
+    events: &[ActiveEvent],
+    quests: &QuestLog,
+    registry: &TemplateRegistry,
+    now: GameTime,
+    stage_started_at: Option<GameTime>,
+) -> bool {
+    match cond {
+        ObjectiveCondition::HaveItem(q) => stash.has_item(&q.item, q.resolved_count(), q.scope),
+        ObjectiveCondition::HaveCredits(amount) => identity.credits.can_afford(*amount),
+        ObjectiveCondition::FactionStanding {
+            faction,
+            min_standing,
+        } => standings.standing(faction) >= *min_standing,
+        ObjectiveCondition::HaveUpgrade(upgrade) => upgrades.has_upgrade(upgrade),
+        ObjectiveCondition::HaveIntel(id) => intel.has(id),
+        ObjectiveCondition::EventActive(event) => events.iter().any(|e| &e.def_id == event),
+        ObjectiveCondition::QuestActive(quest) => quests.is_active(quest),
+        ObjectiveCondition::QuestCompleted(quest) => quests.is_completed_successfully(quest),
+        ObjectiveCondition::QuestFlag {
+            quest,
+            key,
+            predicate,
+        } => evaluate_quest_flag(quests, quest, key, predicate),
+        ObjectiveCondition::NpcAlive(npc) => registry.is_alive(npc),
+        ObjectiveCondition::NpcDead(npc) => !registry.is_alive(npc),
+        ObjectiveCondition::NpcAtLocation { npc, area } => {
+            warn!(
+                "NpcAtLocation({}, {}) — not wired, returning false",
+                npc.as_str(),
+                area.as_str()
+            );
+            false
         }
+        ObjectiveCondition::Wait { duration } => {
+            let Some(started_at) = stage_started_at else {
+                warn!("Wait condition without stage clock — returning false");
+                return false;
+            };
+            now.minutes_since(started_at) >= duration.minutes()
+        }
+        ObjectiveCondition::AllOf(conds) => conds.iter().all(|c| {
+            evaluate(
+                c,
+                identity,
+                standings,
+                upgrades,
+                stash,
+                intel,
+                events,
+                quests,
+                registry,
+                now,
+                stage_started_at,
+            )
+        }),
+        ObjectiveCondition::AnyOf(conds) => conds.iter().any(|c| {
+            evaluate(
+                c,
+                identity,
+                standings,
+                upgrades,
+                stash,
+                intel,
+                events,
+                quests,
+                registry,
+                now,
+                stage_started_at,
+            )
+        }),
+        ObjectiveCondition::Not(inner) => !evaluate(
+            inner,
+            identity,
+            standings,
+            upgrades,
+            stash,
+            intel,
+            events,
+            quests,
+            registry,
+            now,
+            stage_started_at,
+        ),
     }
+}
 
-    /// Evaluate a [`QuestFlag`](ObjectiveCondition::QuestFlag)
-    /// condition. Pulled out of [`evaluate`](Self::evaluate)
-    /// because the predicate-and-value matrix is the longest
-    /// arm in the evaluator and obscured the rest of the match.
-    ///
-    /// Flag lookup reads the active instance first, then falls
-    /// back to the most recent completed quest with the same
-    /// def id — the completed-fallback is how later quests
-    /// branch on how an earlier one ended.
-    fn evaluate_quest_flag(
-        &self,
-        quest: &Id<Quest>,
-        key: &str,
-        predicate: &QuestFlagPredicate,
-    ) -> bool {
-        let value = self
-            .quests
-            .active_instance(quest)
-            .and_then(|a| a.flags.get(key))
-            .or_else(|| {
-                self.quests
-                    .completed
-                    .iter()
-                    .rev()
-                    .find(|c| &c.def_id == quest)
-                    .and_then(|c| c.flags.get(key))
-            });
-        match (predicate, value) {
-            // `IsSet` is the only predicate that cares about
-            // presence rather than value — handle it before the
-            // `None` fallthrough below.
-            (QuestFlagPredicate::IsSet, v) => v.is_some(),
-            (_, None) => false,
-            (QuestFlagPredicate::Equals(expected), Some(v)) => yarn_value_equals(v, expected),
-            (QuestFlagPredicate::NotEquals(expected), Some(v)) => !yarn_value_equals(v, expected),
-            (QuestFlagPredicate::GreaterThan(threshold), Some(v)) => {
-                yarn_value_as_number(v).is_some_and(|n| n > *threshold)
-            }
-            (QuestFlagPredicate::LessThan(threshold), Some(v)) => {
-                yarn_value_as_number(v).is_some_and(|n| n < *threshold)
-            }
+fn evaluate_quest_flag(
+    quests: &QuestLog,
+    quest: &Id<Quest>,
+    key: &str,
+    predicate: &QuestFlagPredicate,
+) -> bool {
+    let value = quests
+        .active_instance(quest)
+        .and_then(|a| a.flags.get(key))
+        .or_else(|| {
+            quests
+                .completed
+                .iter()
+                .rev()
+                .find(|c| &c.def_id == quest)
+                .and_then(|c| c.flags.get(key))
+        });
+    match (predicate, value) {
+        (QuestFlagPredicate::IsSet, v) => v.is_some(),
+        (_, None) => false,
+        (QuestFlagPredicate::Equals(expected), Some(v)) => yarn_value_equals(v, expected),
+        (QuestFlagPredicate::NotEquals(expected), Some(v)) => !yarn_value_equals(v, expected),
+        (QuestFlagPredicate::GreaterThan(threshold), Some(v)) => {
+            yarn_value_as_number(v).is_some_and(|n| n > *threshold)
+        }
+        (QuestFlagPredicate::LessThan(threshold), Some(v)) => {
+            yarn_value_as_number(v).is_some_and(|n| n < *threshold)
         }
     }
 }
 
-/// Compare a live [`YarnValue`] flag against an authored
-/// [`QuestFlagValue`] using Yarn's loose casting rules.
-///
-/// The three variants line up one-to-one: numbers to numbers
-/// (parsing a number flag from its own representation rounds-
-/// trips via `==`), booleans to booleans, strings to strings.
-/// Cross-type comparisons return false rather than coerce —
-/// authors can use the explicit predicate shape to say what
-/// they mean.
 fn yarn_value_equals(value: &YarnValue, expected: &QuestFlagValue) -> bool {
     match (value, expected) {
         (YarnValue::String(a), QuestFlagValue::String(b)) => a == b,
@@ -184,10 +150,6 @@ fn yarn_value_equals(value: &YarnValue, expected: &QuestFlagValue) -> bool {
     }
 }
 
-/// Coerce a live [`YarnValue`] flag to an `f32` for numeric
-/// comparison predicates. `None` when the flag isn't numeric —
-/// string-to-number coercion is deliberately not supported; use
-/// an explicit numeric flag.
 fn yarn_value_as_number(value: &YarnValue) -> Option<f32> {
     match value {
         YarnValue::Number(n) => Some(*n),
@@ -207,263 +169,215 @@ mod tests {
         ObjectiveCondition, Quest, QuestFlagPredicate, QuestFlagValue, QuestStage,
     };
 
-    use super::{PlayerView, WorldView, yarn_value_equals};
+    use super::{evaluate, yarn_value_equals};
     use crate::quest::registry::TemplateRegistry;
     use crate::quest::state::{ActiveQuest, CompletedQuest, QuestLog};
     use crate::resources::{
         PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades,
     };
 
-    struct TestPlayer {
+    struct Ctx {
         identity: PlayerIdentity,
         standings: PlayerStandings,
         upgrades: PlayerUpgrades,
         stash: PlayerStash,
         intel: PlayerIntel,
+        log: QuestLog,
+        registry: TemplateRegistry,
     }
 
-    impl TestPlayer {
-        fn view(&self) -> PlayerView<'_> {
-            PlayerView {
-                identity: &self.identity,
-                standings: &self.standings,
-                upgrades: &self.upgrades,
-                stash: &self.stash,
-                intel: &self.intel,
+    impl Ctx {
+        fn new(factions: &[&str]) -> Self {
+            let ids: Vec<Id<Faction>> = factions.iter().map(|f| Id::new(*f)).collect();
+            let state = PlayerState::new(&ids);
+            Self {
+                identity: PlayerIdentity {
+                    xp: state.xp,
+                    credits: state.credits,
+                    debt: state.debt,
+                },
+                standings: PlayerStandings {
+                    standings: state.standings,
+                },
+                upgrades: PlayerUpgrades {
+                    upgrades: state.upgrades,
+                },
+                stash: PlayerStash {
+                    pending_items: state.pending_items,
+                    hidden_storage: state.hidden_storage,
+                },
+                intel: PlayerIntel::default(),
+                log: QuestLog::default(),
+                registry: TemplateRegistry::default(),
             }
         }
-    }
 
-    fn player(factions: &[&str]) -> TestPlayer {
-        let ids: Vec<Id<Faction>> = factions.iter().map(|f| Id::<Faction>::new(*f)).collect();
-        let state = PlayerState::new(&ids);
-        TestPlayer {
-            identity: PlayerIdentity {
-                xp: state.xp,
-                credits: state.credits,
-                debt: state.debt,
-            },
-            standings: PlayerStandings {
-                standings: state.standings,
-            },
-            upgrades: PlayerUpgrades {
-                upgrades: state.upgrades,
-            },
-            stash: PlayerStash {
-                pending_items: state.pending_items,
-                hidden_storage: state.hidden_storage,
-            },
-            intel: PlayerIntel::default(),
+        fn eval(&self, cond: &ObjectiveCondition) -> bool {
+            evaluate(
+                cond,
+                &self.identity,
+                &self.standings,
+                &self.upgrades,
+                &self.stash,
+                &self.intel,
+                &[],
+                &self.log,
+                &self.registry,
+                GameTime::new(),
+                None,
+            )
         }
-    }
 
-    fn registry() -> TemplateRegistry {
-        TemplateRegistry::default()
-    }
-
-    fn view<'a>(
-        player: &'a TestPlayer,
-        log: &'a QuestLog,
-        registry: &'a TemplateRegistry,
-    ) -> WorldView<'a> {
-        WorldView {
-            player: player.view(),
-            events: &[],
-            quests: log,
-            registry,
-            now: GameTime::new(),
-            stage_started_at: None,
-        }
-    }
-
-    fn view_with_clock<'a>(
-        player: &'a TestPlayer,
-        log: &'a QuestLog,
-        registry: &'a TemplateRegistry,
-        now: GameTime,
-        stage_started_at: GameTime,
-    ) -> WorldView<'a> {
-        WorldView {
-            player: player.view(),
-            events: &[],
-            quests: log,
-            registry,
-            now,
-            stage_started_at: Some(stage_started_at),
+        fn eval_with_clock(
+            &self,
+            cond: &ObjectiveCondition,
+            now: GameTime,
+            stage_started_at: GameTime,
+        ) -> bool {
+            evaluate(
+                cond,
+                &self.identity,
+                &self.standings,
+                &self.upgrades,
+                &self.stash,
+                &self.intel,
+                &[],
+                &self.log,
+                &self.registry,
+                now,
+                Some(stage_started_at),
+            )
         }
     }
 
     #[test]
     fn have_credits_threshold() {
-        let mut p = player(&[]);
-        p.identity.credits = Credits::new(500);
-        let log = QuestLog::default();
-        let reg = registry();
-        let v = view(&p, &log, &reg);
-        assert!(v.evaluate(&ObjectiveCondition::HaveCredits(Credits::new(500))));
-        assert!(v.evaluate(&ObjectiveCondition::HaveCredits(Credits::new(499))));
-        assert!(!v.evaluate(&ObjectiveCondition::HaveCredits(Credits::new(501))));
+        let mut ctx = Ctx::new(&[]);
+        ctx.identity.credits = Credits::new(500);
+        assert!(ctx.eval(&ObjectiveCondition::HaveCredits(Credits::new(500))));
+        assert!(ctx.eval(&ObjectiveCondition::HaveCredits(Credits::new(499))));
+        assert!(!ctx.eval(&ObjectiveCondition::HaveCredits(Credits::new(501))));
     }
 
     #[test]
     fn faction_standing_at_threshold() {
-        let mut p = player(&["garrison"]);
-        if let Some(s) = p.standings.standing_mut(&Id::<Faction>::new("garrison")) {
+        let mut ctx = Ctx::new(&["garrison"]);
+        if let Some(s) = ctx.standings.standing_mut(&Id::<Faction>::new("garrison")) {
             s.apply(RelationDelta::new(50));
         }
-        let log = QuestLog::default();
-        let reg = registry();
-        let v = view(&p, &log, &reg);
-        assert!(v.evaluate(&ObjectiveCondition::FactionStanding {
-            faction: Id::<Faction>::new("garrison"),
+        assert!(ctx.eval(&ObjectiveCondition::FactionStanding {
+            faction: Id::new("garrison"),
             min_standing: Relation::new(50),
         }));
-        assert!(!v.evaluate(&ObjectiveCondition::FactionStanding {
-            faction: Id::<Faction>::new("garrison"),
+        assert!(!ctx.eval(&ObjectiveCondition::FactionStanding {
+            faction: Id::new("garrison"),
             min_standing: Relation::new(60),
         }));
     }
 
     #[test]
     fn all_of_short_circuits_on_false() {
-        let p = player(&[]);
-        let log = QuestLog::default();
-        let reg = registry();
+        let ctx = Ctx::new(&[]);
         let cond = ObjectiveCondition::AllOf(vec![
             ObjectiveCondition::Wait {
                 duration: Duration::INSTANT,
             },
             ObjectiveCondition::HaveCredits(Credits::new(9999)),
         ]);
-        // Wait{INSTANT} needs a stage clock, use the clocked view.
-        let v = view_with_clock(&p, &log, &reg, GameTime::new(), GameTime::new());
-        assert!(!v.evaluate(&cond));
+        assert!(!ctx.eval_with_clock(&cond, GameTime::new(), GameTime::new()));
     }
 
     #[test]
     fn any_of_short_circuits_on_true() {
-        let p = player(&[]);
-        let log = QuestLog::default();
-        let reg = registry();
+        let ctx = Ctx::new(&[]);
         let cond = ObjectiveCondition::AnyOf(vec![
             ObjectiveCondition::HaveCredits(Credits::new(9999)),
             ObjectiveCondition::Wait {
                 duration: Duration::INSTANT,
             },
         ]);
-        let v = view_with_clock(&p, &log, &reg, GameTime::new(), GameTime::new());
-        assert!(v.evaluate(&cond));
+        assert!(ctx.eval_with_clock(&cond, GameTime::new(), GameTime::new()));
     }
 
     #[test]
     fn not_flips_result() {
-        let p = player(&[]);
-        let log = QuestLog::default();
-        let reg = registry();
+        let ctx = Ctx::new(&[]);
         let cond = ObjectiveCondition::Not(Box::new(ObjectiveCondition::Wait {
             duration: Duration::INSTANT,
         }));
-        let v = view_with_clock(&p, &log, &reg, GameTime::new(), GameTime::new());
-        assert!(!v.evaluate(&cond));
+        assert!(!ctx.eval_with_clock(&cond, GameTime::new(), GameTime::new()));
     }
 
     #[test]
     fn wait_without_stage_clock_returns_false() {
-        let p = player(&[]);
-        let log = QuestLog::default();
-        let reg = registry();
-        let cond = ObjectiveCondition::Wait {
+        let ctx = Ctx::new(&[]);
+        assert!(!ctx.eval(&ObjectiveCondition::Wait {
             duration: Duration::INSTANT,
-        };
-        // No stage clock → false.
-        assert!(!view(&p, &log, &reg).evaluate(&cond));
+        }));
     }
 
     #[test]
     fn wait_honours_duration() {
-        let p = player(&[]);
-        let log = QuestLog::default();
-        let reg = registry();
+        let ctx = Ctx::new(&[]);
         let cond = ObjectiveCondition::Wait {
             duration: Duration::from_minutes(30),
         };
         let start = GameTime::new();
-        // Zero elapsed → not yet satisfied.
-        assert!(!view_with_clock(&p, &log, &reg, start, start).evaluate(&cond));
-        // 30+ minutes elapsed → satisfied.
+        assert!(!ctx.eval_with_clock(&cond, start, start));
         let mut now_late = start;
         now_late.advance_minutes(30);
-        assert!(view_with_clock(&p, &log, &reg, now_late, start).evaluate(&cond));
+        assert!(ctx.eval_with_clock(&cond, now_late, start));
     }
 
     #[test]
     fn quest_active_lookup() {
-        let p = player(&[]);
-        let mut log = QuestLog::default();
-        log.active.push(ActiveQuest {
-            def_id: Id::<Quest>::new("mainline"),
+        let mut ctx = Ctx::new(&[]);
+        ctx.log.active.push(ActiveQuest {
+            def_id: Id::new("mainline"),
             current_stage: Id::<QuestStage>::new("intro"),
             started_at: GameTime::new(),
             stage_started_at: GameTime::new(),
             flags: HashMap::new(),
         });
-        let reg = registry();
-        let v = view(&p, &log, &reg);
-        assert!(
-            v.evaluate(&ObjectiveCondition::QuestActive(Id::<Quest>::new(
-                "mainline"
-            )))
-        );
-        assert!(
-            !v.evaluate(&ObjectiveCondition::QuestActive(Id::<Quest>::new(
-                "sidequest"
-            )))
-        );
+        assert!(ctx.eval(&ObjectiveCondition::QuestActive(Id::new("mainline"))));
+        assert!(!ctx.eval(&ObjectiveCondition::QuestActive(Id::new("sidequest"))));
     }
 
     #[test]
     fn quest_flag_equals_active_first_then_completed() {
-        let p = player(&[]);
-        let mut log = QuestLog::default();
-
+        let mut ctx = Ctx::new(&[]);
         let mut flags = HashMap::new();
         flags.insert(
             "$quest_choice".to_string(),
             YarnValue::String("accepted".to_string()),
         );
-        log.active.push(ActiveQuest {
-            def_id: Id::<Quest>::new("live"),
+        ctx.log.active.push(ActiveQuest {
+            def_id: Id::new("live"),
             current_stage: Id::<QuestStage>::new("stage1"),
             started_at: GameTime::new(),
             stage_started_at: GameTime::new(),
             flags,
         });
-
         let mut completed_flags = HashMap::new();
         completed_flags.insert(
             "$quest_choice".to_string(),
             YarnValue::String("refused".to_string()),
         );
-        log.completed.push(CompletedQuest {
-            def_id: Id::<Quest>::new("done"),
+        ctx.log.completed.push(CompletedQuest {
+            def_id: Id::new("done"),
             started_at: GameTime::new(),
             completed_at: GameTime::new(),
             success: false,
             outcome_stage: Id::<QuestStage>::new("outcome_refuse"),
             flags: completed_flags,
         });
-
-        let reg = registry();
-        let v = view(&p, &log, &reg);
-        // Active quest hit.
-        assert!(v.evaluate(&ObjectiveCondition::QuestFlag {
-            quest: Id::<Quest>::new("live"),
+        assert!(ctx.eval(&ObjectiveCondition::QuestFlag {
+            quest: Id::new("live"),
             key: "$quest_choice".to_string(),
             predicate: QuestFlagPredicate::Equals(QuestFlagValue::String("accepted".to_string())),
         }));
-        // Completed quest hit — active_instance miss falls through.
-        assert!(v.evaluate(&ObjectiveCondition::QuestFlag {
-            quest: Id::<Quest>::new("done"),
+        assert!(ctx.eval(&ObjectiveCondition::QuestFlag {
+            quest: Id::new("done"),
             key: "$quest_choice".to_string(),
             predicate: QuestFlagPredicate::Equals(QuestFlagValue::String("refused".to_string())),
         }));
@@ -471,28 +385,23 @@ mod tests {
 
     #[test]
     fn quest_flag_is_set_matches_any_value() {
-        let p = player(&[]);
-        let mut log = QuestLog::default();
+        let mut ctx = Ctx::new(&[]);
         let mut flags = HashMap::new();
         flags.insert("$quest_stage".to_string(), YarnValue::Number(3.0));
-        log.active.push(ActiveQuest {
-            def_id: Id::<Quest>::new("live"),
+        ctx.log.active.push(ActiveQuest {
+            def_id: Id::new("live"),
             current_stage: Id::<QuestStage>::new("s"),
             started_at: GameTime::new(),
             stage_started_at: GameTime::new(),
             flags,
         });
-
-        let reg = registry();
-        let v = view(&p, &log, &reg);
-        assert!(v.evaluate(&ObjectiveCondition::QuestFlag {
-            quest: Id::<Quest>::new("live"),
+        assert!(ctx.eval(&ObjectiveCondition::QuestFlag {
+            quest: Id::new("live"),
             key: "$quest_stage".to_string(),
             predicate: QuestFlagPredicate::IsSet,
         }));
-        // Missing key → false.
-        assert!(!v.evaluate(&ObjectiveCondition::QuestFlag {
-            quest: Id::<Quest>::new("live"),
+        assert!(!ctx.eval(&ObjectiveCondition::QuestFlag {
+            quest: Id::new("live"),
             key: "$quest_other".to_string(),
             predicate: QuestFlagPredicate::IsSet,
         }));
@@ -500,36 +409,29 @@ mod tests {
 
     #[test]
     fn quest_flag_greater_than_only_matches_numbers() {
-        let p = player(&[]);
-        let mut log = QuestLog::default();
+        let mut ctx = Ctx::new(&[]);
         let mut flags = HashMap::new();
         flags.insert("$score".to_string(), YarnValue::Number(42.0));
         flags.insert("$name".to_string(), YarnValue::String("alice".to_string()));
-        log.active.push(ActiveQuest {
-            def_id: Id::<Quest>::new("live"),
+        ctx.log.active.push(ActiveQuest {
+            def_id: Id::new("live"),
             current_stage: Id::<QuestStage>::new("s"),
             started_at: GameTime::new(),
             stage_started_at: GameTime::new(),
             flags,
         });
-
-        let reg = registry();
-        let v = view(&p, &log, &reg);
-        // Numeric flag over threshold.
-        assert!(v.evaluate(&ObjectiveCondition::QuestFlag {
-            quest: Id::<Quest>::new("live"),
+        assert!(ctx.eval(&ObjectiveCondition::QuestFlag {
+            quest: Id::new("live"),
             key: "$score".to_string(),
             predicate: QuestFlagPredicate::GreaterThan(40.0),
         }));
-        // Numeric flag under threshold.
-        assert!(!v.evaluate(&ObjectiveCondition::QuestFlag {
-            quest: Id::<Quest>::new("live"),
+        assert!(!ctx.eval(&ObjectiveCondition::QuestFlag {
+            quest: Id::new("live"),
             key: "$score".to_string(),
             predicate: QuestFlagPredicate::GreaterThan(50.0),
         }));
-        // String flag can't satisfy a numeric predicate.
-        assert!(!v.evaluate(&ObjectiveCondition::QuestFlag {
-            quest: Id::<Quest>::new("live"),
+        assert!(!ctx.eval(&ObjectiveCondition::QuestFlag {
+            quest: Id::new("live"),
             key: "$name".to_string(),
             predicate: QuestFlagPredicate::GreaterThan(0.0),
         }));
@@ -537,12 +439,10 @@ mod tests {
 
     #[test]
     fn yarn_value_equals_rejects_cross_type() {
-        // String to number → false, no coercion.
         assert!(!yarn_value_equals(
             &YarnValue::String("3".to_string()),
             &QuestFlagValue::Number(3.0),
         ));
-        // Boolean to string → false.
         assert!(!yarn_value_equals(
             &YarnValue::Boolean(true),
             &QuestFlagValue::String("true".to_string()),

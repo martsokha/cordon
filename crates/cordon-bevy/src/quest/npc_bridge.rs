@@ -20,7 +20,7 @@ use cordon_sim::plugin::prelude::{
     NpcDied, NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle,
     SquadMembership, TemplateId, TravelingHome, TravelingToBunker,
 };
-use cordon_sim::quest::consequence::{DismissTemplateNpc, GiveNpcXpRequest, SpawnNpcRequest};
+use cordon_sim::quest::messages::{DismissTemplateNpc, GiveNpcXpRequest, SpawnNpcRequest};
 use cordon_sim::quest::registry::TemplateRegistry;
 use cordon_sim::resources::{FactionSettlements, SquadIdIndex, UidAllocator};
 use cordon_sim::spawn::loadout::generate_loadout;
@@ -31,7 +31,6 @@ use crate::locale::l10n_or;
 /// Consume [`SpawnNpcRequest`] messages, spawning a template NPC
 /// entity for each one and registering it in the
 /// [`TemplateRegistry`].
-#[allow(clippy::too_many_arguments)]
 pub fn handle_spawn_npc_requests(
     mut commands: Commands,
     mut requests: MessageReader<SpawnNpcRequest>,
@@ -307,7 +306,6 @@ pub fn handle_give_npc_xp_requests(
 /// the stored `SpawnOrigin`. The map dot reappears and the NPC
 /// walks home; `detect_home_arrival` fires `HomeArrival` when
 /// they get close enough.
-#[allow(clippy::too_many_arguments)]
 pub fn handle_template_dismissal(
     mut commands: Commands,
     mut requests: MessageReader<DismissTemplateNpc>,

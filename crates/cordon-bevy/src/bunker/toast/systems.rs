@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy_fluent::prelude::Localization;
 use cordon_sim::day::payroll::DailyExpensesProcessed;
 use cordon_sim::day::radio::RadioBroadcast;
-use cordon_sim::quest::consequence::StandingChanged;
+use cordon_sim::quest::messages::StandingChanged;
 
 use crate::bunker::camera::FpsCamera;
 use crate::locale::l10n_or;

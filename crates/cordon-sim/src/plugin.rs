@@ -90,7 +90,6 @@ impl Plugin for CordonSimPlugin {
         app.add_message::<spawn::SquadSpawned>();
         app.add_systems(Update, spawn::spawn_population.in_set(SimSet::Spawn));
         // Shop: handle BuyUpgrade requests from the laptop UI.
-        app.add_message::<crate::quest::consequence::StandingChanged>();
         app.add_message::<crate::shop::BuyUpgrade>();
         app.add_message::<crate::shop::BuyUpgradeOutcome>();
         app.add_systems(
