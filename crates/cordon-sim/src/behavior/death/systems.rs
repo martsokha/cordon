@@ -13,7 +13,10 @@ use crate::resources::GameClock;
 /// Throttle gate used by corpse-cleanup systems. Accumulates
 /// `delta_secs` and fires exactly once per [`CLEANUP_INTERVAL_SECS`]
 /// window.
-pub(crate) fn on_cleanup_tick(time: Res<Time>, mut throttle: Local<f32>) -> bool {
+pub(crate) fn on_cleanup_tick(
+    time: Res<Time<crate::resources::Sim>>,
+    mut throttle: Local<f32>,
+) -> bool {
     *throttle += time.delta_secs();
     if *throttle >= CLEANUP_INTERVAL_SECS {
         *throttle = 0.0;

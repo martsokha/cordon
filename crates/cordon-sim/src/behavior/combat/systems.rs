@@ -246,7 +246,7 @@ fn resolve_ammo_damage(
 /// All NPC mutable access flows through a [`ParamSet`] so multiple
 /// `&mut Loadout` queries don't overlap.
 pub fn resolve_combat(
-    time: Res<Time>,
+    time: Res<Time<crate::resources::Sim>>,
     game_data: Res<GameDataResource>,
     mut shots: MessageWriter<ShotFired>,
     mut pool_changed: MessageWriter<NpcPoolChanged>,

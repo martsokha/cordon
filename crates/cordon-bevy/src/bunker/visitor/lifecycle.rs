@@ -5,7 +5,7 @@ use bevy::color::Srgba;
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataResource;
 
-use super::audio::{AlarmSound, DOOR_VOLUME, DoorSfx};
+use super::audio::{ALARM_VOLUME, AlarmSound, DOOR_VOLUME, DoorSfx};
 use super::state::{AdmitVisitor, Visitor, VisitorQueue, VisitorState};
 use crate::bunker::components::FpsCamera;
 use crate::bunker::resources::{
@@ -65,7 +65,7 @@ pub(super) fn arrive_next_visitor(
     commands.spawn((
         AlarmSound,
         AudioPlayer(door_sfx.alarm.clone()),
-        PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(DOOR_VOLUME)),
+        PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(ALARM_VOLUME)),
     ));
     info!("visitor arrived: {}", visitor.display_name);
     *state = VisitorState::Knocking { visitor };

@@ -85,7 +85,7 @@ pub(super) struct SquadSnap {
 
 pub(super) fn drive_squad_formation(
     game_data: Res<GameDataResource>,
-    time: Res<Time>,
+    time: Res<Time<crate::resources::Sim>>,
     mut throttle: Local<f32>,
     mut squad_leader_pos: Local<HashMap<Entity, Vec2>>,
     mut squad_info: Local<HashMap<Entity, SquadSnap>>,

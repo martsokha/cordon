@@ -65,7 +65,7 @@ pub fn try_start_looting(
 /// component when the corpse is empty or vanishes, or when the looter
 /// starts a fight.
 pub fn drive_loot(
-    time: Res<Time>,
+    time: Res<Time<crate::resources::Sim>>,
     game_data: Res<GameDataResource>,
     mut commands: Commands,
     mut looted: MessageWriter<ItemLooted>,

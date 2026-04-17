@@ -17,6 +17,7 @@ pub(super) struct DoorSfx {
 pub(super) struct AlarmSound;
 
 pub(super) const DOOR_VOLUME: f32 = 0.6;
+pub(super) const ALARM_VOLUME: f32 = 0.3;
 
 pub(super) fn load(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.insert_resource(DoorSfx {

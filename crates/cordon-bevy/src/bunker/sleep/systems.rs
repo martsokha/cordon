@@ -2,16 +2,17 @@
 //! acceleration, fade-back-in.
 
 use bevy::prelude::*;
+use bevy::ui::UiTargetCamera;
+use cordon_sim::resources::{GameClock, SimSpeed};
 
-use avian3d::schedule::{Physics, PhysicsTime};
-
+use crate::bunker::components::FpsCamera;
 use crate::bunker::geometry::{Prop, PropPlacement};
 use crate::bunker::interaction::{Interact, Interactable};
 use crate::bunker::resources::{InteractionLocked, MovementLocked};
-use cordon_sim::resources::GameClock;
 
 const SLEEP_HOURS: u32 = 8;
-const FADE_SECS: f32 = 0.5;
+const FADE_OUT_SECS: f32 = 1.5;
+const FADE_IN_SECS: f32 = 1.0;
 
 /// Marker on the sofa entity.
 #[derive(Component)]
@@ -58,10 +59,7 @@ pub(super) fn attach_sleep_target(
 }
 
 /// Wire the observer onto newly-tagged sleep targets.
-pub(super) fn attach_observer(
-    mut commands: Commands,
-    new: Query<Entity, Added<SleepTarget>>,
-) {
+pub(super) fn attach_observer(mut commands: Commands, new: Query<Entity, Added<SleepTarget>>) {
     for entity in &new {
         commands.entity(entity).observe(on_sleep);
     }
@@ -72,6 +70,7 @@ fn on_sleep(
     mut commands: Commands,
     state: Res<SleepState>,
     clock: Res<GameClock>,
+    camera_q: Query<Entity, With<FpsCamera>>,
 ) {
     if !matches!(*state, SleepState::Awake) {
         return;
@@ -86,8 +85,12 @@ fn on_sleep(
     commands.insert_resource(MovementLocked);
     commands.insert_resource(InteractionLocked);
 
+    let Ok(camera) = camera_q.single() else {
+        return;
+    };
     commands.spawn((
         SleepOverlay,
+        UiTargetCamera(camera),
         Node {
             position_type: PositionType::Absolute,
             width: Val::Percent(100.0),
@@ -111,8 +114,7 @@ pub(super) fn drive_sleep_transition(
     mut commands: Commands,
     mut state: ResMut<SleepState>,
     real_time: Res<Time<Real>>,
-    mut virtual_time: ResMut<Time<Virtual>>,
-    mut physics_time: ResMut<Time<Physics>>,
+    mut sim_speed: ResMut<SimSpeed>,
     clock: Res<GameClock>,
     mut overlay_q: Query<&mut BackgroundColor, With<SleepOverlay>>,
     overlay_entities: Query<Entity, With<SleepOverlay>>,
@@ -127,13 +129,12 @@ pub(super) fn drive_sleep_transition(
             target_minutes,
         } => {
             *timer += dt;
-            let alpha = (*timer / FADE_SECS).min(1.0);
+            let alpha = (*timer / FADE_OUT_SECS).min(1.0);
             for mut bg in &mut overlay_q {
                 bg.0 = Color::srgba(0.0, 0.0, 0.0, alpha);
             }
-            if *timer >= FADE_SECS {
-                physics_time.pause();
-                virtual_time.set_relative_speed_f64(50.0);
+            if *timer >= FADE_OUT_SECS {
+                sim_speed.0 = 50.0;
                 *state = SleepState::Sleeping { target_minutes };
             }
         }
@@ -143,8 +144,7 @@ pub(super) fn drive_sleep_transition(
                 bg.0 = Color::srgba(0.0, 0.0, 0.0, 1.0);
             }
             if clock.0.total_minutes() >= target_minutes {
-                physics_time.unpause();
-                virtual_time.set_relative_speed_f64(1.0);
+                sim_speed.0 = 1.0;
                 *state = SleepState::FadingIn { timer: 0.0 };
                 info!("woke up at {}", clock.0.time_str());
             }
@@ -152,11 +152,11 @@ pub(super) fn drive_sleep_transition(
 
         SleepState::FadingIn { ref mut timer } => {
             *timer += dt;
-            let alpha = 1.0 - (*timer / FADE_SECS).min(1.0);
+            let alpha = 1.0 - (*timer / FADE_IN_SECS).min(1.0);
             for mut bg in &mut overlay_q {
                 bg.0 = Color::srgba(0.0, 0.0, 0.0, alpha);
             }
-            if *timer >= FADE_SECS {
+            if *timer >= FADE_IN_SECS {
                 for entity in &overlay_entities {
                     commands.entity(entity).despawn();
                 }

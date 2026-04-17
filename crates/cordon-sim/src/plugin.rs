@@ -17,7 +17,7 @@ use cordon_data::gamedata::GameDataResource;
 use crate::behavior::BehaviorPlugin;
 use crate::day::DayCyclePlugin;
 use crate::quest::QuestPlugin;
-use crate::resources::{GameClock, SquadIdIndex, UidAllocator};
+use crate::resources::{GameClock, Sim, SimSpeed, SquadIdIndex, UidAllocator};
 use crate::spawn;
 use crate::spawn::relics::RelicSpawnPlugin;
 
@@ -64,6 +64,8 @@ impl Plugin for CordonSimPlugin {
         app.add_plugins(EntropyPlugin::<WyRand>::default());
         app.init_resource::<SquadIdIndex>();
         app.init_resource::<UidAllocator>();
+        app.init_resource::<SimSpeed>();
+        app.init_resource::<Time<Sim>>();
 
         app.configure_sets(
             Update,
@@ -94,12 +96,15 @@ impl Plugin for CordonSimPlugin {
             Update,
             crate::shop::apply_buy_upgrade.in_set(SimSet::Commands),
         );
-        // Game clock ticks every frame once the world is
-        // initialised. Gated on `GameClock` existing so it waits
-        // for the cordon-bevy layer's `init_world_resources` call.
+        // Sim time runs every frame — it mirrors virtual time
+        // scaled by SimSpeed. Must run before tick_game_time.
+        app.add_systems(Update, crate::resources::tick_sim_time);
+        // Game clock reads Time<Sim> so it scales with SimSpeed.
         app.add_systems(
             Update,
-            crate::resources::tick_game_time.run_if(resource_exists::<GameClock>),
+            crate::resources::tick_game_time
+                .after(crate::resources::tick_sim_time)
+                .run_if(resource_exists::<GameClock>),
         );
         // BehaviorPlugin composes Movement / Vision / Combat /
         // Death / Loot / Effects / Squad subplugins internally, so we
@@ -161,8 +166,8 @@ pub mod prelude {
     };
     pub use crate::resources::{
         AreaStates, EventLog, FactionIndex, GameClock, PlayerIdentity, PlayerSquadEntry,
-        PlayerSquadRoster, PlayerStandings, PlayerStash, PlayerUpgrades, SquadIdIndex,
-        UidAllocator,
+        PlayerSquadRoster, PlayerStandings, PlayerStash, PlayerUpgrades, Sim, SimSpeed,
+        SquadIdIndex, UidAllocator,
     };
     pub use crate::shop::{BuyUpgrade, BuyUpgradeFailure, BuyUpgradeOutcome};
     pub use crate::spawn::SquadSpawned;

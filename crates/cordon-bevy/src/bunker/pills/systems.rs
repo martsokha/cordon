@@ -2,9 +2,9 @@
 //! attach interactables, play a random pill-rattle sound on use.
 
 use bevy::prelude::*;
-use rand::RngExt;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::GlobalRng;
+use rand::RngExt;
 
 use crate::bunker::geometry::{Prop, PropPlacement};
 use crate::bunker::interaction::{Interact, Interactable};
@@ -32,10 +32,7 @@ pub(super) fn load_sfx(mut commands: Commands, asset_server: Res<AssetServer>) {
 /// (have SceneRoot) and attach an Interactable to them.
 pub(super) fn attach_interactable(
     mut commands: Commands,
-    clusters: Query<
-        (Entity, &PropPlacement),
-        (With<SceneRoot>, Without<PillsInteractable>),
-    >,
+    clusters: Query<(Entity, &PropPlacement), (With<SceneRoot>, Without<PillsInteractable>)>,
 ) {
     for (entity, placement) in &clusters {
         if placement.kind != Prop::MedicationCluster1 {

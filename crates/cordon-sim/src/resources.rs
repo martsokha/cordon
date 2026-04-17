@@ -316,10 +316,43 @@ impl UidAllocator {
 #[derive(Resource, Default, Debug)]
 pub struct TimeAccumulator(pub f32);
 
-/// How many game minutes pass per real second at 1× time scale.
-/// A game day at this rate is 12 real minutes; the F4 debug cheat
-/// in cordon-bevy multiplies this via `Time<Virtual>`.
+/// How many game minutes pass per real second at 1× sim speed.
+/// A game day at this rate is 12 real minutes.
 const GAME_MINUTES_PER_SECOND: f32 = 2.0;
+
+/// Marker type for simulation time. Advanced each frame by
+/// [`tick_sim_time`] from virtual time scaled by [`SimSpeed`].
+/// Decoupled from `Time<Virtual>` so we can accelerate the sim
+/// (e.g. during sleep) without causing the `FixedMain` loop to
+/// explode into dozens of physics/transform ticks per frame.
+///
+/// Every sim system reads `Res<Time<Sim>>` instead of `Res<Time>`
+/// so it sees the scaled delta.
+#[derive(Default, Debug, Clone, Copy)]
+pub struct Sim;
+
+/// Simulation speed multiplier. 1.0 = normal play. Set to e.g.
+/// 50.0 during sleep to fast-forward the sim while the screen is
+/// black. `Time<Virtual>` stays at 1×; only `Time<Sim>` sees the
+/// speedup.
+#[derive(Resource, Debug, Clone, Copy)]
+pub struct SimSpeed(pub f64);
+
+impl Default for SimSpeed {
+    fn default() -> Self {
+        Self(1.0)
+    }
+}
+
+/// Advance `Time<Sim>` each frame from virtual time × sim speed.
+pub fn tick_sim_time(
+    virtual_time: Res<Time<Virtual>>,
+    mut sim_time: ResMut<Time<Sim>>,
+    speed: Res<SimSpeed>,
+) {
+    let delta = virtual_time.delta().mul_f64(speed.0);
+    sim_time.advance_by(delta);
+}
 
 /// Build the cordon-sim resource set from loaded game data. The
 /// caller is responsible for calling this exactly once, typically
@@ -386,12 +419,12 @@ pub fn init_world_resources(mut commands: Commands, game_data: Res<GameDataResou
     info!("World initialised; population will be spawned by cordon-sim");
 }
 
-/// Per-frame clock advance. Reads `Res<Time>` (which is virtual
-/// time by default in Bevy 0.18), so time-scale cheats applied
-/// via `Time<Virtual>::set_relative_speed` naturally accelerate
-/// the game clock along with the rest of the sim.
+/// Per-frame clock advance. Reads `Time<Sim>` so the game clock
+/// scales with [`SimSpeed`] instead of `Time<Virtual>`. This
+/// means sleep acceleration doesn't touch virtual time and
+/// doesn't disturb the `FixedMain` loop.
 pub fn tick_game_time(
-    time: Res<Time>,
+    time: Res<Time<Sim>>,
     mut acc: ResMut<TimeAccumulator>,
     mut clock: ResMut<GameClock>,
 ) {

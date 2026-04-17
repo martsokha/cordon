@@ -47,7 +47,7 @@ use crate::entity::npc::{Essential, FactionId, NpcMarker};
 
 pub(super) fn update_squad_engagement(
     game_data: Res<GameDataResource>,
-    time: Res<Time>,
+    time: Res<Time<crate::resources::Sim>>,
     mut throttle: Local<f32>,
     mut grid: Local<SpatialGrid>,
     anomalies: Query<(&Transform, &AnomalyZone)>,

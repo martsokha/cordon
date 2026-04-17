@@ -12,7 +12,7 @@ use crate::behavior::death::components::Dead;
 /// touch their transform — Bevy's change detection skips them and the
 /// downstream transform-propagation system has less work.
 pub fn move_npcs(
-    time: Res<Time>,
+    time: Res<Time<crate::resources::Sim>>,
     mut q: Query<(&MovementTarget, &MovementSpeed, &mut Transform), Without<Dead>>,
 ) {
     let dt = time.delta_secs();
