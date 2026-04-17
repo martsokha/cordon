@@ -33,10 +33,11 @@ use cordon_core::primitive::Id;
 use cordon_core::world::narrative::{Quest, QuestStageKind};
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::entity::npc::TemplateId;
-use cordon_sim::plugin::prelude::{EventLog, GameClock, Player, QuestLog};
+use cordon_sim::plugin::prelude::{EventLog, GameClock, QuestLog};
 use cordon_sim::quest::consequence::{DismissTemplateNpc, SpawnNpcRequest};
 use cordon_sim::quest::engine::advance_after_talk;
 use cordon_sim::quest::registry::TemplateRegistry;
+use cordon_sim::resources::{PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades};
 
 use crate::bunker::resources::StartDialogue;
 use crate::bunker::{Visitor, VisitorQueue};
@@ -191,7 +192,10 @@ pub fn on_dialogue_completed(
     mut log: ResMut<QuestLog>,
     data: Res<GameDataResource>,
     clock: Res<GameClock>,
-    player: Res<Player>,
+    identity: Res<PlayerIdentity>,
+    standings: Res<PlayerStandings>,
+    upgrades: Res<PlayerUpgrades>,
+    stash: Res<PlayerStash>,
     events: Res<EventLog>,
     registry: Res<TemplateRegistry>,
     mut in_flight: ResMut<DialogueInFlight>,
@@ -267,7 +271,10 @@ pub fn on_dialogue_completed(
     advance_after_talk(
         &mut log,
         &data.0,
-        &player.0,
+        &identity,
+        &standings,
+        &upgrades,
+        &stash,
         &events.0,
         &registry,
         &quest_id,

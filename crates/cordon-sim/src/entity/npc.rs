@@ -11,7 +11,7 @@
 use bevy::prelude::*;
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NpcName;
-use cordon_core::entity::npc::{Npc, NpcTemplate, Personality, Role};
+use cordon_core::entity::npc::{Npc, NpcTemplate, Personality};
 use cordon_core::entity::perk::Perk;
 use cordon_core::item::{Loadout, TimedEffect};
 use cordon_core::primitive::{
@@ -105,6 +105,13 @@ pub struct TravelingHome;
 #[derive(Component, Debug, Clone, Copy)]
 pub struct QuestCritical;
 
+/// Excludes an NPC from the combat simulation entirely: squads
+/// won't target them, shots won't land, the death system ignores
+/// them. Inserted at spawn for template NPCs with
+/// `NpcTemplateDef::essential == true`.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct Essential;
+
 /// Yarn node this template NPC should dispatch when admitted
 /// as a visitor. Set at SpawnNpc time, read on arrival.
 #[derive(Component, Debug, Clone)]
@@ -140,15 +147,6 @@ pub struct Perks {
     pub revealed: Vec<Id<Perk>>,
 }
 
-/// Employment status. Bundles the two employment fields from
-/// cordon-core's `Npc` into one component so "is this NPC
-/// hired?" is a single query touch.
-#[derive(Component, Debug, Clone, Copy)]
-pub struct Employment {
-    pub role: Option<Role>,
-    pub daily_pay: Credits,
-}
-
 /// Bundle of every per-NPC component the spawn system attaches
 /// to a fresh entity. Built directly by the generator — there's
 /// no intermediate `Npc` data struct any more.
@@ -168,5 +166,4 @@ pub struct NpcBundle {
     pub wealth: Credits,
     pub attributes: NpcAttributes,
     pub perks: Perks,
-    pub employment: Employment,
 }

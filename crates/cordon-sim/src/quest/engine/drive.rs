@@ -23,13 +23,15 @@ use cordon_core::world::narrative::{Consequence, Quest, QuestStage, QuestStageKi
 use cordon_data::catalog::GameData;
 use cordon_data::gamedata::GameDataResource;
 
-use super::super::condition::WorldView;
+use super::super::condition::{PlayerView, WorldView};
 use super::super::consequence::{
     GiveNpcXpRequest, SpawnNpcRequest, StartQuestRequest, WorldMut, apply,
 };
 use super::super::state::{CompletedQuest, QuestLog};
 use crate::quest::registry::TemplateRegistry;
-use crate::resources::{EventLog, GameClock, Player};
+use crate::resources::{
+    EventLog, GameClock, PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades,
+};
 
 /// Mutable bundle used by [`drive_active_quests`] — the only
 /// system that may mutate player + event state, because it
@@ -48,7 +50,10 @@ pub struct QuestEngineCtx<'w> {
     pub log: ResMut<'w, QuestLog>,
     pub data: Res<'w, GameDataResource>,
     pub clock: Res<'w, GameClock>,
-    pub player: ResMut<'w, Player>,
+    pub identity: ResMut<'w, PlayerIdentity>,
+    pub standings: ResMut<'w, PlayerStandings>,
+    pub upgrades: ResMut<'w, PlayerUpgrades>,
+    pub stash: ResMut<'w, PlayerStash>,
     pub events: ResMut<'w, EventLog>,
     pub factions: Res<'w, crate::resources::FactionIndex>,
     pub registry: Res<'w, TemplateRegistry>,
@@ -108,9 +113,15 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
     // We must not mutate `log` while evaluating a condition that
     // also borrows `log`. Collect the transitions first, apply
     // them in a second pass.
+    let player_view = PlayerView {
+        identity: &ctx.identity,
+        standings: &ctx.standings,
+        upgrades: &ctx.upgrades,
+        stash: &ctx.stash,
+    };
     let objective_transitions = collect_objective_transitions(
         &ctx.log,
-        &ctx.player.0,
+        &player_view,
         &ctx.events.0,
         &ctx.registry,
         catalog,
@@ -127,9 +138,15 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
     // evaluator's immutable borrow of `log` is released before
     // the mutable advance. Run in the same frame as entry so
     // Branch behaves as a silent fork, not a wait state.
+    let player_view = PlayerView {
+        identity: &ctx.identity,
+        standings: &ctx.standings,
+        upgrades: &ctx.upgrades,
+        stash: &ctx.stash,
+    };
     let branch_transitions = collect_branch_transitions(
         &ctx.log,
-        &ctx.player.0,
+        &player_view,
         &ctx.events.0,
         &ctx.registry,
         catalog,
@@ -165,7 +182,10 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
             catalog,
             &def_id,
             now,
-            &mut ctx.player.0,
+            &mut ctx.identity,
+            &mut ctx.standings,
+            &mut ctx.upgrades,
+            &mut ctx.stash,
             &mut ctx.events.0,
             &ctx.registry,
             &faction_pool,
@@ -182,7 +202,7 @@ pub fn drive_active_quests(mut ctx: QuestEngineCtx, mut rng: Single<&mut WyRand,
 /// read — returns `(index, next_stage_id)` pairs.
 fn collect_objective_transitions(
     log: &QuestLog,
-    player: &cordon_core::entity::player::PlayerState,
+    player: &PlayerView<'_>,
     events: &[cordon_core::world::narrative::ActiveEvent],
     registry: &TemplateRegistry,
     catalog: &GameData,
@@ -210,7 +230,12 @@ fn collect_objective_transitions(
         // stage clock, so `Wait { duration }` inside a composite
         // condition reads the right elapsed time.
         let view = WorldView {
-            player,
+            player: PlayerView {
+                identity: player.identity,
+                standings: player.standings,
+                upgrades: player.upgrades,
+                stash: player.stash,
+            },
             events,
             quests: log,
             registry,
@@ -251,7 +276,7 @@ fn collect_objective_transitions(
 /// entry and take effect the same frame — Branch never waits.
 fn collect_branch_transitions(
     log: &QuestLog,
-    player: &cordon_core::entity::player::PlayerState,
+    player: &PlayerView<'_>,
     events: &[cordon_core::world::narrative::ActiveEvent],
     registry: &TemplateRegistry,
     catalog: &GameData,
@@ -270,7 +295,12 @@ fn collect_branch_transitions(
         };
 
         let view = WorldView {
-            player,
+            player: PlayerView {
+                identity: player.identity,
+                standings: player.standings,
+                upgrades: player.upgrades,
+                stash: player.stash,
+            },
             events,
             quests: log,
             registry,
@@ -300,7 +330,10 @@ fn complete_quest(
     catalog: &GameData,
     def_id: &Id<Quest>,
     now: GameTime,
-    player: &mut cordon_core::entity::player::PlayerState,
+    identity: &mut PlayerIdentity,
+    standings: &mut PlayerStandings,
+    upgrades: &mut PlayerUpgrades,
+    stash: &mut PlayerStash,
     events: &mut Vec<cordon_core::world::narrative::ActiveEvent>,
     registry: &TemplateRegistry,
     faction_pool: &[Id<Faction>],
@@ -337,7 +370,12 @@ fn complete_quest(
     // evaluation can borrow `log` + `events` immutably.
     let eligible: Vec<&Vec<Consequence>> = {
         let view = WorldView {
-            player,
+            player: PlayerView {
+                identity,
+                standings,
+                upgrades,
+                stash,
+            },
             events,
             quests: log,
             registry,
@@ -362,7 +400,10 @@ fn complete_quest(
     // Second pass: apply. Mutable `WorldMut` now, immutable
     // borrows from the eligibility pass are released.
     let mut world = WorldMut {
-        player,
+        identity,
+        standings,
+        upgrades,
+        stash,
         events,
         data: catalog,
         registry,

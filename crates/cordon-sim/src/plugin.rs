@@ -17,7 +17,7 @@ use cordon_data::gamedata::GameDataResource;
 use crate::behavior::BehaviorPlugin;
 use crate::day::DayCyclePlugin;
 use crate::quest::QuestPlugin;
-use crate::resources::{GameClock, SquadIdIndex, UidAllocator};
+use crate::resources::{GameClock, Sim, SimSpeed, SquadIdIndex, UidAllocator};
 use crate::spawn;
 use crate::spawn::relics::RelicSpawnPlugin;
 
@@ -64,6 +64,8 @@ impl Plugin for CordonSimPlugin {
         app.add_plugins(EntropyPlugin::<WyRand>::default());
         app.init_resource::<SquadIdIndex>();
         app.init_resource::<UidAllocator>();
+        app.init_resource::<SimSpeed>();
+        app.init_resource::<Time<Sim>>();
 
         app.configure_sets(
             Update,
@@ -87,12 +89,22 @@ impl Plugin for CordonSimPlugin {
 
         app.add_message::<spawn::SquadSpawned>();
         app.add_systems(Update, spawn::spawn_population.in_set(SimSet::Spawn));
-        // Game clock ticks every frame once the world is
-        // initialised. Gated on `GameClock` existing so it waits
-        // for the cordon-bevy layer's `init_world_resources` call.
+        // Shop: handle BuyUpgrade requests from the laptop UI.
+        app.add_message::<crate::shop::BuyUpgrade>();
+        app.add_message::<crate::shop::BuyUpgradeOutcome>();
         app.add_systems(
             Update,
-            crate::resources::tick_game_time.run_if(resource_exists::<GameClock>),
+            crate::shop::apply_buy_upgrade.in_set(SimSet::Commands),
+        );
+        // Sim time runs every frame — it mirrors virtual time
+        // scaled by SimSpeed. Must run before tick_game_time.
+        app.add_systems(Update, crate::resources::tick_sim_time);
+        // Game clock reads Time<Sim> so it scales with SimSpeed.
+        app.add_systems(
+            Update,
+            crate::resources::tick_game_time
+                .after(crate::resources::tick_sim_time)
+                .run_if(resource_exists::<GameClock>),
         );
         // BehaviorPlugin composes Movement / Vision / Combat /
         // Death / Loot / Effects / Squad subplugins internally, so we
@@ -138,11 +150,12 @@ pub mod prelude {
     pub use crate::behavior::squad::intent::{EngagementTarget, MovementIntent};
     pub use crate::behavior::squad::{Owned, SquadCommand};
     pub use crate::behavior::vision::{AnomalyZone, Vision};
-    // Cross-cutting messages and resources.
     pub use crate::day::DayRolled;
+    // Cross-cutting messages and resources.
+    pub use crate::day::payroll::LastDailyExpenses;
     // Per-entity components not owned by a subplugin.
     pub use crate::entity::npc::{
-        ActiveEffects, BaseMaxes, Employment, FactionId, NpcAttributes, NpcBundle, NpcMarker,
+        ActiveEffects, BaseMaxes, Essential, FactionId, NpcAttributes, NpcBundle, NpcMarker,
         PendingYarnNode, Perks, QuestCritical, SpawnOrigin, TemplateId, TravelingHome,
         TravelingToBunker,
     };
@@ -152,8 +165,11 @@ pub mod prelude {
         StartQuestRequest, TemplateRegistry,
     };
     pub use crate::resources::{
-        AreaStates, EventLog, FactionIndex, GameClock, Player, SquadIdIndex, UidAllocator,
+        AreaStates, EventLog, FactionIndex, GameClock, PlayerIdentity, PlayerSquadEntry,
+        PlayerSquadRoster, PlayerStandings, PlayerStash, PlayerUpgrades, Sim, SimSpeed,
+        SquadIdIndex, UidAllocator,
     };
+    pub use crate::shop::{BuyUpgrade, BuyUpgradeFailure, BuyUpgradeOutcome};
     pub use crate::spawn::SquadSpawned;
     pub use crate::spawn::relics::RelicPickedUp;
 }

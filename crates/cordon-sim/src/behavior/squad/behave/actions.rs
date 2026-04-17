@@ -252,7 +252,7 @@ fn tick_protect_follow(
 }
 
 fn tick_idle_hold(
-    time: Res<Time>,
+    time: Res<Time<crate::resources::Sim>>,
     mut tasks: Query<(&mut BtIdleHold, &BehaveCtx)>,
     mut intents_q: Query<&mut MovementIntent>,
     mut commands: Commands,

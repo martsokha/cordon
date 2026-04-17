@@ -35,6 +35,7 @@ pub mod formation;
 pub mod identity;
 pub mod intent;
 mod lifecycle;
+mod roster;
 mod scan;
 
 use bevy::prelude::*;
@@ -45,6 +46,7 @@ pub use identity::{SquadBundle, SquadLeader, SquadMarker, SquadMembers, SquadMem
 pub use intent::{EngagementTarget, MovementIntent};
 
 use crate::plugin::SimSet;
+use crate::resources::PlayerSquadRoster;
 
 pub struct SquadPlugin;
 
@@ -65,6 +67,16 @@ impl Plugin for SquadPlugin {
                     .in_set(SimSet::Cleanup),
                 engagement::update_squad_engagement.in_set(SimSet::Engagement),
                 formation::drive_squad_formation.in_set(SimSet::Formation),
+                // Roster bookkeeping: pick starter squads once,
+                // then reconcile the `Owned` marker every frame so
+                // hot-path queries (`With<Owned>`) stay accurate.
+                // Gated on the roster resource existing — it's
+                // inserted by `init_world_resources` on enter-play,
+                // and these systems shouldn't fire before then.
+                (roster::pick_player_squads, roster::sync_owned_marker)
+                    .chain()
+                    .after(SimSet::Spawn)
+                    .run_if(resource_exists::<PlayerSquadRoster>),
             ),
         );
     }

@@ -18,6 +18,7 @@
 //!   world-state events from ECS messages.
 
 pub mod events;
+pub mod payroll;
 pub mod systems;
 pub mod world_events;
 
@@ -31,12 +32,14 @@ pub struct DayCyclePlugin;
 impl Plugin for DayCyclePlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<DayRolled>();
+        app.init_resource::<payroll::LastDailyExpenses>();
         app.add_systems(
             Update,
             (
                 systems::detect_day_rollover,
                 systems::roll_today_events.run_if(on_message::<DayRolled>),
                 systems::expire_old_events.run_if(on_message::<DayRolled>),
+                payroll::process_daily_expenses.run_if(on_message::<DayRolled>),
             )
                 .chain()
                 .in_set(SimSet::Cleanup),

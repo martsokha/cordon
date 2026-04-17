@@ -3,7 +3,12 @@ use bevy::prelude::*;
 use super::bundles::LightFixtureBundle;
 use crate::bunker::resources::Layout;
 
-pub fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &Layout) {
+pub fn spawn_lighting(
+    commands: &mut Commands,
+    meshes: &mut Assets<Mesh>,
+    mats: &mut Assets<StandardMaterial>,
+    l: &Layout,
+) {
     let warm = Color::srgb(1.0, 0.82, 0.50);
     let cool = Color::srgb(0.85, 0.9, 1.0);
     let dim_cool = Color::srgb(0.8, 0.85, 0.95);
@@ -21,11 +26,11 @@ pub fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &L
         // Entry
         LightFixtureBundle::ceiling(0.0, l.trade_z + 1.5, l.h, 50000.0, cool, false),
         // Armory + T-junction -- single light between them.
-        LightFixtureBundle::ceiling(0.0, l.tj_north - 0.5, l.h, 50000.0, dim_cool, false),
+        LightFixtureBundle::ceiling(0.0, l.tj1_north - 0.5, l.h, 50000.0, dim_cool, false),
         // Kitchen
         LightFixtureBundle::ceiling(
             l.kitchen_x_center(),
-            l.tj_center(),
+            l.tj1_center(),
             l.h,
             45000.0,
             white,
@@ -34,21 +39,54 @@ pub fn spawn_lighting(commands: &mut Commands, asset_server: &AssetServer, l: &L
         // Quarters
         LightFixtureBundle::ceiling(
             l.quarters_x_center(),
-            l.tj_center(),
+            l.tj1_center(),
             l.h,
-            15000.0,
+            35000.0,
             dim_warm,
             false,
         ),
         LightFixtureBundle::standing(
-            l.quarters_x_center(),
-            l.tj_center() - 0.5,
+            l.quarters_x_max() - 0.35,
+            l.tj1_north - 0.4,
             18000.0,
             lamp_warm,
         ),
+        // In-between hall: one fixture centred on the straight
+        // segment so the passage between the two Ts isn't pitch
+        // black.
+        LightFixtureBundle::ceiling(
+            0.0,
+            (l.tj2_north + l.tj1_south) / 2.0,
+            l.h,
+            40000.0,
+            dim_cool,
+            false,
+        ),
+        // Infirmary: clinical white, slightly brighter than the
+        // kitchen so the medical bay reads as well-lit.
+        LightFixtureBundle::ceiling(
+            l.infirmary_x_center(),
+            l.tj2_center(),
+            l.h,
+            50000.0,
+            white,
+            false,
+        ),
+        // Workshop: cool industrial light.
+        LightFixtureBundle::ceiling(
+            l.workshop_x_center(),
+            l.tj2_center(),
+            l.h,
+            45000.0,
+            cool,
+            false,
+        ),
+        // Back corridor end: dim fixture at the new back wall
+        // so the corridor doesn't fade to black past T2.
+        LightFixtureBundle::ceiling(0.0, l.back_z + 0.8, l.h, 35000.0, dim_cool, false),
     ];
 
     for fixture in &fixtures {
-        fixture.spawn(commands, asset_server);
+        fixture.spawn(commands, meshes, mats);
     }
 }

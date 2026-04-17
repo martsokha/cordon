@@ -17,13 +17,44 @@ use crate::bunker::resources::{CameraMode, MovementLocked};
 const MOVE_SPEED: f32 = 4.0;
 const LOOK_SENSITIVITY: f32 = 0.003;
 
-pub(crate) const PLAYER_RADIUS: f32 = 0.3;
+/// Distance (in metres) the player walks between consecutive
+/// footstep events. At [`MOVE_SPEED`] = 4 m/s, 1.8 m per step
+/// gives ~2.2 steps/second — a natural jog cadence that doesn't
+/// machine-gun the footstep SFX.
+const STEP_DISTANCE: f32 = 1.8;
+
+/// Height of the FPS camera above the floor — matches the hard
+/// pin in [`fps_move`] (`transform.translation.y = CAMERA_EYE_Y`).
+/// Used to derive floor-level from camera position for footstep
+/// events instead of assuming `y = 0`.
+pub(crate) const CAMERA_EYE_Y: f32 = 1.6;
+
+pub(crate) const PLAYER_RADIUS: f32 = 0.25;
 pub(crate) const PLAYER_HEIGHT: f32 = 1.0;
+
+/// Fired whenever the player walks far enough for a new footstep.
+/// `pos` is the world-space floor position under the camera.
+/// Consumed by the bunker particle system to scuff a dust puff.
+#[derive(Message, Debug, Clone, Copy)]
+pub struct FootstepScuffed {
+    pub pos: Vec3,
+}
+
+/// Per-camera accumulator for the walk-distance → footstep-event
+/// conversion. Lives on the [`FpsCamera`] entity (added alongside
+/// it at spawn) rather than as a `Local<f32>`, so the tracker is
+/// attached to the thing it describes — the player character —
+/// and would scale naturally to multiple controllable entities.
+#[derive(Component, Default)]
+pub struct StepTracker {
+    distance: f32,
+}
 
 pub struct ControllerPlugin;
 
 impl Plugin for ControllerPlugin {
     fn build(&self, app: &mut App) {
+        app.add_message::<FootstepScuffed>();
         app.add_systems(
             Update,
             (fps_look, fps_move)
@@ -56,7 +87,8 @@ fn fps_move(
     keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time<Real>>,
     move_and_slide: MoveAndSlide,
-    mut camera_q: Query<(Entity, &Collider, &mut Transform), With<FpsCamera>>,
+    mut camera_q: Query<(Entity, &Collider, &mut Transform, &mut StepTracker), With<FpsCamera>>,
+    mut footsteps: MessageWriter<FootstepScuffed>,
 ) {
     let mut input = Vec2::ZERO;
     if keys.pressed(KeyCode::KeyW) {
@@ -72,10 +104,15 @@ fn fps_move(
         input.x += 1.0;
     }
     if input == Vec2::ZERO {
+        // Reset the accumulator so stopping + starting again
+        // doesn't fire a stale step the moment the player moves.
+        for (_, _, _, mut tracker) in &mut camera_q {
+            tracker.distance = 0.0;
+        }
         return;
     }
 
-    for (entity, collider, mut transform) in &mut camera_q {
+    for (entity, collider, mut transform, mut tracker) in &mut camera_q {
         let forward = transform.forward().as_vec3();
         let right = transform.right().as_vec3();
         let flat_forward = Vec3::new(forward.x, 0.0, forward.z).normalize_or_zero();
@@ -87,6 +124,7 @@ fn fps_move(
         let config = MoveAndSlideConfig::default();
         let filter = SpatialQueryFilter::default().with_excluded_entities([entity]);
 
+        let before = transform.translation;
         let output = move_and_slide.move_and_slide(
             collider,
             transform.translation,
@@ -99,6 +137,20 @@ fn fps_move(
         );
 
         transform.translation = output.position;
-        transform.translation.y = 1.6;
+        transform.translation.y = CAMERA_EYE_Y;
+
+        // Accumulate horizontal distance actually travelled (not
+        // velocity intent) so collisions + wall-slide naturally
+        // slow step cadence. Fire a footstep at floor height when
+        // the accumulator crosses STEP_DISTANCE.
+        let delta = (transform.translation - before).xz().length();
+        tracker.distance += delta;
+        if tracker.distance >= STEP_DISTANCE {
+            tracker.distance = 0.0;
+            let floor_y = transform.translation.y - CAMERA_EYE_Y;
+            footsteps.write(FootstepScuffed {
+                pos: Vec3::new(transform.translation.x, floor_y, transform.translation.z),
+            });
+        }
     }
 }

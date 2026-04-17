@@ -1,21 +1,26 @@
 use std::f32::consts::PI;
 
 use avian3d::prelude::*;
+use bevy::pbr::ScreenSpaceAmbientOcclusion;
 use bevy::prelude::*;
+use bevy::render::view::Msaa;
 use bevy::ui::UiTargetCamera;
 
 use super::cctv::MonitorPlacement;
 use super::components::*;
 use super::resources::*;
-use super::{geometry, rooms};
+use super::rooms;
 
 pub(super) fn spawn_bunker(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut mats: ResMut<Assets<StandardMaterial>>,
+    mut effects: ResMut<Assets<bevy_hanabi::EffectAsset>>,
+    upgrades: Res<cordon_sim::resources::PlayerUpgrades>,
+    game_data: Res<cordon_data::gamedata::GameDataResource>,
 ) {
-    let pal = Palette::new(&mut mats);
+    let pal = Palette::new(&mut mats, &asset_server);
     let l = Layout::new();
 
     commands.insert_resource(MonitorPlacement {
@@ -30,26 +35,31 @@ pub(super) fn spawn_bunker(
     });
 
     let fps_camera_entity = spawn_camera(&mut commands, &l);
-    super::lighting::spawn_lighting(&mut commands, &asset_server, &l);
-    spawn_corridor(&mut commands, &mut meshes, &pal, &l);
+    super::lighting::spawn_lighting(&mut commands, &mut meshes, &mut mats, &l);
 
     {
         let mut ctx = RoomCtx {
             commands: &mut commands,
-            asset_server: &asset_server,
             meshes: &mut meshes,
             mats: &mut mats,
+            effects: &mut effects,
             pal: &pal,
             l: &l,
+            upgrades: &upgrades,
+            game_data: &game_data,
         };
+        rooms::corridor::spawn(&mut ctx);
         rooms::entry::spawn(&mut ctx);
         rooms::command::spawn(&mut ctx);
         rooms::armory::spawn(&mut ctx);
         rooms::kitchen::spawn(&mut ctx);
         rooms::quarters::spawn(&mut ctx);
+        rooms::hall::spawn(&mut ctx);
+        rooms::infirmary::spawn(&mut ctx);
+        rooms::workshop::spawn(&mut ctx);
+        rooms::pipes::spawn(&mut ctx);
+        rooms::antechamber::spawn(&mut ctx);
     }
-
-    rooms::antechamber::spawn(&mut commands, &mut meshes, &mut mats, &asset_server);
 
     spawn_ui(&mut commands, fps_camera_entity);
     commands.insert_resource(BunkerSpawned);
@@ -59,13 +69,18 @@ fn spawn_camera(commands: &mut Commands, l: &Layout) -> Entity {
     commands
         .spawn((
             FpsCamera,
+            super::input::controller::StepTracker::default(),
             Camera3d::default(),
             Collider::capsule(
                 super::input::controller::PLAYER_RADIUS,
                 super::input::controller::PLAYER_HEIGHT,
             ),
-            Transform::from_xyz(0.0, 1.6, l.desk_z() - 0.5)
-                .looking_at(Vec3::new(0.0, 1.2, l.front_z), Vec3::Y),
+            Transform::from_xyz(
+                0.0,
+                super::input::controller::CAMERA_EYE_Y,
+                l.desk_z() - 0.5,
+            )
+            .looking_at(Vec3::new(0.0, 1.2, l.front_z), Vec3::Y),
             bevy::core_pipeline::tonemapping::Tonemapping::TonyMcMapface,
             // Subtle bloom on emissive surfaces.
             bevy::post_process::bloom::Bloom {
@@ -81,152 +96,16 @@ fn spawn_camera(commands: &mut Commands, l: &Layout) -> Entity {
                 },
                 ..default()
             },
+            // Contact shadows in corners / under props. Huge
+            // readability win for a boxy concrete interior — the
+            // tight wall/floor seams gain proper grounding without
+            // more geometry or lights. Requires MSAA off (the
+            // SSAO pass writes to depth/normal prepass textures
+            // that don't support multisampling).
+            ScreenSpaceAmbientOcclusion::default(),
+            Msaa::Off,
         ))
         .id()
-}
-
-fn spawn_corridor(commands: &mut Commands, meshes: &mut Assets<Mesh>, pal: &Palette, l: &Layout) {
-    use std::f32::consts::{FRAC_PI_2, PI};
-
-    use geometry::*;
-
-    // Floor + ceiling.
-    let main_center_z = (l.front_z + l.back_z) / 2.0;
-    let main_floor_half = Vec2::new(l.hw, (l.front_z - l.back_z) / 2.0);
-    spawn_floor_ceiling(
-        commands,
-        meshes,
-        pal.concrete_dark.clone(),
-        Vec3::new(0.0, 0.0, main_center_z),
-        main_floor_half,
-        l.h,
-    );
-
-    // Front wall.
-    spawn_wall(
-        commands,
-        meshes,
-        pal.concrete.clone(),
-        Vec3::new(0.0, l.hh(), l.front_z),
-        Quat::from_rotation_y(PI),
-        Vec2::new(l.hw, l.hh()),
-    );
-
-    // Left wall + kitchen doorframe.
-    {
-        let len = l.front_z - l.tj_north;
-        let cz = (l.front_z + l.tj_north) / 2.0;
-        spawn_wall(
-            commands,
-            meshes,
-            pal.concrete.clone(),
-            Vec3::new(-l.hw, l.hh(), cz),
-            Quat::from_rotation_y(FRAC_PI_2),
-            Vec2::new(len / 2.0, l.hh()),
-        );
-    }
-    spawn_doorframe_x(
-        commands,
-        meshes,
-        pal.concrete.clone(),
-        -l.hw,
-        l.tj_center(),
-        l.side_door_width,
-        l.opening_h(),
-    );
-    {
-        let door_n = l.tj_center() + l.side_door_width / 2.0;
-        let len = (l.tj_north - door_n).abs();
-        let cz = (l.tj_north + door_n) / 2.0;
-        if len > 0.1 {
-            spawn_wall(
-                commands,
-                meshes,
-                pal.concrete.clone(),
-                Vec3::new(-l.hw, l.hh(), cz),
-                Quat::from_rotation_y(FRAC_PI_2),
-                Vec2::new(len / 2.0, l.hh()),
-            );
-        }
-    }
-    {
-        let door_s = l.tj_center() - l.side_door_width / 2.0;
-        let len = (door_s - l.back_z).abs();
-        let cz = (door_s + l.back_z) / 2.0;
-        if len > 0.1 {
-            spawn_wall(
-                commands,
-                meshes,
-                pal.concrete.clone(),
-                Vec3::new(-l.hw, l.hh(), cz),
-                Quat::from_rotation_y(FRAC_PI_2),
-                Vec2::new(len / 2.0, l.hh()),
-            );
-        }
-    }
-
-    // Right wall + bedroom doorframe.
-    {
-        let len = l.front_z - l.tj_north;
-        let cz = (l.front_z + l.tj_north) / 2.0;
-        spawn_wall(
-            commands,
-            meshes,
-            pal.concrete.clone(),
-            Vec3::new(l.hw, l.hh(), cz),
-            Quat::from_rotation_y(-FRAC_PI_2),
-            Vec2::new(len / 2.0, l.hh()),
-        );
-    }
-    spawn_doorframe_x(
-        commands,
-        meshes,
-        pal.concrete.clone(),
-        l.hw,
-        l.tj_center(),
-        l.side_door_width,
-        l.opening_h(),
-    );
-    {
-        let door_n = l.tj_center() + l.side_door_width / 2.0;
-        let len = (l.tj_north - door_n).abs();
-        let cz = (l.tj_north + door_n) / 2.0;
-        if len > 0.1 {
-            spawn_wall(
-                commands,
-                meshes,
-                pal.concrete.clone(),
-                Vec3::new(l.hw, l.hh(), cz),
-                Quat::from_rotation_y(-FRAC_PI_2),
-                Vec2::new(len / 2.0, l.hh()),
-            );
-        }
-    }
-    {
-        let door_s = l.tj_center() - l.side_door_width / 2.0;
-        let len = (door_s - l.back_z).abs();
-        let cz = (door_s + l.back_z) / 2.0;
-        if len > 0.1 {
-            spawn_wall(
-                commands,
-                meshes,
-                pal.concrete.clone(),
-                Vec3::new(l.hw, l.hh(), cz),
-                Quat::from_rotation_y(-FRAC_PI_2),
-                Vec2::new(len / 2.0, l.hh()),
-            );
-        }
-    }
-
-    // Back wall.
-    spawn_wall(
-        commands,
-        meshes,
-        pal.concrete.clone(),
-        Vec3::new(0.0, l.hh(), l.back_z),
-        Quat::IDENTITY,
-        Vec2::new(l.hw, l.hh()),
-    );
 }
 
 fn spawn_ui(commands: &mut Commands, fps_camera_entity: Entity) {

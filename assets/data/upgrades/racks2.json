@@ -1,0 +1,10 @@
+{
+  "id": "upgrade_racks2",
+  "location": "Bunker",
+  "cost": 1500,
+  "requires": ["upgrade_racks"],
+  "source": "Purchasable",
+  "effects": [
+    "HallRackPair"
+  ]
+}

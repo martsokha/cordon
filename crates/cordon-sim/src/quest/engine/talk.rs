@@ -11,9 +11,10 @@ use cordon_core::primitive::{GameTime, Id};
 use cordon_core::world::narrative::{Quest, QuestStageKind};
 use cordon_data::catalog::GameData;
 
-use super::super::condition::WorldView;
+use super::super::condition::{PlayerView, WorldView};
 use super::super::registry::TemplateRegistry;
 use super::super::state::QuestLog;
+use crate::resources::{PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades};
 
 /// After a Yarn dialogue tied to a `Talk` stage finishes, jump
 /// to the first eligible branch whose `choice` matches the
@@ -30,7 +31,10 @@ use super::super::state::QuestLog;
 pub fn advance_after_talk(
     log: &mut QuestLog,
     data: &GameData,
-    player: &cordon_core::entity::player::PlayerState,
+    identity: &PlayerIdentity,
+    standings: &PlayerStandings,
+    upgrades: &PlayerUpgrades,
+    stash: &PlayerStash,
     events: &[cordon_core::world::narrative::ActiveEvent],
     registry: &TemplateRegistry,
     quest: &Id<Quest>,
@@ -52,7 +56,12 @@ pub fn advance_after_talk(
     // Build a view with the stage clock so any guards that
     // reference `Wait` or other stage-scoped checks still work.
     let view = WorldView {
-        player,
+        player: PlayerView {
+            identity,
+            standings,
+            upgrades,
+            stash,
+        },
         events,
         quests: log,
         registry,

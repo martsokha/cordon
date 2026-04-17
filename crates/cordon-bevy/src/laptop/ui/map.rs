@@ -4,10 +4,11 @@ use bevy::prelude::*;
 use cordon_core::primitive::Tier;
 use cordon_sim::resources::GameClock;
 
-use super::{LaptopFont, LaptopTab};
+use super::{LaptopFont, LaptopTab, MapWorldEntity};
 use crate::PlayingState;
 use crate::laptop::LaptopCamera;
 use crate::laptop::input::CameraTarget;
+use crate::laptop::map::Bunker;
 
 #[derive(Component)]
 pub struct ZoomLabel;
@@ -157,8 +158,12 @@ impl Plugin for MapUiPlugin {
 
 fn update_map_ui_visibility(
     active_tab: Res<LaptopTab>,
-    mut ui_q: Query<&mut Visibility, (With<MapOnlyUi>, Without<super::MapWorldEntity>)>,
-    mut world_q: Query<&mut Visibility, (With<super::MapWorldEntity>, Without<MapOnlyUi>)>,
+    mut ui_q: Query<&mut Visibility, (With<MapOnlyUi>, Without<MapWorldEntity>)>,
+    mut world_q: Query<
+        &mut Visibility,
+        (With<MapWorldEntity>, Without<MapOnlyUi>, Without<Bunker>),
+    >,
+    mut bunker_q: Query<&mut Visibility, (With<Bunker>, Without<MapOnlyUi>)>,
 ) {
     if !active_tab.is_changed() {
         return;
@@ -171,11 +176,23 @@ fn update_map_ui_visibility(
             Visibility::Hidden
         };
     }
-    // When leaving the Map tab, hide every world entity. On *entry*
-    // we deliberately don't force them visible — the fog-of-war
-    // system ([`laptop::fog::apply_fog`]) owns per-entity visibility
-    // based on player squad line-of-sight, and blindly showing
-    // everything here would un-fog the map for one frame.
+    // The bunker marker is always-visible on the Map tab and
+    // hidden on every other tab. It's handled separately because
+    // the fog system excludes it (`Without<Bunker>`), so it can't
+    // rely on `apply_fog` to restore its visibility on tab-entry
+    // the way other world entities do.
+    for mut vis in &mut bunker_q {
+        *vis = if visible {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
+    }
+    // When leaving the Map tab, hide every non-bunker world
+    // entity. On *entry* we deliberately don't force them visible
+    // — the fog-of-war system owns per-entity visibility based on
+    // player squad line-of-sight, and blindly showing everything
+    // here would un-fog the map for one frame.
     if !visible {
         for mut vis in &mut world_q {
             *vis = Visibility::Hidden;
@@ -599,7 +616,7 @@ fn update_time_label(
 }
 
 fn update_money_label(
-    player: Option<Res<cordon_sim::resources::Player>>,
+    identity: Option<Res<cordon_sim::resources::PlayerIdentity>>,
     mut label_q: Query<
         &mut Text,
         (
@@ -610,8 +627,8 @@ fn update_money_label(
         ),
     >,
 ) {
-    let Some(player) = player else { return };
-    let credits = player.0.credits.value();
+    let Some(identity) = identity else { return };
+    let credits = identity.credits.value();
     let new_text = format!("{credits} ¢");
     for mut text in &mut label_q {
         if text.0 != new_text {
@@ -633,13 +650,19 @@ const ROSTER_BOX_EMPTY: Color = Color::srgba(0.10, 0.10, 0.12, 0.85);
 /// mirrors the on-map selection ring color.
 const ROSTER_BOX_SELECTED: Color = Color::srgba(1.0, 0.9, 0.3, 1.0);
 
-/// Build the squad roster rows once [`PlayerSquads`] is populated.
-/// Idempotent — rebuilds only when the panel's children are empty.
-/// A full rebuild on every player-squad change keeps the code
-/// simple; at three squads of five members this is cheap.
+/// Build the squad roster rows once the player has any owned
+/// squads. Idempotent — rebuilds only when the panel's children
+/// are empty. A full rebuild on every player-squad change keeps
+/// the code simple; at three squads of five members this is cheap.
 fn build_squad_roster(
     mut commands: Commands,
-    player_squads: Res<crate::laptop::fog::PlayerSquads>,
+    owned_squads: Query<
+        Entity,
+        (
+            With<cordon_sim::plugin::prelude::SquadMarker>,
+            With<cordon_sim::plugin::prelude::Owned>,
+        ),
+    >,
     panel_q: Query<(Entity, Option<&Children>), With<SquadRosterPanel>>,
     squads: Query<&cordon_sim::plugin::prelude::SquadMembers>,
 ) {
@@ -650,13 +673,13 @@ fn build_squad_roster(
     if already_built {
         return;
     }
-    if player_squads.0.is_empty() {
+    if owned_squads.is_empty() {
         return;
     }
 
-    // Sort squad entities for a stable row order — otherwise HashSet
+    // Sort squad entities for a stable row order — otherwise query
     // iteration would shuffle the rows every time we rebuilt.
-    let mut ordered: Vec<Entity> = player_squads.0.iter().copied().collect();
+    let mut ordered: Vec<Entity> = owned_squads.iter().collect();
     ordered.sort_by_key(|e| e.to_bits());
 
     for squad_entity in ordered {

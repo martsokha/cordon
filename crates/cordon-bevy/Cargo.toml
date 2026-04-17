@@ -23,6 +23,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [features]
 default = ["steam"]
 steam = ["dep:bevy-steamworks"]
+profile = ["bevy/trace_tracy"]
 
 [dependencies]
 # Internal crates
@@ -33,6 +34,8 @@ cordon-sim = { workspace = true, features = [] }
 # Game engine
 bevy = { workspace = true, features = [] }
 bevy-inspector-egui = { workspace = true, features = [] }
+bevy_rand = { workspace = true, features = [] }
+bevy_prng = { workspace = true, features = [] }
 rand = { workspace = true, features = [] }
 
 # Localization and dialogue
@@ -49,3 +52,4 @@ strum = { workspace = true, features = [] }
 
 # Steam (optional: run without via --no-default-features)
 bevy-steamworks = { version = "0.16", optional = true, features = [] }
+bevy_hanabi = "0.18"

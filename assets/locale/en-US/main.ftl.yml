@@ -7,3 +7,4 @@ resources:
   - quests.ftl
   - ranks.ftl
   - ui.ftl
+  - upgrades.ftl

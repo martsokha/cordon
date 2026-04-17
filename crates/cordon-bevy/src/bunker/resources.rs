@@ -52,14 +52,21 @@ pub enum CameraMode {
     },
 }
 
-/// Shared material handles used across every room. Four colors —
-/// everything the bunker renders is currently tinted by one of these.
+/// Shared material handles used across every room.
 ///
-/// This is deliberately a small, fixed palette. When the bunker needs
-/// real visual variety (stained concrete zones, metal accent walls,
-/// weathered vs. clean wood, ...) this is the first place to extend
-/// or replace — adding a handful more variants here is cheaper than
-/// switching to per-material lookups per call site.
+/// `concrete` and `concrete_dark` are full PBR materials sharing
+/// one ambientCG texture set (Concrete044C) with only the
+/// base-colour tint differing — keeps GPU memory flat while still
+/// reading as two distinct surfaces. `wood` and `metal` stay flat
+/// because their call sites are tiny accents (a 25 cm counter top
+/// and 2 cm grate bars respectively) where tiling a full PBR set
+/// would be more noise than signal.
+///
+/// Meshes that use these materials are expected to carry UV data
+/// scaled to physical dimensions (see
+/// [`geometry::cuboid_tiled`](super::geometry::cuboid_tiled) and
+/// siblings) — the shared texture samplers are set to `Repeat` so
+/// tiling falls out correctly.
 pub(crate) struct Palette {
     pub concrete: Handle<StandardMaterial>,
     pub concrete_dark: Handle<StandardMaterial>,
@@ -68,18 +75,29 @@ pub(crate) struct Palette {
 }
 
 impl Palette {
-    pub(crate) fn new(mats: &mut Assets<StandardMaterial>) -> Self {
+    pub(crate) fn new(mats: &mut Assets<StandardMaterial>, asset_server: &AssetServer) -> Self {
+        // One texture set for every structural concrete surface
+        // (walls, floor, ceiling). Using separate textures for
+        // walls vs. floor created a visible seam at the wall/
+        // floor edge because the two materials' tones didn't
+        // quite match — real bunker interiors are usually one
+        // continuous pour, so mirroring that in-game reads
+        // correctly. `concrete` and `concrete_dark` both bind
+        // the same handle for now; the pair is kept so future
+        // accent-surface variants can slot in without touching
+        // every call site.
+        let concrete_set = super::textures::TextureSet::load_ambient_cg(
+            asset_server,
+            "Concrete024_1K-JPG",
+            "Concrete024_1K-JPG",
+        );
+
+        let concrete = mats.add(concrete_material(&concrete_set, Color::WHITE));
+        let concrete_dark = concrete.clone();
+
         Self {
-            concrete: mats.add(StandardMaterial {
-                base_color: Color::srgb(0.14, 0.13, 0.12),
-                perceptual_roughness: 0.95,
-                ..default()
-            }),
-            concrete_dark: mats.add(StandardMaterial {
-                base_color: Color::srgb(0.10, 0.10, 0.09),
-                perceptual_roughness: 0.95,
-                ..default()
-            }),
+            concrete,
+            concrete_dark,
             wood: mats.add(StandardMaterial {
                 base_color: Color::srgb(0.22, 0.16, 0.10),
                 perceptual_roughness: 0.85,
@@ -95,20 +113,65 @@ impl Palette {
     }
 }
 
+/// Build a concrete `StandardMaterial` from a shared texture set
+/// with a tint. `metallic: 0.0` deliberately zeroes out the
+/// metallic channel of `metallic_roughness_texture` (see
+/// [`textures`](super::textures) module docs).
+fn concrete_material(set: &super::textures::TextureSet, tint: Color) -> StandardMaterial {
+    StandardMaterial {
+        base_color: tint,
+        base_color_texture: Some(set.base_color.clone()),
+        normal_map_texture: set.normal.clone(),
+        metallic_roughness_texture: set.metallic_roughness.clone(),
+        occlusion_texture: set.ambient_occlusion.clone(),
+        // Parallax mapping: adds perceived depth from the height
+        // map so the concrete looks poured, not painted-flat.
+        // 5 cm reads as real formwork relief without distorting
+        // grazing-angle silhouettes (beyond ~8 cm the edges
+        // warp obviously).
+        depth_map: set.depth.clone(),
+        parallax_depth_scale: 0.05,
+        parallax_mapping_method: ParallaxMappingMethod::Relief { max_steps: 4 },
+        max_parallax_layer_count: 16.0,
+        metallic: 0.0,
+        perceptual_roughness: 1.0,
+        alpha_mode: AlphaMode::Opaque,
+        ..default()
+    }
+}
+
 /// Bundle of references every per-room spawner needs. Collapses what
 /// used to be 6 positional arguments into `ctx: &mut RoomCtx`, which
 /// makes adding a new room mechanical and keeps call sites uniform.
 pub(crate) struct RoomCtx<'a, 'w, 's> {
     pub commands: &'a mut Commands<'w, 's>,
-    pub asset_server: &'a AssetServer,
     pub meshes: &'a mut Assets<Mesh>,
     pub mats: &'a mut Assets<StandardMaterial>,
+    pub effects: &'a mut Assets<bevy_hanabi::EffectAsset>,
     pub pal: &'a Palette,
     pub l: &'a Layout,
+    /// Player upgrades — so rooms can gate visuals on what the
+    /// player has unlocked/installed (e.g. rack upgrades that add
+    /// storage racks in the hall).
+    pub upgrades: &'a cordon_sim::resources::PlayerUpgrades,
+    /// Game-data catalog. Rooms that resolve `UpgradeEffect`s on
+    /// the player's installed upgrades need this to look up effect
+    /// lists by upgrade id.
+    pub game_data: &'a cordon_data::gamedata::GameDataResource,
 }
 
 /// Bunker dimensions. Only stores the primary constants; derived
 /// values are computed via methods so nothing can go stale.
+///
+/// The corridor has **two T-junctions**:
+/// - **T1** (kitchen / quarters) — the original pair, at the back
+///   of the original corridor span. Z range `[tj1_north, tj1_south]`.
+/// - **T2** (infirmary / workshop) — the newer pair, past T1 on
+///   the way to the back wall. Z range `[tj2_north, tj2_south]`.
+///
+/// Between `tj1_south` and `tj2_north` sits a short straight hall
+/// so the corridor reads as “two branching zones with a passage
+/// between them” rather than a single mashed-together space.
 pub(crate) struct Layout {
     /// Ceiling height.
     pub h: f32,
@@ -122,9 +185,13 @@ pub(crate) struct Layout {
     pub divider_z: f32,
     /// Half-width of the grate opening.
     pub hole_half: f32,
-    /// Z of the north edge of the T-junction.
-    pub tj_north: f32,
-    /// Z of the back wall (south edge of corridor + side rooms).
+    /// Z of the north edge of the first T-junction (kitchen/quarters).
+    pub tj1_north: f32,
+    /// Z of the south edge of the first T-junction.
+    pub tj1_south: f32,
+    /// Z of the north edge of the second T-junction (infirmary/workshop).
+    pub tj2_north: f32,
+    /// Z of the back wall (south edge of corridor + T2 side rooms).
     pub back_z: f32,
     /// How far each side room extends from the corridor wall.
     pub side_depth: f32,
@@ -134,6 +201,10 @@ pub(crate) struct Layout {
 
 impl Layout {
     pub(crate) fn new() -> Self {
+        // Original back_z was -7.63. Corridor extends past the
+        // original T1 by a 2.35 m straight hall — just long
+        // enough for two 1.14 m storage racks end-to-end on each
+        // wall with a small visual gap — plus a 3 m T2 section.
         Self {
             h: 2.4,
             hw: 2.05,
@@ -141,8 +212,10 @@ impl Layout {
             trade_z: 1.5,
             divider_z: -2.25,
             hole_half: 0.6,
-            tj_north: -4.63,
-            back_z: -7.63,
+            tj1_north: -4.63,
+            tj1_south: -7.63,
+            tj2_north: -9.58,
+            back_z: -12.58,
             side_depth: 3.0,
             side_door_width: 1.6,
         }
@@ -159,36 +232,72 @@ impl Layout {
         self.h - 0.3
     }
 
+    /// Command desk centre, south of the trade grate. The offset
+    /// leaves enough room for the chair + a player-sized gap so
+    /// the desk doesn't visually clip the grate bars from inside
+    /// the command post.
     pub fn desk_z(&self) -> f32 {
-        self.trade_z - 0.5
+        self.trade_z - 0.6
     }
 
-    pub fn tj_center(&self) -> f32 {
-        (self.tj_north + self.back_z) / 2.0
+    /// Centre of the first T-junction's Z extent.
+    pub fn tj1_center(&self) -> f32 {
+        (self.tj1_north + self.tj1_south) / 2.0
     }
 
-    pub fn tj_len(&self) -> f32 {
-        self.tj_north - self.back_z
+    /// Z-length of the first T-junction (= kitchen/quarters depth).
+    pub fn tj1_len(&self) -> f32 {
+        self.tj1_north - self.tj1_south
     }
 
-    /// Kitchen (left): furthest x.
+    /// Centre of the second T-junction's Z extent.
+    pub fn tj2_center(&self) -> f32 {
+        (self.tj2_north + self.back_z) / 2.0
+    }
+
+    /// Z-length of the second T-junction (= infirmary/workshop depth).
+    pub fn tj2_len(&self) -> f32 {
+        self.tj2_north - self.back_z
+    }
+
+    /// Kitchen (left of T1): furthest x.
     pub fn kitchen_x_min(&self) -> f32 {
         -(self.hw + self.side_depth)
     }
 
-    /// Kitchen (left): center x.
+    /// Kitchen (left of T1): center x.
     pub fn kitchen_x_center(&self) -> f32 {
         (self.kitchen_x_min() + (-self.hw)) / 2.0
     }
 
-    /// Quarters (right): furthest x.
+    /// Quarters (right of T1): furthest x.
     pub fn quarters_x_max(&self) -> f32 {
         self.hw + self.side_depth
     }
 
-    /// Quarters (right): center x.
+    /// Quarters (right of T1): center x.
     pub fn quarters_x_center(&self) -> f32 {
         (self.hw + self.quarters_x_max()) / 2.0
+    }
+
+    /// Infirmary (left of T2): furthest x. Mirrors kitchen's span.
+    pub fn infirmary_x_min(&self) -> f32 {
+        -(self.hw + self.side_depth)
+    }
+
+    /// Infirmary (left of T2): center x.
+    pub fn infirmary_x_center(&self) -> f32 {
+        (self.infirmary_x_min() + (-self.hw)) / 2.0
+    }
+
+    /// Workshop (right of T2): furthest x.
+    pub fn workshop_x_max(&self) -> f32 {
+        self.hw + self.side_depth
+    }
+
+    /// Workshop (right of T2): center x.
+    pub fn workshop_x_center(&self) -> f32 {
+        (self.hw + self.workshop_x_max()) / 2.0
     }
 }
 

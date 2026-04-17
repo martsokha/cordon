@@ -81,13 +81,16 @@ impl Default for TimeAcceleration {
 /// Time-scale presets cycled by F4.
 const TIME_SCALE_PRESETS: &[f32] = &[1.0, 4.0, 16.0, 64.0];
 
-/// Push [`TimeAcceleration.multiplier`] into Bevy's virtual time.
-/// Scales every sim system that reads `Res<Time>.delta_secs()`.
-fn apply_time_scale(accel: Res<TimeAcceleration>, mut virt: ResMut<Time<Virtual>>) {
+/// Push [`TimeAcceleration.multiplier`] into [`SimSpeed`] so
+/// sim systems that read `Time<Sim>` see the scaled delta.
+fn apply_time_scale(
+    accel: Res<TimeAcceleration>,
+    mut sim_speed: ResMut<cordon_sim::resources::SimSpeed>,
+) {
     if !accel.is_changed() {
         return;
     }
-    virt.set_relative_speed(accel.multiplier.max(0.0));
+    sim_speed.0 = accel.multiplier.max(0.0) as f64;
 }
 
 /// F4 → cycle through [`TIME_SCALE_PRESETS`].

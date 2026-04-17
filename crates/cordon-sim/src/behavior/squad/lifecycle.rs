@@ -48,7 +48,7 @@ pub(super) fn prune_stale_membership(
 }
 
 pub(super) fn cleanup_dead_squads(
-    time: Res<Time>,
+    time: Res<Time<crate::resources::Sim>>,
     mut throttle: Local<f32>,
     mut commands: Commands,
     alive_q: Query<&Experience, (With<NpcMarker>, Without<Dead>)>,

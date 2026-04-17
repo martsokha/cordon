@@ -12,6 +12,7 @@
 
 pub mod combat;
 pub mod death;
+pub mod particles;
 
 use bevy::prelude::*;
 
@@ -19,6 +20,10 @@ pub struct VisualsPlugin;
 
 impl Plugin for VisualsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((combat::CombatVisualsPlugin, death::DeathVisualsPlugin));
+        app.add_plugins((
+            combat::CombatVisualsPlugin,
+            death::DeathVisualsPlugin,
+            particles::ParticlesPlugin,
+        ));
     }
 }

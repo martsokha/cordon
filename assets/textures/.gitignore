@@ -1,0 +1,6 @@
+# ambientCG sidecar files — only the .jpg textures are used at runtime.
+*.blend
+*.usdc
+*.mtlx
+*.tres
+*.png

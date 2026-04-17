@@ -8,122 +8,110 @@ use crate::bunker::geometry::*;
 use crate::bunker::resources::RoomCtx;
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
-    let l = ctx.l;
-    let floor_half = Vec2::new(l.side_depth / 2.0, l.tj_len() / 2.0);
-    spawn_floor_ceiling(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete_dark.clone(),
-        Vec3::new(l.quarters_x_center(), 0.0, l.tj_center()),
-        floor_half,
-        l.h,
-    );
+    let concrete = ctx.pal.concrete.clone();
+    let concrete_dark = ctx.pal.concrete_dark.clone();
 
-    spawn_wall(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete.clone(),
-        Vec3::new(l.quarters_x_max(), l.hh(), l.tj_center()),
+    ctx.floor_ceiling(
+        Vec3::new(ctx.l.quarters_x_center(), 0.0, ctx.l.tj1_center()),
+        Vec2::new(ctx.l.side_depth / 2.0, ctx.l.tj1_len() / 2.0),
+        ctx.l.h,
+        &concrete_dark,
+    );
+    ctx.wall(
+        Vec3::new(ctx.l.quarters_x_max(), ctx.l.hh(), ctx.l.tj1_center()),
         Quat::from_rotation_y(FRAC_PI_2),
-        Vec2::new(l.tj_len() / 2.0, l.hh()),
+        Vec2::new(ctx.l.tj1_len() / 2.0, ctx.l.hh()),
+        &concrete,
     );
-    spawn_wall(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete.clone(),
-        Vec3::new(l.quarters_x_center(), l.hh(), l.tj_north),
+    ctx.wall(
+        Vec3::new(ctx.l.quarters_x_center(), ctx.l.hh(), ctx.l.tj1_north),
         Quat::from_rotation_y(PI),
-        Vec2::new(l.side_depth / 2.0, l.hh()),
+        Vec2::new(ctx.l.side_depth / 2.0, ctx.l.hh()),
+        &concrete,
     );
-    spawn_wall(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.concrete.clone(),
-        Vec3::new(l.quarters_x_center(), l.hh(), l.back_z),
+    ctx.wall(
+        Vec3::new(ctx.l.quarters_x_center(), ctx.l.hh(), ctx.l.tj1_south),
         Quat::IDENTITY,
-        Vec2::new(l.side_depth / 2.0, l.hh()),
+        Vec2::new(ctx.l.side_depth / 2.0, ctx.l.hh()),
+        &concrete,
     );
 
-    // Wide sofa against the far wall. Cushion top is around y = 0.4.
+    // Wide sofa against the far wall, centred on the room's Z.
     const SOFA_CUSHION: f32 = 0.4;
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::WideSofa,
-        Vec3::new(l.quarters_x_max() - 0.5, 0.0, l.tj_center()),
+        Vec3::new(ctx.l.quarters_x_max() - 0.5, 0.0, ctx.l.tj1_center()),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
-    // Pillow on the sofa cushion.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop(
         Prop::Pillow,
-        Vec3::new(l.quarters_x_max() - 0.5, SOFA_CUSHION, l.tj_center() + 0.5),
-        Quat::IDENTITY,
+        Vec3::new(
+            ctx.l.quarters_x_max() - 0.5,
+            SOFA_CUSHION,
+            ctx.l.tj1_center() + 0.5,
+        ),
     );
-    // Rug.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::Rug,
-        Vec3::new(l.quarters_x_center(), 0.0, l.tj_center()),
-        Quat::IDENTITY,
-    );
-    // Small bookshelf (personal books).
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::SingleBookshelf,
-        Vec3::new(l.quarters_x_max() - 0.3, 0.0, l.back_z + 0.3),
-        Quat::from_rotation_y(-FRAC_PI_2),
-    );
-    // Suitcase — personal belongings.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::Suitcase01,
-        Vec3::new(l.quarters_x_center() - 0.3, 0.0, l.back_z + 0.3),
-        Quat::from_rotation_y(0.4),
-    );
-    // Lamp next to the sofa.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::Lamp1,
-        Vec3::new(l.quarters_x_max() - 0.3, 0.0, l.tj_center() - 0.8),
-        Quat::IDENTITY,
-    );
-    // A bit of life.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::PlantPot2,
-        Vec3::new(l.hw + 0.4, 0.0, l.back_z + 0.3),
-        Quat::IDENTITY,
-    );
-    // Second pillow.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop_rot(
         Prop::Pillow,
-        Vec3::new(l.quarters_x_max() - 0.5, SOFA_CUSHION, l.tj_center() - 0.3),
+        Vec3::new(
+            ctx.l.quarters_x_max() - 0.5,
+            SOFA_CUSHION,
+            ctx.l.tj1_center() - 0.3,
+        ),
         Quat::from_rotation_y(0.5),
     );
-    // Cactus in a pot — the one living thing down here.
-    // PlantPot1 top is at y = 0.48 (measured).
-    const POT1_TOP: f32 = 0.480;
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::PlantPot1,
-        Vec3::new(l.hw + 0.4, 0.0, l.tj_center() + 1.0),
+    ctx.prop(
+        Prop::Rug,
+        Vec3::new(ctx.l.quarters_x_center(), 0.0, ctx.l.tj1_center()),
+    );
+
+    // Bookshelf against the south wall (not the far wall where
+    // the sofa is — avoids the overlap).
+    ctx.prop_rot(
+        Prop::SingleBookshelf,
+        Vec3::new(ctx.l.quarters_x_center() + 0.3, 0.0, ctx.l.tj1_south + 0.25),
         Quat::IDENTITY,
     );
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+
+    // Suitcase in the south-west corner.
+    ctx.prop_rot(
+        Prop::Suitcase01,
+        Vec3::new(ctx.l.hw + 0.4, 0.0, ctx.l.tj1_south + 0.3),
+        Quat::from_rotation_y(0.4),
+    );
+
+    // Coffee table rotated 90° and pulled away from the sofa.
+    const TABLE_TOP: f32 = 0.4;
+    let table_x = ctx.l.quarters_x_center() + 0.2;
+    let table_z = ctx.l.tj1_center();
+    ctx.prop_rot(
+        Prop::ModernCoffeeTable,
+        Vec3::new(table_x, 0.0, table_z),
+        Quat::from_rotation_y(FRAC_PI_2),
+    );
+    // Medication props on the coffee table.
+    ctx.prop(
+        Prop::MedicationCluster1,
+        Vec3::new(table_x - 0.05, TABLE_TOP, table_z + 0.1),
+    );
+    ctx.prop(
+        Prop::MedicationBottle,
+        Vec3::new(table_x + 0.1, TABLE_TOP, table_z - 0.08),
+    );
+    ctx.prop(
+        Prop::Mug,
+        Vec3::new(table_x - 0.15, TABLE_TOP, table_z - 0.05),
+    );
+
+    // PlantPot2 (the nicer pot) with cactus, near the corridor
+    // entrance so it greets you as you walk in.
+    const POT2_TOP: f32 = 0.488;
+    ctx.prop(
+        Prop::PlantPot2,
+        Vec3::new(ctx.l.hw + 0.4, 0.0, ctx.l.tj1_north - 0.4),
+    );
+    ctx.prop(
         Prop::Cactus,
-        Vec3::new(l.hw + 0.4, POT1_TOP, l.tj_center() + 1.0),
-        Quat::IDENTITY,
+        Vec3::new(ctx.l.hw + 0.4, POT2_TOP, ctx.l.tj1_north - 0.4),
     );
 }

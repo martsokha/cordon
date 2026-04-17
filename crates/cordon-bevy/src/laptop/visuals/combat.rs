@@ -72,9 +72,10 @@ fn spawn_tracers_for_shots(
             Mesh2d(assets.mesh.clone()),
             MeshMaterial2d(assets.material.clone()),
             Transform {
-                // Above the fog (4.5) and clouds (5.0) so shots
-                // fired in memory regions still flash visibly.
-                translation: Vec3::new(mid.x, mid.y, 9.0),
+                // Above NPC dots (Z=10) so the tracer reads over
+                // shooters and targets instead of getting clipped
+                // by their faction circles.
+                translation: Vec3::new(mid.x, mid.y, 11.0),
                 rotation: Quat::from_rotation_z(angle),
                 scale: Vec3::new(length, 1.0, 1.0),
             },

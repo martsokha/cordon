@@ -1,13 +1,50 @@
-//! Player state: rank, experience, credits, faction standings, hired
-//! squad, and the bunker's upgrade + storage state.
+//! Player state: rank, experience, credits, faction standings, and
+//! the bunker's upgrade + storage state.
+//!
+//! Hired squads live in the sim layer (`PlayerSquadRoster`), not
+//! here — `PlayerState` is the persistent player profile, not a
+//! god-object.
 
 use serde::{Deserialize, Serialize};
 
 use super::bunker::Upgrade;
 use super::faction::Faction;
-use super::npc::{Npc, Role};
-use crate::item::{Item, ItemInstance, Stash, StashScope};
-use crate::primitive::{Credits, Experience, Id, Relation, Uid};
+use crate::item::{Item, Stash, StashScope};
+use crate::primitive::{Credits, Day, Experience, Id, Relation};
+
+/// A categorised daily expense line item. Multiple line items
+/// compose a [`DailyExpenseReport`].
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExpenseLine {
+    pub kind: ExpenseKind,
+    pub amount: Credits,
+}
+
+/// What a daily expense pays for. New cost categories are added
+/// here; the payroll system in cordon-sim produces the lines,
+/// and the UI in cordon-bevy reads them for display.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExpenseKind {
+    /// Per-member pay for hired squads, summed from `Rank::pay`.
+    SquadUpkeep,
+    /// Protection money to the Garrison faction.
+    GarrisonBribe,
+    /// Interest on outstanding [`PlayerState::debt`].
+    SyndicateInterest,
+}
+
+/// Snapshot of one day's expenses. Produced by the payroll system
+/// on each day rollover and stored in a resource so the UI can
+/// display "last day's costs" at any time.
+#[derive(Debug, Clone)]
+pub struct DailyExpenseReport {
+    pub day: Day,
+    pub lines: Vec<ExpenseLine>,
+    pub total: Credits,
+    /// Portion of the total that couldn't be covered by available
+    /// credits and was added to [`PlayerState::debt`].
+    pub shortfall: Credits,
+}
 
 /// Player rank tier. Determines squad capacity and unlocks.
 ///
@@ -73,17 +110,11 @@ impl PlayerRank {
     }
 }
 
-/// A hired NPC assigned to a role.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HiredNpc {
-    /// Runtime UID of the hired NPC.
-    pub npc_id: Uid<Npc>,
-    /// Whether this NPC is a runner or guard.
-    pub role: Role,
-}
-
 /// The player's complete state: identity, economy, faction relations,
-/// hired roster, and the bunker (storage + installed upgrades).
+/// and the bunker (storage + installed upgrades).
+///
+/// Hired-squad ownership is *not* stored here — it lives in the
+/// sim-layer `PlayerSquadRoster` resource, keyed by `Uid<Squad>`.
 ///
 /// `BaseState` was previously a separate field on `World`; it's now
 /// inlined here so "the player" is a single source of truth.
@@ -93,16 +124,21 @@ pub struct PlayerState {
     pub xp: Experience,
     /// Available credits (the Zone's currency).
     pub credits: Credits,
+    /// Accumulated unpaid expenses from previous days. Carried
+    /// forward each day-rollover; reduced when the player earns
+    /// enough to cover it. Separate from `credits` so spending
+    /// and owing are distinct — the player can have cash *and*
+    /// debt simultaneously (e.g. earns 200 but owes 500).
+    pub debt: Credits,
     /// Relations with each faction, keyed by faction ID.
     pub standings: Vec<(Id<Faction>, Relation)>,
-    /// Currently hired NPCs and their roles.
-    pub hired: Vec<HiredNpc>,
-    /// Whether the Garrison bribe has been paid this period.
-    pub garrison_bribe_paid: bool,
     /// All installed upgrade IDs (both bunker and camp).
     pub upgrades: Vec<Id<Upgrade>>,
-    /// Main bunker storage.
-    pub storage: Stash,
+    /// Items waiting to be placed on a rack slot. Quest
+    /// consequences push here; a bevy-side drain system moves
+    /// them onto the first available rack slot each frame.
+    /// Should be empty most of the time — not real storage.
+    pub pending_items: Stash,
     /// Hidden storage (survives raids, invisible during inspections).
     pub hidden_storage: Stash,
 }
@@ -119,23 +155,17 @@ impl PlayerState {
         Self {
             xp: Experience::ZERO,
             credits: Credits::new(5000),
+            debt: Credits::new(0),
             standings,
-            hired: Vec::new(),
-            garrison_bribe_paid: false,
             upgrades: Vec::new(),
-            storage: Stash::new(20),
-            hidden_storage: Stash::new(0),
+            pending_items: Stash::new(),
+            hidden_storage: Stash::new(),
         }
     }
 
     /// Current rank, derived from XP.
     pub fn rank(&self) -> PlayerRank {
         PlayerRank::from_xp(self.xp)
-    }
-
-    /// Add experience points.
-    pub fn add_xp(&mut self, amount: u32) {
-        self.xp.add(amount);
     }
 
     /// Get the player's standing with a faction.
@@ -155,30 +185,18 @@ impl PlayerState {
             .map(|(_, s)| s)
     }
 
-    /// Number of currently hired NPCs.
-    pub fn hired_count(&self) -> u8 {
-        self.hired.len() as u8
-    }
-
-    /// Whether the player can hire another NPC.
-    pub fn can_hire(&self) -> bool {
-        self.hired_count() < self.rank().max_squads()
-    }
-
     /// Check if an upgrade is installed (bunker or camp).
     pub fn has_upgrade(&self, upgrade_id: &Id<Upgrade>) -> bool {
         self.upgrades.iter().any(|u| u == upgrade_id)
     }
 
-    /// Whether the base has a generator (prevents power outages).
-    pub fn has_power(&self) -> bool {
-        self.has_upgrade(&Id::<Upgrade>::new("upgrade_generator"))
+    /// Whether the player holds at least `count` of the given item
+    /// def within the scope.
+    pub fn has_item(&self, item: &Id<Item>, count: u32, scope: StashScope) -> bool {
+        self.item_count(item, scope) >= count
     }
 
-    /// Total count of a given item definition across the requested
-    /// scope. For weapons and consumables this counts *instances*
-    /// (one per entry in the stash); for ammo it sums the `count`
-    /// field across matching instances (rounds across boxes).
+    /// Total count of a given item definition across the requested scope.
     pub fn item_count(&self, item: &Id<Item>, scope: StashScope) -> u32 {
         let sum = |stash: &Stash| -> u32 {
             stash
@@ -189,59 +207,9 @@ impl PlayerState {
                 .sum()
         };
         match scope {
-            StashScope::Main => sum(&self.storage),
+            StashScope::Main => sum(&self.pending_items),
             StashScope::Hidden => sum(&self.hidden_storage),
-            StashScope::Any => sum(&self.storage) + sum(&self.hidden_storage),
-        }
-    }
-
-    /// Whether the player holds at least `count` of the given item
-    /// def within the scope. Uses [`item_count`](Self::item_count)
-    /// semantics — one instance of a 30-round ammo box counts as 30.
-    pub fn has_item(&self, item: &Id<Item>, count: u32, scope: StashScope) -> bool {
-        self.item_count(item, scope) >= count
-    }
-
-    /// Insert an item instance into the requested scope.
-    ///
-    /// - [`Main`](StashScope::Main): main only; fails when
-    ///   full.
-    /// - [`Hidden`](StashScope::Hidden): hidden only; fails
-    ///   when full.
-    /// - [`Any`](StashScope::Any): main first, hidden as
-    ///   overflow; fails only when both are full.
-    ///
-    /// Returns `Err(instance)` with the original item when
-    /// every targeted stash is full.
-    pub fn add_item(
-        &mut self,
-        instance: ItemInstance,
-        scope: StashScope,
-    ) -> Result<(), ItemInstance> {
-        match scope {
-            StashScope::Main => self.storage.add(instance),
-            StashScope::Hidden => self.hidden_storage.add(instance),
-            StashScope::Any => match self.storage.add(instance) {
-                Ok(()) => Ok(()),
-                Err(instance) => self.hidden_storage.add(instance),
-            },
-        }
-    }
-
-    /// Remove and return the first instance of the given item def
-    /// within the scope, or `None` if nothing matches. Under
-    /// [`StashScope::Any`] main is searched first.
-    pub fn remove_first(&mut self, item: &Id<Item>, scope: StashScope) -> Option<ItemInstance> {
-        let take_from = |stash: &mut Stash| -> Option<ItemInstance> {
-            let index = stash.items().iter().position(|i| &i.def_id == item)?;
-            stash.remove(index)
-        };
-        match scope {
-            StashScope::Main => take_from(&mut self.storage),
-            StashScope::Hidden => take_from(&mut self.hidden_storage),
-            StashScope::Any => {
-                take_from(&mut self.storage).or_else(|| take_from(&mut self.hidden_storage))
-            }
+            StashScope::Any => sum(&self.pending_items) + sum(&self.hidden_storage),
         }
     }
 }

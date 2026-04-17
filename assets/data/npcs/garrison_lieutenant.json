@@ -14,5 +14,6 @@
     "item_bandage"
   ],
   "unique": true,
-  "respawnable": false
+  "respawnable": false,
+  "essential": true
 }

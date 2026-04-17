@@ -1,6 +1,6 @@
 //! Command post zone: desk, laptop, chair, bookshelves, props.
 
-use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::prelude::*;
 
@@ -10,57 +10,48 @@ use crate::bunker::interaction::Interactable;
 use crate::bunker::resources::RoomCtx;
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
-    let l = ctx.l;
     // Divider grate.
-    spawn_grate_bars(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.metal.clone(),
-        -l.hw,
-        -l.hole_half,
-        l.divider_z,
-        l.h,
+    let metal = ctx.pal.metal.clone();
+    ctx.grate_bars(
+        -ctx.l.hw,
+        -ctx.l.hole_half,
+        ctx.l.divider_z,
+        ctx.l.h,
         0.12,
+        &metal,
     );
-    spawn_grate_bars(
-        ctx.commands,
-        ctx.meshes,
-        ctx.pal.metal.clone(),
-        l.hole_half,
-        l.hw,
-        l.divider_z,
-        l.h,
+    ctx.grate_bars(
+        ctx.l.hole_half,
+        ctx.l.hw,
+        ctx.l.divider_z,
+        ctx.l.h,
         0.12,
+        &metal,
     );
 
-    // Dinner table as the command desk. Table top is at y = 1.037.
+    // Dinner table as the command desk. Table top at y = 1.037.
     const TABLE_TOP: f32 = 1.037;
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::WoodenDinnerTable,
-        Vec3::new(0.0, 0.0, l.desk_z()),
-        Quat::IDENTITY,
-    );
-    // Chair.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::WoodenChair,
-        Vec3::new(0.0, 0.0, l.desk_z() - 0.5),
-        Quat::IDENTITY,
-    );
-    // Mug.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
+    ctx.prop(Prop::WoodenDinnerTable, Vec3::new(0.0, 0.0, ctx.l.desk_z()));
+    ctx.prop(Prop::WoodenChair, Vec3::new(0.0, 0.0, ctx.l.desk_z() - 0.5));
+    ctx.prop(
         Prop::Mug,
-        Vec3::new(-0.35, TABLE_TOP, l.desk_z() + 0.05),
-        Quat::IDENTITY,
+        Vec3::new(-0.35, TABLE_TOP, ctx.l.desk_z() + 0.05),
     );
-    // Door button — sits on the table surface. Starts disabled;
-    // visitor module enables it when someone is knocking.
-    let button_mesh = ctx.meshes.add(Sphere::new(0.025));
+    // Radio on the desk, left of the laptop, facing the player.
+    ctx.prop_rot(
+        Prop::Radio,
+        Vec3::new(-0.55, TABLE_TOP, ctx.l.desk_z() - 0.25),
+        Quat::from_rotation_y(PI),
+    );
+
+    // Door button — sits on the table surface. A flat cylinder
+    // so it reads as a push button at a glance rather than a
+    // mystery ball. Starts unlit; the visitor module's
+    // `update_button_glow` flips `emissive` on this material when
+    // someone is knocking.
+    const BUTTON_RADIUS: f32 = 0.035;
+    const BUTTON_HEIGHT: f32 = 0.015;
+    let button_mesh = ctx.meshes.add(Cylinder::new(BUTTON_RADIUS, BUTTON_HEIGHT));
     let button_mat = ctx.mats.add(StandardMaterial {
         base_color: Color::srgb(0.35, 0.05, 0.05),
         perceptual_roughness: 0.4,
@@ -71,58 +62,40 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     ctx.commands.spawn((
         DoorButton,
         Interactable {
-            prompt: "[E] Open Door",
+            prompt: "[E] Open Door".into(),
             enabled: false,
         },
         Mesh3d(button_mesh),
         MeshMaterial3d(button_mat),
-        Transform::from_xyz(0.35, TABLE_TOP + 0.03, l.desk_z()),
+        // Centre sits half the cylinder height above the desk
+        // surface so it rests flush instead of hovering.
+        Transform::from_xyz(0.35, TABLE_TOP + BUTTON_HEIGHT / 2.0, ctx.l.desk_z()),
     ));
-    // Bin between the table legs (scaled down; kept as raw spawn).
-    {
-        let scene: Handle<Scene> = ctx.asset_server.load("models/interior/Bin.glb#Scene0");
-        ctx.commands.spawn((
-            SceneRoot(scene),
-            Transform::from_xyz(-0.4, 0.0, l.desk_z()).with_scale(Vec3::splat(0.6)),
-        ));
-    }
+    // Bin between the table legs.
+    ctx.prop_scaled(
+        Prop::Bin,
+        Vec3::new(-0.4, 0.0, ctx.l.desk_z()),
+        Quat::IDENTITY,
+        0.6,
+    );
+
     // Two bookshelves per wall along the full command-post z-span.
-    // Bookshelf is 1.656 m wide; with the 3.75 m command post we fit
-    // two end-to-end with ~0.14 m gap and ~0.15 m margins at each end.
-    // Shelves are laterally off the corridor centerline so they don't
-    // interfere with the desk ensemble at x = 0.
-    let shelf_north_z = l.trade_z - 0.978;
-    let shelf_south_z = l.divider_z + 0.978;
+    let shelf_north_z = ctx.l.trade_z - 0.978;
+    let shelf_south_z = ctx.l.divider_z + 0.978;
     for z in [shelf_north_z, shelf_south_z] {
-        prop(
-            ctx.commands,
-            ctx.asset_server,
+        ctx.prop_rot(
             Prop::Bookshelf,
-            Vec3::new(-l.hw + 0.25, 0.0, z),
+            Vec3::new(-ctx.l.hw + 0.25, 0.0, z),
             Quat::from_rotation_y(FRAC_PI_2),
         );
-        prop(
-            ctx.commands,
-            ctx.asset_server,
+        ctx.prop_rot(
             Prop::Bookshelf,
-            Vec3::new(l.hw - 0.25, 0.0, z),
+            Vec3::new(ctx.l.hw - 0.25, 0.0, z),
             Quat::from_rotation_y(-FRAC_PI_2),
         );
     }
     // Rug in front of the desk.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::Rug,
-        Vec3::new(0.0, 0.0, l.desk_z() - 0.3),
-        Quat::IDENTITY,
-    );
+    ctx.prop(Prop::Rug, Vec3::new(0.0, 0.0, ctx.l.desk_z() - 0.3));
     // Filing cabinet behind the chair.
-    prop(
-        ctx.commands,
-        ctx.asset_server,
-        Prop::Cabinet01,
-        Vec3::new(0.6, 0.0, l.desk_z() - 0.8),
-        Quat::IDENTITY,
-    );
+    ctx.prop(Prop::Cabinet01, Vec3::new(0.6, 0.0, ctx.l.desk_z() - 0.8));
 }

@@ -8,7 +8,6 @@
 
 use bevy::log::warn;
 use bevy_yarnspinner::prelude::YarnValue;
-use cordon_core::entity::player::PlayerState;
 use cordon_core::primitive::{GameTime, Id};
 use cordon_core::world::narrative::{
     ActiveEvent, ObjectiveCondition, Quest, QuestFlagPredicate, QuestFlagValue,
@@ -16,6 +15,17 @@ use cordon_core::world::narrative::{
 
 use super::registry::TemplateRegistry;
 use super::state::QuestLog;
+use crate::resources::{PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades};
+
+/// Read-only view of the player's sub-resources. Used by
+/// [`WorldView`] so the evaluator can read from all four
+/// resources without requiring a full `PlayerState`.
+pub struct PlayerView<'a> {
+    pub identity: &'a PlayerIdentity,
+    pub standings: &'a PlayerStandings,
+    pub upgrades: &'a PlayerUpgrades,
+    pub stash: &'a PlayerStash,
+}
 
 /// Live world state the evaluator reads from. Kept as a single
 /// struct so [`evaluate`](Self::evaluate) has one clean receiver
@@ -23,7 +33,7 @@ use super::state::QuestLog;
 /// piece of evaluator context is a field-add instead of threading
 /// an argument through every caller.
 pub struct WorldView<'a> {
-    pub player: &'a PlayerState,
+    pub player: PlayerView<'a>,
     pub events: &'a [ActiveEvent],
     pub quests: &'a QuestLog,
     pub registry: &'a TemplateRegistry,
@@ -49,14 +59,18 @@ impl<'a> WorldView<'a> {
     pub fn evaluate(&self, cond: &ObjectiveCondition) -> bool {
         match cond {
             ObjectiveCondition::HaveItem(q) => {
-                self.player.has_item(&q.item, q.resolved_count(), q.scope)
+                self.player
+                    .stash
+                    .has_item(&q.item, q.resolved_count(), q.scope)
             }
-            ObjectiveCondition::HaveCredits(amount) => self.player.credits.can_afford(*amount),
+            ObjectiveCondition::HaveCredits(amount) => {
+                self.player.identity.credits.can_afford(*amount)
+            }
             ObjectiveCondition::FactionStanding {
                 faction,
                 min_standing,
-            } => self.player.standing(faction) >= *min_standing,
-            ObjectiveCondition::HaveUpgrade(upgrade) => self.player.has_upgrade(upgrade),
+            } => self.player.standings.standing(faction) >= *min_standing,
+            ObjectiveCondition::HaveUpgrade(upgrade) => self.player.upgrades.has_upgrade(upgrade),
             ObjectiveCondition::EventActive(event) => {
                 self.events.iter().any(|e| &e.def_id == event)
             }
@@ -191,13 +205,49 @@ mod tests {
         ObjectiveCondition, Quest, QuestFlagPredicate, QuestFlagValue, QuestStage,
     };
 
-    use super::{WorldView, yarn_value_equals};
+    use super::{PlayerView, WorldView, yarn_value_equals};
     use crate::quest::registry::TemplateRegistry;
     use crate::quest::state::{ActiveQuest, CompletedQuest, QuestLog};
+    use crate::resources::{PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades};
 
-    fn player(factions: &[&str]) -> PlayerState {
+    struct TestPlayer {
+        identity: PlayerIdentity,
+        standings: PlayerStandings,
+        upgrades: PlayerUpgrades,
+        stash: PlayerStash,
+    }
+
+    impl TestPlayer {
+        fn view(&self) -> PlayerView<'_> {
+            PlayerView {
+                identity: &self.identity,
+                standings: &self.standings,
+                upgrades: &self.upgrades,
+                stash: &self.stash,
+            }
+        }
+    }
+
+    fn player(factions: &[&str]) -> TestPlayer {
         let ids: Vec<Id<Faction>> = factions.iter().map(|f| Id::<Faction>::new(*f)).collect();
-        PlayerState::new(&ids)
+        let state = PlayerState::new(&ids);
+        TestPlayer {
+            identity: PlayerIdentity {
+                xp: state.xp,
+                credits: state.credits,
+                debt: state.debt,
+            },
+            standings: PlayerStandings {
+                standings: state.standings,
+            },
+            upgrades: PlayerUpgrades {
+                upgrades: state.upgrades,
+            },
+            stash: PlayerStash {
+                pending_items: state.pending_items,
+                hidden_storage: state.hidden_storage,
+            },
+        }
     }
 
     fn registry() -> TemplateRegistry {
@@ -205,12 +255,12 @@ mod tests {
     }
 
     fn view<'a>(
-        player: &'a PlayerState,
+        player: &'a TestPlayer,
         log: &'a QuestLog,
         registry: &'a TemplateRegistry,
     ) -> WorldView<'a> {
         WorldView {
-            player,
+            player: player.view(),
             events: &[],
             quests: log,
             registry,
@@ -220,14 +270,14 @@ mod tests {
     }
 
     fn view_with_clock<'a>(
-        player: &'a PlayerState,
+        player: &'a TestPlayer,
         log: &'a QuestLog,
         registry: &'a TemplateRegistry,
         now: GameTime,
         stage_started_at: GameTime,
     ) -> WorldView<'a> {
         WorldView {
-            player,
+            player: player.view(),
             events: &[],
             quests: log,
             registry,
@@ -239,7 +289,7 @@ mod tests {
     #[test]
     fn have_credits_threshold() {
         let mut p = player(&[]);
-        p.credits = Credits::new(500);
+        p.identity.credits = Credits::new(500);
         let log = QuestLog::default();
         let reg = registry();
         let v = view(&p, &log, &reg);
@@ -251,7 +301,7 @@ mod tests {
     #[test]
     fn faction_standing_at_threshold() {
         let mut p = player(&["garrison"]);
-        if let Some(s) = p.standing_mut(&Id::<Faction>::new("garrison")) {
+        if let Some(s) = p.standings.standing_mut(&Id::<Faction>::new("garrison")) {
             s.apply(RelationDelta::new(50));
         }
         let log = QuestLog::default();

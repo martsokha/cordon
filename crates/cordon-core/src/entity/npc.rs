@@ -12,8 +12,8 @@
 //!
 //! - `Npc` — a phantom marker type used as the type parameter
 //!   on [`Uid<Npc>`], so stable save-game IDs stay typed.
-//! - `Role` / `Personality` — enum flavour types stored as
-//!   fields inside components, not as components themselves.
+//! - `Personality` — enum flavour type stored as a field inside
+//!   a component, not as its own component.
 //! - `NpcTemplate` — marker for NPC template IDs used in quest
 //!   consequences.
 
@@ -66,21 +66,16 @@ pub struct NpcTemplateDef {
     /// If false, death is permanent.
     #[serde(default)]
     pub respawnable: bool,
+    /// When true the NPC is excluded from the combat simulation
+    /// entirely: squads won't target them, shots won't land, and
+    /// the death system ignores them. Use for story-critical
+    /// characters who must survive to fulfil their narrative role.
+    #[serde(default)]
+    pub essential: bool,
 }
 
 fn default_true() -> bool {
     true
-}
-
-/// What role an employed NPC fills.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[derive(Serialize, Deserialize)]
-pub enum Role {
-    /// Goes into the Zone to scavenge, deliver, or gather intel.
-    Runner,
-    /// Stays at the bunker to deter theft, enable intimidation,
-    /// and fight raids.
-    Guard,
 }
 
 /// Core personality trait affecting negotiation behavior

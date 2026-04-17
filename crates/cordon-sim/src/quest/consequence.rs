@@ -16,7 +16,6 @@ use bevy::prelude::*;
 use bevy_prng::WyRand;
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::npc::NpcTemplate;
-use cordon_core::entity::player::PlayerState;
 use cordon_core::item::ItemInstance;
 use cordon_core::primitive::{Experience, GameTime, Id};
 use cordon_core::world::area::Area;
@@ -25,6 +24,7 @@ use cordon_data::catalog::GameData;
 
 use super::registry::TemplateRegistry;
 use crate::day::world_events::{EventOverrides, spawn_event_instance};
+use crate::resources::{PlayerIdentity, PlayerStandings, PlayerStash, PlayerUpgrades};
 
 /// Live references the applier may mutate in place.
 ///
@@ -35,7 +35,10 @@ use crate::day::world_events::{EventOverrides, spawn_event_instance};
 /// [`spawn_event_instance`] helper instead of hardcoding
 /// def-minimum values.
 pub struct WorldMut<'a> {
-    pub player: &'a mut PlayerState,
+    pub identity: &'a mut PlayerIdentity,
+    pub standings: &'a mut PlayerStandings,
+    pub upgrades: &'a mut PlayerUpgrades,
+    pub stash: &'a mut PlayerStash,
     pub events: &'a mut Vec<ActiveEvent>,
     pub data: &'a GameData,
     pub registry: &'a TemplateRegistry,
@@ -101,7 +104,7 @@ pub fn apply(
 ) {
     match consequence {
         Consequence::StandingChange { faction, delta } => {
-            if let Some(standing) = world.player.standing_mut(faction) {
+            if let Some(standing) = world.standings.standing_mut(faction) {
                 standing.apply(*delta);
             } else {
                 warn!("StandingChange: unknown faction `{}`", faction.as_str());
@@ -109,11 +112,11 @@ pub fn apply(
         }
 
         Consequence::GiveCredits(amount) => {
-            world.player.credits += *amount;
+            world.identity.credits += *amount;
         }
 
         Consequence::TakeCredits(amount) => {
-            world.player.credits -= *amount;
+            world.identity.credits -= *amount;
         }
 
         Consequence::GiveItem(q) => {
@@ -123,14 +126,7 @@ pub fn apply(
             };
             let count = q.resolved_count();
             for _ in 0..count {
-                let instance = ItemInstance::new(def);
-                if let Err(dropped) = world.player.add_item(instance, q.scope) {
-                    warn!(
-                        "GiveItem: stash full, dropped `{}` on the floor",
-                        dropped.def_id.as_str()
-                    );
-                    break;
-                }
+                world.stash.add_item(ItemInstance::new(def), q.scope);
             }
         }
 
@@ -138,7 +134,7 @@ pub fn apply(
             let count = q.resolved_count();
             let mut removed = 0u32;
             for _ in 0..count {
-                if world.player.remove_first(&q.item, q.scope).is_none() {
+                if world.stash.remove_first(&q.item, q.scope).is_none() {
                     break;
                 }
                 removed += 1;
@@ -189,8 +185,8 @@ pub fn apply(
         }
 
         Consequence::UnlockUpgrade(upgrade) => {
-            if !world.player.upgrades.contains(upgrade) {
-                world.player.upgrades.push(upgrade.clone());
+            if !world.upgrades.upgrades.contains(upgrade) {
+                world.upgrades.upgrades.push(upgrade.clone());
             }
         }
 
@@ -221,7 +217,7 @@ pub fn apply(
         }
 
         Consequence::GivePlayerXp(xp) => {
-            world.player.add_xp(xp.value());
+            world.identity.add_xp(xp.value());
         }
 
         Consequence::GiveNpcXp { template, amount } => {

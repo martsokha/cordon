@@ -16,7 +16,7 @@ use cordon_core::primitive::{Corruption, Experience, Health, Loyalty, Pool, Stam
 use cordon_core::world::BUNKER_MAP_POS;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::{
-    ActiveEffects, BaseMaxes, Employment, FactionId, MovementIntent, NpcAttributes, NpcBundle,
+    ActiveEffects, BaseMaxes, Essential, FactionId, MovementIntent, NpcAttributes, NpcBundle,
     NpcDied, NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle,
     SquadMembership, TemplateId, TravelingHome, TravelingToBunker,
 };
@@ -111,6 +111,9 @@ pub fn handle_spawn_npc_requests(
                     squad: squad_entity,
                     slot: 0,
                 });
+            if def.essential {
+                entity_cmds.insert(Essential);
+            }
             if let Some(yarn) = req.yarn_node.clone() {
                 entity_cmds.insert(PendingYarnNode(yarn));
             }
@@ -180,10 +183,6 @@ pub fn handle_spawn_npc_requests(
                 all: def.perks.clone(),
                 revealed: Vec::new(),
             },
-            employment: Employment {
-                role: None,
-                daily_pay: cordon_core::primitive::Credits::new(0),
-            },
         };
 
         // Pick a random faction settlement as the spawn point.
@@ -219,6 +218,9 @@ pub fn handle_spawn_npc_requests(
             SpawnOrigin(spawn_pos),
             transform,
         ));
+        if def.essential {
+            entity_cmds.insert(Essential);
+        }
         if let Some(yarn) = req.yarn_node.clone() {
             entity_cmds.insert(PendingYarnNode(yarn));
         }
