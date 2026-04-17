@@ -81,7 +81,12 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     // Steam rising from the spout. Offset is in the kettle's local
     // frame; the kettle is rotated +90° around Y, so local +Z maps
     // to world +X (the nose direction).
-    particles::attach_kettle_steam(ctx.commands, ctx.effects, kettle, Vec3::new(0.0, 0.3, 0.1));
+    particles::steam::attach_kettle_steam(
+        ctx.commands,
+        ctx.effects,
+        kettle,
+        Vec3::new(0.0, 0.3, 0.1),
+    );
     ctx.prop_rot(
         Prop::Mug,
         Vec3::new(

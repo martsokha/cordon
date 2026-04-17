@@ -2461,6 +2461,7 @@ dependencies = [
  "cordon-core",
  "cordon-data",
  "cordon-sim",
+ "derive_more",
  "fluent_content",
  "rand 0.10.1",
  "strum",

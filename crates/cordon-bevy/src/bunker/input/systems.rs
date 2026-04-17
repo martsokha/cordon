@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions};
 
-use crate::bunker::components::InteractPrompt;
+use crate::bunker::interaction::InteractPrompt;
 
 pub(super) fn grab_cursor(mut cursor_q: Query<&mut CursorOptions>) {
     for mut cursor in &mut cursor_q {

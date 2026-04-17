@@ -5,8 +5,12 @@ use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions};
 
 use super::state::{AdmitVisitor, VisitorState};
-use crate::bunker::components::DoorButton;
 use crate::bunker::interaction::{Interact, Interactable};
+
+/// Marker for the small dome on the desk that admits a knocking
+/// visitor. Spawned by the room module; clicked via mesh picking.
+#[derive(Component)]
+pub struct DoorButton;
 
 pub(super) fn update_button_glow(
     state: Res<VisitorState>,

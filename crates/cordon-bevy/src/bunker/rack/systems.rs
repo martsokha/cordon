@@ -10,7 +10,7 @@ use cordon_data::gamedata::GameDataResource;
 
 use super::components::*;
 use super::shelf_prop::ShelfProp;
-use crate::bunker::components::FpsCamera;
+use crate::bunker::camera::FpsCamera;
 use crate::bunker::geometry::{Prop, PropPlacement};
 use crate::bunker::interaction::{Interact, Interactable};
 use crate::locale::l10n_or;
@@ -95,10 +95,14 @@ pub(super) fn update_slot_prompts(
                 let name = slot_item_name(slot, localization.as_deref());
                 format!("interact-rack-take?item={name}")
             }
-            (false, true) => "interact-rack-place".into(),
+            (false, true) => {
+                let name = carried_item_name(&carrying, localization.as_deref());
+                format!("interact-rack-place?item={name}")
+            }
             (true, true) => {
-                let name = slot_item_name(slot, localization.as_deref());
-                format!("interact-rack-swap?item={name}")
+                let slot_name = slot_item_name(slot, localization.as_deref());
+                let carry_name = carried_item_name(&carrying, localization.as_deref());
+                format!("interact-rack-swap?slot={slot_name}&carry={carry_name}")
             }
             (false, false) => String::new(),
         };
@@ -263,16 +267,29 @@ pub(super) fn drop_carried(
     info!("dropped item: {}", carried.instance.def_id.as_str());
 }
 
+fn item_name(id: &str, l10n: Option<&Localization>) -> String {
+    match l10n {
+        Some(l) => l10n_or(l, id, id),
+        None => id.to_string(),
+    }
+}
+
 fn slot_item_name(slot: &RackSlot, l10n: Option<&Localization>) -> String {
     let id = slot
         .item
         .as_ref()
         .map(|i| i.def_id.as_str())
         .unwrap_or("item");
-    match l10n {
-        Some(l) => l10n_or(l, id, id),
-        None => id.to_string(),
-    }
+    item_name(id, l10n)
+}
+
+fn carried_item_name(carrying: &Carrying, l10n: Option<&Localization>) -> String {
+    let id = carrying
+        .0
+        .as_ref()
+        .map(|c| c.instance.def_id.as_str())
+        .unwrap_or("item");
+    item_name(id, l10n)
 }
 
 fn play_sfx(commands: &mut Commands, handle: &Handle<AudioSource>) {

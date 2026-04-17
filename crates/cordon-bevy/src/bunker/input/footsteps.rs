@@ -8,6 +8,7 @@
 use bevy::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::GlobalRng;
+use derive_more::Display;
 use rand::RngExt;
 
 use super::controller::FootstepScuffed;
@@ -17,25 +18,18 @@ use crate::bunker::geometry::{Prop, PropPlacement};
 const FOOTSTEP_VOLUME: f32 = 0.45;
 const VARIANTS_PER_SURFACE: usize = 4;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Display)]
 enum Surface {
+    #[display("concrete")]
     Concrete,
+    #[display("carpet")]
     Carpet,
 }
 
 impl Surface {
-    fn prefix(self) -> &'static str {
-        match self {
-            Self::Concrete => "concrete",
-            Self::Carpet => "carpet",
-        }
-    }
-
     fn load_clips(self, asset_server: &AssetServer) -> Vec<Handle<AudioSource>> {
         (1..=VARIANTS_PER_SURFACE)
-            .map(|i| {
-                asset_server.load(format!("audio/sfx/footstep/{}_{:02}.ogg", self.prefix(), i,))
-            })
+            .map(|i| asset_server.load(format!("audio/sfx/footstep/{self}_{i:02}.ogg")))
             .collect()
     }
 }

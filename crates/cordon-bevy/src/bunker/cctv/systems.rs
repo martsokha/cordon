@@ -4,7 +4,7 @@ use bevy::render::render_resource::TextureFormat;
 
 use super::components::*;
 use super::materials::CctvMaterial;
-use crate::bunker::components::FpsCamera;
+use crate::bunker::camera::FpsCamera;
 use crate::bunker::interaction::{Interact, Interactable};
 use crate::bunker::resources::CameraMode;
 

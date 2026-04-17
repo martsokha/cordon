@@ -6,8 +6,9 @@ use bevy::prelude::*;
 use bevy::render::view::Msaa;
 use bevy::ui::UiTargetCamera;
 
+use super::camera::FpsCamera;
 use super::cctv::MonitorPlacement;
-use super::components::*;
+use super::interaction::InteractPrompt;
 use super::resources::*;
 use super::rooms;
 use crate::fonts::UiFont;

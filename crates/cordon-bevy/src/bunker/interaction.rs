@@ -7,8 +7,12 @@
 use bevy::prelude::*;
 use bevy_fluent::prelude::*;
 
-use super::components::{FpsCamera, InteractPrompt};
+use super::camera::FpsCamera;
 use super::resources::{CameraMode, InteractionLocked};
+
+/// Marker on the interaction prompt UI container.
+#[derive(Component)]
+pub struct InteractPrompt;
 use crate::locale::l10n_or;
 
 const INTERACT_DIST: f32 = 3.5;

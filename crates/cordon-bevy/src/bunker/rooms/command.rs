@@ -4,10 +4,10 @@ use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::prelude::*;
 
-use crate::bunker::components::DoorButton;
 use crate::bunker::geometry::*;
 use crate::bunker::interaction::Interactable;
 use crate::bunker::resources::{RadioPlacement, RoomCtx};
+use crate::bunker::visitor::DoorButton;
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     // Divider grate.

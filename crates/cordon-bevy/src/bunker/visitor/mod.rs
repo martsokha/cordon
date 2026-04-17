@@ -16,6 +16,7 @@ mod ui;
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataResource;
 pub use state::{Visitor, VisitorQueue, VisitorState};
+pub use ui::DoorButton;
 
 use crate::PlayingState;
 

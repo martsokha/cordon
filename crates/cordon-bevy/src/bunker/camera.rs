@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 
-use super::components::*;
 use super::resources::*;
+
+#[derive(Component)]
+pub struct FpsCamera;
 
 pub(super) fn start_laptop_zoom(
     camera_q: Query<&Transform, With<FpsCamera>>,

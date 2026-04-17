@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy::ui::UiTargetCamera;
 use cordon_sim::resources::{GameClock, SimSpeed};
 
-use crate::bunker::components::FpsCamera;
+use crate::bunker::camera::FpsCamera;
 use crate::bunker::geometry::{Prop, PropPlacement};
 use crate::bunker::interaction::{Interact, Interactable};
 use crate::bunker::resources::{InteractionLocked, MovementLocked};

@@ -39,8 +39,8 @@ interact-door = Open door
 interact-radio-on = Turn on radio
 interact-radio-off = Turn off radio
 interact-rack-take = Take { $item }
-interact-rack-place = Place item
-interact-rack-swap = Swap with { $item }
+interact-rack-place = Place { $item }
+interact-rack-swap = Swap { $carry } with { $slot }
 interact-exit-camera = Exit camera
 
 # Faction standing buckets. Mirror `Relation::is_*` helpers in

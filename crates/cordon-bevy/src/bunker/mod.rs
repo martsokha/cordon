@@ -3,9 +3,8 @@
 //! the laptop map.
 
 mod ambient;
-mod camera;
+pub(crate) mod camera;
 pub mod cctv;
-pub mod components;
 pub mod dialogue;
 pub mod geometry;
 mod input;
@@ -27,7 +26,7 @@ mod visitor;
 
 use bevy::prelude::*;
 
-pub use self::components::FpsCamera;
+pub use self::camera::FpsCamera;
 pub use self::resources::{BunkerSpawned, CameraMode};
 // Re-exported only when the steam feature is on: that's the
 // only consumer of `VisitorState` outside this module.

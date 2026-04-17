@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use cordon_sim::day::radio::RadioBroadcast;
 use cordon_sim::plugin::prelude::LastDailyExpenses;
 
-use crate::bunker::components::FpsCamera;
+use crate::bunker::camera::FpsCamera;
 
 const CELL_SIZE: u32 = 16;
 const GRID_COLS: u32 = 8;

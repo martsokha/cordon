@@ -7,7 +7,7 @@ use cordon_data::gamedata::GameDataResource;
 
 use super::audio::{ALARM_VOLUME, AlarmSound, DOOR_VOLUME, DoorSfx};
 use super::state::{AdmitVisitor, Visitor, VisitorQueue, VisitorState};
-use crate::bunker::components::FpsCamera;
+use crate::bunker::camera::FpsCamera;
 use crate::bunker::resources::{
     ANTECHAMBER_VISITOR_POS, CameraMode, CurrentDialogue, InteractionLocked, MovementLocked,
     StartDialogue,
@@ -131,7 +131,7 @@ pub(super) fn apply_admit_visitor(
         ))
         .id();
 
-    crate::bunker::particles::attach_visitor_arrival_swirl(
+    crate::bunker::particles::swirl::attach_visitor_arrival_swirl(
         &mut commands,
         &event_assets,
         sprite_entity,

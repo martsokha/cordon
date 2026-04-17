@@ -11,7 +11,7 @@ use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 
 use crate::PlayingState;
-use crate::bunker::components::FpsCamera;
+use crate::bunker::camera::FpsCamera;
 use crate::bunker::resources::{CameraMode, MovementLocked};
 
 const MOVE_SPEED: f32 = 4.0;
