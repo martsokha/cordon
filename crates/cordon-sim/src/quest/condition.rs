@@ -67,7 +67,7 @@ pub fn evaluate(
             };
             now.minutes_since(started_at) >= duration.minutes()
         }
-        ObjectiveCondition::DaysWithoutPills { days } => pills.days_without(now.day) >= *days,
+        ObjectiveCondition::DaysWithoutPills { days } => pills.days_without(now) >= *days,
         ObjectiveCondition::DayReached { day } => now.day.value() >= *day,
         ObjectiveCondition::AllOf(conds) => conds.iter().all(|c| {
             evaluate(

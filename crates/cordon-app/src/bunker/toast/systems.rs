@@ -161,26 +161,36 @@ pub(super) fn on_quest_started(
     }
 }
 
-pub(super) fn on_quest_updated(
+/// Emit quest updated/finished toasts, suppressing the "updated"
+/// toast for a quest in the same frame it finishes. The sim writes
+/// `QuestUpdated` whenever a stage advances, which includes the
+/// hop from the final Talk stage to the Outcome stage that
+/// immediately completes the quest — without this filter the
+/// player sees "Quest updated" and "Quest completed" back-to-back
+/// for a single completion.
+pub(super) fn on_quest_progress(
     l10n: L10n,
     mut updated: MessageReader<QuestUpdated>,
+    mut finished: MessageReader<QuestFinished>,
     mut queue: ResMut<ToastQueue>,
 ) {
+    use std::collections::HashSet;
+
+    let finishes: Vec<_> = finished.read().cloned().collect();
+    let finishing: HashSet<_> = finishes.iter().map(|msg| msg.quest.clone()).collect();
+
     for msg in updated.read() {
+        if finishing.contains(&msg.quest) {
+            continue;
+        }
         let name = l10n.get(msg.quest.as_str());
         queue.push(
             ICON_QUEST,
             l10n.get(&format!("toast-quest-updated?name={name}")),
         );
     }
-}
 
-pub(super) fn on_quest_finished(
-    l10n: L10n,
-    mut finished: MessageReader<QuestFinished>,
-    mut queue: ResMut<ToastQueue>,
-) {
-    for msg in finished.read() {
+    for msg in &finishes {
         let name = l10n.get(msg.quest.as_str());
         let key = if msg.success {
             "toast-quest-completed"

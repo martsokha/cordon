@@ -29,8 +29,7 @@ impl Plugin for ToastPlugin {
                 systems::on_daily_expenses,
                 systems::on_standing_change,
                 systems::on_quest_started,
-                systems::on_quest_updated,
-                systems::on_quest_finished,
+                systems::on_quest_progress,
                 systems::spawn_toasts,
                 systems::animate_toasts,
             )

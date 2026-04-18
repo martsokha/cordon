@@ -56,9 +56,16 @@ impl Plugin for QuestPlugin {
         app.add_message::<DismissTemplateNpc>();
         app.add_message::<EndGameRequest>();
 
+        // Fires once per run, on the frame `SimActive` is inserted
+        // by the app layer at `OnEnter(AppState::Playing)`. Using
+        // `SimActive` instead of `GameClock` ensures this fires for
+        // every new run; `GameClock` is inserted once on startup
+        // (before the menu) so `resource_added::<GameClock>` fires
+        // during the menu and wastes the trigger before a run has
+        // begun.
         app.add_systems(
             Update,
-            dispatch::dispatch_on_game_start.run_if(resource_added::<GameClock>),
+            dispatch::dispatch_on_game_start.run_if(resource_added::<crate::plugin::SimActive>),
         );
 
         app.add_systems(

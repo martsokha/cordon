@@ -278,12 +278,9 @@ fn refresh_quest_list(
         }
     }
 
-    // Show the last MAX_COMPLETED completed entries under a
-    // subheading so the player can review what's happened
-    // recently. Tail-biased (most-recent first) because an
-    // emerging history reads better that way than
-    // chronologically forward.
-    const MAX_COMPLETED: usize = 5;
+    // Show every completed entry under a subheading, newest-first.
+    // No cap: the player should always be able to scroll back and
+    // see what they've done across a run.
     if !log.completed.is_empty() {
         let heading_text = l10n.get("intel-quest-log-completed");
         let heading = commands
@@ -303,27 +300,64 @@ fn refresh_quest_list(
             .id();
         commands.entity(panel_entity).add_child(heading);
 
-        for done in log.completed.iter().rev().take(MAX_COMPLETED) {
+        for done in log.completed.iter().rev() {
             let def_id = done.def_id.as_str();
             let title = l10n.get(def_id);
             let marker = if done.success { "✓" } else { "✗" };
-            let color = if done.success {
-                Color::srgba(0.55, 0.80, 0.60, 0.85)
+            let (title_color, hint_color) = if done.success {
+                (
+                    Color::srgba(0.55, 0.80, 0.60, 0.9),
+                    Color::srgba(0.55, 0.80, 0.60, 0.7),
+                )
             } else {
-                Color::srgba(0.80, 0.55, 0.45, 0.85)
+                (
+                    Color::srgba(0.80, 0.55, 0.45, 0.9),
+                    Color::srgba(0.80, 0.55, 0.45, 0.7),
+                )
             };
-            let row = commands
+
+            // Mirror the active-quest entry shape: one container
+            // per completed quest, title on top, outcome flavour
+            // below. Outcome hint key matches the active stage
+            // hint scheme (`{quest_id}_stage_{stage_id}`) so
+            // authoring uses one pattern for both.
+            let entry = commands
+                .spawn(Node {
+                    flex_direction: FlexDirection::Column,
+                    row_gap: Val::Px(2.0),
+                    padding: UiRect::new(Val::Px(4.0), Val::Px(4.0), Val::Px(4.0), Val::Px(4.0)),
+                    ..default()
+                })
+                .id();
+            commands.entity(panel_entity).add_child(entry);
+
+            let title_node = commands
                 .spawn((
                     Text::new(format!("[{marker}] {title}")),
+                    TextFont {
+                        font: font.clone(),
+                        font_size: 11.0,
+                        ..default()
+                    },
+                    TextColor(title_color),
+                ))
+                .id();
+            commands.entity(entry).add_child(title_node);
+
+            let outcome_key = format!("{def_id}_stage_{}", done.outcome_stage.as_str());
+            let outcome_text = l10n.get(&outcome_key);
+            let hint_node = commands
+                .spawn((
+                    Text::new(outcome_text),
                     TextFont {
                         font: font.clone(),
                         font_size: 10.0,
                         ..default()
                     },
-                    TextColor(color),
+                    TextColor(hint_color),
                 ))
                 .id();
-            commands.entity(panel_entity).add_child(row);
+            commands.entity(entry).add_child(hint_node);
         }
     }
 }

@@ -64,7 +64,7 @@ fn on_take_pills(
     // interactable after the first dose each day, but the observer
     // can still fire if the state machines line up wrong. Re-check
     // here so the dose never double-stamps or the sfx double-plays.
-    if pills.last_taken == Some(clock.0.day) {
+    if pills.last_taken.map(|t| t.day) == Some(clock.0.day) {
         return;
     }
     if sfx.clips.is_empty() {
@@ -75,7 +75,7 @@ fn on_take_pills(
         AudioPlayer(sfx.clips[idx].clone()),
         PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(PILL_VOLUME)),
     ));
-    pills.record_dose(clock.0.day);
+    pills.record_dose(clock.0);
     info!("player took pills");
 }
 
@@ -88,7 +88,7 @@ pub(super) fn sync_daily_availability(
     clock: Res<GameClock>,
     mut pills_q: Query<&mut Interactable, With<PillsInteractable>>,
 ) {
-    let taken_today = pills.last_taken == Some(clock.0.day);
+    let taken_today = pills.last_taken.map(|t| t.day) == Some(clock.0.day);
     for mut interactable in &mut pills_q {
         let should_enable = !taken_today;
         if interactable.enabled != should_enable {
