@@ -4,7 +4,8 @@
 use bevy::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::GlobalRng;
-use cordon_sim::resources::{GameClock, PlayerPills};
+use cordon_sim::bunker::pills::PlayerPills;
+use cordon_sim::resources::GameClock;
 use rand::RngExt;
 
 use super::components::PillsInteractable;

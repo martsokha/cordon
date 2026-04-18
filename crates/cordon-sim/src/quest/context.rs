@@ -18,9 +18,10 @@ use super::messages::{
 };
 use super::registry::TemplateRegistry;
 use super::state::QuestLog;
+use crate::bunker::pills::PlayerPills;
 use crate::resources::{
-    EventLog, FactionIndex, GameClock, PlayerIdentity, PlayerIntel, PlayerPills, PlayerStandings,
-    PlayerStash, PlayerUpgrades,
+    EventLog, FactionIndex, GameClock, PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash,
+    PlayerUpgrades,
 };
 
 #[derive(SystemParam)]

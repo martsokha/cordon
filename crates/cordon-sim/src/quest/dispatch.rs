@@ -5,11 +5,28 @@ use std::collections::HashSet;
 
 use bevy::prelude::*;
 use cordon_core::primitive::Id;
-use cordon_core::world::narrative::{Event, Quest, QuestTriggerKind};
+use cordon_core::world::narrative::{Event, Quest, QuestTrigger, QuestTriggerKind};
 
 use super::context::QuestCtx;
 use super::messages::StartQuestRequest;
 use crate::day::DayRolled;
+
+/// Rising-edge bookkeeping for the trigger dispatcher. Owned as a
+/// resource (rather than per-system `Local`s) so that
+/// `init_world_resources` can wipe it alongside [`QuestLog`] on
+/// `OnEnter(AppState::Playing)`. Without the reset, run 2 would
+/// see run 1's "previously" sets and miss rising edges that
+/// should legitimately fire again.
+#[derive(Resource, Debug, Default)]
+pub struct QuestDispatchState {
+    /// Event IDs that were already in `EventLog` last tick. New
+    /// events appear on `current.difference(previous)`.
+    pub previously_active_events: HashSet<Id<Event>>,
+    /// `OnCondition` triggers whose `cond` evaluated true last
+    /// tick. A trigger present in `current` but not in
+    /// `previously_eligible` is on its rising edge and fires.
+    pub previously_eligible: HashSet<Id<QuestTrigger>>,
+}
 
 /// Drain [`StartQuestRequest`]s from consequence application.
 /// Uses individual params instead of [`QuestCtx`] because the
@@ -68,11 +85,14 @@ pub fn dispatch_on_day(mut ctx: QuestCtx, mut rolled: MessageReader<DayRolled>) 
 }
 
 /// Fire `OnEvent` triggers for newly-active events.
-pub fn dispatch_on_event(mut ctx: QuestCtx, mut previous: Local<HashSet<Id<Event>>>) {
+pub fn dispatch_on_event(mut ctx: QuestCtx, mut state: ResMut<QuestDispatchState>) {
     let now = ctx.now();
     let current: HashSet<_> = ctx.events.0.iter().map(|e| e.def_id.clone()).collect();
-    let new_events: Vec<_> = current.difference(&*previous).cloned().collect();
-    *previous = current;
+    let new_events: Vec<_> = current
+        .difference(&state.previously_active_events)
+        .cloned()
+        .collect();
+    state.previously_active_events = current;
 
     for event_id in new_events {
         let triggers: Vec<_> = ctx
@@ -90,10 +110,7 @@ pub fn dispatch_on_event(mut ctx: QuestCtx, mut previous: Local<HashSet<Id<Event
 }
 
 /// Fire `OnCondition` triggers on rising edge.
-pub fn dispatch_on_condition(
-    mut ctx: QuestCtx,
-    mut previously_eligible: Local<HashSet<Id<cordon_core::world::narrative::QuestTrigger>>>,
-) {
+pub fn dispatch_on_condition(mut ctx: QuestCtx, mut state: ResMut<QuestDispatchState>) {
     let now = ctx.now();
     let triggers: Vec<_> = ctx
         .data
@@ -119,11 +136,11 @@ pub fn dispatch_on_condition(
             }
         }
         eligible_now.insert(trigger.id.clone());
-        if !previously_eligible.contains(&trigger.id) {
+        if !state.previously_eligible.contains(&trigger.id) {
             to_fire.push(trigger.clone());
         }
     }
-    *previously_eligible = eligible_now;
+    state.previously_eligible = eligible_now;
 
     for trigger in to_fire {
         ctx.try_fire_trigger(&trigger, now);

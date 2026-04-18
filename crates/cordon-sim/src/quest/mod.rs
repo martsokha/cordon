@@ -43,6 +43,7 @@ impl Plugin for QuestPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<QuestLog>();
         app.init_resource::<TemplateRegistry>();
+        app.init_resource::<dispatch::QuestDispatchState>();
         app.add_message::<StartQuestRequest>();
         app.add_message::<SpawnNpcRequest>();
         app.add_message::<GiveNpcXpRequest>();

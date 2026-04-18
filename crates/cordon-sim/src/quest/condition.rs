@@ -14,9 +14,8 @@ use cordon_core::world::narrative::{
 
 use super::registry::TemplateRegistry;
 use super::state::QuestLog;
-use crate::resources::{
-    PlayerIdentity, PlayerIntel, PlayerPills, PlayerStandings, PlayerStash, PlayerUpgrades,
-};
+use crate::bunker::pills::PlayerPills;
+use crate::resources::{PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades};
 
 /// Evaluate a condition against live world state.
 pub fn evaluate(
@@ -178,10 +177,11 @@ mod tests {
     };
 
     use super::{evaluate, yarn_value_equals};
+    use crate::bunker::pills::PlayerPills;
     use crate::quest::registry::TemplateRegistry;
     use crate::quest::state::{ActiveQuest, CompletedQuest, QuestLog};
     use crate::resources::{
-        PlayerIdentity, PlayerIntel, PlayerPills, PlayerStandings, PlayerStash, PlayerUpgrades,
+        PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades,
     };
 
     struct Ctx {

@@ -105,11 +105,11 @@ impl Plugin for CordonSimPlugin {
         app.add_message::<spawn::SquadSpawned>();
         app.add_systems(Update, spawn::spawn_population.in_set(SimSet::Spawn));
         // Shop: handle BuyUpgrade requests from the laptop UI.
-        app.add_message::<crate::shop::BuyUpgrade>();
-        app.add_message::<crate::shop::BuyUpgradeOutcome>();
+        app.add_message::<crate::bunker::upgrades::BuyUpgrade>();
+        app.add_message::<crate::bunker::upgrades::BuyUpgradeOutcome>();
         app.add_systems(
             Update,
-            crate::shop::apply_buy_upgrade.in_set(SimSet::Commands),
+            crate::bunker::upgrades::apply_buy_upgrade.in_set(SimSet::Commands),
         );
         // Sim time runs every frame — it mirrors virtual time
         // scaled by SimSpeed. Must run before tick_game_time.
@@ -162,6 +162,8 @@ pub mod prelude {
     pub use crate::behavior::squad::intent::{EngagementTarget, MovementIntent};
     pub use crate::behavior::squad::{Owned, SquadCommand};
     pub use crate::behavior::vision::{AnomalyZone, Vision};
+    pub use crate::bunker::pills::PlayerPills;
+    pub use crate::bunker::upgrades::{BuyUpgrade, BuyUpgradeFailure, BuyUpgradeOutcome};
     pub use crate::day::DayRolled;
     // Cross-cutting messages and resources.
     pub use crate::day::payroll::{DailyExpensesProcessed, LastDailyExpenses};
@@ -178,10 +180,9 @@ pub mod prelude {
     };
     pub use crate::resources::{
         AreaStates, EventLog, FactionIndex, GameClock, KnownIntel, PlayerIdentity, PlayerIntel,
-        PlayerPills, PlayerSquadEntry, PlayerSquadRoster, PlayerStandings, PlayerStash,
-        PlayerUpgrades, Sim, SimSpeed, SquadIdIndex, UidAllocator,
+        PlayerSquadEntry, PlayerSquadRoster, PlayerStandings, PlayerStash, PlayerUpgrades, Sim,
+        SimSpeed, SquadIdIndex, UidAllocator,
     };
-    pub use crate::shop::{BuyUpgrade, BuyUpgradeFailure, BuyUpgradeOutcome};
     pub use crate::spawn::SquadSpawned;
     pub use crate::spawn::relics::RelicPickedUp;
 }
