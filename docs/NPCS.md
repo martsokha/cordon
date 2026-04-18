@@ -29,7 +29,6 @@ PERKS:       ???                      [hidden: revealed through actions/missions
 - **Trust**: how much they trust you personally. Built over repeat interactions.
 - **Wealth**: how much they can actually afford. Not always obvious — a ragged Drifter might have a fortune stashed.
 - **Need**: what they actually need vs. what they say they want. A desperate person may hide their desperation.
-- **Personality**: affects haggling style, honesty, patience. Emerges over multiple encounters.
 
 ### Rank
 

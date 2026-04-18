@@ -1,6 +1,5 @@
 use bevy::image::TextureAtlasLayout;
 use bevy::prelude::*;
-
 use cordon_sim::day::payroll::DailyExpensesProcessed;
 use cordon_sim::day::radio::RadioBroadcast;
 use cordon_sim::quest::messages::{QuestFinished, QuestStarted, QuestUpdated, StandingChanged};

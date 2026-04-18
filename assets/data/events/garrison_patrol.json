@@ -1,0 +1,22 @@
+{
+  "id": "event_garrison_patrol",
+  "category": "faction",
+  "base_probability": 0.6,
+  "min_duration": 1,
+  "max_duration": 2,
+  "max_instances": 2,
+  "target_areas": [],
+  "involved_factions": [
+    "faction_garrison"
+  ],
+  "earliest_day": 1,
+  "consequences": [],
+  "chain_events": [],
+  "radio": {
+    "delay_minutes": 0,
+    "grants_intel": [
+      "intel_garrison_patrol_route"
+    ],
+    "missable": false
+  }
+}

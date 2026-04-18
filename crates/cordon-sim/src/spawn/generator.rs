@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use cordon_core::entity::archetype::{Archetype, ArchetypeDef, SquadGoalKind, SquadTemplate};
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::{NameFormat, NamePool, NpcName};
-use cordon_core::entity::npc::{Npc, Personality};
+use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::{Goal, Squad};
 use cordon_core::item::{Item, ItemDef, Loadout};
 use cordon_core::primitive::{
@@ -93,19 +93,6 @@ pub trait NpcGenerator {
         Experience::new(xp)
     }
 
-    /// Generate a personality trait.
-    fn generate_personality<R: Rng>(&self, rng: &mut R) -> Personality {
-        let options = [
-            Personality::Cautious,
-            Personality::Aggressive,
-            Personality::Honest,
-            Personality::Deceptive,
-            Personality::Patient,
-            Personality::Impulsive,
-        ];
-        options[rng.random_range(0..options.len())]
-    }
-
     /// Generate wealth based on rank.
     fn generate_wealth<R: Rng>(&self, rank: Rank, rng: &mut R) -> Credits {
         let base: u32 = match rank {
@@ -131,7 +118,6 @@ pub trait NpcGenerator {
         rng: &mut R,
     ) -> NpcBundle {
         let xp = Experience::new(rank.xp_threshold());
-        let personality = self.generate_personality(rng);
         let wealth = self.generate_wealth(rank, rng);
         let health: Pool<Health> = Pool::full();
         let hp_max = health.max();
@@ -155,7 +141,6 @@ pub trait NpcGenerator {
             attributes: NpcAttributes {
                 trust: Trust(0.0),
                 loyalty: Loyalty(0.5),
-                personality,
             },
         }
     }

@@ -2,7 +2,7 @@
 //!
 //! Most per-NPC data types now derive `Component` directly in
 //! cordon-core (`NpcName`, `Loadout`, `Experience`, `Credits`,
-//! `Personality`, `Trust`, `Loyalty`), so they're attached to
+//! `Trust`, `Loyalty`), so they're attached to
 //! entities without a wrapper. This module only holds the
 //! cordon-sim-specific components that don't have a cordon-core
 //! analog: the NPC marker, baseline pool caps, employment status,
@@ -11,7 +11,7 @@
 use bevy::prelude::*;
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NpcName;
-use cordon_core::entity::npc::{Npc, NpcTemplate, Personality};
+use cordon_core::entity::npc::{Npc, NpcTemplate};
 use cordon_core::item::{Loadout, TimedEffect};
 use cordon_core::primitive::{
     Corruption, Credits, Experience, GameTime, Health, Id, Loyalty, Pool, Stamina, Trust, Uid,
@@ -133,7 +133,6 @@ pub struct FactionId(pub Id<Faction>);
 pub struct NpcAttributes {
     pub trust: Trust,
     pub loyalty: Loyalty,
-    pub personality: Personality,
 }
 
 /// Bundle of every per-NPC component the spawn system attaches

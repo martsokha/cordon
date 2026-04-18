@@ -1,0 +1,13 @@
+{
+  "id": "event_power_flicker",
+  "category": "bunker",
+  "base_probability": 0.12,
+  "min_duration": 1,
+  "max_duration": 1,
+  "max_instances": 1,
+  "target_areas": [],
+  "involved_factions": [],
+  "earliest_day": 1,
+  "consequences": [],
+  "chain_events": []
+}

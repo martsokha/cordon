@@ -1,0 +1,27 @@
+{
+  "id": "event_radiation_storm",
+  "category": "environmental",
+  "base_probability": 0.5,
+  "min_duration": 1,
+  "max_duration": 3,
+  "max_instances": 1,
+  "target_areas": [],
+  "involved_factions": [],
+  "earliest_day": 1,
+  "consequences": [
+    {
+      "danger_modifier": {
+        "area": null,
+        "delta": 0.3
+      }
+    }
+  ],
+  "chain_events": [],
+  "radio": {
+    "delay_minutes": 0,
+    "grants_intel": [
+      "intel_radiation_storm_warning"
+    ],
+    "missable": false
+  }
+}

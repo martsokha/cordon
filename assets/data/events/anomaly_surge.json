@@ -1,0 +1,27 @@
+{
+  "id": "event_anomaly_surge",
+  "category": "environmental",
+  "base_probability": 0.6,
+  "min_duration": 1,
+  "max_duration": 1,
+  "max_instances": 2,
+  "target_areas": [],
+  "involved_factions": [],
+  "earliest_day": 1,
+  "consequences": [
+    {
+      "danger_modifier": {
+        "area": null,
+        "delta": 0.2
+      }
+    }
+  ],
+  "chain_events": [],
+  "radio": {
+    "delay_minutes": 0,
+    "grants_intel": [
+      "intel_anomaly_surge_detected"
+    ],
+    "missable": false
+  }
+}

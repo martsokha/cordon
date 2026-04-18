@@ -53,32 +53,47 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Transform::from_translation(center + Vec3::new(0.0, -h / 2.0, 0.0)),
     ));
     ctx.commands.spawn((
-        Mesh3d(ctx.meshes.add(plane_tiled(Vec3::NEG_Y, half_size, TILE_SIZE))),
+        Mesh3d(
+            ctx.meshes
+                .add(plane_tiled(Vec3::NEG_Y, half_size, TILE_SIZE)),
+        ),
         MeshMaterial3d(wall_mat.clone()),
         Transform::from_translation(center + Vec3::new(0.0, h / 2.0, 0.0)),
     ));
     // Back wall (-z) — the visitor stands facing +z, so this is
     // *behind* them. The door panel is mounted here.
     ctx.commands.spawn((
-        Mesh3d(ctx.meshes.add(cuboid_tiled(Vec3::new(hw * 2.0, h, 0.05), TILE_SIZE))),
+        Mesh3d(
+            ctx.meshes
+                .add(cuboid_tiled(Vec3::new(hw * 2.0, h, 0.05), TILE_SIZE)),
+        ),
         MeshMaterial3d(wall_mat.clone()),
         Transform::from_translation(center + Vec3::new(0.0, 0.0, -hd)),
     ));
     // Front wall (+z) — the side the CCTV camera is mounted on.
     ctx.commands.spawn((
-        Mesh3d(ctx.meshes.add(cuboid_tiled(Vec3::new(hw * 2.0, h, 0.05), TILE_SIZE))),
+        Mesh3d(
+            ctx.meshes
+                .add(cuboid_tiled(Vec3::new(hw * 2.0, h, 0.05), TILE_SIZE)),
+        ),
         MeshMaterial3d(wall_mat.clone()),
         Transform::from_translation(center + Vec3::new(0.0, 0.0, hd)),
     ));
     // Left wall (-x).
     ctx.commands.spawn((
-        Mesh3d(ctx.meshes.add(cuboid_tiled(Vec3::new(0.05, h, hd * 2.0), TILE_SIZE))),
+        Mesh3d(
+            ctx.meshes
+                .add(cuboid_tiled(Vec3::new(0.05, h, hd * 2.0), TILE_SIZE)),
+        ),
         MeshMaterial3d(wall_mat.clone()),
         Transform::from_translation(center + Vec3::new(-hw, 0.0, 0.0)),
     ));
     // Right wall (+x).
     ctx.commands.spawn((
-        Mesh3d(ctx.meshes.add(cuboid_tiled(Vec3::new(0.05, h, hd * 2.0), TILE_SIZE))),
+        Mesh3d(
+            ctx.meshes
+                .add(cuboid_tiled(Vec3::new(0.05, h, hd * 2.0), TILE_SIZE)),
+        ),
         MeshMaterial3d(wall_mat),
         Transform::from_translation(center + Vec3::new(hw, 0.0, 0.0)),
     ));

@@ -44,10 +44,13 @@ pub(super) fn update_prompt(
     camera_q: Query<&Transform, With<FpsCamera>>,
     interactables: Query<(Entity, &GlobalTransform, &Interactable)>,
     camera_mode: Res<CameraMode>,
+    locked: Option<Res<InteractionLocked>>,
     l10n: L10n,
     mut prompt_q: Query<(&Children, &mut Visibility), With<InteractPrompt>>,
     mut text_q: Query<&mut Text>,
 ) {
+    // The CCTV view replaces the normal hint with a fixed exit
+    // prompt — the player needs to know how to come back out.
     if matches!(*camera_mode, CameraMode::AtCctv { .. }) {
         let resolved = l10n.get("interact-exit-camera");
         for (children, mut vis) in &mut prompt_q {
@@ -57,6 +60,17 @@ pub(super) fn update_prompt(
                 }
             }
             *vis = Visibility::Visible;
+        }
+        return;
+    }
+
+    // While the player is already inside an interaction — laptop
+    // view, visitor dialog, or any camera lock — suppress the
+    // "Use X" hint entirely so it doesn't overlap the dialog UI.
+    let in_interaction = locked.is_some() || !matches!(*camera_mode, CameraMode::Free);
+    if in_interaction {
+        for (_, mut vis) in &mut prompt_q {
+            *vis = Visibility::Hidden;
         }
         return;
     }

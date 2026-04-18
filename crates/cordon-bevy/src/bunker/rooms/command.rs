@@ -33,10 +33,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     const TABLE_TOP: f32 = 1.037;
     ctx.prop(Prop::WoodenDinnerTable, Vec3::new(0.0, 0.0, ctx.l.desk_z()));
     ctx.prop(Prop::WoodenChair, Vec3::new(0.0, 0.0, ctx.l.desk_z() - 0.5));
-    ctx.prop(
-        Prop::Mug,
-        Vec3::new(-0.35, TABLE_TOP, ctx.l.desk_z() - 0.1),
-    );
+    ctx.prop(Prop::Mug, Vec3::new(-0.35, TABLE_TOP, ctx.l.desk_z() - 0.1));
     // Radio placement: the radio module owns the spawn (like laptop).
     ctx.commands.insert_resource(RadioPlacement {
         pos: Vec3::new(0.75, TABLE_TOP, ctx.l.desk_z() - 0.1),

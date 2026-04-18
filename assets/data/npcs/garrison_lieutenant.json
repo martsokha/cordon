@@ -3,7 +3,6 @@
   "name_key": "npc-garrison-lieutenant",
   "faction": "faction_garrison",
   "rank": "veteran",
-  "personality": "cautious",
   "trust": 0.2,
   "loadout": [
     "item_ak74",

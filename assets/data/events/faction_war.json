@@ -1,0 +1,27 @@
+{
+  "id": "event_faction_war",
+  "category": "faction",
+  "base_probability": 0.4,
+  "min_duration": 5,
+  "max_duration": 10,
+  "max_instances": 1,
+  "target_areas": [],
+  "involved_factions": [],
+  "earliest_day": 1,
+  "consequences": [
+    {
+      "danger_modifier": {
+        "area": null,
+        "delta": 0.4
+      }
+    }
+  ],
+  "chain_events": [],
+  "radio": {
+    "delay_minutes": 0,
+    "grants_intel": [
+      "intel_faction_war_brewing"
+    ],
+    "missable": false
+  }
+}

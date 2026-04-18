@@ -172,7 +172,6 @@ pub fn handle_spawn_npc_requests(
             attributes: NpcAttributes {
                 trust: def.trust,
                 loyalty: Loyalty(0.5),
-                personality: def.personality,
             },
         };
 

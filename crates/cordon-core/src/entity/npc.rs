@@ -1,19 +1,16 @@
-//! NPC type markers + the hidden-personality enum.
+//! NPC type markers.
 //!
 //! There's no `Npc` data struct anymore — NPCs are Bevy entities
 //! assembled from cordon-core component types (`NpcName`,
-//! `Loadout`, `Experience`, `Credits`, `Trust`, `Loyalty`,
-//! `Personality`) plus cordon-sim glue (`NpcMarker`,
-//! `FactionId`, `NpcAttributes`, `Employment`,
-//! `NpcBundle`). The generator in cordon-sim produces bundles
-//! directly.
+//! `Loadout`, `Experience`, `Credits`, `Trust`, `Loyalty`) plus
+//! cordon-sim glue (`NpcMarker`, `FactionId`, `NpcAttributes`,
+//! `Employment`, `NpcBundle`). The generator in cordon-sim
+//! produces bundles directly.
 //!
 //! What remains here is:
 //!
 //! - `Npc` — a phantom marker type used as the type parameter
 //!   on [`Uid<Npc>`], so stable save-game IDs stay typed.
-//! - `Personality` — enum flavour type stored as a field inside
-//!   a component, not as its own component.
 //! - `NpcTemplate` — marker for NPC template IDs used in quest
 //!   consequences.
 
@@ -50,7 +47,6 @@ pub struct NpcTemplateDef {
     pub faction: Id<Faction>,
     /// Base rank — actual spawn XP is randomized within this tier.
     pub rank: Rank,
-    pub personality: Personality,
     /// Starting trust toward the player.
     pub trust: Trust,
     /// If set, the NPC spawns with exactly these items. If `None`,
@@ -74,26 +70,4 @@ pub struct NpcTemplateDef {
 
 fn default_true() -> bool {
     true
-}
-
-/// Core personality trait affecting negotiation behavior
-/// (hidden from the player). Stored on entities as a field of
-/// `NpcAttributes`, not as its own component.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Personality {
-    /// Careful, slow to trust, thorough negotiator.
-    #[default]
-    Cautious,
-    /// Confrontational, may escalate if refused.
-    Aggressive,
-    /// Straightforward, unlikely to scam.
-    Honest,
-    /// May lie about item quality or their situation.
-    Deceptive,
-    /// Willing to go back and forth on price.
-    Patient,
-    /// Makes snap decisions, may accept bad deals.
-    Impulsive,
 }
