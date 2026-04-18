@@ -12,8 +12,8 @@
 //! the camera toward the entity's transform, ignoring
 //! `target.position` entirely while following is active.
 //!
-//! Camera-moving controllers (keyboard pan, drag pan, edge
-//! scroll) *break* follow by first calling
+//! Camera-moving controllers (keyboard pan, drag pan) *break*
+//! follow by first calling
 //! [`snapshot_follow`] — which copies the followed entity's
 //! current position into `target.position` and clears
 //! `following` — so the camera continues smoothly from
@@ -35,7 +35,6 @@ pub struct InputPlugin;
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(CameraTarget::default());
-        app.insert_resource(EdgeScrollEnabled::default());
         app.add_plugins(controller::ControllerPlugin);
         app.add_systems(
             Update,
@@ -63,18 +62,6 @@ impl Default for CameraTarget {
         }
     }
 }
-
-/// Whether edge-scroll panning is enabled. Off by default —
-/// some players find edge-scroll distracting, and the
-/// default-off state also means existing test workflows that
-/// rest the cursor near the viewport rim don't accidentally
-/// drift the camera.
-///
-/// Toggled via a settings menu (future work) or via dev
-/// cheats. The controller system reads this each frame so
-/// flipping it at runtime takes effect immediately.
-#[derive(Resource, Debug, Clone, Copy, Default)]
-pub struct EdgeScrollEnabled(pub bool);
 
 /// Orthographic-projection scale range. Lower = zoomed in
 /// (smaller world area visible), higher = zoomed out.

@@ -67,71 +67,71 @@ mod tests {
     #[test]
     fn new_registry_has_no_templates() {
         let r = TemplateRegistry::default();
-        assert!(!r.is_alive(&id("npc_lieutenant")));
-        assert!(!r.is_permanently_dead(&id("npc_lieutenant")));
-        assert!(r.entity(&id("npc_lieutenant")).is_none());
+        assert!(!r.is_alive(&id("npc_sergeant")));
+        assert!(!r.is_permanently_dead(&id("npc_sergeant")));
+        assert!(r.entity(&id("npc_sergeant")).is_none());
     }
 
     #[test]
     fn register_then_is_alive() {
         let mut r = TemplateRegistry::default();
-        r.register(id("npc_lieutenant"), ent(1));
-        assert!(r.is_alive(&id("npc_lieutenant")));
-        assert_eq!(r.entity(&id("npc_lieutenant")), Some(ent(1)));
+        r.register(id("npc_sergeant"), ent(1));
+        assert!(r.is_alive(&id("npc_sergeant")));
+        assert_eq!(r.entity(&id("npc_sergeant")), Some(ent(1)));
     }
 
     #[test]
     fn register_overwrites_previous_entity() {
         let mut r = TemplateRegistry::default();
-        r.register(id("npc_lieutenant"), ent(1));
-        r.register(id("npc_lieutenant"), ent(2));
-        assert_eq!(r.entity(&id("npc_lieutenant")), Some(ent(2)));
+        r.register(id("npc_sergeant"), ent(1));
+        r.register(id("npc_sergeant"), ent(2));
+        assert_eq!(r.entity(&id("npc_sergeant")), Some(ent(2)));
     }
 
     #[test]
     fn mark_dead_non_permanent_leaves_template_respawnable() {
         let mut r = TemplateRegistry::default();
-        r.register(id("npc_lieutenant"), ent(1));
-        r.mark_dead(&id("npc_lieutenant"), false);
-        assert!(!r.is_alive(&id("npc_lieutenant")));
-        assert!(!r.is_permanently_dead(&id("npc_lieutenant")));
+        r.register(id("npc_sergeant"), ent(1));
+        r.mark_dead(&id("npc_sergeant"), false);
+        assert!(!r.is_alive(&id("npc_sergeant")));
+        assert!(!r.is_permanently_dead(&id("npc_sergeant")));
     }
 
     #[test]
     fn mark_dead_permanent_blocks_respawn() {
         let mut r = TemplateRegistry::default();
-        r.register(id("npc_lieutenant"), ent(1));
-        r.mark_dead(&id("npc_lieutenant"), true);
-        assert!(!r.is_alive(&id("npc_lieutenant")));
-        assert!(r.is_permanently_dead(&id("npc_lieutenant")));
+        r.register(id("npc_sergeant"), ent(1));
+        r.mark_dead(&id("npc_sergeant"), true);
+        assert!(!r.is_alive(&id("npc_sergeant")));
+        assert!(r.is_permanently_dead(&id("npc_sergeant")));
     }
 
     #[test]
     fn forget_entity_drops_only_matching_entry() {
         let mut r = TemplateRegistry::default();
-        r.register(id("npc_lieutenant"), ent(1));
+        r.register(id("npc_sergeant"), ent(1));
         r.register(id("npc_fixer"), ent(2));
         r.forget_entity(ent(1));
-        assert!(!r.is_alive(&id("npc_lieutenant")));
+        assert!(!r.is_alive(&id("npc_sergeant")));
         assert!(r.is_alive(&id("npc_fixer")));
     }
 
     #[test]
     fn forget_entity_noop_when_entity_not_registered() {
         let mut r = TemplateRegistry::default();
-        r.register(id("npc_lieutenant"), ent(1));
+        r.register(id("npc_sergeant"), ent(1));
         r.forget_entity(ent(99));
-        assert!(r.is_alive(&id("npc_lieutenant")));
+        assert!(r.is_alive(&id("npc_sergeant")));
     }
 
     #[test]
     fn re_register_after_mark_dead_makes_alive_again() {
         let mut r = TemplateRegistry::default();
-        r.register(id("npc_lieutenant"), ent(1));
-        r.mark_dead(&id("npc_lieutenant"), false);
-        r.register(id("npc_lieutenant"), ent(2));
-        assert!(r.is_alive(&id("npc_lieutenant")));
-        assert_eq!(r.entity(&id("npc_lieutenant")), Some(ent(2)));
+        r.register(id("npc_sergeant"), ent(1));
+        r.mark_dead(&id("npc_sergeant"), false);
+        r.register(id("npc_sergeant"), ent(2));
+        assert!(r.is_alive(&id("npc_sergeant")));
+        assert_eq!(r.entity(&id("npc_sergeant")), Some(ent(2)));
     }
 
     #[test]
@@ -140,9 +140,9 @@ mod tests {
         // block `register`, but callers read `is_permanently_dead`
         // to decide. Verify the flag itself stays set.
         let mut r = TemplateRegistry::default();
-        r.register(id("npc_lieutenant"), ent(1));
-        r.mark_dead(&id("npc_lieutenant"), true);
-        r.register(id("npc_lieutenant"), ent(2));
-        assert!(r.is_permanently_dead(&id("npc_lieutenant")));
+        r.register(id("npc_sergeant"), ent(1));
+        r.mark_dead(&id("npc_sergeant"), true);
+        r.register(id("npc_sergeant"), ent(2));
+        assert!(r.is_permanently_dead(&id("npc_sergeant")));
     }
 }

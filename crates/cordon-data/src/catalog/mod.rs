@@ -482,6 +482,7 @@ impl GameData {
             }
             ObjectiveCondition::Wait { .. } => {}
             ObjectiveCondition::DaysWithoutPills { .. } => {}
+            ObjectiveCondition::DayReached { .. } => {}
             ObjectiveCondition::AllOf(conds) | ObjectiveCondition::AnyOf(conds) => {
                 for c in conds {
                     self.check_condition(c, referrer);

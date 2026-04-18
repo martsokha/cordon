@@ -13,7 +13,7 @@
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 
-use super::{CameraTarget, EdgeScrollEnabled, MAP_BOUND, ZOOM_MAX, ZOOM_MIN, snapshot_follow};
+use super::{CameraTarget, MAP_BOUND, ZOOM_MAX, ZOOM_MIN, snapshot_follow};
 use crate::PlayingState;
 use crate::laptop::ui::LaptopTab;
 
@@ -27,16 +27,6 @@ const PAN_SPEED: f32 = 300.0;
 /// threshold; Windows uses ~5.
 const DRAG_ENGAGE_THRESHOLD_PX: f32 = 4.0;
 
-/// Distance from the viewport edge (in pixels) that counts as
-/// "near the edge" for edge-scroll. Engaged only when
-/// [`EdgeScrollEnabled`] is on.
-const EDGE_SCROLL_MARGIN_PX: f32 = 12.0;
-
-/// Pixels/sec panning speed when the cursor sits at the very
-/// edge. Ramps from 0 at `EDGE_SCROLL_MARGIN_PX` inward to this
-/// value at the exact edge.
-const EDGE_SCROLL_SPEED: f32 = 500.0;
-
 /// System set for all controller input systems.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ControllerSet;
@@ -47,12 +37,7 @@ impl Plugin for ControllerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (
-                read_zoom,
-                read_keyboard_pan,
-                read_drag_pan,
-                read_edge_scroll,
-            )
+            (read_zoom, read_keyboard_pan, read_drag_pan)
                 .in_set(ControllerSet)
                 .run_if(in_state(PlayingState::Laptop))
                 .run_if(resource_equals(LaptopTab::Map)),
@@ -228,109 +213,4 @@ fn read_drag_pan(
     let (_, zoom_scale) = read_camera(&camera_q);
     target.position -= Vec2::new(delta.x, -delta.y) * zoom_scale;
     target.position = target.position.clamp(-MAP_BOUND, MAP_BOUND);
-}
-
-/// Edge-scroll: pan the camera when the cursor sits near the
-/// viewport edge. Gated behind [`EdgeScrollEnabled`] so players
-/// who find edge-scroll distracting can opt out. Off by
-/// default; no keybind yet — the resource is mutated via
-/// settings UI (future work) or a dev cheat.
-///
-/// Motion breaks follow, same as keyboard pan and drag pan.
-fn read_edge_scroll(
-    enabled: Res<EdgeScrollEnabled>,
-    // Real time, not virtual: see `read_keyboard_pan`.
-    time: Res<Time<Real>>,
-    windows: Query<&Window>,
-    camera_q: Query<(&Transform, &Projection), With<Camera2d>>,
-    mut target: ResMut<CameraTarget>,
-) {
-    if !enabled.0 {
-        return;
-    }
-    let Ok(window) = windows.single() else {
-        return;
-    };
-    let Some(cursor) = window.cursor_position() else {
-        return;
-    };
-    let w = window.width();
-    let h = window.height();
-    if w <= 0.0 || h <= 0.0 {
-        return;
-    }
-
-    // Distance from each edge (clamped ≥ 0). 0 means "cursor
-    // is at the edge"; values up to `EDGE_SCROLL_MARGIN_PX`
-    // ramp the pan from full speed to zero.
-    let dx = edge_falloff(cursor.x, w, EDGE_SCROLL_MARGIN_PX);
-    let dy = edge_falloff(cursor.y, h, EDGE_SCROLL_MARGIN_PX);
-    let dir = Vec2::new(dx, -dy);
-    if dir == Vec2::ZERO {
-        return;
-    }
-
-    let (camera_pos, zoom_scale) = read_camera(&camera_q);
-    snapshot_follow(&mut target, camera_pos);
-
-    target.position += dir * EDGE_SCROLL_SPEED * zoom_scale * time.delta_secs();
-    target.position = target.position.clamp(-MAP_BOUND, MAP_BOUND);
-}
-
-/// Compute a one-axis edge-scroll ramp: -1 near the low edge,
-/// +1 near the high edge, 0 anywhere in the middle. Linear
-/// ramp across `margin` pixels so the pan accelerates as the
-/// cursor approaches the rim.
-fn edge_falloff(pos: f32, size: f32, margin: f32) -> f32 {
-    if pos < margin {
-        -(1.0 - pos / margin).clamp(0.0, 1.0)
-    } else if pos > size - margin {
-        (1.0 - (size - pos) / margin).clamp(0.0, 1.0)
-    } else {
-        0.0
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::edge_falloff;
-
-    /// The central region between both margins maps to zero
-    /// so the camera stays still when the cursor is anywhere
-    /// but near the rim.
-    #[test]
-    fn centre_is_zero() {
-        assert_eq!(edge_falloff(500.0, 1000.0, 12.0), 0.0);
-        assert_eq!(edge_falloff(12.0, 1000.0, 12.0), 0.0);
-        assert_eq!(edge_falloff(988.0, 1000.0, 12.0), 0.0);
-    }
-
-    /// The very low edge maps to exactly -1 so the pan
-    /// velocity hits its maximum when the cursor is flush
-    /// against the edge.
-    #[test]
-    fn low_edge_is_minus_one() {
-        assert_eq!(edge_falloff(0.0, 1000.0, 12.0), -1.0);
-    }
-
-    /// Same on the high edge: exactly +1 at `size`.
-    #[test]
-    fn high_edge_is_plus_one() {
-        assert_eq!(edge_falloff(1000.0, 1000.0, 12.0), 1.0);
-    }
-
-    /// Halfway through the low margin the ramp reads -0.5 —
-    /// linear interpolation, not a step.
-    #[test]
-    fn low_margin_midpoint_ramps() {
-        let v = edge_falloff(6.0, 1000.0, 12.0);
-        assert!((v - -0.5).abs() < 1e-6, "expected -0.5, got {v}");
-    }
-
-    /// Same on the high side.
-    #[test]
-    fn high_margin_midpoint_ramps() {
-        let v = edge_falloff(994.0, 1000.0, 12.0);
-        assert!((v - 0.5).abs() < 1e-6, "expected 0.5, got {v}");
-    }
 }

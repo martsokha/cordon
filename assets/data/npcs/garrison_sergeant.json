@@ -1,6 +1,6 @@
 {
-  "id": "npc_garrison_lieutenant",
-  "name_key": "npc-garrison-lieutenant",
+  "id": "npc_garrison_sergeant",
+  "name_key": "npc-garrison-sergeant",
   "faction": "faction_garrison",
   "rank": "veteran",
   "trust": 0.2,

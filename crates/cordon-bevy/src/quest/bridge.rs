@@ -35,7 +35,6 @@ use cordon_data::gamedata::GameDataResource;
 use cordon_sim::entity::npc::TemplateId;
 use cordon_sim::plugin::prelude::QuestLog;
 use cordon_sim::quest::messages::{DismissTemplateNpc, SpawnNpcRequest, TalkCompleted};
-use cordon_sim::quest::registry::TemplateRegistry;
 
 use crate::bunker::resources::StartDialogue;
 use crate::bunker::{Visitor, VisitorQueue};
@@ -78,11 +77,9 @@ const FLAG_PREFIX: &str = "$quest_";
 /// and only dispatches when the in-flight slot is empty — a
 /// visitor-driven dialogue already running will always
 /// complete first.
-#[allow(clippy::too_many_arguments)]
 pub fn enqueue_talk_dialogue(
     log: Res<QuestLog>,
     data: Res<GameDataResource>,
-    registry: Res<TemplateRegistry>,
     mut queue: ResMut<VisitorQueue>,
     mut in_flight: ResMut<DialogueInFlight>,
     mut start_dialogue: MessageWriter<StartDialogue>,
@@ -116,12 +113,14 @@ pub fn enqueue_talk_dialogue(
         // string-tagged quests keep working.
         if let Some(template) = stage_npc.as_ref().or(def.giver.as_ref()) {
             if catalog.npc_template(template).is_some() {
-                // Skip re-dispatching while the named template is
-                // still in transit (or inside the bunker) from a
-                // prior firing of this stage.
-                if registry.is_alive(template) {
-                    return;
-                }
+                // Re-dispatch is safe: if the template is already
+                // alive (idling at home from a prior quest), the
+                // SpawnNpcRequest handler strips their current
+                // squad and starts a fresh travel leg toward the
+                // bunker — same entity, new goal. Repeated sends
+                // within a single stage are prevented by
+                // `in_flight` being set below, checked at the top
+                // of the loop.
                 spawn_npc.write(SpawnNpcRequest {
                     template: template.clone(),
                     at: None,

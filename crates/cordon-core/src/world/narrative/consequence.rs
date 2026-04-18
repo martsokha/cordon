@@ -101,6 +101,10 @@ pub enum ObjectiveCondition {
     /// starts from day 1 — so this condition can fire on a fresh
     /// save.
     DaysWithoutPills { days: u32 },
+    /// Current day number is at least `day`. Used to gate content
+    /// behind a minimum in-game calendar day (e.g., "this quest
+    /// can't fire before day 6 no matter what").
+    DayReached { day: u32 },
     /// All of the nested conditions must be true.
     AllOf(Vec<ObjectiveCondition>),
     /// At least one of the nested conditions must be true.

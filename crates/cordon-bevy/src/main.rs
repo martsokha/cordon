@@ -5,8 +5,11 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 mod bunker;
-#[cfg(debug_assertions)]
-mod debug;
+#[cfg(all(
+    debug_assertions,
+    any(feature = "diagnostic", feature = "inspector", feature = "cheat")
+))]
+mod dev;
 mod fonts;
 mod laptop;
 mod locale;
@@ -80,11 +83,15 @@ fn main() {
     // here in cordon-bevy because `AppState` is a bevy-layer type.
     app.add_systems(OnEnter(AppState::Playing), init_world_resources);
 
-    // Debug overlay + world inspector + dev cheats — compiled out
-    // of release builds entirely via the `#[cfg(debug_assertions)]`
-    // on the `mod debug;` declaration above.
-    #[cfg(debug_assertions)]
-    app.add_plugins(debug::DebugPlugin);
+    // Dev-time overlays — compiled out of release builds entirely,
+    // and only compiled when at least one of the `diagnostic`,
+    // `inspector`, or `cheat` features is on. Each feature
+    // independently adds its own sub-plugin.
+    #[cfg(all(
+        debug_assertions,
+        any(feature = "diagnostic", feature = "inspector", feature = "cheat")
+    ))]
+    app.add_plugins(dev::DevPlugin);
 
     app.run();
 }

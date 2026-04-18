@@ -1,0 +1,14 @@
+{
+  "id": "trigger_fever",
+  "quest": "quest_fever",
+  "kind": {
+    "on_condition": {
+      "all_of": [
+        { "days_without_pills": { "days": 1 } },
+        { "day_reached": { "day": 2 } },
+        { "quest_completed": "quest_whispers" }
+      ]
+    }
+  },
+  "repeatable": false
+}

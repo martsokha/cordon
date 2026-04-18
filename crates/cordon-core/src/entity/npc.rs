@@ -32,7 +32,7 @@ impl IdMarker for NpcTemplate {}
 /// A named, unique NPC definition. Loaded from `assets/data/npcs/`.
 ///
 /// Templates are for story-relevant characters with persistent
-/// identities — "Lieutenant Petrov," not "a random Garrison soldier."
+/// identities — "Sergeant Petrov," not "a random Garrison soldier."
 /// Generic NPCs are spawned from [`ArchetypeDef`](super::archetype::ArchetypeDef)
 /// instead.
 ///

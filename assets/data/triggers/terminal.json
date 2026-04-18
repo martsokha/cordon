@@ -1,0 +1,14 @@
+{
+  "id": "trigger_terminal",
+  "quest": "quest_terminal",
+  "kind": {
+    "on_condition": {
+      "all_of": [
+        { "days_without_pills": { "days": 1 } },
+        { "day_reached": { "day": 3 } },
+        { "quest_completed": "quest_fever" }
+      ]
+    }
+  },
+  "repeatable": false
+}

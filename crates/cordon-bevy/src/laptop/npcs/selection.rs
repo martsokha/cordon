@@ -74,7 +74,7 @@ pub(super) fn handle_npc_click(
     // Clicking an NPC selects and follows it; clicking the
     // same NPC a second time clears both. Clicking empty
     // space is a no-op — an active follow is only broken by
-    // explicit camera movement (WASD / drag / edge-scroll),
+    // explicit camera movement (WASD / drag),
     // not by a miss. This matches the expectation "I'm
     // watching Ivan, don't unlock until I pan away."
     match closest {
