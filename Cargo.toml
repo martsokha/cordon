@@ -30,6 +30,7 @@ cordon-sim = { path = "./crates/cordon-sim" }
 # Game engine
 bevy = { version = "0.18", features = ["debug", "jpeg"] }
 bevy-inspector-egui = { version = "0.36", features = [] }
+bevy_hanabi = { version = "0.18", features = [] }
 bevy_rand = { version = "0.14", features = ["wyrand"] }
 bevy_prng = { version = "0.14", features = ["wyrand"] }
 
