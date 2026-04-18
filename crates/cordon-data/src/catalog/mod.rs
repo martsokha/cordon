@@ -546,6 +546,7 @@ impl GameData {
                 }
             }
             Consequence::PriceModifier { .. } => {}
+            Consequence::EndGame { .. } => {}
         }
     }
 

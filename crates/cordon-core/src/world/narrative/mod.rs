@@ -19,7 +19,7 @@ mod intel;
 mod quest;
 mod trigger;
 
-pub use self::consequence::{ConditionalConsequence, Consequence, ObjectiveCondition};
+pub use self::consequence::{ConditionalConsequence, Consequence, EndingCause, ObjectiveCondition};
 pub use self::event::{ActiveEvent, Event, EventCategory, EventDef, RadioEntry};
 pub use self::flag::{QuestFlagPredicate, QuestFlagValue};
 pub use self::intel::{Intel, IntelCategory, IntelDef};

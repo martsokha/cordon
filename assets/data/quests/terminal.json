@@ -16,7 +16,13 @@
       "id": "completed",
       "kind": "outcome",
       "success": true,
-      "consequences": []
+      "consequences": [
+        {
+          "apply": [
+            { "end_game": { "cause": "terminal" } }
+          ]
+        }
+      ]
     }
   ],
   "repeatable": false

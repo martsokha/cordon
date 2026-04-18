@@ -341,6 +341,12 @@ pub struct StartDialogue {
     pub node: String,
 }
 
+/// Sent by the run-reset plumbing to abandon any in-flight Yarn
+/// dialogue. Calls `DialogueRunner::stop()` and forces
+/// `CurrentDialogue` back to Idle so the next run starts clean.
+#[derive(Message, Debug, Clone, Copy)]
+pub struct StopDialogue;
+
 /// Player-side message: the UI emits one of these when the player
 /// either continues past a line or picks an option.
 #[derive(Message, Debug, Clone, Copy)]

@@ -8,19 +8,20 @@
 //! This module is the thin layer that connects quest state to
 //! the dialogue system:
 //!
-//! - [`enqueue_talk_visitors`] — when a quest enters a `Talk`
-//!   stage, push a [`Visitor`] onto the bunker's visitor queue
-//!   tagged with the quest ID so the dialogue driver can route
-//!   the reply back.
-//! - [`on_dialogue_completed`] — observer on `DialogueCompleted`
-//!   that drains `$quest_*` Yarn variables into the active
-//!   quest's flags and calls [`engine::advance_after_talk`] to
-//!   move the quest forward.
-//!
-//! Quests without a giver NPC (narrator-only `Talk` stages) are
-//! *not* handled here yet — they need a direct dialogue start
-//! without the visitor queue. The first quest uses a giver
-//! every time, so narrator-only stages can wait.
+//! - [`bridge::enqueue_talk_dialogue`] — when a quest enters a
+//!   `Talk` stage, either emits a `SpawnNpcRequest` (for template
+//!   NPCs — the sim then walks the NPC to the bunker and a
+//!   `BunkerArrival` pushes the `Visitor` onto the bunker queue),
+//!   pushes a synthesized `Visitor` for string-tagged quests, or
+//!   writes `StartDialogue` for narrator-only `Talk` stages.
+//! - [`bridge::on_dialogue_completed`] — observer on
+//!   `DialogueCompleted` that drains `$quest_*` Yarn variables
+//!   into the active quest's flags, emits `TalkCompleted` back to
+//!   the sim, and clears the in-flight slot so the next `Talk`
+//!   stage can dispatch.
+//! - [`arrival::handle_bunker_arrival`] / [`arrival::handle_home_arrival`]
+//!   — view-layer glue between the sim's travel messages and the
+//!   bunker's visitor queue / idle-squad setup.
 
 mod arrival;
 mod bridge;
@@ -29,7 +30,7 @@ use bevy::prelude::*;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::resources::FactionSettlements;
 
-use self::bridge::DialogueInFlight;
+pub use self::bridge::DialogueInFlight;
 
 pub struct QuestBridgePlugin;
 

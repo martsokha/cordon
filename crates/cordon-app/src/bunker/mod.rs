@@ -21,7 +21,7 @@ mod rooms;
 mod sleep;
 mod systems;
 mod textures;
-mod toast;
+pub mod toast;
 mod visitor;
 
 use bevy::prelude::*;
@@ -33,7 +33,7 @@ pub use self::resources::{BunkerSpawned, CameraMode};
 #[cfg(feature = "steam")]
 pub use self::visitor::VisitorState;
 pub use self::visitor::{Visitor, VisitorQueue};
-use crate::PlayingState;
+use crate::{AppState, PauseState, PlayingState};
 
 pub struct BunkerPlugin;
 
@@ -77,8 +77,11 @@ impl Plugin for BunkerPlugin {
         app.add_systems(OnEnter(PlayingState::Laptop), camera::start_laptop_zoom);
         app.add_systems(OnEnter(PlayingState::Bunker), camera::start_free_look);
         app.add_systems(Update, camera::animate_camera);
+        // Bunker spawns once when loading completes, persists across
+        // menu / play / ending transitions. The scene serves as a
+        // backdrop for the main menu and pause overlays.
         app.add_systems(
-            OnEnter(PlayingState::Bunker),
+            OnEnter(AppState::Menu),
             systems::spawn_bunker.run_if(not(resource_exists::<BunkerSpawned>)),
         );
         app.add_systems(
@@ -94,7 +97,8 @@ impl Plugin for BunkerPlugin {
                 // `spawn_bunker` handles the first fill.
                 rooms::hall::sync_hall_racks.run_if(resource_exists::<BunkerSpawned>),
             )
-                .run_if(in_state(PlayingState::Bunker)),
+                .run_if(in_state(PlayingState::Bunker))
+                .run_if(in_state(PauseState::Running)),
         );
     }
 }

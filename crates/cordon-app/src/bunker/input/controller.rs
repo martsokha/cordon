@@ -59,6 +59,7 @@ impl Plugin for ControllerPlugin {
             Update,
             (fps_look, fps_move)
                 .run_if(in_state(PlayingState::Bunker))
+                .run_if(in_state(crate::PauseState::Running))
                 .run_if(|mode: Res<CameraMode>| matches!(*mode, CameraMode::Free))
                 .run_if(not(resource_exists::<MovementLocked>)),
         );

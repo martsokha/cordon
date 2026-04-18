@@ -12,9 +12,10 @@ pub(super) struct DoorSfx {
 }
 
 /// Tag on the alarm audio entity so it can be despawned when the
-/// player admits the visitor.
+/// player admits the visitor, or when a menu overlay takes over
+/// and the looping audio shouldn't bleed through.
 #[derive(Component)]
-pub(super) struct AlarmSound;
+pub(crate) struct AlarmSound;
 
 pub(super) const DOOR_VOLUME: f32 = 0.6;
 pub(super) const ALARM_VOLUME: f32 = 0.15;

@@ -77,17 +77,21 @@ pub fn sync_owned_marker(
     index: Res<SquadIdIndex>,
     owned_q: Query<(Entity, &Uid<cordon_core::entity::squad::Squad>), With<Owned>>,
 ) {
-    // Add Owned to entities whose Uid is in the roster.
+    // Add Owned to entities whose Uid is in the roster. `try_insert`
+    // tolerates entities that were despawned earlier in the same
+    // frame (happens on state-scoped cleanup when `AppState::Playing`
+    // exits — the roster and `SquadIdIndex` may still hold handles
+    // the command queue will flush to dead entities).
     for (uid, _) in roster.iter() {
         let Some(entity) = index.0.get(uid) else {
             continue;
         };
-        commands.entity(*entity).insert(Owned);
+        commands.entity(*entity).try_insert(Owned);
     }
     // Strip Owned from entities whose Uid was dismissed.
     for (entity, uid) in &owned_q {
         if !roster.is_hired(uid) {
-            commands.entity(entity).remove::<Owned>();
+            commands.entity(entity).try_remove::<Owned>();
         }
     }
 }

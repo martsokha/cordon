@@ -17,6 +17,7 @@
 use std::f32::consts::FRAC_PI_2;
 
 use bevy::prelude::*;
+use bevy::state::state_scoped::DespawnOnExit;
 use cordon_core::entity::bunker::UpgradeEffect;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::resources::PlayerUpgrades;
@@ -89,6 +90,9 @@ fn spawn_pair(commands: &mut Commands, l: &Layout, tier: HallRackTier) {
         commands.spawn((
             PropPlacement::new(Prop::StorageRack01, Vec3::new(x, 0.0, z)).rotated(rot),
             tier,
+            // Upgrade-conditional rack — fresh run has no upgrades,
+            // so the pair should disappear with the run.
+            DespawnOnExit(crate::AppState::Playing),
         ));
     }
 }

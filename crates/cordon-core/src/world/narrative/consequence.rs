@@ -237,4 +237,26 @@ pub enum Consequence {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         duration: Option<Duration>,
     },
+    /// End the run. The `cause` enum is routed to the ending slate
+    /// (cordon-app reads it to pick flavor text). Applying the
+    /// consequence transitions the app into the ending screen; the
+    /// outcome stage's other consequences still apply first, in
+    /// order, so reward payouts land before the run resets.
+    EndGame { cause: EndingCause },
+}
+
+/// How the current run ended. Drives the ending-slate epitaph.
+/// Adding a new ending is an enum variant + an arm in the epitaph
+/// lookup — typos at the authoring layer surface as JSON load
+/// errors instead of silent generic flavor text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EndingCause {
+    /// Tenant arc: the player let withdrawal carry them away.
+    Terminal,
+    /// The Garrison collected an unpayable debt.
+    Bankruptcy,
+    /// Fallback for unclassified deaths.
+    Generic,
 }

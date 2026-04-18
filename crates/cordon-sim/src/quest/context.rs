@@ -13,8 +13,8 @@ use cordon_data::gamedata::GameDataResource;
 
 use super::condition;
 use super::messages::{
-    GiveNpcXpRequest, QuestFinished, QuestStarted, QuestUpdated, SpawnNpcRequest, StandingChanged,
-    StartQuestRequest,
+    EndGameRequest, GiveNpcXpRequest, QuestFinished, QuestStarted, QuestUpdated, SpawnNpcRequest,
+    StandingChanged, StartQuestRequest,
 };
 use super::registry::TemplateRegistry;
 use super::state::QuestLog;
@@ -44,6 +44,7 @@ pub struct QuestCtx<'w> {
     pub quest_started_tx: MessageWriter<'w, QuestStarted>,
     pub quest_updated_tx: MessageWriter<'w, QuestUpdated>,
     pub quest_finished_tx: MessageWriter<'w, QuestFinished>,
+    pub end_game_tx: MessageWriter<'w, EndGameRequest>,
 }
 
 impl QuestCtx<'_> {

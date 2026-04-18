@@ -18,7 +18,8 @@ use cordon_data::gamedata::GameDataResource;
 pub use state::{Visitor, VisitorQueue, VisitorState};
 pub use ui::DoorButton;
 
-use crate::PlayingState;
+use self::audio::AlarmSound;
+use crate::{AppState, PauseState, PlayingState};
 
 pub struct VisitorPlugin;
 
@@ -55,5 +56,30 @@ impl Plugin for VisitorPlugin {
             )
                 .run_if(in_state(PlayingState::Bunker)),
         );
+        // Kill the looping alarm whenever any menu overlay is up —
+        // runs every frame (cheap when no alarm exists) so a stray
+        // alarm that somehow spawns mid-menu can't survive. The
+        // alternative is three separate `OnEnter` hooks that all
+        // only fire on the transition edge, which is brittle.
+        app.add_systems(Update, silence_alarm_during_overlays);
+    }
+}
+
+fn silence_alarm_during_overlays(
+    mut commands: Commands,
+    app_state: Res<State<AppState>>,
+    pause_state: Option<Res<State<PauseState>>>,
+    alarm_q: Query<Entity, With<AlarmSound>>,
+) {
+    if alarm_q.is_empty() {
+        return;
+    }
+    let overlay_up = !matches!(app_state.get(), AppState::Playing)
+        || pause_state.is_some_and(|s| matches!(s.get(), PauseState::Paused));
+    if !overlay_up {
+        return;
+    }
+    for entity in &alarm_q {
+        commands.entity(entity).despawn();
     }
 }

@@ -12,7 +12,9 @@ use cordon_core::primitive::{GameTime, Id};
 use cordon_core::world::narrative::{ActiveEvent, Consequence};
 use cordon_data::catalog::GameData;
 
-use super::messages::{GiveNpcXpRequest, SpawnNpcRequest, StandingChanged, StartQuestRequest};
+use super::messages::{
+    EndGameRequest, GiveNpcXpRequest, SpawnNpcRequest, StandingChanged, StartQuestRequest,
+};
 use super::registry::TemplateRegistry;
 use crate::day::world_events::{EventOverrides, spawn_event_instance};
 use crate::resources::{PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades};
@@ -36,6 +38,7 @@ pub fn apply(
     spawn_npc: &mut MessageWriter<SpawnNpcRequest>,
     give_npc_xp: &mut MessageWriter<GiveNpcXpRequest>,
     standing_changed: &mut MessageWriter<StandingChanged>,
+    end_game: &mut MessageWriter<EndGameRequest>,
 ) {
     match consequence {
         Consequence::StandingChange { faction, delta } => {
@@ -191,6 +194,11 @@ pub fn apply(
                 .map(|d| d.to_string())
                 .unwrap_or_else(|| "permanent".to_string());
             warn!("STUB `price_modifier`: {category:?} ×{multiplier}, lifetime {lifetime}.");
+        }
+
+        Consequence::EndGame { cause } => {
+            info!("EndGame: cause {cause:?}");
+            end_game.write(EndGameRequest { cause: *cause });
         }
     }
 }

@@ -5,7 +5,7 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::entity::npc::NpcTemplate;
 use cordon_core::primitive::{Experience, Id, RelationDelta};
 use cordon_core::world::area::Area;
-use cordon_core::world::narrative::Quest;
+use cordon_core::world::narrative::{EndingCause, Quest};
 
 /// Start a quest outside the regular trigger flow.
 #[derive(Message, Debug, Clone)]
@@ -69,4 +69,13 @@ pub struct QuestFinished {
 pub struct TalkCompleted {
     pub quest: Id<Quest>,
     pub choice: Option<String>,
+}
+
+/// The run is over — transition to the ending slate. Emitted by
+/// the [`Consequence::EndGame`] applier; consumed by cordon-app
+/// to flip `AppState` to `Ending` and stash the `cause` for the
+/// epitaph text.
+#[derive(Message, Debug, Clone, Copy)]
+pub struct EndGameRequest {
+    pub cause: EndingCause,
 }

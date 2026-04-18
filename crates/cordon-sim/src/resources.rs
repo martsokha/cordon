@@ -434,9 +434,13 @@ pub fn tick_sim_time(
     sim_time.advance_by(delta);
 }
 
-/// Build the cordon-sim resource set from loaded game data. The
-/// caller is responsible for calling this exactly once, typically
-/// on `OnEnter(PlayingState)` in the cordon-app layer.
+/// Build the cordon-sim resource set from loaded game data. Also
+/// valid as a "reset to a fresh run" — every `insert_resource`
+/// below replaces rather than merges, so calling this mid-session
+/// wipes any in-flight state (player stash, faction standings,
+/// quest log, intel, etc.). The caller handles entity despawns
+/// (NPCs, squads, relics) and the one-time catalog side of the
+/// setup elsewhere.
 pub fn init_world_resources(mut commands: Commands, game_data: Res<GameDataResource>) {
     let data = &game_data.0;
 
@@ -490,6 +494,7 @@ pub fn init_world_resources(mut commands: Commands, game_data: Res<GameDataResou
         hidden_storage: player_state.hidden_storage,
     });
     commands.insert_resource(PlayerSquadRoster::default());
+    commands.insert_resource(SquadIdIndex::default());
     commands.insert_resource(FactionIndex(faction_weights));
     commands.insert_resource(FactionSettlements(settlements));
     commands.insert_resource(AreaStates(areas));
@@ -497,6 +502,16 @@ pub fn init_world_resources(mut commands: Commands, game_data: Res<GameDataResou
     commands.insert_resource(PlayerIntel::default());
     commands.insert_resource(PlayerPills::default());
     commands.insert_resource(TimeAccumulator::default());
+    // Quest + day-cycle resources initialised by their own plugins on
+    // app build, but we re-insert them here so mid-session reset
+    // wipes their accumulated state (active quests, dead-template
+    // flags, prior-day broadcast dedup, prior-day debt, timer hands
+    // anchored to entities we just despawned).
+    commands.insert_resource(crate::quest::QuestLog::default());
+    commands.insert_resource(crate::quest::TemplateRegistry::default());
+    commands.insert_resource(crate::day::payroll::LastDailyExpenses::default());
+    commands.insert_resource(crate::day::radio::DeliveredBroadcasts::default());
+    commands.insert_resource(crate::behavior::effects::PeriodicTriggers::default());
 
     info!("World initialised; population will be spawned by cordon-sim");
 }

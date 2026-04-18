@@ -60,12 +60,14 @@ pub(super) fn arrive_next_visitor(
         })),
         Transform::from_translation(ANTECHAMBER_VISITOR_POS)
             .looking_at(ANTECHAMBER_VISITOR_POS + Vec3::new(0.0, 0.0, 1.0), Vec3::Y),
+        DespawnOnExit(crate::AppState::Playing),
     ));
 
     commands.spawn((
         AlarmSound,
         AudioPlayer(door_sfx.alarm.clone()),
         PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(ALARM_VOLUME)),
+        DespawnOnExit(crate::AppState::Playing),
     ));
     info!("visitor arrived: {}", visitor.display_name);
     *state = VisitorState::Knocking { visitor };
@@ -128,6 +130,7 @@ pub(super) fn apply_admit_visitor(
             })),
             Transform::from_translation(VISITOR_SPRITE_POS)
                 .looking_at(Vec3::new(0.0, 1.2, 0.0), Vec3::Y),
+            DespawnOnExit(crate::AppState::Playing),
         ))
         .id();
 

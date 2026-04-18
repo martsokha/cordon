@@ -27,7 +27,7 @@ mod ui;
 use bevy::prelude::*;
 use bevy_yarnspinner::prelude::*;
 
-use super::resources::{CurrentDialogue, DialogueChoice, StartDialogue};
+use super::resources::{CurrentDialogue, DialogueChoice, StartDialogue, StopDialogue};
 
 pub struct DialoguePlugin;
 
@@ -36,6 +36,7 @@ impl Plugin for DialoguePlugin {
         app.add_plugins((YarnSpinnerPlugin::new(), ui::DialogueUiPlugin));
         app.insert_resource(CurrentDialogue::default());
         app.add_message::<StartDialogue>();
+        app.add_message::<StopDialogue>();
         app.add_message::<DialogueChoice>();
         app.add_systems(
             Update,
@@ -43,7 +44,11 @@ impl Plugin for DialoguePlugin {
         );
         app.add_systems(
             Update,
-            (systems::apply_start_dialogue, systems::apply_player_choice),
+            (
+                systems::apply_start_dialogue,
+                systems::apply_stop_dialogue,
+                systems::apply_player_choice,
+            ),
         );
         app.add_observer(systems::on_present_line);
         app.add_observer(systems::on_present_options);

@@ -42,9 +42,9 @@ pub(super) fn load_rack_sfx(mut commands: Commands, asset_server: Res<AssetServe
 /// and `SceneRoot`) but don't yet have a `Rack` component.
 pub(super) fn spawn_rack_slots(
     mut commands: Commands,
-    new_racks: Query<(Entity, &PropPlacement, &Transform), (With<SceneRoot>, Without<Rack>)>,
+    new_racks: Query<(Entity, &PropPlacement), (With<SceneRoot>, Without<Rack>)>,
 ) {
-    for (rack_entity, placement, rack_transform) in &new_racks {
+    for (rack_entity, placement) in &new_racks {
         if placement.kind != Prop::StorageRack01 {
             continue;
         }
@@ -52,8 +52,13 @@ pub(super) fn spawn_rack_slots(
         let mut slots: [Option<Entity>; SLOTS_PER_RACK] = [None; SLOTS_PER_RACK];
 
         for (i, &local_offset) in SLOT_OFFSETS.iter().enumerate() {
-            let world_pos = rack_transform.translation
-                + rack_transform.rotation * (local_offset * placement.scale);
+            // Parent the slot to the rack so a state-scoped rack
+            // (upgrade-installed pair) takes its slots with it on
+            // run exit. Permanent racks keep their slots too —
+            // hierarchy cascade works either way. Transform stays
+            // in rack-local space; Bevy's hierarchy applies the
+            // rack's transform on top.
+            let local_pos = local_offset * placement.scale;
 
             let slot_entity = commands
                 .spawn((
@@ -67,8 +72,9 @@ pub(super) fn spawn_rack_slots(
                         key: String::new(),
                         enabled: false,
                     },
-                    Transform::from_translation(world_pos),
+                    Transform::from_translation(local_pos),
                     GlobalTransform::default(),
+                    ChildOf(rack_entity),
                 ))
                 .id();
             slots[i] = Some(slot_entity);
@@ -331,10 +337,13 @@ fn spawn_slot_visual(
         .get(&instance.def_id)
         .map(|def| def.data.category().shelf_prop())
         .unwrap_or(Prop::Box01);
+    // Scoped so returning to the main menu wipes items off every
+    // rack, including the permanent ones in the hall.
     let child = commands
         .spawn((
             PropPlacement::new(prop, Vec3::ZERO).no_collider(),
             Transform::default(),
+            bevy::state::state_scoped::DespawnOnExit(crate::AppState::Playing),
         ))
         .id();
     commands.entity(slot_entity).add_child(child);
@@ -345,8 +354,8 @@ fn spawn_slot_visual(
 const STARTER_ITEMS: &[&str] = &[
     "item_bandage",
     "item_bandage",
-    "item_canned_food",
-    "item_556_box",
+    "item_ration",
+    "item_rifle_ammo",
 ];
 
 /// One-shot system: populate empty rack slots with a few starter
@@ -393,6 +402,21 @@ pub(super) fn populate_starter_items(
 /// Flag so [`populate_starter_items`] only runs once.
 #[derive(Resource)]
 pub(super) struct RacksPopulated;
+
+/// Reset rack occupancy on the transition into a fresh run. The
+/// slot entities themselves persist (they're children of the
+/// permanent racks in the hall), so we clear their `item` /
+/// `visual` fields manually; the item visuals were auto-despawned
+/// by `DespawnOnExit(AppState::Playing)` on the exit prior.
+/// Dropping `RacksPopulated` lets `populate_starter_items` re-run
+/// on the new run's first frame.
+pub fn reset_rack_state(mut commands: Commands, mut slots: Query<&mut RackSlot>) {
+    for mut slot in &mut slots {
+        slot.item = None;
+        slot.visual = None;
+    }
+    commands.remove_resource::<RacksPopulated>();
+}
 
 /// Drain items from `PlayerState.pending_items` onto the first
 /// available rack slots. Quest consequences push items there;

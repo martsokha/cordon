@@ -250,6 +250,7 @@ fn complete_quest(
             &mut ctx.spawn_npc_tx,
             &mut ctx.give_npc_xp_tx,
             &mut ctx.standing_changed_tx,
+            &mut ctx.end_game_tx,
         );
     }
 

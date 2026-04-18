@@ -13,6 +13,7 @@ mod systems;
 
 use bevy::prelude::*;
 pub use components::Carrying;
+pub use systems::reset_rack_state;
 
 use crate::PlayingState;
 

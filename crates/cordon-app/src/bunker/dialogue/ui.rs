@@ -12,9 +12,9 @@
 use bevy::prelude::*;
 use bevy::ui::UiTargetCamera;
 
-use crate::PlayingState;
 use crate::bunker::FpsCamera;
 use crate::bunker::resources::{CurrentDialogue, DialogueChoice};
+use crate::{AppState, PauseState, PlayingState};
 
 pub(super) struct DialogueUiPlugin;
 
@@ -35,6 +35,33 @@ impl Plugin for DialogueUiPlugin {
             )
                 .run_if(in_state(PlayingState::Bunker)),
         );
+        // Hide the whole panel under any pause-menu / ending
+        // overlay so we don't end up with a half-dimmed dialogue
+        // panel bleeding through the pause screen. Runs in any
+        // AppState so re-entering Menu from a run mid-dialogue
+        // also hides it.
+        app.add_systems(Update, force_panel_visibility);
+    }
+}
+
+fn force_panel_visibility(
+    app_state: Res<State<AppState>>,
+    pause_state: Option<Res<State<PauseState>>>,
+    current: Res<CurrentDialogue>,
+    mut panel_q: Query<&mut Visibility, With<DialoguePanel>>,
+) {
+    let Ok(mut vis) = panel_q.single_mut() else {
+        return;
+    };
+    let paused = pause_state.is_some_and(|s| matches!(s.get(), PauseState::Paused));
+    let hidden_by_overlay = !matches!(app_state.get(), AppState::Playing) || paused;
+    let desired = if hidden_by_overlay || matches!(*current, CurrentDialogue::Idle) {
+        Visibility::Hidden
+    } else {
+        Visibility::Visible
+    };
+    if *vis != desired {
+        *vis = desired;
     }
 }
 

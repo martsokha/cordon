@@ -12,7 +12,9 @@ mod bunker;
 mod dev;
 mod fonts;
 mod laptop;
+mod lifecycle;
 mod locale;
+mod menu;
 mod quest;
 #[cfg(feature = "steam")]
 pub mod steam;
@@ -21,13 +23,20 @@ use bevy::asset::AssetPlugin;
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataPlugin;
 use cordon_sim::plugin::CordonSimPlugin;
-use cordon_sim::resources::init_world_resources;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Hash, Debug)]
 pub enum AppState {
+    /// Load game data + assets.
     #[default]
     Loading,
+    /// Main menu overlay on top of the bunker scene. Default after
+    /// loading completes; also where we return after an ending.
+    Menu,
+    /// Active run. Gameplay systems gate on this.
     Playing,
+    /// End-of-run slate (Terminal, bankruptcy, etc.). Transient — the
+    /// Continue button returns to Menu.
+    Ending,
 }
 
 #[derive(SubStates, Default, Clone, Eq, PartialEq, Hash, Debug)]
@@ -36,6 +45,19 @@ pub enum PlayingState {
     #[default]
     Bunker,
     Laptop,
+}
+
+/// Orthogonal to [`PlayingState`]: whether the sim is actively
+/// progressing. Pause is a modal overlay (`Esc` from any
+/// `PlayingState`), so it lives as its own sub-state tied to
+/// [`AppState::Playing`]. Gameplay systems that should freeze during
+/// pause, dialog, or menus gate on `in_state(PauseState::Running)`.
+#[derive(SubStates, Default, Clone, Eq, PartialEq, Hash, Debug)]
+#[source(AppState = AppState::Playing)]
+pub enum PauseState {
+    #[default]
+    Running,
+    Paused,
 }
 
 fn main() {
@@ -56,9 +78,10 @@ fn main() {
     )
     .init_state::<AppState>()
     .add_sub_state::<PlayingState>()
+    .add_sub_state::<PauseState>()
     .add_plugins(GameDataPlugin {
         loading: AppState::Loading,
-        ready: AppState::Playing,
+        ready: AppState::Menu,
     })
     .add_plugins(locale::LocalePlugin)
     .add_plugins(fonts::FontsPlugin)
@@ -70,18 +93,14 @@ fn main() {
     // default) wastes ~4ms/frame on redundant constraint solving.
     .insert_resource(avian3d::prelude::SubstepCount(1))
     .add_plugins(CordonSimPlugin)
+    .add_plugins(lifecycle::LifecyclePlugin)
+    .add_plugins(menu::MenuPlugin)
     .add_plugins(bunker::BunkerPlugin)
     .add_plugins(laptop::LaptopPlugin)
     .add_plugins(quest::QuestBridgePlugin);
 
     #[cfg(feature = "steam")]
     app.add_plugins(steam::SteamPlugin);
-
-    // Bootstrap the cordon-sim resource set on enter-play.
-    // `init_world_resources` lives in cordon-sim — it knows how to
-    // read `GameDataResource` and populate the world. The hook is
-    // here in cordon-app because `AppState` is a bevy-layer type.
-    app.add_systems(OnEnter(AppState::Playing), init_world_resources);
 
     // Dev-time overlays — compiled out of release builds entirely,
     // and only compiled when at least one of the `diagnostic`,

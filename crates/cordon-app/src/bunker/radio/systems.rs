@@ -8,7 +8,7 @@ use crate::bunker::resources::RadioPlacement;
 
 const STATIC_VOLUME: f32 = 0.08;
 const CHATTER_VOLUME: f32 = 0.35;
-const TOGGLE_VOLUME: f32 = 0.5;
+const TOGGLE_VOLUME: f32 = 0.75;
 
 #[derive(Resource)]
 pub(super) struct RadioSfx {

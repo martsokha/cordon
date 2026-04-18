@@ -39,7 +39,7 @@ struct PendingToast {
 }
 
 #[derive(Resource, Default)]
-pub(super) struct ToastQueue(Vec<PendingToast>);
+pub(crate) struct ToastQueue(Vec<PendingToast>);
 
 impl ToastQueue {
     fn push(&mut self, icon_index: usize, text: impl Into<String>) {
@@ -47,6 +47,15 @@ impl ToastQueue {
             icon_index,
             text: text.into(),
         });
+    }
+}
+
+/// Drop every queued toast. Called from the lifecycle plugin when
+/// a new run begins so prior-run sim events don't surface as
+/// toasts on the fresh bunker.
+pub(crate) fn reset_toast_queue(queue: Option<ResMut<ToastQueue>>) {
+    if let Some(mut q) = queue {
+        q.0.clear();
     }
 }
 
@@ -246,6 +255,7 @@ pub(super) fn spawn_toasts(
                 },
                 BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
                 GlobalZIndex(110),
+                bevy::state::state_scoped::DespawnOnExit(crate::AppState::Playing),
             ))
             .add_children(&[icon_node, text_node]);
     }

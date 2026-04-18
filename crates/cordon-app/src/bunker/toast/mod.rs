@@ -5,14 +5,23 @@
 mod systems;
 
 use bevy::prelude::*;
+pub(crate) use systems::reset_toast_queue;
 
-use crate::PlayingState;
+use crate::{AppState, PauseState};
 
 pub struct ToastPlugin;
 
 impl Plugin for ToastPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, systems::load_atlas);
+        // Gated on `AppState::Playing` (so no toasts during main
+        // menu / ending) and `PauseState::Running` (no spawns or
+        // fade-progress during pause — the alpha animation reads
+        // `Time<Real>` which would keep ticking regardless, so we
+        // have to gate explicitly). Runs in any `PlayingState`:
+        // a quest toast fired while the player is on the laptop
+        // should still surface, the toast UI targets the FPS
+        // camera either way.
         app.add_systems(
             Update,
             (
@@ -26,7 +35,8 @@ impl Plugin for ToastPlugin {
                 systems::animate_toasts,
             )
                 .chain()
-                .run_if(in_state(PlayingState::Bunker)),
+                .run_if(in_state(AppState::Playing))
+                .run_if(in_state(PauseState::Running)),
         );
     }
 }

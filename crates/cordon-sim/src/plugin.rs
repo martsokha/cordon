@@ -21,6 +21,20 @@ use crate::resources::{GameClock, Sim, SimSpeed, SquadIdIndex, UidAllocator};
 use crate::spawn;
 use crate::spawn::relics::RelicSpawnPlugin;
 
+/// Marker resource consulted by the `SimSet` run-condition. When it
+/// exists, sim systems tick; when it's absent they sleep entirely.
+/// The cordon-app layer inserts it on `OnEnter(AppState::Playing)`
+/// and removes it on `OnExit`, keeping the sim frozen whenever the
+/// player is in a menu / ending state.
+///
+/// Distinct from `SimSpeed`: `SimSpeed = 0.0` halts time-based
+/// systems (everything that reads `Time<Sim>`), but systems that
+/// poll spatial conditions (e.g. behaviour-tree leaves checking
+/// distance-to-target) would still tick and trigger BT observers
+/// every frame. This resource gates the whole chain so nothing runs.
+#[derive(Resource, Default)]
+pub struct SimActive;
+
 /// Ordered system set for cordon-sim. The whole chain runs only when
 /// both [`GameClock`] and [`GameDataResource`] are present, so the
 /// sim sleeps cleanly during loading.
@@ -84,7 +98,8 @@ impl Plugin for CordonSimPlugin {
             )
                 .chain()
                 .run_if(resource_exists::<GameClock>)
-                .run_if(resource_exists::<GameDataResource>),
+                .run_if(resource_exists::<GameDataResource>)
+                .run_if(resource_exists::<SimActive>),
         );
 
         app.add_message::<spawn::SquadSpawned>();
