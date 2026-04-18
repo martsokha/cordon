@@ -481,6 +481,7 @@ impl GameData {
                 self.check_area(area, referrer, "NpcAtLocation.area");
             }
             ObjectiveCondition::Wait { .. } => {}
+            ObjectiveCondition::DaysWithoutPills { .. } => {}
             ObjectiveCondition::AllOf(conds) | ObjectiveCondition::AnyOf(conds) => {
                 for c in conds {
                     self.check_condition(c, referrer);

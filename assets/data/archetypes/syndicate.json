@@ -6,21 +6,21 @@
       "novice": {
         "primary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           },
           {
-            "id": "item_toz34"
+            "id": "item_doublebarrel"
           },
           {
-            "id": "item_kedr"
+            "id": "item_razor"
           }
         ],
         "secondary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           },
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [
@@ -54,19 +54,19 @@
       "experienced": {
         "primary": [
           {
-            "id": "item_kedr",
+            "id": "item_razor",
             "weight": 2
           },
           {
-            "id": "item_saiga12"
+            "id": "item_bulwark"
           },
           {
-            "id": "item_ak74"
+            "id": "item_longtooth"
           }
         ],
         "secondary": [
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [
@@ -101,22 +101,22 @@
       "veteran": {
         "primary": [
           {
-            "id": "item_kedr"
+            "id": "item_razor"
           },
           {
-            "id": "item_saiga12"
+            "id": "item_bulwark"
           },
           {
-            "id": "item_ak74",
+            "id": "item_longtooth",
             "weight": 2
           },
           {
-            "id": "item_aek971"
+            "id": "item_ironclaw"
           }
         ],
         "secondary": [
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [
@@ -147,16 +147,16 @@
       "master": {
         "primary": [
           {
-            "id": "item_aek971",
+            "id": "item_ironclaw",
             "weight": 2
           },
           {
-            "id": "item_ak74"
+            "id": "item_longtooth"
           }
         ],
         "secondary": [
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [
@@ -184,15 +184,15 @@
       "legend": {
         "primary": [
           {
-            "id": "item_aek971"
+            "id": "item_ironclaw"
           },
           {
-            "id": "item_svd"
+            "id": "item_nighthawk"
           }
         ],
         "secondary": [
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [

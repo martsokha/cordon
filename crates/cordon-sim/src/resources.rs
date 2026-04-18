@@ -345,6 +345,29 @@ impl PlayerIntel {
     }
 }
 
+/// Tracks when the player last took pills. `None` means never,
+/// which the quest system interprets as "zero doses since game
+/// start" so the "n days without pills" trigger can fire even
+/// on a fresh run.
+#[derive(Resource, Debug, Clone, Copy, Default)]
+pub struct PlayerPills {
+    pub last_taken: Option<Day>,
+}
+
+impl PlayerPills {
+    /// Whole days elapsed since the last dose — or since game
+    /// start (day 1) when the player has never taken pills.
+    pub fn days_without(&self, now: Day) -> u32 {
+        let baseline = self.last_taken.unwrap_or(Day::FIRST);
+        now.value().saturating_sub(baseline.value())
+    }
+
+    /// Stamp a dose on the given day. Idempotent within a day.
+    pub fn record_dose(&mut self, day: Day) {
+        self.last_taken = Some(day);
+    }
+}
+
 /// Monotonic Uid allocator. Each call to [`UidAllocator::alloc`]
 /// returns a fresh `Uid<T>` typed for the caller's marker.
 #[derive(Resource, Debug, Clone)]
@@ -472,6 +495,7 @@ pub fn init_world_resources(mut commands: Commands, game_data: Res<GameDataResou
     commands.insert_resource(AreaStates(areas));
     commands.insert_resource(EventLog::default());
     commands.insert_resource(PlayerIntel::default());
+    commands.insert_resource(PlayerPills::default());
     commands.insert_resource(TimeAccumulator::default());
 
     info!("World initialised; population will be spawned by cordon-sim");

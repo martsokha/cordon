@@ -18,7 +18,7 @@ mod stash;
 pub use self::category::ItemCategory;
 pub use self::data::{
     AmmoData, ArmorData, ArmorSlot, AttachmentData, Caliber, ConsumableData, DocumentData,
-    FireMode, ItemData, RelicData, ThrowableData, WeaponData,
+    ItemData, RelicData, ThrowableData, WeaponData,
 };
 pub use self::def::{Item, ItemDef, Supplier};
 pub use self::effect::{

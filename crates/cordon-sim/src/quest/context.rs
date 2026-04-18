@@ -19,8 +19,8 @@ use super::messages::{
 use super::registry::TemplateRegistry;
 use super::state::QuestLog;
 use crate::resources::{
-    EventLog, FactionIndex, GameClock, PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash,
-    PlayerUpgrades,
+    EventLog, FactionIndex, GameClock, PlayerIdentity, PlayerIntel, PlayerPills, PlayerStandings,
+    PlayerStash, PlayerUpgrades,
 };
 
 #[derive(SystemParam)]
@@ -33,6 +33,7 @@ pub struct QuestCtx<'w> {
     pub upgrades: ResMut<'w, PlayerUpgrades>,
     pub stash: ResMut<'w, PlayerStash>,
     pub intel: ResMut<'w, PlayerIntel>,
+    pub pills: Res<'w, PlayerPills>,
     pub events: ResMut<'w, EventLog>,
     pub factions: Res<'w, FactionIndex>,
     pub registry: Res<'w, TemplateRegistry>,
@@ -59,6 +60,7 @@ impl QuestCtx<'_> {
             &self.upgrades,
             &self.stash,
             &self.intel,
+            &self.pills,
             &self.events.0,
             &self.log,
             &self.registry,

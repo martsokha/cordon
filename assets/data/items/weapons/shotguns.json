@@ -1,12 +1,9 @@
 [
   {
-    "id": "item_toz34",
+    "id": "item_doublebarrel",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_12gauge",
-      "fire_modes": [
-        "Semi"
-      ],
+      "caliber": "caliber_shotgun",
       "fire_rate": 1.2,
       "accuracy": 0.5,
       "range": 56.0,
@@ -27,13 +24,10 @@
     "rarity": "common"
   },
   {
-    "id": "item_saiga12",
+    "id": "item_bulwark",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_12gauge",
-      "fire_modes": [
-        "Semi"
-      ],
+      "caliber": "caliber_shotgun",
       "fire_rate": 3.0,
       "accuracy": 0.55,
       "range": 72.0,

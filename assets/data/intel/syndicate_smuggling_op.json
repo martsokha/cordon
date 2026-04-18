@@ -1,0 +1,7 @@
+{
+  "id": "intel_syndicate_smuggling_op",
+  "category": "faction",
+  "expires_after": {
+    "days": 4
+  }
+}

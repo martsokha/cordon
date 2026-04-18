@@ -1,12 +1,9 @@
 [
   {
-    "id": "item_sks",
+    "id": "item_boar",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_762x39mm",
-      "fire_modes": [
-        "Semi"
-      ],
+      "caliber": "caliber_rifle",
       "fire_rate": 3.0,
       "accuracy": 0.7,
       "range": 150.0,
@@ -27,14 +24,10 @@
     "rarity": "common"
   },
   {
-    "id": "item_aks74u",
+    "id": "item_growler",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_545x39mm",
-      "fire_modes": [
-        "Semi",
-        "Auto"
-      ],
+      "caliber": "caliber_rifle",
       "fire_rate": 10.0,
       "accuracy": 0.6,
       "range": 100.0,
@@ -55,14 +48,10 @@
     "rarity": "common"
   },
   {
-    "id": "item_akm",
+    "id": "item_wraith",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_762x39mm",
-      "fire_modes": [
-        "Semi",
-        "Auto"
-      ],
+      "caliber": "caliber_rifle",
       "fire_rate": 10.0,
       "accuracy": 0.68,
       "range": 140.0,
@@ -87,14 +76,10 @@
     "rarity": "common"
   },
   {
-    "id": "item_ak74",
+    "id": "item_longtooth",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_545x39mm",
-      "fire_modes": [
-        "Semi",
-        "Auto"
-      ],
+      "caliber": "caliber_rifle",
       "fire_rate": 11.0,
       "accuracy": 0.7,
       "range": 130.0,
@@ -111,17 +96,10 @@
     "rarity": "common"
   },
   {
-    "id": "item_aek971",
+    "id": "item_ironclaw",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_545x39mm",
-      "fire_modes": [
-        "Semi",
-        {
-          "Burst": 3
-        },
-        "Auto"
-      ],
+      "caliber": "caliber_rifle",
       "fire_rate": 13.0,
       "accuracy": 0.78,
       "range": 150.0,

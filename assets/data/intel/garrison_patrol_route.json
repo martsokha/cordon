@@ -1,0 +1,7 @@
+{
+  "id": "intel_garrison_patrol_route",
+  "category": "faction",
+  "expires_after": {
+    "days": 3
+  }
+}

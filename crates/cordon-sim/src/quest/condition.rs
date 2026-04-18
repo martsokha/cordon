@@ -14,7 +14,9 @@ use cordon_core::world::narrative::{
 
 use super::registry::TemplateRegistry;
 use super::state::QuestLog;
-use crate::resources::{PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades};
+use crate::resources::{
+    PlayerIdentity, PlayerIntel, PlayerPills, PlayerStandings, PlayerStash, PlayerUpgrades,
+};
 
 /// Evaluate a condition against live world state.
 pub fn evaluate(
@@ -24,6 +26,7 @@ pub fn evaluate(
     upgrades: &PlayerUpgrades,
     stash: &PlayerStash,
     intel: &PlayerIntel,
+    pills: &PlayerPills,
     events: &[ActiveEvent],
     quests: &QuestLog,
     registry: &TemplateRegistry,
@@ -64,6 +67,7 @@ pub fn evaluate(
             };
             now.minutes_since(started_at) >= duration.minutes()
         }
+        ObjectiveCondition::DaysWithoutPills { days } => pills.days_without(now.day) >= *days,
         ObjectiveCondition::AllOf(conds) => conds.iter().all(|c| {
             evaluate(
                 c,
@@ -72,6 +76,7 @@ pub fn evaluate(
                 upgrades,
                 stash,
                 intel,
+                pills,
                 events,
                 quests,
                 registry,
@@ -87,6 +92,7 @@ pub fn evaluate(
                 upgrades,
                 stash,
                 intel,
+                pills,
                 events,
                 quests,
                 registry,
@@ -101,6 +107,7 @@ pub fn evaluate(
             upgrades,
             stash,
             intel,
+            pills,
             events,
             quests,
             registry,
@@ -173,7 +180,7 @@ mod tests {
     use crate::quest::registry::TemplateRegistry;
     use crate::quest::state::{ActiveQuest, CompletedQuest, QuestLog};
     use crate::resources::{
-        PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades,
+        PlayerIdentity, PlayerIntel, PlayerPills, PlayerStandings, PlayerStash, PlayerUpgrades,
     };
 
     struct Ctx {
@@ -182,6 +189,7 @@ mod tests {
         upgrades: PlayerUpgrades,
         stash: PlayerStash,
         intel: PlayerIntel,
+        pills: PlayerPills,
         log: QuestLog,
         registry: TemplateRegistry,
     }
@@ -207,6 +215,7 @@ mod tests {
                     hidden_storage: state.hidden_storage,
                 },
                 intel: PlayerIntel::default(),
+                pills: PlayerPills::default(),
                 log: QuestLog::default(),
                 registry: TemplateRegistry::default(),
             }
@@ -220,6 +229,7 @@ mod tests {
                 &self.upgrades,
                 &self.stash,
                 &self.intel,
+                &self.pills,
                 &[],
                 &self.log,
                 &self.registry,
@@ -241,6 +251,7 @@ mod tests {
                 &self.upgrades,
                 &self.stash,
                 &self.intel,
+                &self.pills,
                 &[],
                 &self.log,
                 &self.registry,

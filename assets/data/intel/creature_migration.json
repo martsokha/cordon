@@ -1,0 +1,7 @@
+{
+  "id": "intel_creature_migration",
+  "category": "environmental",
+  "expires_after": {
+    "days": 5
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "item_pistol_ammo",
+  "data": {
+    "type": "ammo",
+    "caliber": "caliber_pistol",
+    "damage": 20,
+    "penetration": 4,
+    "quantity": 16
+  },
+  "base_price": 60,
+  "suppliers": [
+    { "faction": "faction_drifters", "price_multiplier": 0.9 },
+    { "faction": "faction_syndicate", "price_multiplier": 1.0 },
+    { "faction": "faction_garrison", "price_multiplier": 1.1 }
+  ],
+  "rarity": "common"
+}

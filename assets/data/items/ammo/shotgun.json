@@ -1,0 +1,16 @@
+{
+  "id": "item_shotgun_ammo",
+  "data": {
+    "type": "ammo",
+    "caliber": "caliber_shotgun",
+    "damage": 60,
+    "penetration": 8,
+    "quantity": 8
+  },
+  "base_price": 120,
+  "suppliers": [
+    { "faction": "faction_drifters", "price_multiplier": 0.85 },
+    { "faction": "faction_syndicate", "price_multiplier": 1.0 }
+  ],
+  "rarity": "common"
+}

@@ -1,12 +1,9 @@
 [
   {
-    "id": "item_mosin_nagant",
+    "id": "item_harrier",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_762x54r",
-      "fire_modes": [
-        "Semi"
-      ],
+      "caliber": "caliber_sniper",
       "fire_rate": 0.8,
       "accuracy": 0.92,
       "range": 240.0,
@@ -27,13 +24,10 @@
     "rarity": "common"
   },
   {
-    "id": "item_svd",
+    "id": "item_nighthawk",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_762x54r",
-      "fire_modes": [
-        "Semi"
-      ],
+      "caliber": "caliber_sniper",
       "fire_rate": 1.5,
       "accuracy": 0.95,
       "range": 220.0,
@@ -50,13 +44,10 @@
     "rarity": "rare"
   },
   {
-    "id": "item_svu",
+    "id": "item_sable",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_762x54r",
-      "fire_modes": [
-        "Semi"
-      ],
+      "caliber": "caliber_sniper",
       "fire_rate": 1.6,
       "accuracy": 0.93,
       "range": 210.0,
@@ -77,13 +68,10 @@
     "rarity": "rare"
   },
   {
-    "id": "item_sv98",
+    "id": "item_whisper",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_762x54r",
-      "fire_modes": [
-        "Semi"
-      ],
+      "caliber": "caliber_sniper",
       "fire_rate": 1.0,
       "accuracy": 0.97,
       "range": 260.0,

@@ -1,0 +1,7 @@
+{
+  "id": "intel_supply_shortage",
+  "category": "economic",
+  "expires_after": {
+    "days": 5
+  }
+}

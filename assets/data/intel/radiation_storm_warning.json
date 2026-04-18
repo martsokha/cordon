@@ -1,0 +1,7 @@
+{
+  "id": "intel_radiation_storm_warning",
+  "category": "environmental",
+  "expires_after": {
+    "days": 3
+  }
+}

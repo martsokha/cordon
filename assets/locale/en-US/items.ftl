@@ -50,6 +50,42 @@ item_singularity_fragment = Singularity Fragment
 item_void_heart = Void Heart
 item_anchor_relic = Anchor Relic
 
+# Ammo
+item_pistol_ammo = Pistol Ammo
+item_rifle_ammo = Rifle Ammo
+item_sniper_ammo = Sniper Ammo
+item_shotgun_ammo = Shotgun Ammo
+
+# Pistols
+item_viper = Viper
+item_shrike = Shrike
+
+# SMGs
+item_razor = Razor
+item_sparrow = Sparrow
+
+# Rifles
+item_boar = Boar
+item_growler = Growler
+item_wraith = Wraith
+item_longtooth = Longtooth
+item_ironclaw = Ironclaw
+
+# LMGs
+item_rook = Rook
+item_mauler = Mauler
+item_thresher = Thresher
+
+# Snipers
+item_harrier = Harrier
+item_nighthawk = Nighthawk
+item_sable = Sable
+item_whisper = Whisper
+
+# Shotguns
+item_doublebarrel = Doublebarrel
+item_bulwark = Bulwark
+
 # Rarity labels
 rarity-common = Common
 rarity-uncommon = Uncommon

@@ -24,9 +24,8 @@ pub trait IdMarker: 'static {}
 /// IDs are case-sensitive, lowercase, snake_case, and prefixed
 /// with the `<category>_` of the table they belong to for
 /// cross-reference debuggability (e.g., `"faction_garrison"`,
-/// `"item_9x18mm_fmj"`, `"area_the_vault"`, `"quest_first_contact"`).
-/// Calibers strip the dot from ammo names to stay snake_case
-/// (e.g., `"caliber_762x39mm"`).
+/// `"item_pistol_ammo"`, `"area_the_vault"`, `"quest_first_contact"`).
+/// Calibers use the weapon class (e.g., `"caliber_rifle"`).
 #[derive(Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Id<T: IdMarker>(String, #[serde(skip)] PhantomData<T>);

@@ -96,6 +96,11 @@ pub enum ObjectiveCondition {
     /// [`Duration::INSTANT`] is equivalent to the old unit `Wait`
     /// and evaluates to true on the first tick.
     Wait { duration: Duration },
+    /// At least `days` whole days have elapsed since the player
+    /// last took pills. If they've never taken pills, the count
+    /// starts from day 1 — so this condition can fire on a fresh
+    /// save.
+    DaysWithoutPills { days: u32 },
     /// All of the nested conditions must be true.
     AllOf(Vec<ObjectiveCondition>),
     /// At least one of the nested conditions must be true.

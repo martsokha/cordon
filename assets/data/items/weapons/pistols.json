@@ -1,12 +1,9 @@
 [
   {
-    "id": "item_pm",
+    "id": "item_viper",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_9x18mm",
-      "fire_modes": [
-        "Semi"
-      ],
+      "caliber": "caliber_pistol",
       "fire_rate": 2.5,
       "accuracy": 0.55,
       "range": 180.0,
@@ -27,14 +24,10 @@
     "rarity": "common"
   },
   {
-    "id": "item_stechkin_aps",
+    "id": "item_shrike",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_9x18mm",
-      "fire_modes": [
-        "Semi",
-        "Auto"
-      ],
+      "caliber": "caliber_pistol",
       "fire_rate": 12.0,
       "accuracy": 0.45,
       "range": 220.0,

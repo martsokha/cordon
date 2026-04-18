@@ -1,0 +1,7 @@
+{
+  "id": "intel_anomaly_surge_detected",
+  "category": "environmental",
+  "expires_after": {
+    "days": 2
+  }
+}

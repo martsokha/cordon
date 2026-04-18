@@ -4,6 +4,7 @@
 use bevy::prelude::*;
 use bevy_prng::WyRand;
 use bevy_rand::prelude::GlobalRng;
+use cordon_sim::resources::{GameClock, PlayerPills};
 use rand::RngExt;
 
 use crate::bunker::geometry::{Prop, PropPlacement};
@@ -62,6 +63,8 @@ fn on_take_pills(
     _trigger: On<Interact>,
     mut commands: Commands,
     sfx: Res<PillsSfx>,
+    clock: Res<GameClock>,
+    mut pills: ResMut<PlayerPills>,
     mut rng: Single<&mut WyRand, With<GlobalRng>>,
 ) {
     if sfx.clips.is_empty() {
@@ -72,5 +75,6 @@ fn on_take_pills(
         AudioPlayer(sfx.clips[idx].clone()),
         PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(PILL_VOLUME)),
     ));
+    pills.record_dose(clock.0.day);
     info!("player took pills");
 }

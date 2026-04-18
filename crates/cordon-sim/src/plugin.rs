@@ -165,8 +165,8 @@ pub mod prelude {
     };
     pub use crate::resources::{
         AreaStates, EventLog, FactionIndex, GameClock, KnownIntel, PlayerIdentity, PlayerIntel,
-        PlayerSquadEntry, PlayerSquadRoster, PlayerStandings, PlayerStash, PlayerUpgrades, Sim,
-        SimSpeed, SquadIdIndex, UidAllocator,
+        PlayerPills, PlayerSquadEntry, PlayerSquadRoster, PlayerStandings, PlayerStash,
+        PlayerUpgrades, Sim, SimSpeed, SquadIdIndex, UidAllocator,
     };
     pub use crate::shop::{BuyUpgrade, BuyUpgradeFailure, BuyUpgradeOutcome};
     pub use crate::spawn::SquadSpawned;
