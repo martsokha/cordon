@@ -51,3 +51,18 @@ standing-unfriendly = Unfriendly
 standing-neutral = Neutral
 standing-friendly = Friendly
 standing-allied = Allied
+
+# Standing-change toasts.
+toast-standing-increased = { $faction }: increased
+toast-standing-decreased = { $faction }: decreased
+
+# Corner toast notifications.
+toast-intel-received = { $count ->
+    [one] New intel received
+   *[other] { $count } new intel received
+}
+toast-daily-expenses = Daily expenses: { $total }cr
+toast-quest-started = New quest: { $name }
+toast-quest-updated = Quest updated: { $name }
+toast-quest-completed = Quest completed: { $name }
+toast-quest-failed = Quest failed: { $name }

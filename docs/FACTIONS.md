@@ -73,7 +73,7 @@ You cannot join a faction — you are a trader. But you can align, betray, play 
 | **Bad relations** | Refuse to buy your relics, no more warnings, cold shoulder |
 | **They hate** | Nobody strongly, but distrust the Syndicate and anyone who damages relics |
 
-### Drifters
+### The Drifters
 
 **Philosophy:** No philosophy. Just survive.  
 **Structure:** No structure — loose community of independent scavengers.

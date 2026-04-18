@@ -122,7 +122,11 @@ pub fn deliver_radio_broadcasts(
         }
 
         // Grant intel once, regardless of whether audio plays.
-        if !state.intel_granted {
+        // Only the first emission carries the intel list; retries
+        // for non-missable broadcasts emit an empty list so UI
+        // listeners (toasts) don't re-announce the same intel.
+        let first_emission = !state.intel_granted;
+        if first_emission {
             for intel_id in &radio.grants_intel {
                 intel.grant(intel_id.clone(), now.day);
             }
@@ -137,7 +141,11 @@ pub fn deliver_radio_broadcasts(
 
         broadcast_tx.write(RadioBroadcast {
             event: active.def_id.clone(),
-            intel: radio.grants_intel.clone(),
+            intel: if first_emission {
+                radio.grants_intel.clone()
+            } else {
+                Vec::new()
+            },
         });
     }
 }

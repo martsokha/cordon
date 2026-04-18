@@ -4,7 +4,7 @@
 //! assembled from cordon-core component types (`NpcName`,
 //! `Loadout`, `Experience`, `Credits`, `Trust`, `Loyalty`,
 //! `Personality`) plus cordon-sim glue (`NpcMarker`,
-//! `FactionId`, `NpcAttributes`, `Perks`, `Employment`,
+//! `FactionId`, `NpcAttributes`, `Employment`,
 //! `NpcBundle`). The generator in cordon-sim produces bundles
 //! directly.
 //!
@@ -20,7 +20,6 @@
 use serde::{Deserialize, Serialize};
 
 use super::faction::Faction;
-use super::perk::Perk;
 use crate::item::Item;
 use crate::primitive::{Id, IdMarker, Rank, Trust};
 
@@ -54,7 +53,6 @@ pub struct NpcTemplateDef {
     pub personality: Personality,
     /// Starting trust toward the player.
     pub trust: Trust,
-    pub perks: Vec<Id<Perk>>,
     /// If set, the NPC spawns with exactly these items. If `None`,
     /// gear is rolled from the faction archetype at the resolved rank.
     #[serde(default)]

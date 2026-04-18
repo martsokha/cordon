@@ -14,7 +14,7 @@ The Zone is unpredictable. Events are defined in JSON config files and rolled da
 | **Blowout** | Severe surge. Major casualties. Relic positions completely reset. Prices spike across the board. | 1 day, aftermath 2-3 days |
 | **Creature Swarm** | Dangerous creatures flood a sector. Runners at extreme risk. Weapon/ammo demand spikes. Some sectors inaccessible. | 2-3 days |
 | **Hazard Shift** | Hazard fields move. New relic locations. Old safe routes become deadly. Maps become outdated. | Permanent until next shift |
-| **Intelligent Creature** | A creature of unusual intelligence appears in a sector. It avoids patrols, sets traps, and stalks runners. Extremely dangerous but carries or guards rare relics. Runners with the right perks may survive an encounter. Others don't come back. | 3-7 days |
+| **Intelligent Creature** | A creature of unusual intelligence appears in a sector. It avoids patrols, sets traps, and stalks runners. Extremely dangerous but carries or guards rare relics. Well-equipped runners may survive an encounter. Others don't come back. | 3-7 days |
 
 ### Economic
 

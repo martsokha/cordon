@@ -13,9 +13,6 @@ pub mod name;
 /// NPC attributes, roles, and employment.
 pub mod npc;
 
-/// Perk definitions for NPCs.
-pub mod perk;
-
 /// Player state, rank, squads, and faction standings.
 pub mod player;
 

@@ -1,7 +1,7 @@
 //! The read-only game database and its load-time integrity checks.
 //!
 //! [`GameData`] holds every definition the simulation reads from disk:
-//! items, factions, areas, perks, upgrades, events, quests, triggers,
+//! items, factions, areas, upgrades, events, quests, triggers,
 //! name pools, archetypes, loot tables. All lookups go through typed
 //! ID aliases from [`cordon_core::primitive`].
 //!
@@ -50,8 +50,8 @@
 //! - **NamePool refs**: factions' `namepool` → name_pools table.
 //!
 
-//! - **NPC template refs**: templates (`faction`, `perks[]`,
-//!   `loadout[]`), consequences (`SpawnNpc.template`,
+//! - **NPC template refs**: templates (`faction`, `loadout[]`),
+//!   consequences (`SpawnNpc.template`,
 //!   `GiveNpcXp.template`), conditions (`NpcAlive`, `NpcDead`,
 //!   `NpcAtLocation.npc`).
 
@@ -63,7 +63,6 @@ use cordon_core::entity::bunker::{Upgrade, UpgradeDef};
 use cordon_core::entity::faction::{Faction, FactionDef};
 use cordon_core::entity::name::{NamePool, NamePoolMarker};
 use cordon_core::entity::npc::{NpcTemplate, NpcTemplateDef};
-use cordon_core::entity::perk::{Perk, PerkDef};
 use cordon_core::item::{Caliber, Item, ItemData, ItemDef};
 use cordon_core::primitive::{Id, IdMarker};
 use cordon_core::world::area::{Area, AreaDef, AreaKind};
@@ -77,7 +76,7 @@ use cordon_core::world::narrative::{
 ///
 /// Loaded once at startup from JSON config files. Contains all static
 /// definitions that the simulation references: items, factions, areas,
-/// perks, upgrades, and loot tables.
+/// upgrades, and loot tables.
 ///
 /// Calibers are implicit — they exist because ammo and weapon items
 /// reference the same caliber ID string. No separate caliber registry.
@@ -92,8 +91,6 @@ pub struct GameData {
     pub factions: HashMap<Id<Faction>, FactionDef>,
     /// Area definitions keyed by area ID.
     pub areas: HashMap<Id<Area>, AreaDef>,
-    /// Perk definitions keyed by perk ID.
-    pub perks: HashMap<Id<Perk>, PerkDef>,
     /// Upgrade definitions keyed by upgrade ID.
     pub upgrades: HashMap<Id<Upgrade>, UpgradeDef>,
     /// Event definitions keyed by event ID.
@@ -139,11 +136,6 @@ impl GameData {
     /// Look up an intel definition by ID.
     pub fn intel(&self, id: &Id<Intel>) -> Option<&IntelDef> {
         self.intel.get(id)
-    }
-
-    /// Look up a perk definition by ID.
-    pub fn perk(&self, id: &Id<Perk>) -> Option<&PerkDef> {
-        self.perks.get(id)
     }
 
     /// Look up an NPC template by ID.
@@ -343,11 +335,6 @@ impl GameData {
         for (id, def) in &self.npc_templates {
             let referrer = format!("npc template `{}`", id.as_str());
             self.check_faction(&def.faction, &referrer, "faction");
-            for perk in &def.perks {
-                if !self.perks.contains_key(perk) {
-                    warn_missing("perk ref from", &referrer, "perks[]", perk);
-                }
-            }
             if let Some(items) = &def.loadout {
                 for item_id in items {
                     if !self.items.contains_key(item_id) {

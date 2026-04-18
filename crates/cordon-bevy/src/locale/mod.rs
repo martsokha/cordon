@@ -35,6 +35,8 @@ pub struct L10n<'w> {
 
 impl L10n<'_> {
     /// Resolve a Fluent key. Falls back to the raw key string.
+    /// Supports inline args via `fluent_content`'s query syntax:
+    /// `l10n.get("intel-received?count=3")`.
     pub fn get(&self, key: &str) -> String {
         self.inner
             .as_ref()

@@ -13,7 +13,7 @@ use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
 use crate::entity::npc::{
-    ActiveEffects, BaseMaxes, FactionId, NpcAttributes, NpcBundle, NpcMarker, Perks,
+    ActiveEffects, BaseMaxes, FactionId, NpcAttributes, NpcBundle, NpcMarker,
 };
 use crate::resources::{FactionIndex, UidAllocator};
 use crate::spawn::loadout::generate_loadout;
@@ -156,10 +156,6 @@ pub trait NpcGenerator {
                 trust: Trust(0.0),
                 loyalty: Loyalty(0.5),
                 personality,
-            },
-            perks: Perks {
-                all: Vec::new(),
-                revealed: Vec::new(),
             },
         }
     }

@@ -16,8 +16,8 @@ use cordon_core::world::BUNKER_MAP_POS;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::{
     ActiveEffects, BaseMaxes, Essential, FactionId, MovementIntent, NpcAttributes, NpcBundle,
-    NpcDied, NpcMarker, PendingYarnNode, Perks, QuestCritical, SpawnOrigin, SquadBundle,
-    SquadMembership, TemplateId, TravelingHome, TravelingToBunker,
+    NpcDied, NpcMarker, PendingYarnNode, QuestCritical, SpawnOrigin, SquadBundle, SquadMembership,
+    TemplateId, TravelingHome, TravelingToBunker,
 };
 use cordon_sim::quest::messages::{DismissTemplateNpc, GiveNpcXpRequest, SpawnNpcRequest};
 use cordon_sim::quest::registry::TemplateRegistry;
@@ -173,10 +173,6 @@ pub fn handle_spawn_npc_requests(
                 trust: def.trust,
                 loyalty: Loyalty(0.5),
                 personality: def.personality,
-            },
-            perks: Perks {
-                all: def.perks.clone(),
-                revealed: Vec::new(),
             },
         };
 

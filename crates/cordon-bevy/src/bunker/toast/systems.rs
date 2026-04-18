@@ -91,6 +91,7 @@ pub(super) fn load_atlas(
 }
 
 pub(super) fn on_radio_broadcast(
+    l10n: L10n,
     mut broadcasts: MessageReader<RadioBroadcast>,
     mut queue: ResMut<ToastQueue>,
 ) {
@@ -101,21 +102,23 @@ pub(super) fn on_radio_broadcast(
     if intel_count == 0 {
         return;
     }
-    let label = if intel_count == 1 {
-        "New intel received".to_string()
-    } else {
-        format!("{intel_count} new intel received")
-    };
-    queue.push(ICON_NEW_INTEL, label);
+    queue.push(
+        ICON_NEW_INTEL,
+        l10n.get(&format!("toast-intel-received?count={intel_count}")),
+    );
 }
 
 pub(super) fn on_daily_expenses(
+    l10n: L10n,
     mut events: MessageReader<DailyExpensesProcessed>,
     mut queue: ResMut<ToastQueue>,
 ) {
     for msg in events.read() {
         let total = msg.total.value();
-        queue.push(ICON_DAILY_SPENDING, format!("Daily expenses: {total}cr"));
+        queue.push(
+            ICON_DAILY_SPENDING,
+            l10n.get(&format!("toast-daily-expenses?total={total}")),
+        );
     }
 }
 
@@ -127,12 +130,12 @@ pub(super) fn on_standing_change(
     for msg in changes.read() {
         let name = l10n.get(msg.faction.as_str());
         let delta = msg.delta.value();
-        let (icon, sign) = if delta > 0 {
-            (ICON_RELATION_UP, "+")
+        let (icon, key) = if delta > 0 {
+            (ICON_RELATION_UP, "toast-standing-increased")
         } else {
-            (ICON_RELATION_DOWN, "")
+            (ICON_RELATION_DOWN, "toast-standing-decreased")
         };
-        queue.push(icon, format!("{name}: {sign}{delta}"));
+        queue.push(icon, l10n.get(&format!("{key}?faction={name}")));
     }
 }
 
@@ -142,9 +145,10 @@ pub(super) fn on_quest_started(
     mut queue: ResMut<ToastQueue>,
 ) {
     for msg in started.read() {
+        let name = l10n.get(msg.quest.as_str());
         queue.push(
             ICON_QUEST,
-            format!("New quest: {}", l10n.get(msg.quest.as_str())),
+            l10n.get(&format!("toast-quest-started?name={name}")),
         );
     }
 }
@@ -155,9 +159,10 @@ pub(super) fn on_quest_updated(
     mut queue: ResMut<ToastQueue>,
 ) {
     for msg in updated.read() {
+        let name = l10n.get(msg.quest.as_str());
         queue.push(
             ICON_QUEST,
-            format!("Quest updated: {}", l10n.get(msg.quest.as_str())),
+            l10n.get(&format!("toast-quest-updated?name={name}")),
         );
     }
 }
@@ -169,8 +174,12 @@ pub(super) fn on_quest_finished(
 ) {
     for msg in finished.read() {
         let name = l10n.get(msg.quest.as_str());
-        let status = if msg.success { "completed" } else { "failed" };
-        queue.push(ICON_QUEST, format!("Quest {status}: {name}"));
+        let key = if msg.success {
+            "toast-quest-completed"
+        } else {
+            "toast-quest-failed"
+        };
+        queue.push(ICON_QUEST, l10n.get(&format!("{key}?name={name}")));
     }
 }
 

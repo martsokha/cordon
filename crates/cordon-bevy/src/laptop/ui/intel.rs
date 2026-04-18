@@ -419,12 +419,11 @@ fn refresh_faction_standings(
 
         let label_key = standing_label_key(standing);
         let label = l10n.get(label_key);
-        let value = standing.value();
         let color = standing_color(standing);
 
         let row = commands
             .spawn((
-                Text::new(format!("{display_name}: {label} ({value:+})")),
+                Text::new(format!("{display_name}: {label}")),
                 TextFont {
                     font: font.clone(),
                     font_size: 11.0,

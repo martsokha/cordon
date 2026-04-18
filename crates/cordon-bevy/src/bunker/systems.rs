@@ -33,7 +33,7 @@ pub(super) fn spawn_bunker(
 
     const TABLE_TOP: f32 = 1.037;
     commands.insert_resource(LaptopPlacement {
-        pos: Vec3::new(0.0, TABLE_TOP, l.desk_z()),
+        pos: Vec3::new(0.0, TABLE_TOP, l.desk_z() - 0.15),
         rot: Quat::from_rotation_y(PI),
     });
 

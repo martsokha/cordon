@@ -15,7 +15,7 @@ use std::f32::consts::FRAC_PI_2;
 
 use bevy::prelude::*;
 
-use crate::bunker::geometry::Prop;
+use crate::bunker::geometry::{Prop, TILE_SIZE, cuboid_tiled, plane_tiled};
 use crate::bunker::resources::RoomCtx;
 
 /// Antechamber world centre. The room is built around this point.
@@ -35,58 +35,50 @@ fn local_to_world(local: Vec3) -> Vec3 {
 }
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
-    let wall_mat = ctx.mats.add(StandardMaterial {
-        base_color: Color::srgb(0.18, 0.17, 0.15),
-        perceptual_roughness: 0.92,
-        ..default()
-    });
-    let floor_mat = ctx.mats.add(StandardMaterial {
-        base_color: Color::srgb(0.12, 0.11, 0.10),
-        perceptual_roughness: 0.95,
-        ..default()
-    });
+    let wall_mat = ctx.pal.concrete.clone();
+    let floor_mat = ctx.pal.concrete_dark.clone();
 
     let center = ANTECHAMBER_CENTER;
     let hw = HALF_W;
     let hd = HALF_D;
     let h = HEIGHT;
 
-    // Walls, floor, ceiling. Built as raw Cuboid meshes rather
-    // than going through `ctx.wall` because the antechamber
-    // uses custom wall thickness (0.05 m slabs) and its own
-    // material palette distinct from the main bunker's.
+    // Walls, floor, ceiling. Meshes are tiled so the shared
+    // concrete texture repeats at its natural 2.5 m cadence
+    // instead of stretching across each face.
+    let half_size = Vec2::new(hw, hd);
     ctx.commands.spawn((
-        Mesh3d(ctx.meshes.add(Cuboid::new(hw * 2.0, 0.05, hd * 2.0))),
+        Mesh3d(ctx.meshes.add(plane_tiled(Vec3::Y, half_size, TILE_SIZE))),
         MeshMaterial3d(floor_mat),
         Transform::from_translation(center + Vec3::new(0.0, -h / 2.0, 0.0)),
     ));
     ctx.commands.spawn((
-        Mesh3d(ctx.meshes.add(Cuboid::new(hw * 2.0, 0.05, hd * 2.0))),
+        Mesh3d(ctx.meshes.add(plane_tiled(Vec3::NEG_Y, half_size, TILE_SIZE))),
         MeshMaterial3d(wall_mat.clone()),
         Transform::from_translation(center + Vec3::new(0.0, h / 2.0, 0.0)),
     ));
     // Back wall (-z) — the visitor stands facing +z, so this is
     // *behind* them. The door panel is mounted here.
     ctx.commands.spawn((
-        Mesh3d(ctx.meshes.add(Cuboid::new(hw * 2.0, h, 0.05))),
+        Mesh3d(ctx.meshes.add(cuboid_tiled(Vec3::new(hw * 2.0, h, 0.05), TILE_SIZE))),
         MeshMaterial3d(wall_mat.clone()),
         Transform::from_translation(center + Vec3::new(0.0, 0.0, -hd)),
     ));
     // Front wall (+z) — the side the CCTV camera is mounted on.
     ctx.commands.spawn((
-        Mesh3d(ctx.meshes.add(Cuboid::new(hw * 2.0, h, 0.05))),
+        Mesh3d(ctx.meshes.add(cuboid_tiled(Vec3::new(hw * 2.0, h, 0.05), TILE_SIZE))),
         MeshMaterial3d(wall_mat.clone()),
         Transform::from_translation(center + Vec3::new(0.0, 0.0, hd)),
     ));
     // Left wall (-x).
     ctx.commands.spawn((
-        Mesh3d(ctx.meshes.add(Cuboid::new(0.05, h, hd * 2.0))),
+        Mesh3d(ctx.meshes.add(cuboid_tiled(Vec3::new(0.05, h, hd * 2.0), TILE_SIZE))),
         MeshMaterial3d(wall_mat.clone()),
         Transform::from_translation(center + Vec3::new(-hw, 0.0, 0.0)),
     ));
     // Right wall (+x).
     ctx.commands.spawn((
-        Mesh3d(ctx.meshes.add(Cuboid::new(0.05, h, hd * 2.0))),
+        Mesh3d(ctx.meshes.add(cuboid_tiled(Vec3::new(0.05, h, hd * 2.0), TILE_SIZE))),
         MeshMaterial3d(wall_mat),
         Transform::from_translation(center + Vec3::new(hw, 0.0, 0.0)),
     ));

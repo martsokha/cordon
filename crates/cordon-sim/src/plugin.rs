@@ -157,7 +157,7 @@ pub mod prelude {
     // Per-entity components not owned by a subplugin.
     pub use crate::entity::npc::{
         ActiveEffects, BaseMaxes, Essential, FactionId, NpcAttributes, NpcBundle, NpcMarker,
-        PendingYarnNode, Perks, QuestCritical, SpawnOrigin, TemplateId, TravelingHome,
+        PendingYarnNode, QuestCritical, SpawnOrigin, TemplateId, TravelingHome,
         TravelingToBunker,
     };
     pub use crate::entity::relic::{RelicHome, RelicMarker};

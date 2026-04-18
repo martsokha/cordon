@@ -5,14 +5,13 @@
 //! `Personality`, `Trust`, `Loyalty`), so they're attached to
 //! entities without a wrapper. This module only holds the
 //! cordon-sim-specific components that don't have a cordon-core
-//! analog: the NPC marker, baseline pool caps, the perks lists,
-//! employment status, and the `NpcBundle` glue.
+//! analog: the NPC marker, baseline pool caps, employment status,
+//! and the `NpcBundle` glue.
 
 use bevy::prelude::*;
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::NpcName;
 use cordon_core::entity::npc::{Npc, NpcTemplate, Personality};
-use cordon_core::entity::perk::Perk;
 use cordon_core::item::{Loadout, TimedEffect};
 use cordon_core::primitive::{
     Corruption, Credits, Experience, GameTime, Health, Id, Loyalty, Pool, Stamina, Trust, Uid,
@@ -137,16 +136,6 @@ pub struct NpcAttributes {
     pub personality: Personality,
 }
 
-/// Perk lists. Cordon-core's `Npc` stores `perks` and
-/// `revealed_perks` as two separate `Vec`s; we bundle them into
-/// one component here because a query for "NPC's perks" always
-/// wants both at once.
-#[derive(Component, Debug, Clone)]
-pub struct Perks {
-    pub all: Vec<Id<Perk>>,
-    pub revealed: Vec<Id<Perk>>,
-}
-
 /// Bundle of every per-NPC component the spawn system attaches
 /// to a fresh entity. Built directly by the generator — there's
 /// no intermediate `Npc` data struct any more.
@@ -165,5 +154,4 @@ pub struct NpcBundle {
     pub loadout: Loadout,
     pub wealth: Credits,
     pub attributes: NpcAttributes,
-    pub perks: Perks,
 }

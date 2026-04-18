@@ -5,7 +5,6 @@
   "rank": "veteran",
   "personality": "cautious",
   "trust": 0.2,
-  "perks": ["perk_field_medic"],
   "loadout": [
     "item_ak74",
     "item_tactical_vest",
