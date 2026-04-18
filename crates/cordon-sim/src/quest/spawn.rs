@@ -1,31 +1,45 @@
-//! Template NPC spawn and XP bridge.
+//! Template NPC spawn, XP, dismissal, and death handlers.
 //!
-//! Consumes [`SpawnNpcRequest`] and [`GiveNpcXpRequest`] messages
-//! emitted by the consequence applier in cordon-sim and turns them
-//! into live ECS entities (or mutates existing ones). Also watches
-//! [`NpcDied`] to update the [`TemplateRegistry`] when a
-//! template-spawned NPC dies.
+//! Consumes [`SpawnNpcRequest`] / [`GiveNpcXpRequest`] /
+//! [`DismissTemplateNpc`] messages emitted by the consequence
+//! applier and the dialogue bridge, and turns them into live
+//! ECS state changes. Also watches [`NpcDied`] to update the
+//! [`TemplateRegistry`] when a template-spawned NPC dies.
+//!
+//! Pure sim: no renderer, no dialogue-runner coupling. The
+//! cordon-app layer only consumes the resulting ECS state plus
+//! the upstream `BunkerArrival` / `HomeArrival` messages in
+//! `travel.rs`.
+//!
+//! Logs here use the raw `name_key` rather than a localized
+//! display name — localization is a view-layer concern and we
+//! don't pull L10n into the sim.
+//!
+//! Adding a new quest→NPC hook means wiring a message into
+//! [`crate::quest::messages`] and reading it from a handler
+//! here; no cross-crate round-trip needed.
 
 use bevy::prelude::*;
 use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::{Formation, Goal, Squad};
 use cordon_core::item::{ItemInstance, Loadout};
-use cordon_core::primitive::{Corruption, Experience, Health, Loyalty, Pool, Stamina};
+use cordon_core::primitive::{Corruption, Credits, Experience, Health, Loyalty, Pool, Stamina};
 use cordon_core::world::BUNKER_MAP_POS;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::plugin::prelude::{
-    ActiveEffects, BaseMaxes, Essential, FactionId, MovementIntent, NpcAttributes, NpcBundle,
-    NpcDied, NpcMarker, PendingYarnNode, QuestCritical, SpawnOrigin, SquadBundle, SquadMembership,
-    TemplateId, TravelingHome, TravelingToBunker,
-};
-use cordon_sim::quest::messages::{DismissTemplateNpc, GiveNpcXpRequest, SpawnNpcRequest};
-use cordon_sim::quest::registry::TemplateRegistry;
-use cordon_sim::resources::{FactionSettlements, SquadIdIndex, UidAllocator};
-use cordon_sim::spawn::loadout::generate_loadout;
 use rand::RngExt;
 
-use crate::locale::L10n;
+use super::messages::{DismissTemplateNpc, GiveNpcXpRequest, SpawnNpcRequest};
+use super::registry::TemplateRegistry;
+use crate::behavior::death::NpcDied;
+use crate::behavior::squad::identity::{SquadBundle, SquadMembership};
+use crate::behavior::squad::intent::MovementIntent;
+use crate::entity::npc::{
+    ActiveEffects, BaseMaxes, Essential, FactionId, NpcAttributes, NpcBundle, NpcMarker,
+    PendingYarnNode, QuestCritical, SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker,
+};
+use crate::resources::{FactionSettlements, SquadIdIndex, UidAllocator};
+use crate::spawn::loadout::generate_loadout;
 
 /// Consume [`SpawnNpcRequest`] messages, spawning a template NPC
 /// entity for each one and registering it in the
@@ -35,7 +49,6 @@ pub fn handle_spawn_npc_requests(
     mut requests: MessageReader<SpawnNpcRequest>,
     data: Res<GameDataResource>,
     settlements: Res<FactionSettlements>,
-    l10n: L10n,
     mut registry: ResMut<TemplateRegistry>,
     mut uids: ResMut<UidAllocator>,
     mut squad_index: ResMut<SquadIdIndex>,
@@ -116,8 +129,7 @@ pub fn handle_spawn_npc_requests(
                 entity_cmds.insert(PendingYarnNode(yarn));
             }
 
-            let name = l10n.get(&def.name_key);
-            info!("{name} is heading back to the bunker.");
+            info!("template `{}` heading back to bunker", def.name_key);
             continue;
         }
 
@@ -168,7 +180,7 @@ pub fn handle_spawn_npc_requests(
                 stamina: 100,
             },
             loadout,
-            wealth: cordon_core::primitive::Credits::new(0),
+            wealth: Credits::new(0),
             attributes: NpcAttributes {
                 trust: def.trust,
                 loyalty: Loyalty(0.5),
@@ -185,7 +197,7 @@ pub fn handle_spawn_npc_requests(
                 let base = centres[idx];
                 let jx = rng.random_range(-30.0_f32..30.0);
                 let jy = rng.random_range(-30.0_f32..30.0);
-                base + bevy::math::Vec2::new(jx, jy)
+                base + Vec2::new(jx, jy)
             }
             _ => {
                 warn!(
@@ -301,7 +313,6 @@ pub fn handle_template_dismissal(
     mut commands: Commands,
     mut requests: MessageReader<DismissTemplateNpc>,
     data: Res<GameDataResource>,
-    l10n: L10n,
     dismissed_q: Query<(&Transform, &SpawnOrigin, &FactionId)>,
     mut uids: ResMut<UidAllocator>,
     mut squad_index: ResMut<SquadIdIndex>,
@@ -351,12 +362,12 @@ pub fn handle_template_dismissal(
                 slot: 0,
             });
 
-        let name = data
+        let name_key = data
             .0
             .npc_template(&req.template)
-            .map(|def| l10n.get(&def.name_key))
-            .unwrap_or_else(|| req.template.as_str().to_string());
-        info!("{name} is heading home.");
+            .map(|def| def.name_key.as_str())
+            .unwrap_or_else(|| req.template.as_str());
+        info!("template `{name_key}` heading home");
     }
 }
 

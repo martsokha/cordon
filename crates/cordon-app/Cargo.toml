@@ -1,9 +1,9 @@
 # https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [package]
-name = "cordon-bevy"
-description = "Bevy game client for Cordon"
-keywords = ["cordon", "bevy", "game"]
+name = "cordon-app"
+description = "Cordon game application: rendering, input, UI, audio, windowing"
+keywords = ["cordon", "game"]
 readme = "README.md"
 
 version = { workspace = true }

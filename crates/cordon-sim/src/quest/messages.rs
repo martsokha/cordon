@@ -62,7 +62,7 @@ pub struct QuestFinished {
     pub success: bool,
 }
 
-/// A Talk stage's dialogue completed. Emitted by the cordon-bevy
+/// A Talk stage's dialogue completed. Emitted by the cordon-app
 /// Yarn bridge after copying flags; consumed by the drive system
 /// to advance the quest stage.
 #[derive(Message, Debug, Clone)]

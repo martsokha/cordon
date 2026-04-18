@@ -40,7 +40,7 @@ crates/
   cordon-data/    Asset loading, game data catalog, JSON loaders.
   cordon-sim/     World simulation: squads, combat, economy, quests,
                   day cycle, payroll. Runs in Bevy's Update schedule.
-  cordon-bevy/    The game client: 3D bunker, FPS camera, laptop UI,
+  cordon-app/    The game client: 3D bunker, FPS camera, laptop UI,
                   map, fog of war, audio, particles, dialogue.
 
 assets/

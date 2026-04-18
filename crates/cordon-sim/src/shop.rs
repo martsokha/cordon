@@ -1,6 +1,6 @@
 //! Upgrade purchasing flow.
 //!
-//! The bunker laptop's Upgrades tab (in cordon-bevy) dispatches
+//! The bunker laptop's Upgrades tab (in cordon-app) dispatches
 //! [`BuyUpgrade`] messages; [`apply_buy_upgrade`] consumes them,
 //! validates cost + prereq + duplicate-install, deducts credits,
 //! and pushes the upgrade id onto `player.upgrades`.

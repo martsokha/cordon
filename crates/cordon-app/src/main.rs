@@ -80,7 +80,7 @@ fn main() {
     // Bootstrap the cordon-sim resource set on enter-play.
     // `init_world_resources` lives in cordon-sim — it knows how to
     // read `GameDataResource` and populate the world. The hook is
-    // here in cordon-bevy because `AppState` is a bevy-layer type.
+    // here in cordon-app because `AppState` is a bevy-layer type.
     app.add_systems(OnEnter(AppState::Playing), init_world_resources);
 
     // Dev-time overlays — compiled out of release builds entirely,

@@ -6,7 +6,7 @@
 //! well-defined sequence each frame.
 //!
 //! All cordon-sim systems run inside `SimSet`. Downstream crates
-//! (cordon-bevy visuals, audio) can declare `.after(SimSet::X)` or
+//! (cordon-app visuals, audio) can declare `.after(SimSet::X)` or
 //! `.in_set(SimSet::X)` without naming individual function symbols.
 
 use bevy::prelude::*;
@@ -118,7 +118,7 @@ impl Plugin for CordonSimPlugin {
     }
 }
 
-/// Re-exports for convenience. Downstream crates (cordon-bevy
+/// Re-exports for convenience. Downstream crates (cordon-app
 /// visuals, audio) import from this prelude rather than the
 /// internal subplugin paths so structural changes here don't
 /// ripple outward.

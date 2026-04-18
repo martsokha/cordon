@@ -9,6 +9,7 @@
 //! - [`drive`] — per-frame stage driving and talk completion
 //! - [`death`] — template NPC death handling
 //! - [`registry`] — template NPC tracking
+//! - [`spawn`] — template NPC spawn / XP / dismissal / death handlers
 //! - [`travel`] — arrival/departure detection
 
 pub mod condition;
@@ -19,6 +20,7 @@ pub mod dispatch;
 pub mod drive;
 pub mod messages;
 pub mod registry;
+pub mod spawn;
 pub mod state;
 pub mod travel;
 
@@ -81,6 +83,17 @@ impl Plugin for QuestPlugin {
                 travel::detect_home_arrival,
                 travel::prune_despawned_templates,
             ),
+        );
+
+        app.add_systems(
+            Update,
+            (
+                spawn::handle_spawn_npc_requests,
+                spawn::handle_give_npc_xp_requests,
+                spawn::handle_template_dismissal,
+                spawn::handle_template_npc_deaths,
+            )
+                .run_if(resource_exists::<crate::resources::FactionSettlements>),
         );
     }
 }

@@ -3,7 +3,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "./crates/cordon-bevy",
+    "./crates/cordon-app",
     "./crates/cordon-core",
     "./crates/cordon-data",
     "./crates/cordon-sim",
@@ -22,7 +22,7 @@ homepage = "https://github.com/martsokha/cordon"
 
 [workspace.dependencies]
 # Internal crates
-cordon-bevy = { path = "./crates/cordon-bevy" }
+cordon-app = { path = "./crates/cordon-app" }
 cordon-core = { path = "./crates/cordon-core" }
 cordon-data = { path = "./crates/cordon-data" }
 cordon-sim = { path = "./crates/cordon-sim" }

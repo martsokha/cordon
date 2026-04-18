@@ -2446,7 +2446,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cordon-bevy"
+name = "cordon-app"
 version = "0.1.0"
 dependencies = [
  "avian3d",

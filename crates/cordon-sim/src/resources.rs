@@ -4,7 +4,7 @@
 //! Each concern is its own resource so systems declare exactly
 //! what they touch and Bevy can run them in parallel where
 //! possible. [`init_world_resources`] is called once by the
-//! cordon-bevy layer on `OnEnter(AppState::Playing)` and fills
+//! cordon-app layer on `OnEnter(AppState::Playing)` and fills
 //! every resource defined below from loaded [`GameDataResource`].
 
 use std::collections::HashMap;
@@ -109,7 +109,7 @@ impl PlayerSquadRoster {
     }
 }
 
-/// In-game clock. Advanced by `cordon_bevy::world::tick_game_time`.
+/// In-game clock. Advanced by `cordon_app::world::tick_game_time`.
 #[derive(Resource, Debug, Clone, Copy, Default)]
 pub struct GameClock(pub GameTime);
 
@@ -436,7 +436,7 @@ pub fn tick_sim_time(
 
 /// Build the cordon-sim resource set from loaded game data. The
 /// caller is responsible for calling this exactly once, typically
-/// on `OnEnter(PlayingState)` in the cordon-bevy layer.
+/// on `OnEnter(PlayingState)` in the cordon-app layer.
 pub fn init_world_resources(mut commands: Commands, game_data: Res<GameDataResource>) {
     let data = &game_data.0;
 

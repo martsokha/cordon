@@ -22,7 +22,7 @@ pub struct ExpenseLine {
 
 /// What a daily expense pays for. New cost categories are added
 /// here; the payroll system in cordon-sim produces the lines,
-/// and the UI in cordon-bevy reads them for display.
+/// and the UI in cordon-app reads them for display.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExpenseKind {
     /// Per-member pay for hired squads, summed from `Rank::pay`.

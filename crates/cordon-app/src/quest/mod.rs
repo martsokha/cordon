@@ -24,7 +24,6 @@
 
 mod arrival;
 mod bridge;
-mod npc_bridge;
 
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataResource;
@@ -45,14 +44,7 @@ impl Plugin for QuestBridgePlugin {
         app.add_observer(bridge::on_dialogue_completed);
         app.add_systems(
             Update,
-            (
-                npc_bridge::handle_spawn_npc_requests,
-                npc_bridge::handle_give_npc_xp_requests,
-                npc_bridge::handle_template_npc_deaths,
-                npc_bridge::handle_template_dismissal,
-                arrival::handle_bunker_arrival,
-                arrival::handle_home_arrival,
-            )
+            (arrival::handle_bunker_arrival, arrival::handle_home_arrival)
                 .run_if(resource_exists::<GameDataResource>)
                 .run_if(resource_exists::<FactionSettlements>),
         );
