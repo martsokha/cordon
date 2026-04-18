@@ -7,20 +7,13 @@ use bevy_rand::prelude::GlobalRng;
 use cordon_sim::resources::{GameClock, PlayerPills};
 use rand::RngExt;
 
+use super::components::PillsInteractable;
+use super::resources::PillsSfx;
 use crate::bunker::geometry::{Prop, PropPlacement};
 use crate::bunker::interaction::{Interact, Interactable};
 
 const PILL_VOLUME: f32 = 0.6;
 const PILL_VARIANTS: usize = 3;
-
-/// Marker so we only attach the interactable once.
-#[derive(Component)]
-pub(super) struct PillsInteractable;
-
-#[derive(Resource)]
-struct PillsSfx {
-    clips: Vec<Handle<AudioSource>>,
-}
 
 pub(super) fn load_sfx(mut commands: Commands, asset_server: Res<AssetServer>) {
     let clips: Vec<_> = (1..=PILL_VARIANTS)
@@ -67,6 +60,13 @@ fn on_take_pills(
     mut pills: ResMut<PlayerPills>,
     mut rng: Single<&mut WyRand, With<GlobalRng>>,
 ) {
+    // Belt-and-braces: `sync_daily_availability` disables the
+    // interactable after the first dose each day, but the observer
+    // can still fire if the state machines line up wrong. Re-check
+    // here so the dose never double-stamps or the sfx double-plays.
+    if pills.last_taken == Some(clock.0.day) {
+        return;
+    }
     if sfx.clips.is_empty() {
         return;
     }
@@ -77,4 +77,22 @@ fn on_take_pills(
     ));
     pills.record_dose(clock.0.day);
     info!("player took pills");
+}
+
+/// Once-per-day gate on the pill interactable. Disables the
+/// `Interactable` (which hides the "Use pills" hint and makes the
+/// prop unclickable) once `PlayerPills.last_taken` matches today.
+/// Re-enables it on day rollover automatically.
+pub(super) fn sync_daily_availability(
+    pills: Res<PlayerPills>,
+    clock: Res<GameClock>,
+    mut pills_q: Query<&mut Interactable, With<PillsInteractable>>,
+) {
+    let taken_today = pills.last_taken == Some(clock.0.day);
+    for mut interactable in &mut pills_q {
+        let should_enable = !taken_today;
+        if interactable.enabled != should_enable {
+            interactable.enabled = should_enable;
+        }
+    }
 }

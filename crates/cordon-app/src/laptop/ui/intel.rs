@@ -1,24 +1,20 @@
-//! Intel tab: quest log, intel feed, faction standings.
+//! Intel tab: quest log + intel feed.
 //!
-//! The static panel layout is built once on [`spawn`]. Three
+//! The static panel layout is built once on [`spawn`]. Two
 //! containers are tagged with marker components so per-frame
 //! refresh systems can rebuild their children from live world
 //! state:
 //!
 //! - [`QuestListPanel`] — rebuilt by [`refresh_quest_list`]
 //!   whenever [`QuestLog`] changes.
-//! - [`FactionStandingsPanel`] — rebuilt by
-//!   [`refresh_faction_standings`] whenever standings change.
 //! - [`IntelFeedPanel`] — rebuilt by [`refresh_intel_feed`]
 //!   whenever [`PlayerIntel`] changes.
 
 use bevy::prelude::*;
-use cordon_core::entity::faction::Faction;
-use cordon_core::primitive::{Id, Relation};
 use cordon_core::world::narrative::IntelCategory;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::QuestLog;
-use cordon_sim::resources::{PlayerIntel, PlayerStandings};
+use cordon_sim::resources::PlayerIntel;
 
 use super::{LaptopTab, TabContent};
 use crate::fonts::UiFont;
@@ -35,17 +31,6 @@ pub struct QuestListPanel;
 #[derive(Component)]
 pub struct QuestListHeading;
 
-/// Marker on the flex column that holds the faction-standings
-/// rows. Refreshed in-place by [`refresh_faction_standings`].
-#[derive(Component)]
-pub struct FactionStandingsPanel;
-
-/// Marker on the heading row of the faction standings so
-/// [`refresh_faction_standings`] knows which child to preserve
-/// when rebuilding the list.
-#[derive(Component)]
-pub struct FactionStandingsHeading;
-
 /// Marker on the flex column that holds the intel-feed entries.
 /// Refreshed in-place by [`refresh_intel_feed`].
 #[derive(Component)]
@@ -55,8 +40,7 @@ pub struct IntelFeedPanel;
 #[derive(Component)]
 pub struct IntelFeedHeading;
 
-/// Shared first-fill + rebuild helper used by
-/// [`refresh_quest_list`] and [`refresh_faction_standings`].
+/// Shared first-fill + rebuild helper used by the refresh systems.
 ///
 /// Returns the panel entity when the caller should rebuild —
 /// either because `dirty == true` (a watched resource changed)
@@ -103,20 +87,15 @@ pub struct IntelUiPlugin;
 impl Plugin for IntelUiPlugin {
     fn build(&self, app: &mut App) {
         // Gate on the resources the refreshes read: the quest
-        // log + player (inserted by cordon-sim's plugins) and
-        // the game data catalog (inserted once `AppState`
+        // log and player intel (inserted by cordon-sim's plugins)
+        // and the game data catalog (inserted once `AppState`
         // leaves `Loading`). Without these guards the systems
         // run during the loading state and panic on missing
         // resources.
         app.add_systems(
             Update,
-            (
-                refresh_quest_list,
-                refresh_faction_standings,
-                refresh_intel_feed,
-            )
+            (refresh_quest_list, refresh_intel_feed)
                 .run_if(resource_exists::<QuestLog>)
-                .run_if(resource_exists::<PlayerStandings>)
                 .run_if(resource_exists::<PlayerIntel>)
                 .run_if(resource_exists::<GameDataResource>),
         );
@@ -125,7 +104,6 @@ impl Plugin for IntelUiPlugin {
 
 pub fn spawn(commands: &mut Commands, font: &Handle<Font>, l10n: &L10n) {
     let quest_log_heading = l10n.get("intel-quest-log");
-    let faction_standings_heading = l10n.get("intel-faction-standings");
     let intel_feed_heading = l10n.get("intel-feed");
 
     commands
@@ -171,72 +149,39 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>, l10n: &L10n) {
                     ));
                 });
 
-            // Right: faction standings + events.
+            // Right: intel feed.
             parent
-                .spawn(Node {
-                    flex_direction: FlexDirection::Column,
-                    width: Val::Percent(50.0),
-                    row_gap: Val::Px(12.0),
-                    padding: UiRect::all(Val::Px(8.0)),
-                    ..default()
-                })
-                .with_children(|col| {
-                    // Faction standings: heading inside a tagged
-                    // column so the refresh system owns the row
-                    // children without touching the event feed
-                    // below.
-                    col.spawn((
-                        FactionStandingsPanel,
-                        Node {
-                            flex_direction: FlexDirection::Column,
-                            row_gap: Val::Px(4.0),
+                .spawn((
+                    IntelFeedPanel,
+                    Node {
+                        flex_direction: FlexDirection::Column,
+                        width: Val::Percent(50.0),
+                        row_gap: Val::Px(4.0),
+                        padding: UiRect::all(Val::Px(8.0)),
+                        ..default()
+                    },
+                ))
+                .with_children(|panel| {
+                    panel.spawn((
+                        IntelFeedHeading,
+                        Text::new(intel_feed_heading),
+                        TextFont {
+                            font: font.clone(),
+                            font_size: 13.0,
                             ..default()
                         },
-                    ))
-                    .with_children(|panel| {
-                        panel.spawn((
-                            FactionStandingsHeading,
-                            Text::new(faction_standings_heading),
-                            TextFont {
-                                font: font.clone(),
-                                font_size: 13.0,
-                                ..default()
-                            },
-                            TextColor(Color::srgb(0.8, 0.8, 0.6)),
-                        ));
-                    });
-
-                    col.spawn((
-                        IntelFeedPanel,
-                        Node {
-                            flex_direction: FlexDirection::Column,
-                            row_gap: Val::Px(4.0),
-                            margin: UiRect::top(Val::Px(8.0)),
-                            ..default()
-                        },
-                    ))
-                    .with_children(|panel| {
-                        panel.spawn((
-                            IntelFeedHeading,
-                            Text::new(intel_feed_heading),
-                            TextFont {
-                                font: font.clone(),
-                                font_size: 13.0,
-                                ..default()
-                            },
-                            TextColor(Color::srgb(0.8, 0.8, 0.6)),
-                        ));
-                    });
+                        TextColor(Color::srgb(0.8, 0.8, 0.6)),
+                    ));
                 });
         });
 }
 
 /// Rebuild the quest-list column whenever [`QuestLog`] changes,
 /// or on the first frame the panel exists (same lifecycle
-/// caveat as [`refresh_faction_standings`]: `QuestLog` is
-/// inserted by cordon-sim's `QuestPlugin` before the laptop UI
-/// is spawned, so the `is_changed()` window has already closed
-/// by the time this system first gets a panel to populate).
+/// caveat as [`refresh_intel_feed`]: `QuestLog` is inserted by
+/// cordon-sim's `QuestPlugin` before the laptop UI is spawned,
+/// so the `is_changed()` window has already closed by the time
+/// this system first gets a panel to populate).
 fn refresh_quest_list(
     mut commands: Commands,
     log: Res<QuestLog>,
@@ -380,93 +325,6 @@ fn refresh_quest_list(
                 .id();
             commands.entity(panel_entity).add_child(row);
         }
-    }
-}
-
-/// Rebuild the faction standings column whenever the [`Player`]
-/// resource changes, or on the first frame the panel exists
-/// (so the initial fill happens even if `Player` was inserted
-/// before the laptop UI was spawned — which is the normal
-/// case, since the player resource comes from
-/// `init_world_resources` on `OnEnter(AppState::Playing)` and
-/// the laptop UI is built later on `OnEnter(PlayingState::Laptop)`).
-fn refresh_faction_standings(
-    mut commands: Commands,
-    standings: Res<PlayerStandings>,
-    l10n: L10n,
-    font: Res<UiFont>,
-    panel_q: Query<(Entity, Option<&Children>), With<FactionStandingsPanel>>,
-    heading_q: Query<(), With<FactionStandingsHeading>>,
-) {
-    let Some(panel_entity) =
-        prepare_panel_rebuild(&mut commands, &panel_q, &heading_q, standings.is_changed())
-    else {
-        return;
-    };
-
-    let font = font.0.clone();
-
-    // Sort by faction ID so row order is stable across frames;
-    // `PlayerState::new` seeds the list in `faction_ids()`
-    // iteration order, which is `HashMap` order — visually
-    // unstable. Clone + sort on display rather than on mutation.
-    let mut rows: Vec<(Id<Faction>, Relation)> = standings.standings.clone();
-    rows.sort_by(|a, b| a.0.as_str().cmp(b.0.as_str()));
-
-    for (faction, standing) in rows {
-        let id_str = faction.as_str();
-        let display_name = l10n.get(id_str);
-
-        let label_key = standing_label_key(standing);
-        let label = l10n.get(label_key);
-        let color = standing_color(standing);
-
-        let row = commands
-            .spawn((
-                Text::new(format!("{display_name}: {label}")),
-                TextFont {
-                    font: font.clone(),
-                    font_size: 11.0,
-                    ..default()
-                },
-                TextColor(color),
-            ))
-            .id();
-        commands.entity(panel_entity).add_child(row);
-    }
-}
-
-/// FTL key for a faction standing bucket. Mirrors the buckets
-/// on [`Relation`] so the UI and the sim agree on what
-/// "friendly" means.
-fn standing_label_key(standing: Relation) -> &'static str {
-    if standing.is_hostile() {
-        "standing-hostile"
-    } else if standing.is_unfriendly() {
-        "standing-unfriendly"
-    } else if standing.is_allied() {
-        "standing-allied"
-    } else if standing.is_friendly() {
-        "standing-friendly"
-    } else {
-        "standing-neutral"
-    }
-}
-
-/// Row text colour matching the standing bucket. Mild shifts
-/// only — the intel panel is quiet by design, standings are
-/// the most dynamic piece and don't need to scream.
-fn standing_color(standing: Relation) -> Color {
-    if standing.is_hostile() {
-        Color::srgba(0.85, 0.35, 0.30, 0.95)
-    } else if standing.is_unfriendly() {
-        Color::srgba(0.80, 0.55, 0.35, 0.90)
-    } else if standing.is_allied() {
-        Color::srgba(0.45, 0.85, 0.55, 0.95)
-    } else if standing.is_friendly() {
-        Color::srgba(0.55, 0.80, 0.60, 0.90)
-    } else {
-        Color::srgba(0.70, 0.70, 0.70, 0.85)
     }
 }
 

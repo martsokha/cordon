@@ -3,7 +3,6 @@
   "name_key": "npc-garrison-sergeant",
   "faction": "faction_garrison",
   "rank": "veteran",
-  "trust": 0.2,
   "loadout": [
     "item_longtooth",
     "item_tactical_vest",

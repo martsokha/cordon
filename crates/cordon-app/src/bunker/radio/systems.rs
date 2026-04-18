@@ -6,7 +6,7 @@ use cordon_sim::resources::GameClock;
 use crate::bunker::interaction::{Interact, Interactable};
 use crate::bunker::resources::RadioPlacement;
 
-const STATIC_VOLUME: f32 = 0.08;
+const STATIC_VOLUME: f32 = 0.16;
 const CHATTER_VOLUME: f32 = 0.35;
 const TOGGLE_VOLUME: f32 = 0.75;
 

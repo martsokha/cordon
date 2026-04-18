@@ -139,13 +139,11 @@ impl Plugin for CordonSimPlugin {
 /// ripple outward.
 pub mod prelude {
     // Cordon-core types that derive `Component` directly and are
-    // attached to entities as live components, plus the flavour
-    // types (`Trust`, `Loyalty`) that are bundled inside
-    // `NpcAttributes`.
+    // attached to entities as live components.
     pub use cordon_core::entity::name::NpcName;
     pub use cordon_core::entity::squad::{Formation, Goal};
     pub use cordon_core::item::{ItemInstance, Loadout};
-    pub use cordon_core::primitive::{Credits, Experience, Loyalty, Trust};
+    pub use cordon_core::primitive::{Credits, Experience};
 
     pub use super::{CordonSimPlugin, SimSet};
     // Behavior subplugin exports: each subplugin's component + event
@@ -170,8 +168,8 @@ pub mod prelude {
     pub use crate::day::radio::{BroadcastHeard, RadioBroadcast};
     // Per-entity components not owned by a subplugin.
     pub use crate::entity::npc::{
-        ActiveEffects, BaseMaxes, Essential, FactionId, NpcAttributes, NpcBundle, NpcMarker,
-        PendingYarnNode, QuestCritical, SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker,
+        ActiveEffects, BaseMaxes, Essential, FactionId, NpcBundle, NpcMarker, PendingYarnNode,
+        QuestCritical, SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker,
     };
     pub use crate::entity::relic::{RelicHome, RelicMarker};
     pub use crate::quest::{

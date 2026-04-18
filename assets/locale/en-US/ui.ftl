@@ -24,7 +24,6 @@ settlement-role-market = Market
 intel-quest-log = QUEST LOG
 intel-quest-log-empty = No active quests.
 intel-quest-log-completed = RECENT
-intel-faction-standings = FACTION STANDINGS
 
 # Intel feed
 intel-feed = INTEL
@@ -42,15 +41,6 @@ interact-rack-take = Take { $item }
 interact-rack-place = Place { $item }
 interact-rack-swap = Swap { $carry } with { $slot }
 interact-exit-camera = Exit camera
-
-# Faction standing buckets. Mirror `Relation::is_*` helpers in
-# `cordon-core/src/primitive/relation.rs` — if the thresholds
-# there change, update the descriptive text here to match.
-standing-hostile = Hostile
-standing-unfriendly = Unfriendly
-standing-neutral = Neutral
-standing-friendly = Friendly
-standing-allied = Allied
 
 # Standing-change toasts.
 toast-standing-increased = { $faction }: increased

@@ -24,7 +24,7 @@ use cordon_core::entity::name::{NameFormat, NpcName};
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::{Formation, Goal, Squad};
 use cordon_core::item::{ItemInstance, Loadout};
-use cordon_core::primitive::{Corruption, Credits, Experience, Health, Loyalty, Pool, Stamina};
+use cordon_core::primitive::{Corruption, Credits, Experience, Health, Pool, Stamina};
 use cordon_core::world::BUNKER_MAP_POS;
 use cordon_data::gamedata::GameDataResource;
 use rand::RngExt;
@@ -35,8 +35,8 @@ use crate::behavior::death::NpcDied;
 use crate::behavior::squad::identity::{SquadBundle, SquadMembership};
 use crate::behavior::squad::intent::MovementIntent;
 use crate::entity::npc::{
-    ActiveEffects, BaseMaxes, Essential, FactionId, NpcAttributes, NpcBundle, NpcMarker,
-    PendingYarnNode, QuestCritical, SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker,
+    ActiveEffects, BaseMaxes, Essential, FactionId, NpcBundle, NpcMarker, PendingYarnNode,
+    QuestCritical, SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker,
 };
 use crate::resources::{FactionSettlements, SquadIdIndex, UidAllocator};
 use crate::spawn::loadout::generate_loadout;
@@ -181,10 +181,6 @@ pub fn handle_spawn_npc_requests(
             },
             loadout,
             wealth: Credits::new(0),
-            attributes: NpcAttributes {
-                trust: def.trust,
-                loyalty: Loyalty(0.5),
-            },
         };
 
         // Pick a random faction settlement as the spawn point.

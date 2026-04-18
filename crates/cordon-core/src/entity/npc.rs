@@ -2,10 +2,9 @@
 //!
 //! There's no `Npc` data struct anymore — NPCs are Bevy entities
 //! assembled from cordon-core component types (`NpcName`,
-//! `Loadout`, `Experience`, `Credits`, `Trust`, `Loyalty`) plus
-//! cordon-sim glue (`NpcMarker`, `FactionId`, `NpcAttributes`,
-//! `Employment`, `NpcBundle`). The generator in cordon-sim
-//! produces bundles directly.
+//! `Loadout`, `Experience`, `Credits`) plus cordon-sim glue
+//! (`NpcMarker`, `FactionId`, `Employment`, `NpcBundle`). The
+//! generator in cordon-sim produces bundles directly.
 //!
 //! What remains here is:
 //!
@@ -18,7 +17,7 @@ use serde::{Deserialize, Serialize};
 
 use super::faction::Faction;
 use crate::item::Item;
-use crate::primitive::{Id, IdMarker, Rank, Trust};
+use crate::primitive::{Id, IdMarker, Rank};
 
 /// Phantom marker for NPC-stable save-game IDs. Used as the
 /// type parameter on `Uid<Npc>`. Has no fields — all the actual
@@ -47,8 +46,6 @@ pub struct NpcTemplateDef {
     pub faction: Id<Faction>,
     /// Base rank — actual spawn XP is randomized within this tier.
     pub rank: Rank,
-    /// Starting trust toward the player.
-    pub trust: Trust,
     /// If set, the NPC spawns with exactly these items. If `None`,
     /// gear is rolled from the faction archetype at the resolved rank.
     #[serde(default)]

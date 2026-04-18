@@ -1,12 +1,11 @@
 //! Per-NPC ECS components.
 //!
 //! Most per-NPC data types now derive `Component` directly in
-//! cordon-core (`NpcName`, `Loadout`, `Experience`, `Credits`,
-//! `Trust`, `Loyalty`), so they're attached to
-//! entities without a wrapper. This module only holds the
-//! cordon-sim-specific components that don't have a cordon-core
-//! analog: the NPC marker, baseline pool caps, employment status,
-//! and the `NpcBundle` glue.
+//! cordon-core (`NpcName`, `Loadout`, `Experience`, `Credits`),
+//! so they're attached to entities without a wrapper. This
+//! module only holds the cordon-sim-specific components that
+//! don't have a cordon-core analog: the NPC marker, baseline
+//! pool caps, employment status, and the `NpcBundle` glue.
 
 use bevy::prelude::*;
 use cordon_core::entity::faction::Faction;
@@ -14,7 +13,7 @@ use cordon_core::entity::name::NpcName;
 use cordon_core::entity::npc::{Npc, NpcTemplate};
 use cordon_core::item::{Loadout, TimedEffect};
 use cordon_core::primitive::{
-    Corruption, Credits, Experience, GameTime, Health, Id, Loyalty, Pool, Stamina, Trust, Uid,
+    Corruption, Credits, Experience, GameTime, Health, Id, Pool, Stamina, Uid,
 };
 
 /// Per-entity list of currently-active [`TimedEffect`]s.
@@ -123,18 +122,6 @@ pub struct PendingYarnNode(pub String);
 #[derive(Component, Debug, Clone)]
 pub struct FactionId(pub Id<Faction>);
 
-/// Hidden NPC attributes affecting negotiation and squad
-/// behaviour. Bundled into one component because a query for
-/// "how does this NPC feel" always wants all of these at once —
-/// splitting them into three separate components would force
-/// three query touches for every decision that depends on NPC
-/// mood.
-#[derive(Component, Debug, Clone, Copy, Default)]
-pub struct NpcAttributes {
-    pub trust: Trust,
-    pub loyalty: Loyalty,
-}
-
 /// Bundle of every per-NPC component the spawn system attaches
 /// to a fresh entity. Built directly by the generator — there's
 /// no intermediate `Npc` data struct any more.
@@ -152,5 +139,4 @@ pub struct NpcBundle {
     pub base_maxes: BaseMaxes,
     pub loadout: Loadout,
     pub wealth: Credits,
-    pub attributes: NpcAttributes,
 }
