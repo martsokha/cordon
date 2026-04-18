@@ -1,7 +1,6 @@
 {
   "id": "event_anomaly_surge",
-  "category": "environmental",
-  "base_probability": 0.6,
+  "spawn_weight": 0.6,
   "min_duration": 1,
   "max_duration": 1,
   "max_instances": 2,

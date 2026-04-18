@@ -1,7 +1,6 @@
 {
   "id": "event_supply_shortage",
-  "category": "economic",
-  "base_probability": 0.5,
+  "spawn_weight": 0.5,
   "min_duration": 3,
   "max_duration": 5,
   "max_instances": 1,

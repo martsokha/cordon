@@ -1,6 +1,5 @@
 {
   "id": "intel_faction_war_brewing",
-  "category": "faction",
   "expires_after": {
     "days": 7
   }

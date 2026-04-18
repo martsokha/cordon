@@ -1,7 +1,6 @@
 {
   "id": "event_black_market_opening",
-  "category": "economic",
-  "base_probability": 0.4,
+  "spawn_weight": 0.4,
   "min_duration": 1,
   "max_duration": 2,
   "max_instances": 1,

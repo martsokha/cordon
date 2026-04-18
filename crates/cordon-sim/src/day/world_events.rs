@@ -6,21 +6,23 @@
 //! (on-demand instantiation via [`spawn_event_instance`]).
 //!
 //! Distinct from [`super::events`]: these are world-state events
-//! (faction_war, coup, radiation_storm — things that happen in the
-//! game world), whereas `events` holds ECS `Message` types like
+//! (faction_war, anomaly_surge — things that happen in the game
+//! world), whereas `events` holds ECS `Message` types like
 //! `DayRolled`.
 
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::{Day, Id};
 use cordon_core::world::area::Area;
-use cordon_core::world::narrative::{ActiveEvent, EventCategory, EventDef};
+use cordon_core::world::narrative::{ActiveEvent, EventDef};
 use rand::{Rng, RngExt};
 
 /// Roll for daily events using loaded event definitions.
 ///
-/// For each event def, checks eligibility (earliest day, stack cap),
-/// then rolls against its base probability modified by escalation and
-/// world state. Pushes any successful rolls onto `active`.
+/// For each event def that carries a `spawn_weight`, checks
+/// eligibility (earliest day, stack cap), then rolls against the
+/// weight scaled by day-escalation. Events without a weight never
+/// roll — they're quest-only and only spawn via the `TriggerEvent`
+/// consequence.
 pub fn roll_daily_events<R: Rng>(
     active: &mut Vec<ActiveEvent>,
     defs: &[EventDef],
@@ -31,18 +33,12 @@ pub fn roll_daily_events<R: Rng>(
     let day_num = day.value();
     // Escalation: events get more frequent as days progress.
     let escalation = (day_num as f32 / 100.0).min(1.0);
-
-    let category_multiplier = |cat: EventCategory| -> f32 {
-        match cat {
-            EventCategory::Environmental => 1.0 + escalation * 0.5,
-            EventCategory::Economic => 1.0 + escalation * 0.3,
-            EventCategory::Faction => 1.0 + escalation * 0.4,
-            EventCategory::Bunker => 1.0 + escalation * 0.3,
-            EventCategory::Personal => 1.0 + escalation * 0.2,
-        }
-    };
+    let escalation_multiplier = 1.0 + escalation * 0.3;
 
     for def in defs {
+        let Some(weight) = def.spawn_weight else {
+            continue;
+        };
         if day < def.earliest_day {
             continue;
         }
@@ -53,7 +49,7 @@ pub fn roll_daily_events<R: Rng>(
             }
         }
 
-        let probability = def.base_probability * category_multiplier(def.category);
+        let probability = weight * escalation_multiplier;
         if rng.random::<f32>() >= probability {
             continue;
         }

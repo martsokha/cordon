@@ -1,7 +1,6 @@
 {
   "id": "event_power_flicker",
-  "category": "bunker",
-  "base_probability": 0.12,
+  "spawn_weight": 0.12,
   "min_duration": 1,
   "max_duration": 1,
   "max_instances": 1,

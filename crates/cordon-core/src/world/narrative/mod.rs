@@ -20,9 +20,9 @@ mod quest;
 mod trigger;
 
 pub use self::consequence::{ConditionalConsequence, Consequence, EndingCause, ObjectiveCondition};
-pub use self::event::{ActiveEvent, Event, EventCategory, EventDef, RadioEntry};
+pub use self::event::{ActiveEvent, Event, EventDef, RadioEntry};
 pub use self::flag::{QuestFlagPredicate, QuestFlagValue};
-pub use self::intel::{Intel, IntelCategory, IntelDef};
+pub use self::intel::{Intel, IntelDef};
 pub use self::quest::{
     BranchArm, BranchStage, ObjectiveStage, OutcomeStage, Quest, QuestCategory, QuestDef,
     QuestStage, QuestStageDef, QuestStageKind, TalkBranch, TalkStage,

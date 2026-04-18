@@ -1,7 +1,6 @@
 {
   "id": "event_syndicate_smuggling",
-  "category": "faction",
-  "base_probability": 0.5,
+  "spawn_weight": 0.5,
   "min_duration": 2,
   "max_duration": 4,
   "max_instances": 1,

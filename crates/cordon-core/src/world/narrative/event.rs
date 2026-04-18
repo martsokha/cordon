@@ -3,9 +3,11 @@
 //! [`EventDef`] is loaded from JSON config files. [`ActiveEvent`] is a
 //! runtime instance of an event currently affecting the world.
 //!
-//! Events are data-driven: their category, base probability, duration
-//! range, and parameters are all defined in config. The sim rolls
-//! daily for each event based on its probability and world state.
+//! Events are data-driven: their spawn weight, duration range, and
+//! parameters are all defined in config. The sim rolls daily for each
+//! event that carries a spawn weight; events without one are
+//! quest-only — they never roll and can only be spawned via the
+//! `TriggerEvent` consequence.
 
 use serde::{Deserialize, Serialize};
 
@@ -18,27 +20,6 @@ use crate::world::area::Area;
 /// Marker for event definition IDs.
 pub struct Event;
 impl IdMarker for Event {}
-
-/// Broad category for event grouping and scheduling.
-///
-/// Each category has its own base roll probability per day, modified
-/// by world state (Zone instability, market stability, faction tensions,
-/// security level, narrative flags).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EventCategory {
-    /// Weather, surges, hazard shifts, creature activity.
-    Environmental,
-    /// Supply/demand shifts, shortages, market disruptions.
-    Economic,
-    /// Wars, truces, patrols, coups, faction-specific visitors.
-    Faction,
-    /// Raids, inspections, power outages, infestations.
-    Bunker,
-    /// Runner losses, betrayals, special visitors, encounters.
-    Personal,
-}
 
 /// Optional radio broadcast tied to an event. When present the radio
 /// announces the event to the player after a configurable delay and
@@ -68,28 +49,21 @@ fn default_true() -> bool {
 
 /// An event definition loaded from config.
 ///
-/// Defines what an event is, how likely it is to occur, how long it
-/// lasts, what direct effects it has, and what parameters it carries.
-/// The [`id`](EventDef::id) doubles as the localization key.
-///
-/// # Examples from config
-///
-/// - `"surge"`: category Environmental, base_probability 0.08, duration 1..1,
-///   consequences: [DangerModifier { area: None, delta: 0.3 }]
-/// - `"faction_war"`: category Faction, base_probability 0.05, duration 3..7,
-///   involves two faction IDs (resolved at runtime by the sim)
-/// - `"garrison_commander_visit"`: category Faction, base_probability 0.1
-/// - `"information_seller"`: category Personal, base_probability 0.03
-/// - `"intelligent_creature"`: category Environmental, base_probability 0.01
+/// Defines what an event is, how likely it is to roll daily, how
+/// long it lasts, what direct effects it has, and what parameters
+/// it carries. The [`id`](EventDef::id) doubles as the localization
+/// key.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventDef {
     /// Unique identifier and localization key (e.g., `"surge"`, `"faction_war"`).
     pub id: Id<Event>,
-    /// Which category this event belongs to.
-    pub category: EventCategory,
-    /// Base probability of this event occurring per day (0.0–1.0).
-    /// Modified at runtime by escalation and world state.
-    pub base_probability: f32,
+    /// Base per-day roll weight. `None` means this event never
+    /// rolls from the daily scheduler — it only fires when a
+    /// quest `TriggerEvent` consequence spawns it directly. A
+    /// `Some(w)` value is scaled by world escalation at roll
+    /// time, so values around `0.05..0.8` are typical.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spawn_weight: Option<f32>,
     /// Minimum duration in days.
     pub min_duration: u8,
     /// Maximum duration in days.

@@ -1,7 +1,6 @@
 {
   "id": "event_faction_war",
-  "category": "faction",
-  "base_probability": 0.4,
+  "spawn_weight": 0.4,
   "min_duration": 5,
   "max_duration": 10,
   "max_instances": 1,

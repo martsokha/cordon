@@ -1,5 +1,5 @@
 {
-  "id": "trigger_first_contact_intro",
+  "id": "trigger_first_contact",
   "quest": "quest_first_contact",
   "kind": "on_game_start",
   "repeatable": false

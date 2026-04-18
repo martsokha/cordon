@@ -1,7 +1,6 @@
 {
   "id": "event_garrison_patrol",
-  "category": "faction",
-  "base_probability": 0.6,
+  "spawn_weight": 0.6,
   "min_duration": 1,
   "max_duration": 2,
   "max_instances": 2,

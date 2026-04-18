@@ -1,7 +1,6 @@
 {
   "id": "event_creature_migration",
-  "category": "environmental",
-  "base_probability": 0.4,
+  "spawn_weight": 0.4,
   "min_duration": 3,
   "max_duration": 7,
   "max_instances": 1,

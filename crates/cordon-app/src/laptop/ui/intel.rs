@@ -11,7 +11,6 @@
 //!   whenever [`PlayerIntel`] changes.
 
 use bevy::prelude::*;
-use cordon_core::world::narrative::IntelCategory;
 use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::QuestLog;
 use cordon_sim::resources::PlayerIntel;
@@ -363,12 +362,11 @@ fn refresh_quest_list(
 }
 
 /// Rebuild the intel feed whenever [`PlayerIntel`] changes.
-/// Shows known intel entries sorted newest-first, with a
-/// category tag and colour per entry.
+/// Shows known intel entries sorted newest-first, each entry
+/// a title line followed by a dimmer description line.
 fn refresh_intel_feed(
     mut commands: Commands,
     intel: Res<PlayerIntel>,
-    data: Res<GameDataResource>,
     l10n: L10n,
     font: Res<UiFont>,
     panel_q: Query<(Entity, Option<&Children>), With<IntelFeedPanel>>,
@@ -399,54 +397,50 @@ fn refresh_intel_feed(
         return;
     }
 
+    const TITLE_COLOR: Color = Color::srgba(0.85, 0.85, 0.85, 0.95);
+    const DESC_COLOR: Color = Color::srgba(0.65, 0.65, 0.65, 0.8);
+
     // Show newest entries first, capped at 10.
     const MAX_ENTRIES: usize = 10;
     for entry in intel.entries.iter().rev().take(MAX_ENTRIES) {
         let id_str = entry.id.as_str();
-        let title_key = format!("intel.{id_str}.title");
-        let title = l10n.get(&title_key);
+        let title = l10n.get(&format!("{id_str}_title"));
+        let description = l10n.get(&format!("{id_str}_description"));
 
-        let (tag, color) = match data.0.intel.get(&entry.id) {
-            Some(def) => (
-                intel_category_tag(def.category),
-                intel_category_color(def.category),
-            ),
-            None => ("???", Color::srgba(0.5, 0.5, 0.5, 0.7)),
-        };
+        let entry_node = commands
+            .spawn(Node {
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::Px(2.0),
+                padding: UiRect::new(Val::Px(4.0), Val::Px(4.0), Val::Px(4.0), Val::Px(4.0)),
+                ..default()
+            })
+            .id();
+        commands.entity(panel_entity).add_child(entry_node);
 
-        let row = commands
+        let title_node = commands
             .spawn((
-                Text::new(format!("[{tag}] {title}")),
+                Text::new(title),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 11.0,
+                    ..default()
+                },
+                TextColor(TITLE_COLOR),
+            ))
+            .id();
+        commands.entity(entry_node).add_child(title_node);
+
+        let desc_node = commands
+            .spawn((
+                Text::new(description),
                 TextFont {
                     font: font.clone(),
                     font_size: 10.0,
                     ..default()
                 },
-                TextColor(color),
+                TextColor(DESC_COLOR),
             ))
             .id();
-        commands.entity(panel_entity).add_child(row);
-    }
-}
-
-/// Short uppercase tag for the intel category.
-fn intel_category_tag(cat: IntelCategory) -> &'static str {
-    match cat {
-        IntelCategory::Faction => "FAC",
-        IntelCategory::Environmental => "ENV",
-        IntelCategory::Economic => "ECO",
-        IntelCategory::Rumour => "RUM",
-        IntelCategory::Mission => "MSN",
-    }
-}
-
-/// Row colour per intel category.
-fn intel_category_color(cat: IntelCategory) -> Color {
-    match cat {
-        IntelCategory::Faction => Color::srgba(0.65, 0.75, 0.90, 0.90),
-        IntelCategory::Environmental => Color::srgba(0.70, 0.85, 0.55, 0.90),
-        IntelCategory::Economic => Color::srgba(0.90, 0.80, 0.50, 0.90),
-        IntelCategory::Rumour => Color::srgba(0.75, 0.65, 0.80, 0.85),
-        IntelCategory::Mission => Color::srgba(0.85, 0.70, 0.50, 0.90),
+        commands.entity(entry_node).add_child(desc_node);
     }
 }

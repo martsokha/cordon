@@ -13,7 +13,7 @@
 //! - [`systems`] — the `detect_day_rollover` / `roll_today_events` /
 //!   `expire_old_events` systems.
 //! - [`world_events`] — pure functions for rolling and expiring
-//!   in-world `ActiveEvent`s (faction_war, coup, radiation_storm).
+//!   in-world `ActiveEvent`s (faction_war, coup, anomaly_surge).
 //!   Name is deliberately distinct from `events` to separate
 //!   world-state events from ECS messages.
 
