@@ -30,16 +30,24 @@ use cordon_data::gamedata::GameDataResource;
 use cordon_sim::resources::FactionSettlements;
 
 use self::bridge::DialogueInFlight;
-use crate::PlayingState;
 
 pub struct QuestBridgePlugin;
 
 impl Plugin for QuestBridgePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<DialogueInFlight>();
+        // Runs in any PlayingState — template-NPC travel and
+        // visitor-queue pushes must happen even while the player is
+        // at the laptop, so the door alarm rings and quests can chain
+        // without the player having to be at the desk. The dialogue
+        // UI is still gated to PlayingState::Bunker, so the actual
+        // conversation only renders when the player returns.
+        //
+        // The resource-exists gate keeps the system off during the
+        // early load frames before GameDataResource is inserted.
         app.add_systems(
             Update,
-            bridge::enqueue_talk_dialogue.run_if(in_state(PlayingState::Bunker)),
+            bridge::enqueue_talk_dialogue.run_if(resource_exists::<GameDataResource>),
         );
         app.add_observer(bridge::on_dialogue_completed);
         app.add_systems(
