@@ -12,11 +12,8 @@ FACTION:     The Collective           [visible: patches, gear, mannerisms]
 RANK:        Soldier                  [visible: gear quality, demeanor, how others address them]
 GEAR:        Worn leather jacket,     [visible: what they're carrying]
              damaged rifle
-TRUST:       Low                      [hidden: built over repeat interactions]
 WEALTH:      Poor                     [hidden: inferred from gear/offers]
 NEED:        Desperate (wounded)      [hidden: may or may not be obvious]
-PERSONALITY: Cautious, honest         [hidden: revealed through behavior over time]
-PERKS:       ???                      [hidden: revealed through actions/missions]
 ```
 
 **Visible attributes** (what the player sees in the interface):
@@ -26,7 +23,6 @@ PERKS:       ???                      [hidden: revealed through actions/missions
 - **Gear**: what they're carrying and wearing. Gives clues about wealth, competence, and faction.
 
 **Hidden attributes** (player never sees these directly — only infers through behavior):
-- **Trust**: how much they trust you personally. Built over repeat interactions.
 - **Wealth**: how much they can actually afford. Not always obvious — a ragged Drifter might have a fortune stashed.
 - **Need**: what they actually need vs. what they say they want. A desperate person may hide their desperation.
 
@@ -85,7 +81,7 @@ You manage **squads**: each squad is one person assigned to a role (runner or gu
 
 1. **NPC arrives looking for work**: they show up at your counter asking if you need anyone. You see their appearance, demeanor, and gear condition — but no stats.
 2. **You decide**: hire them, turn them away, or negotiate terms (pay rate, upfront equipment).
-3. **You can also offer jobs**: if a regular Drifter, Syndicate, or Mercenary customer seems capable, you can propose they work for you. Trust level affects whether they accept.
+3. **You can also offer jobs**: if a regular Drifter, Syndicate, or Mercenary customer seems capable, you can propose they work for you.
 4. **Assign a role**: runner (goes into the Zone) or guard (stays at the bunker).
 5. **Trial by fire**: their first mission or first raid reveals what they're actually made of.
 
@@ -99,7 +95,6 @@ You manage **squads**: each squad is one person assigned to a role (runner or gu
 
 ### What you DON'T know
 
-- Their loyalty threshold (how much abuse they'll tolerate)
 - Whether they're a plant from a rival faction
 - Whether they'll crack under pressure or rise to the occasion
 
@@ -109,7 +104,7 @@ You manage **squads**: each squad is one person assigned to a role (runner or gu
 
 **Guards**: your muscle at the bunker. They deter theft, enable intimidation during negotiations, and defend against raids. A capable guard can make your bunker nearly untouchable — but you won't know until a raid tests them.
 
-You can reassign roles between days. Firing someone is instant but burns trust — they may come back as a hostile customer, or badmouth you to their faction.
+You can reassign roles between days. Firing someone is instant and may sour the relationship — they may come back as a hostile customer, or badmouth you to their faction.
 
 ## Runners
 
@@ -157,7 +152,6 @@ Chances are modified by the runner's equipment, the sector's danger level, and c
 
 - **Pay**: runners expect payment. Underpay and they leave or steal.
 - **Equipment**: you can give runners weapons, armor, meds, and detectors from your inventory.
-- **Loyalty**: invisible stat. Builds over time with fair pay and good equipment. Drops with underpayment or sending them on suicide missions.
 - **Permadeath**: dead runners are gone. Their gear is gone. Your investment is lost.
 
 ## Guards

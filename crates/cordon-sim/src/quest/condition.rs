@@ -173,7 +173,7 @@ mod tests {
     use cordon_core::entity::player::PlayerState;
     use cordon_core::primitive::{Credits, Duration, GameTime, Id, Relation, RelationDelta};
     use cordon_core::world::narrative::{
-        ObjectiveCondition, Quest, QuestFlagPredicate, QuestFlagValue, QuestStage,
+        ObjectiveCondition, QuestFlagPredicate, QuestFlagValue, QuestStage,
     };
 
     use super::{evaluate, yarn_value_equals};

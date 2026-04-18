@@ -1,31 +1,5 @@
 [
   {
-    "id": "item_bandage",
-    "data": {
-      "type": "consumable",
-      "effects": [
-        {
-          "target": "health",
-          "value": 15.0,
-          "duration": "instant"
-        }
-      ],
-      "spoil_days": null
-    },
-    "base_price": 30,
-    "suppliers": [
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.0
-      }
-    ],
-    "rarity": "common"
-  },
-  {
     "id": "item_medkit",
     "data": {
       "type": "consumable",

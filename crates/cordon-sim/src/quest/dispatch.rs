@@ -130,10 +130,10 @@ pub fn dispatch_on_condition(mut ctx: QuestCtx, mut state: ResMut<QuestDispatchS
         if !ctx.evaluate(cond, None) {
             continue;
         }
-        if let Some(req) = &trigger.requires {
-            if !ctx.evaluate(req, None) {
-                continue;
-            }
+        if let Some(req) = &trigger.requires
+            && !ctx.evaluate(req, None)
+        {
+            continue;
         }
         eligible_now.insert(trigger.id.clone());
         if !state.previously_eligible.contains(&trigger.id) {

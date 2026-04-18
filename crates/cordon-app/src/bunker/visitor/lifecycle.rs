@@ -5,7 +5,7 @@ use bevy::color::Srgba;
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataResource;
 
-use super::audio::{ALARM_VOLUME, AlarmSound, DOOR_VOLUME, DoorSfx};
+use super::audio::{ALARM_VOLUME, AlarmSound, DOOR_CLOSE_VOLUME, DOOR_OPEN_VOLUME, DoorSfx};
 use super::state::{AdmitVisitor, Visitor, VisitorQueue, VisitorState};
 use crate::bunker::camera::FpsCamera;
 use crate::bunker::resources::{
@@ -158,7 +158,7 @@ pub(super) fn apply_admit_visitor(
     commands.insert_resource(MovementLocked);
     commands.spawn((
         AudioPlayer(door_sfx.open.clone()),
-        PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(DOOR_VOLUME)),
+        PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(DOOR_OPEN_VOLUME)),
     ));
     info!("visitor admitted: {}", visitor.display_name);
     *state = VisitorState::Inside {
@@ -200,7 +200,7 @@ pub(super) fn dismiss_on_dialogue_complete(
         commands.remove_resource::<MovementLocked>();
         commands.spawn((
             AudioPlayer(door_sfx.close.clone()),
-            PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(DOOR_VOLUME)),
+            PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(DOOR_CLOSE_VOLUME)),
         ));
         info!("visitor dismissed: {name}");
     }

@@ -37,10 +37,13 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         &concrete,
     );
 
-    // Generator against the far wall.
+    // Generator against the far wall. The prop's native X span
+    // reaches ~1.04 on the negative side; with the -π/2 Y rotation
+    // that becomes the world-Z half-extent, so it has to sit at
+    // least 1.04 away from the back wall to avoid clipping.
     ctx.prop_rot(
         Prop::Generator1,
-        Vec3::new(ctx.l.workshop_x_max() - 0.6, 0.0, ctx.l.back_z + 0.5),
+        Vec3::new(ctx.l.workshop_x_max() - 0.6, 0.0, ctx.l.back_z + 1.1),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
     ctx.prop_rot(

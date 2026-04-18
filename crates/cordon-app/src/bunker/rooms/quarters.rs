@@ -67,10 +67,24 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
 
     // Bookshelf against the south wall (not the far wall where
     // the sofa is — avoids the overlap).
+    let bookshelf_x = ctx.l.quarters_x_center() + 0.3;
+    let bookshelf_z = ctx.l.tj1_south + 0.25;
+    const BOOKSHELF_TOP: f32 = 0.4;
     ctx.prop_rot(
         Prop::SingleBookshelf,
-        Vec3::new(ctx.l.quarters_x_center() + 0.3, 0.0, ctx.l.tj1_south + 0.25),
+        Vec3::new(bookshelf_x, 0.0, bookshelf_z),
         Quat::IDENTITY,
+    );
+    // Medical masks sitting on top of the bookshelf.
+    ctx.prop_rot(
+        Prop::FaceMask1,
+        Vec3::new(bookshelf_x - 0.25, BOOKSHELF_TOP, bookshelf_z),
+        Quat::from_rotation_y(0.8),
+    );
+    ctx.prop_rot(
+        Prop::FaceMask2,
+        Vec3::new(bookshelf_x + 0.2, BOOKSHELF_TOP, bookshelf_z + 0.05),
+        Quat::from_rotation_y(1.2),
     );
 
     // Suitcase in the south-west corner.

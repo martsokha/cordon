@@ -21,8 +21,10 @@ use crate::bunker::resources::RoomCtx;
 /// Antechamber world centre. The room is built around this point.
 const ANTECHAMBER_CENTER: Vec3 = Vec3::new(0.0, -49.0, -50.0);
 
-// Mirror the bunker dimensions: 4m wide × 4m deep × 2.4m tall.
-const HALF_W: f32 = 2.0;
+// 3m wide × 4m deep × 2.4m tall — narrower than the bunker so
+// the holding room reads as a tight checkpoint rather than an
+// open lounge.
+const HALF_W: f32 = 1.5;
 const HALF_D: f32 = 2.0;
 const HEIGHT: f32 = 2.4;
 
@@ -150,31 +152,12 @@ fn spawn_front_door(ctx: &mut RoomCtx<'_, '_, '_>, center: Vec3, hd: f32, h: f32
 /// Holding-room furniture: cold, functional, security-checkpoint
 /// feel. No comfort — visitors don't get that.
 fn spawn_furniture(ctx: &mut RoomCtx<'_, '_, '_>, hw: f32, _hd: f32) {
-    // Stool — the only seat a visitor gets.
-    ctx.prop(Prop::WoodenStool, local_to_world(Vec3::new(0.6, 0.0, -0.5)));
-    // Locker against the left wall — for confiscated gear.
-    ctx.prop_rot(
-        Prop::Locker,
-        local_to_world(Vec3::new(-hw + 0.3, 0.0, 0.0)),
-        Quat::from_rotation_y(FRAC_PI_2),
-    );
-    // Box against the right wall. Used to sit on a rack shelf,
-    // but the rack was removed to keep the antechamber sparse.
-    ctx.prop_rot(
-        Prop::Box02,
-        local_to_world(Vec3::new(hw - 0.4, 0.0, 0.0)),
-        Quat::from_rotation_y(0.2),
-    );
-    // Supply box on the floor.
-    ctx.prop_rot(
-        Prop::Box01,
-        local_to_world(Vec3::new(-0.8, 0.0, 0.8)),
-        Quat::from_rotation_y(0.4),
-    );
-    // Security panel mounted mid-wall.
+    // Security panel mounted on the right wall, centred along
+    // its length and ~0.9 m up (30 cm below the previous spot
+    // so the readout sits near eye level).
     ctx.prop_rot(
         Prop::ElectricBox01,
-        local_to_world(Vec3::new(hw - 0.05, HEIGHT / 2.0, -0.8)),
+        local_to_world(Vec3::new(hw - 0.05, HEIGHT / 2.0 - 0.3, 0.0)),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
 }

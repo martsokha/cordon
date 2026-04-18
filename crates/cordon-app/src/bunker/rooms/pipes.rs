@@ -48,13 +48,10 @@ fn spawn_run(ctx: &mut RoomCtx<'_, '_, '_>, wall_x: f32, mirror: bool) {
 
     // Corner at the north end. Rot_x(+90°) puts local +Y→+Z
     // (continues north) and local +Z→-Y; Rot_z(180°) flips that
-    // so +Z→+Y (the bend-arm goes up into the ceiling). Mirrored
-    // runs spin an extra 180° around Y so the arm still meets
-    // the wall instead of sticking into the corridor.
-    let mut corner_rot = Quat::from_rotation_z(PI) * Quat::from_rotation_x(FRAC_PI_2);
-    if mirror {
-        corner_rot = Quat::from_rotation_y(PI) * corner_rot;
-    }
+    // so +Z→+Y (the bend-arm goes up into the ceiling). Both
+    // runs share the same base rotation.
+    let _ = mirror;
+    let corner_rot = Quat::from_rotation_z(PI) * Quat::from_rotation_x(FRAC_PI_2);
     let corner_z = start_z + (STRAIGHT_SEGMENTS as f32) * PIPE_PIECE_LEN;
     ctx.prop_placement(
         PropPlacement::new(

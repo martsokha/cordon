@@ -54,10 +54,10 @@ pub(super) fn update_prompt(
     if matches!(*camera_mode, CameraMode::AtCctv { .. }) {
         let resolved = l10n.get("interact-exit-camera");
         for (children, mut vis) in &mut prompt_q {
-            if let Some(&child) = children.first() {
-                if let Ok(mut t) = text_q.get_mut(child) {
-                    t.0 = resolved.clone();
-                }
+            if let Some(&child) = children.first()
+                && let Ok(mut t) = text_q.get_mut(child)
+            {
+                t.0 = resolved.clone();
             }
             *vis = Visibility::Visible;
         }
@@ -80,10 +80,10 @@ pub(super) fn update_prompt(
     for (children, mut vis) in &mut prompt_q {
         match best {
             Some((_, interactable)) => {
-                if let Some(&child) = children.first() {
-                    if let Ok(mut t) = text_q.get_mut(child) {
-                        t.0 = l10n.get(&interactable.key);
-                    }
+                if let Some(&child) = children.first()
+                    && let Ok(mut t) = text_q.get_mut(child)
+                {
+                    t.0 = l10n.get(&interactable.key);
                 }
                 *vis = Visibility::Visible;
             }

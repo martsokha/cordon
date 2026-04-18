@@ -26,7 +26,11 @@ pub struct RadioPlacement {
 }
 
 pub const ANTECHAMBER_VISITOR_POS: Vec3 = Vec3::new(0.0, -49.75, -49.5);
-pub(crate) const CCTV_CAMERA_POS: Vec3 = Vec3::new(-1.85, -47.9, -48.15);
+// 15 cm inside the left wall of the antechamber (wall at x = -1.5),
+// mounted high in the front-left corner looking down at the
+// visitor. Bound to the antechamber's world offset (y = -49,
+// z = -50) so the camera is inside the room, not the main bunker.
+pub(crate) const CCTV_CAMERA_POS: Vec3 = Vec3::new(-1.35, -47.9, -48.15);
 
 /// Camera zoomed to laptop. desk_z=1.0, laptop at y≈1.05.
 pub(crate) const LAPTOP_VIEW_POS: Vec3 = Vec3::new(0.0, 1.35, 0.5);

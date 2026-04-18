@@ -192,7 +192,7 @@ Every item has a base price that represents its "neutral" market value. Prices l
 | **Demand** | More demand → higher price | Surge incoming = medkit prices spike |
 | **Faction control** | Faction dominance shifts prices | The Order controls the area = their gear is common, Collective gear is rare |
 | **Zone events** | Disasters shift everything | Creature swarm = weapon/ammo demand up, food supply down |
-| **Your reputation** | Trust = better margins | Loyal customers accept slightly worse deals |
+| **Your reputation** | Standing with the buyer's faction nudges margins | Allied factions accept slightly worse deals |
 | **Freshness** | Some items degrade | Food spoils, relics destabilize without containment |
 
 ### Price Formula (simplified)

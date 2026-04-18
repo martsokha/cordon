@@ -26,10 +26,10 @@ pub struct PlayerPills {
 
 impl PlayerPills {
     /// Whole 24-hour spans elapsed since the last dose, or since
-    /// the [`GameTime::new`] origin when the player has never
+    /// the [`GameTime::default`] origin when the player has never
     /// taken pills.
     pub fn days_without(&self, now: GameTime) -> u32 {
-        let baseline = self.last_taken.unwrap_or_else(GameTime::new);
+        let baseline = self.last_taken.unwrap_or_default();
         now.minutes_since(baseline) / (24 * 60)
     }
 

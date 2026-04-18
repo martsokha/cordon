@@ -25,7 +25,7 @@
         "ammo_boxes": 2,
         "consumables": [
           {
-            "id": "item_bandage"
+            "id": "item_medkit"
           },
           {
             "id": "item_ration"
@@ -67,7 +67,7 @@
         "secondary_ammo_boxes": 1,
         "consumables": [
           {
-            "id": "item_bandage"
+            "id": "item_medkit"
           },
           {
             "id": "item_medkit"

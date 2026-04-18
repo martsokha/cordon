@@ -274,7 +274,7 @@ impl PlayerIntel {
             // Duration stores minutes; convert to whole days
             // (rounding up so a 1-hour TTL still survives at
             // least until the next day rollover).
-            let ttl_days = (ttl.minutes() + 24 * 60 - 1) / (24 * 60);
+            let ttl_days = ttl.minutes().div_ceil(24 * 60);
             elapsed_days < ttl_days
         });
     }

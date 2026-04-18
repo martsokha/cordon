@@ -7,8 +7,7 @@
     "item_longtooth",
     "item_tactical_vest",
     "item_steel_helmet",
-    "item_bandage",
-    "item_bandage"
+    "item_medkit"
   ],
   "unique": true,
   "respawnable": false,

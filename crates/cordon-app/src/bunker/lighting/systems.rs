@@ -11,11 +11,16 @@ pub fn spawn_lighting(
 ) {
     let warm = Color::srgb(1.0, 0.82, 0.50);
     let cool = Color::srgb(0.85, 0.9, 1.0);
-    let dim_cool = Color::srgb(0.8, 0.85, 0.95);
     let white = Color::srgb(0.95, 0.95, 1.0);
     let dim_warm = Color::srgb(1.0, 0.75, 0.45);
     let lamp_warm = Color::srgb(1.0, 0.70, 0.35);
     let screen_green = Color::srgb(0.4, 0.7, 0.4);
+    // Corridor-axis fixtures (entry, T-junction, mid-hall, back
+    // end) share a warm amber tone so the through-line of the
+    // bunker reads as one connected passage rather than a cool
+    // industrial transit. Paired with `.wide()` their pools
+    // overlap along the hallway.
+    let hall_warm = Color::srgb(1.0, 0.86, 0.72);
 
     let fixtures = [
         // Command post -- ceiling lamp pulled 1m back from the desk
@@ -24,9 +29,9 @@ pub fn spawn_lighting(
         LightFixtureBundle::desk(Vec3::new(0.4, 0.95, l.desk_z() - 0.15), 8000.0, warm),
         LightFixtureBundle::screen(Vec3::new(0.0, 1.1, l.desk_z()), 6000.0, screen_green),
         // Entry
-        LightFixtureBundle::ceiling(0.0, l.trade_z + 1.5, l.h, 50000.0, cool, false),
+        LightFixtureBundle::ceiling(0.0, l.trade_z + 1.5, l.h, 50000.0, hall_warm, false).wide(),
         // Armory + T-junction -- single light between them.
-        LightFixtureBundle::ceiling(0.0, l.tj1_north - 0.5, l.h, 50000.0, dim_cool, false),
+        LightFixtureBundle::ceiling(0.0, l.tj1_north - 0.5, l.h, 50000.0, hall_warm, false).wide(),
         // Kitchen
         LightFixtureBundle::ceiling(
             l.kitchen_x_center(),
@@ -59,9 +64,10 @@ pub fn spawn_lighting(
             (l.tj2_north + l.tj1_south) / 2.0,
             l.h,
             40000.0,
-            dim_cool,
+            hall_warm,
             false,
-        ),
+        )
+        .wide(),
         // Infirmary: clinical white, slightly brighter than the
         // kitchen so the medical bay reads as well-lit.
         LightFixtureBundle::ceiling(
@@ -83,7 +89,7 @@ pub fn spawn_lighting(
         ),
         // Back corridor end: dim fixture at the new back wall
         // so the corridor doesn't fade to black past T2.
-        LightFixtureBundle::ceiling(0.0, l.back_z + 0.8, l.h, 35000.0, dim_cool, false),
+        LightFixtureBundle::ceiling(0.0, l.back_z + 0.8, l.h, 35000.0, hall_warm, false).wide(),
     ];
 
     for fixture in &fixtures {

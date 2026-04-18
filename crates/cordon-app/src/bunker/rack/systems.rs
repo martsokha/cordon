@@ -351,12 +351,7 @@ fn spawn_slot_visual(
 }
 
 /// Starter items for testing.
-const STARTER_ITEMS: &[&str] = &[
-    "item_bandage",
-    "item_bandage",
-    "item_ration",
-    "item_rifle_ammo",
-];
+const STARTER_ITEMS: &[&str] = &["item_medkit", "item_ration", "item_rifle_ammo"];
 
 /// One-shot system: populate empty rack slots with a few starter
 /// items so the player has something to interact with.

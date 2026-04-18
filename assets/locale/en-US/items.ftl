@@ -1,7 +1,6 @@
 # Item display names, keyed by `item-{id}`.
 
 # Consumables
-item_bandage = Bandage
 item_medkit = Medkit
 item_antidote = Antidote
 item_ration = Ration

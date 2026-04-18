@@ -1,8 +1,9 @@
 //! Maps item categories to the visual prop shown on a rack shelf.
 //!
-//! Everything is [`Prop::Box01`] for now. When category-specific
-//! models land (ammo crate, medical kit, weapon case), add the
-//! mapping here — every shelf visual routes through this trait.
+//! Most categories fall back to the generic crate ([`Prop::Box01`])
+//! until dedicated models land (weapon case, medkit, etc.). Ammo
+//! uses the toolbox model as a stand-in — it reads as a stackable
+//! ammo crate on a shelf.
 
 use cordon_core::item::ItemCategory;
 
@@ -16,9 +17,9 @@ pub trait ShelfProp {
 
 impl ShelfProp for ItemCategory {
     fn shelf_prop(&self) -> Prop {
-        // TODO: per-category models once art lands
-        // (WeaponCase, AmmoCrate, MedKit, etc.).
-        let _ = self;
-        Prop::Box01
+        match self {
+            ItemCategory::Ammo => Prop::Toolbox1,
+            _ => Prop::Box01,
+        }
     }
 }

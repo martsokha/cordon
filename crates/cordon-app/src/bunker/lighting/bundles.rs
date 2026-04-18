@@ -69,6 +69,11 @@ pub struct LightFixtureBundle {
     /// carry the "lit" read and where a floating proxy sphere
     /// would read as a mystery ball hovering above the object.
     visible_bulb: bool,
+    /// Outer cone angle override for [`LightKind::SpotDown`]. When
+    /// `None` the default 55° is used. Widen this for corridor
+    /// lights that need to blanket a longer stretch of hallway
+    /// rather than punch a tight pool.
+    outer_angle: Option<f32>,
 }
 
 impl LightFixtureBundle {
@@ -102,6 +107,7 @@ impl LightFixtureBundle {
             shadows,
             kind: LightKind::SpotDown,
             visible_bulb: true,
+            outer_angle: None,
         }
     }
 
@@ -118,6 +124,7 @@ impl LightFixtureBundle {
             shadows: false,
             kind: LightKind::Point,
             visible_bulb: false,
+            outer_angle: None,
         }
     }
 
@@ -136,6 +143,7 @@ impl LightFixtureBundle {
             shadows: false,
             kind: LightKind::SpotDown,
             visible_bulb: false,
+            outer_angle: None,
         }
     }
 
@@ -152,7 +160,18 @@ impl LightFixtureBundle {
             shadows: false,
             kind: LightKind::Point,
             visible_bulb: false,
+            outer_angle: None,
         }
+    }
+
+    /// Widen the spotlight cone and extend its range. Only affects
+    /// [`LightKind::SpotDown`] fixtures; ignored by point lights.
+    /// Used for hall / corridor ceiling lights that need to cover
+    /// more floor than the default 55° tight pool.
+    pub fn wide(mut self) -> Self {
+        self.outer_angle = Some(80.0_f32.to_radians());
+        self.range = self.range.max(14.0);
+        self
     }
 
     /// Spawn the fixture's prop (if any), a small emissive "bulb"
@@ -217,11 +236,14 @@ impl LightFixtureBundle {
             }
             LightKind::SpotDown => {
                 // Rotate the light so its local −Z (Bevy's
-                // forward) points straight down. Cone widens
-                // from a tight 30° core to a 55° falloff edge
+                // forward) points straight down. Default cone
+                // widens from a tight 30° core to a 55° falloff
                 // — narrow enough to read as a fixture's lit
                 // pool, wide enough to light the whole corridor
                 // cross-section from a standard ceiling height.
+                // Corridor lights override this via `wide()` so
+                // their pools overlap along the hallway.
+                let outer_angle = self.outer_angle.unwrap_or(55.0_f32.to_radians());
                 commands.spawn((
                     SpotLight {
                         intensity: self.intensity,
@@ -229,7 +251,7 @@ impl LightFixtureBundle {
                         range: self.range,
                         shadows_enabled: self.shadows,
                         inner_angle: std::f32::consts::FRAC_PI_6, // 30°
-                        outer_angle: 55.0_f32.to_radians(),
+                        outer_angle,
                         ..default()
                     },
                     Transform::from_translation(self.light_pos).looking_to(Vec3::NEG_Y, Vec3::Z),

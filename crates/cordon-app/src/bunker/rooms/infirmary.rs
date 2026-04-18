@@ -72,18 +72,6 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Vec3::new(ctx.l.infirmary_x_center() + 0.2, 0.0, ctx.l.tj2_center()),
     );
 
-    // Face masks by the door.
-    ctx.prop_rot(
-        Prop::FaceMask1,
-        Vec3::new(ctx.l.infirmary_x_center() + 0.8, 0.0, ctx.l.tj2_north - 0.3),
-        Quat::from_rotation_y(0.8),
-    );
-    ctx.prop_rot(
-        Prop::FaceMask2,
-        Vec3::new(ctx.l.infirmary_x_center() + 0.9, 0.0, ctx.l.tj2_north - 0.5),
-        Quat::from_rotation_y(1.2),
-    );
-
     // Paper trash cluster in the corner.
     ctx.prop_rot(
         Prop::PaperTrashCluster1,

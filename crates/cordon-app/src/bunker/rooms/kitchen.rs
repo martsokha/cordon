@@ -113,9 +113,4 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Vec3::new(ctx.l.kitchen_x_center() + 0.8, 0.0, ctx.l.tj1_north - 0.3),
         Quat::from_rotation_y(0.6),
     );
-    ctx.prop_rot(
-        Prop::Box01,
-        Vec3::new(ctx.l.kitchen_x_center() + 0.3, 0.0, ctx.l.tj1_north - 0.5),
-        Quat::from_rotation_y(0.2),
-    );
 }
