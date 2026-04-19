@@ -33,7 +33,9 @@ pub(super) fn spawn_laptop(
     mut laptop_materials: ResMut<Assets<LaptopMaterial>>,
 ) {
     let Some(placement) = placement else { return };
-    let Some(screen_image) = screen_image else { return };
+    let Some(screen_image) = screen_image else {
+        return;
+    };
     let scene: Handle<Scene> = asset_server.load("models/interior/Laptop.glb#Scene0");
 
     let laptop = commands
@@ -73,8 +75,8 @@ pub(super) fn spawn_laptop(
     // the tilt doesn't dip the bottom into the lid.
     let screen_mat = laptop_materials.add(LaptopMaterial::new(screen_image.0.clone()));
     let screen_mesh = meshes.add(Plane3d::new(Vec3::Z, SCREEN_HALF_EXTENT));
-    let screen_tf =
-        Transform::from_translation(SCREEN_LOCAL_POS).with_rotation(Quat::from_rotation_x(SCREEN_TILT));
+    let screen_tf = Transform::from_translation(SCREEN_LOCAL_POS)
+        .with_rotation(Quat::from_rotation_x(SCREEN_TILT));
     let screen = commands
         .spawn((Mesh3d(screen_mesh), MeshMaterial3d(screen_mat), screen_tf))
         .id();
@@ -96,8 +98,7 @@ pub(super) fn promote_at_laptop_to_state(
     if !mode.is_changed() {
         return;
     }
-    if matches!(*mode, CameraMode::AtLaptop { .. })
-        && !matches!(state.get(), PlayingState::Laptop)
+    if matches!(*mode, CameraMode::AtLaptop { .. }) && !matches!(state.get(), PlayingState::Laptop)
     {
         next_state.set(PlayingState::Laptop);
     }

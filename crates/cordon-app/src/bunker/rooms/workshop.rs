@@ -47,9 +47,9 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Quat::from_rotation_y(-FRAC_PI_2),
     );
     // Diagnostic machine on the back wall next to the
-    // generator. Native AABB is flat on Y, so we tilt it 90°
-    // around X to stand it upright against the wall; the face
-    // that used to point up now points at the room.
+    // generator. Native AABB is flat on Y; rotating +π/2
+    // around X stands it upright with the face pointing into
+    // the room rather than into the wall.
     ctx.prop_rot(
         Prop::WallMachine,
         Vec3::new(ctx.l.workshop_x_center() - 0.5, 0.9, ctx.l.back_z + 0.1),
@@ -69,14 +69,6 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Prop::ElectricBox01,
         Vec3::new(ctx.l.workshop_x_center() + 0.9, 0.0, ctx.l.back_z + 0.3),
         Quat::IDENTITY,
-    );
-    // Beat-up radio on the floor near the workbench area —
-    // reuses the atomic model since the counter radio is now
-    // the lowpoly variant.
-    ctx.prop_rot(
-        Prop::Radio,
-        Vec3::new(ctx.l.workshop_x_center() - 0.5, 0.0, ctx.l.tj2_center() + 0.6),
-        Quat::from_rotation_y(0.5),
     );
     // Storage crate against the east wall near the generator.
     ctx.prop_rot(

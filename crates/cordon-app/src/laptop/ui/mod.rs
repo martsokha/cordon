@@ -73,25 +73,25 @@ impl Plugin for UiPlugin {
     }
 }
 
+/// Sole owner of chrome UI visibility. Computes the target
+/// visibility from (state, tab, MapOnlyUi) every frame the
+/// inputs change — so both "player enters laptop mode" and
+/// "player switches tabs" land here instead of being handled
+/// by two different systems that fight each other.
 fn sync_chrome_visibility(
     state: Res<State<PlayingState>>,
     active_tab: Res<LaptopTab>,
-    mut chrome_q: Query<
-        (&mut Visibility, Has<map::MapOnlyUi>),
-        With<LaptopChromeUi>,
-    >,
+    mut chrome_q: Query<(&mut Visibility, Has<map::MapOnlyUi>), With<LaptopChromeUi>>,
 ) {
-    if !state.is_changed() {
+    if !state.is_changed() && !active_tab.is_changed() {
         return;
     }
     let in_laptop = matches!(state.get(), PlayingState::Laptop);
     let on_map_tab = *active_tab == LaptopTab::Map;
     for (mut vis, is_map_only) in &mut chrome_q {
-        // Chrome that's also `MapOnlyUi` (squad roster,
-        // tooltip, zoom label, crosshair) stays hidden when
-        // the player re-enters laptop on a non-Map tab — the
-        // tab-switch system owns those and would otherwise
-        // fight this one.
+        // Chrome visibility is the AND of:
+        //   - player is in fullscreen laptop mode
+        //   - if the chrome is MapOnlyUi, the Map tab is active
         let target = if in_laptop && (!is_map_only || on_map_tab) {
             Visibility::Inherited
         } else {

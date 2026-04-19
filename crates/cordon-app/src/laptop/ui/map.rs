@@ -157,9 +157,13 @@ impl Plugin for MapUiPlugin {
     }
 }
 
+/// Update visibility of 2D map-world entities (area disks, NPCs,
+/// relic dots, bunker marker) when the active tab changes. UI
+/// visibility (including `MapOnlyUi` chrome) is owned by
+/// `sync_chrome_visibility` in `ui/mod.rs`, which factors in both
+/// the tab and the playing state.
 fn update_map_ui_visibility(
     active_tab: Res<LaptopTab>,
-    mut ui_q: Query<&mut Visibility, (With<MapOnlyUi>, Without<MapWorldEntity>)>,
     mut world_q: Query<
         &mut Visibility,
         (With<MapWorldEntity>, Without<MapOnlyUi>, Without<Bunker>),
@@ -170,13 +174,6 @@ fn update_map_ui_visibility(
         return;
     }
     let visible = *active_tab == LaptopTab::Map;
-    for mut vis in &mut ui_q {
-        *vis = if visible {
-            Visibility::Visible
-        } else {
-            Visibility::Hidden
-        };
-    }
     // The bunker marker is always-visible on the Map tab and
     // hidden on every other tab. It's handled separately because
     // the fog system excludes it (`Without<Bunker>`), so it can't

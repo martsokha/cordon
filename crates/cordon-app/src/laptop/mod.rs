@@ -75,18 +75,27 @@ fn swap_render_target(
     screen_image: Res<LaptopScreenImage>,
     mut cam_q: Query<&mut RenderTarget, With<LaptopCamera>>,
 ) {
-    if !state.is_changed() {
-        return;
-    }
     let Ok(mut target) = cam_q.single_mut() else {
         return;
     };
-    *target = match state.get() {
-        PlayingState::Laptop => RenderTarget::default(),
-        _ => RenderTarget::Image(ImageRenderTarget {
+    // Pin the intended target every frame. Change-guard the
+    // write so the render pipeline isn't dirtied unless the
+    // state actually moved, but don't gate the whole system on
+    // `state.is_changed()` — if the target ever desyncs (e.g.
+    // a mid-frame mutation from another system), the next
+    // frame snaps it back.
+    let desired_is_window = matches!(state.get(), PlayingState::Laptop);
+    let current_is_window = matches!(*target, RenderTarget::Window(_));
+    if desired_is_window == current_is_window {
+        return;
+    }
+    *target = if desired_is_window {
+        RenderTarget::default()
+    } else {
+        RenderTarget::Image(ImageRenderTarget {
             handle: screen_image.0.clone(),
             scale_factor: 1.0,
-        }),
+        })
     };
 }
 

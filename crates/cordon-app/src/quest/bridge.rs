@@ -7,26 +7,25 @@
 //!   that hasn't been dispatched yet, it either (a) pushes a
 //!   [`Visitor`] onto [`VisitorQueue`] when the stage has an
 //!   NPC, or (b) fires [`StartDialogue`] directly for
-//!   narrator-only stages. Idempotency is handled by a
-//!   bridge-owned [`DialogueInFlight`] slot.
+//!   narrator-only stages. The bridge-owned
+//!   [`DialogueInFlight`] slot is set at dispatch so the same
+//!   stage isn't double-dispatched while a template NPC is
+//!   still travelling.
 //! - [`on_dialogue_completed`] is a Bevy observer on
-//!   `DialogueCompleted`. It reads the in-flight quest ID,
-//!   copies any `$quest_*` Yarn variables into the quest's
-//!   flag bag, calls [`engine::advance_after_talk`] with
-//!   whatever `$quest_choice` the Yarn node wrote, and
-//!   clears the in-flight slot so the next `Talk` stage is
-//!   free to dispatch.
+//!   `NodeCompleted`. It matches the just-ended yarn node
+//!   against the active quests' current Talk stages and only
+//!   acts on an exact match — so unrelated dialogue nodes
+//!   (e.g. a visitor's trade line that happens to finish
+//!   while a quest NPC is travelling) don't advance the
+//!   wrong quest.
 //!
-//! Dialogue is strictly serial: at any moment there is at
-//! most one quest waiting on a `DialogueCompleted` — either
-//! its visitor is inside, or its narrator node is playing —
-//! so [`DialogueInFlight`] is a single-slot resource, not a
-//! set. The visitor queue keeps visitor-driven dialogue
-//! serial; narrator-only stages only dispatch when the slot
-//! is already empty.
+//! Dialogue is strictly serial: at any moment there is at most
+//! one quest's Talk stage dispatched. The visitor queue keeps
+//! visitor-driven dialogue serial; narrator-only stages only
+//! dispatch when the slot is already empty.
 
 use bevy::prelude::*;
-use bevy_yarnspinner::events::DialogueCompleted;
+use bevy_yarnspinner::events::NodeCompleted;
 use bevy_yarnspinner::prelude::{DialogueRunner, YarnValue};
 use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::Id;
@@ -39,14 +38,15 @@ use cordon_sim::quest::messages::{DismissTemplateNpc, SpawnNpcRequest, TalkCompl
 use crate::bunker::resources::StartDialogue;
 use crate::bunker::{Visitor, VisitorQueue};
 
-/// Bridge-owned dialogue-in-flight slot.
+/// Bridge-owned dialogue dispatch gate.
 ///
-/// Holds the ID of the quest whose `Talk` stage is currently
-/// running through the dialogue runner, or `None` when no
-/// quest dialogue is active. Single-slot because yarn
-/// dialogue is serial — a second `Talk` stage cannot dispatch
-/// while this slot is occupied. Cleared by the
-/// `DialogueCompleted` observer.
+/// Holds the ID of the quest whose `Talk` stage was most
+/// recently dispatched, or `None` once the dialogue has
+/// actually ended. Single-slot because yarn dialogue is serial
+/// — a second `Talk` stage cannot dispatch while this slot is
+/// occupied. Cleared by the `NodeCompleted` observer on the
+/// frame the matching yarn node finishes; never cleared by
+/// unrelated node completions.
 #[derive(Resource, Debug, Default)]
 pub struct DialogueInFlight(pub Option<Id<Quest>>);
 
@@ -173,18 +173,18 @@ pub fn enqueue_talk_dialogue(
     }
 }
 
-/// Bevy observer: `DialogueCompleted` fires once Yarn has
-/// finished running the node the player was talking through.
+/// Bevy observer: `NodeCompleted` fires once Yarn has finished
+/// running a specific node and carries that node's name.
 ///
-/// Reads the in-flight quest ID from [`DialogueInFlight`] —
-/// set by [`enqueue_talk_dialogue`] when the stage was
-/// dispatched — then drains the runner's Yarn variables into
-/// the quest's flag bag and advances the stage. Works
-/// identically for visitor-driven and narrator-only dialogue
-/// because the slot is the sole source of truth for "which
-/// quest is waiting on this event."
+/// Looks up the active quest whose current Talk stage's
+/// `yarn_node` matches the just-ended node, drains the runner's
+/// Yarn variables into that quest's flag bag, and advances the
+/// stage. Matching by node name (instead of a single-slot
+/// `DialogueInFlight`) prevents a race where some *other*
+/// dialogue ending between the SpawnNpcRequest and the actual
+/// Talk arrival drains the slot for the wrong quest.
 pub fn on_dialogue_completed(
-    _event: On<DialogueCompleted>,
+    event: On<NodeCompleted>,
     mut log: ResMut<QuestLog>,
     data: Res<GameDataResource>,
     mut in_flight: ResMut<DialogueInFlight>,
@@ -193,9 +193,28 @@ pub fn on_dialogue_completed(
     runner_q: Query<&DialogueRunner>,
     template_q: Query<(Entity, &TemplateId)>,
 ) {
-    let Some(quest_id) = in_flight.0.take() else {
+    let node_name = &event.node_name;
+    // Find the active quest whose current Talk stage ran this
+    // yarn node. If no match, the node was unrelated to any
+    // quest — do nothing.
+    let quest_id = log.active.iter().find_map(|active| {
+        let def = data.0.quests.get(&active.def_id)?;
+        let stage = def.stage(&active.current_stage)?;
+        match &stage.kind {
+            QuestStageKind::Talk(talk) if talk.yarn_node == *node_name => {
+                Some(active.def_id.clone())
+            }
+            _ => None,
+        }
+    });
+    let Some(quest_id) = quest_id else {
         return;
     };
+    // Release the dispatch gate — this is the only place a
+    // quest's in-flight slot is cleared now.
+    if in_flight.0.as_ref() == Some(&quest_id) {
+        in_flight.0 = None;
+    }
 
     // Dismiss the template NPC that just finished talking.
     let dismissed_template = log

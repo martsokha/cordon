@@ -85,13 +85,27 @@ def assign_material_to_meshes(mat):
                 me.materials[i] = mat
 
 
+# Collisions with props we already ship under other
+# `assets/models/` directories. Keyed by the stem the script
+# would otherwise emit; value is the stem we emit instead. If
+# the pack is re-downloaded this table keeps the output names
+# stable without needing to rename anything on disk.
+NAME_OVERRIDES = {
+    "Box_01": "CardboardBox_01",
+    "Box_02": "CardboardBox_02",
+}
+
+
 def out_name_for(fbx_path):
-    """Flatten the source tree and strip the `Mesh_` prefix.
-    Example: .../Shelves/Shelf_03/Mesh_Shelf_03_Tall.fbx ->
-    Shelf_03_Tall.glb"""
+    """Flatten the source tree, strip the `Mesh_` prefix, and
+    apply any `NAME_OVERRIDES` entry. Example:
+    .../Shelves/Shelf_03/Mesh_Shelf_03_Tall.fbx ->
+    Shelf_03_Tall.glb; .../Misc Props/Mesh_Box_01.fbx ->
+    CardboardBox_01.glb."""
     base = os.path.splitext(os.path.basename(fbx_path))[0]
     if base.startswith("Mesh_"):
         base = base[len("Mesh_"):]
+    base = NAME_OVERRIDES.get(base, base)
     return base + ".glb"
 
 

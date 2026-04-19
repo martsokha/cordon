@@ -15,10 +15,11 @@
 //!   pushes a synthesized `Visitor` for string-tagged quests, or
 //!   writes `StartDialogue` for narrator-only `Talk` stages.
 //! - [`bridge::on_dialogue_completed`] — observer on
-//!   `DialogueCompleted` that drains `$quest_*` Yarn variables
-//!   into the active quest's flags, emits `TalkCompleted` back to
-//!   the sim, and clears the in-flight slot so the next `Talk`
-//!   stage can dispatch.
+//!   `NodeCompleted` that matches the completed yarn node
+//!   against the active quests' current Talk stages, drains
+//!   `$quest_*` Yarn variables into the active quest's flags,
+//!   emits `TalkCompleted` back to the sim, and clears the
+//!   in-flight slot so the next `Talk` stage can dispatch.
 //! - [`arrival::handle_bunker_arrival`] / [`arrival::handle_home_arrival`]
 //!   — view-layer glue between the sim's travel messages and the
 //!   bunker's visitor queue / idle-squad setup.

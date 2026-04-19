@@ -37,22 +37,8 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         &concrete,
     );
 
-    // Medication bottle + syringe on the floor. The takeable
-    // pill cluster lives in the quarters; this side is
-    // decoration only.
-    ctx.prop(
-        Prop::MedicationBottle,
-        Vec3::new(
-            ctx.l.infirmary_x_min() + 0.25,
-            0.0,
-            ctx.l.tj2_center() + 0.2,
-        ),
-    );
-    ctx.prop_rot(
-        Prop::Syringe,
-        Vec3::new(ctx.l.infirmary_x_min() + 0.4, 0.0, ctx.l.tj2_center() + 0.7),
-        Quat::from_rotation_y(0.6),
-    );
+    // Breathing apparatus in the corner. Decorative only — the
+    // takeable pill cluster lives in the quarters.
     ctx.prop_rot(
         Prop::BreathingAparatus,
         Vec3::new(ctx.l.infirmary_x_min() + 0.35, 0.0, ctx.l.back_z + 0.4),

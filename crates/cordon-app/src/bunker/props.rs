@@ -28,7 +28,6 @@ use bevy::prelude::*;
 #[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Prop {
-    Flag1,
     OilBarel1,
     OilBarel2,
     Pipe1,
@@ -375,12 +374,6 @@ pub struct PropDef {
 impl Prop {
     pub const fn def(self) -> PropDef {
         match self {
-            Self::Flag1 => PropDef {
-                path: "models/atomic/Flag1.glb",
-                aabb_min: Vec3::new(366.3f32, -6.734f32, -0.2721f32),
-                aabb_max: Vec3::new(372.2f32, 0.0f32, 0.02757f32),
-                collider: true,
-            },
             Self::OilBarel1 => PropDef {
                 path: "models/atomic/OilBarel1.glb",
                 aabb_min: Vec3::new(485.3f32, 3.04e-06f32, -0.3146f32),
@@ -2370,4 +2363,3 @@ impl Prop {
         (d.aabb_min + d.aabb_max) * 0.5
     }
 }
-
