@@ -7,6 +7,12 @@ use crate::bunker::resources::CameraMode;
 
 const CCTV_VOLUME: f32 = 0.5;
 
+/// Marker for the currently-playing open/close sfx entity, so a
+/// rapid open→close→open sequence cuts the previous burst
+/// instead of stacking overlapping plays.
+#[derive(Component)]
+pub(super) struct CctvSfxInstance;
+
 #[derive(Resource)]
 pub(super) struct CctvSfx {
     open: Handle<AudioSource>,
@@ -20,25 +26,34 @@ pub(super) fn load(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 }
 
-/// Play open/close sounds on CameraMode transitions.
+/// Play open/close sounds on CameraMode transitions. Mutually
+/// exclusive — any previous instance is despawned first so a
+/// quick toggle doesn't layer the two bursts over each other.
 pub(super) fn play_on_mode_change(
     mut commands: Commands,
     mode: Res<CameraMode>,
     sfx: Res<CctvSfx>,
+    existing: Query<Entity, With<CctvSfxInstance>>,
     mut was_cctv: Local<bool>,
 ) {
     let is_cctv = matches!(*mode, CameraMode::AtCctv { .. });
     if !mode.is_changed() {
         return;
     }
-    if is_cctv && !*was_cctv {
-        commands.spawn((
-            AudioPlayer(sfx.open.clone()),
-            PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(CCTV_VOLUME)),
-        ));
+    let handle = if is_cctv && !*was_cctv {
+        Some(sfx.open.clone())
     } else if !is_cctv && *was_cctv {
+        Some(sfx.close.clone())
+    } else {
+        None
+    };
+    if let Some(handle) = handle {
+        for entity in &existing {
+            commands.entity(entity).despawn();
+        }
         commands.spawn((
-            AudioPlayer(sfx.close.clone()),
+            CctvSfxInstance,
+            AudioPlayer(handle),
             PlaybackSettings::DESPAWN.with_volume(bevy::audio::Volume::Linear(CCTV_VOLUME)),
         ));
     }

@@ -41,6 +41,15 @@ pub struct RadioEntry {
     /// Intel entries this broadcast unlocks for the player.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub grants_intel: Vec<Id<Intel>>,
+    /// When true, this broadcast is encrypted traffic: it only
+    /// reaches the player if an installed upgrade grants
+    /// [`UpgradeEffect::ListeningDevice`](crate::entity::bunker::UpgradeEffect::ListeningDevice).
+    /// Without the device the broadcast is silently dropped — no
+    /// intel grant, no audio, no toast. Missable broadcasts follow
+    /// the usual missable rules on top of this (install the device
+    /// before the event fires, or miss it).
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub encrypted: bool,
 }
 
 fn default_true() -> bool {
@@ -127,4 +136,8 @@ impl ActiveEvent {
 
 fn is_zero(v: &u32) -> bool {
     *v == 0
+}
+
+fn is_false(v: &bool) -> bool {
+    !*v
 }

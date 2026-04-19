@@ -3,11 +3,36 @@
 use std::f32::consts::{FRAC_PI_2, PI};
 
 use bevy::prelude::*;
+use bevy::state::state_scoped::DespawnOnExit;
+use cordon_core::entity::bunker::UpgradeEffect;
+use cordon_data::gamedata::GameDataResource;
+use cordon_sim::resources::PlayerUpgrades;
 
 use crate::bunker::geometry::*;
 use crate::bunker::interaction::Interactable;
-use crate::bunker::resources::{RadioPlacement, RoomCtx};
+use crate::bunker::resources::{Layout, RadioPlacement, RoomCtx};
 use crate::bunker::visitor::DoorButton;
+
+/// Marker for the `Radio04` prop that the `listening_device`
+/// upgrade unlocks. Separate marker from other radios so
+/// [`sync_command_listening_device`] can tell whether the prop is
+/// already present without touching the other radio or the desk.
+#[derive(Component, Debug, Clone, Copy)]
+pub struct ListeningRadio;
+
+/// World-space placement for the listening-device radio. Kept as
+/// a module constant so both the initial spawn and the sync
+/// system produce the same pose.
+fn listening_radio_transform(l: &Layout) -> Transform {
+    Transform::from_translation(Vec3::new(0.55, 0.0, l.desk_z() - 0.2))
+        .with_rotation(Quat::from_rotation_y(FRAC_PI_2))
+}
+
+fn has_listening_device(upgrades: &PlayerUpgrades, data: &GameDataResource) -> bool {
+    upgrades
+        .installed_effects(&data.0.upgrades)
+        .any(|e| matches!(e, UpgradeEffect::ListeningDevice))
+}
 
 pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     // Divider grate.
@@ -92,12 +117,19 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     );
     // Chunky tube-style radio on the floor beside the chair,
     // same side as the counter radio (+x) so the two read as a
-    // matched pair. Tucked well under the table.
-    ctx.prop_rot(
-        Prop::Radio04,
-        Vec3::new(0.55, 0.0, ctx.l.desk_z() - 0.2),
-        Quat::from_rotation_y(FRAC_PI_2),
-    );
+    // matched pair. Tucked well under the table. Only present
+    // if the `listening_device` upgrade is installed — it's the
+    // visual half of the decryption feature (see
+    // `UpgradeEffect::ListeningDevice`). `sync_command_listening_device`
+    // keeps this in sync if the upgrade is installed mid-run.
+    if has_listening_device(ctx.upgrades, ctx.game_data) {
+        let tf = listening_radio_transform(ctx.l);
+        ctx.commands.spawn((
+            ListeningRadio,
+            PropPlacement::new(Prop::Radio04, tf.translation).rotated(tf.rotation),
+            DespawnOnExit(crate::AppState::Playing),
+        ));
+    }
 
     // East wall: two full-height bookshelves along the
     // command-post z-span.
@@ -125,4 +157,35 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
     }
     // Rug in front of the desk.
     ctx.prop(Prop::Rug, Vec3::new(0.0, 0.0, ctx.l.desk_z() - 0.3));
+}
+
+/// Reactive spawn: if the player installs the `listening_device`
+/// upgrade after the bunker was first built, add the `Radio04`
+/// prop without a full bunker rebuild. Mirrors
+/// [`sync_hall_racks`](super::hall::sync_hall_racks).
+///
+/// We don't despawn on uninstall — the game doesn't expose
+/// uninstall, and the `DespawnOnExit(AppState::Playing)` on the
+/// spawn handles the run-reset path.
+pub fn sync_command_listening_device(
+    mut commands: Commands,
+    upgrades: Res<PlayerUpgrades>,
+    game_data: Res<GameDataResource>,
+    existing: Query<(), With<ListeningRadio>>,
+) {
+    if !upgrades.is_changed() {
+        return;
+    }
+    if !existing.is_empty() {
+        return;
+    }
+    if !has_listening_device(&upgrades, &game_data) {
+        return;
+    }
+    let tf = listening_radio_transform(&Layout::new());
+    commands.spawn((
+        ListeningRadio,
+        PropPlacement::new(Prop::Radio04, tf.translation).rotated(tf.rotation),
+        DespawnOnExit(crate::AppState::Playing),
+    ));
 }

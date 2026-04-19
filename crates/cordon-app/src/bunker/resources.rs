@@ -40,9 +40,6 @@ pub(crate) const CAMERA_LERP_SPEED: f32 = 6.0;
 #[derive(Resource, Clone)]
 pub enum CameraMode {
     Free,
-    ZoomingToLaptop {
-        saved_transform: Transform,
-    },
     AtLaptop {
         saved_transform: Transform,
     },

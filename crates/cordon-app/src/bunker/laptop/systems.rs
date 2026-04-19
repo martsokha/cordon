@@ -2,10 +2,10 @@ use bevy::prelude::*;
 
 use super::components::LaptopObject;
 use super::material::LaptopMaterial;
-use crate::PlayingState;
 use crate::bunker::camera::FpsCamera;
+use crate::bunker::fade::{self, Fade};
 use crate::bunker::interaction::{Interact, Interactable};
-use crate::bunker::resources::{CameraMode, LaptopPlacement};
+use crate::bunker::resources::LaptopPlacement;
 use crate::laptop::LaptopScreenImage;
 
 /// Screen plane position in the laptop body's local space. The
@@ -50,18 +50,18 @@ pub(super) fn spawn_laptop(
         ))
         .observe(
             |_trigger: On<Interact>,
-             mut camera_mode: ResMut<CameraMode>,
+             mut fade: ResMut<Fade>,
              cam_q: Query<&Transform, With<FpsCamera>>| {
-                // Start the zoom animation. The
-                // `promote_at_laptop_to_state` system flips the
-                // `PlayingState` to `Laptop` once the zoom
-                // finishes (CameraMode::AtLaptop), so the
-                // fullscreen UI swap waits for the end of the
-                // animation.
+                // Pure fade transition — the state swap and the
+                // `AtLaptop` camera pin both fire at the fade
+                // peak, behind full black. No zoom dolly.
                 if let Ok(t) = cam_q.single() {
-                    *camera_mode = CameraMode::ZoomingToLaptop {
-                        saved_transform: *t,
-                    };
+                    fade::start(
+                        &mut fade,
+                        fade::Action::EnterLaptop {
+                            saved_transform: *t,
+                        },
+                    );
                 }
             },
         )
@@ -83,23 +83,4 @@ pub(super) fn spawn_laptop(
     commands.entity(laptop).add_child(screen);
 
     commands.remove_resource::<LaptopPlacement>();
-}
-
-/// Promote `CameraMode::AtLaptop` to `PlayingState::Laptop` so
-/// the fullscreen UI swap only happens at the end of the zoom
-/// animation. Without this, the render-target swap fires
-/// instantly on click and the player sees a jarring cut before
-/// the zoom has played out.
-pub(super) fn promote_at_laptop_to_state(
-    mode: Res<CameraMode>,
-    state: Res<State<PlayingState>>,
-    mut next_state: ResMut<NextState<PlayingState>>,
-) {
-    if !mode.is_changed() {
-        return;
-    }
-    if matches!(*mode, CameraMode::AtLaptop { .. }) && !matches!(state.get(), PlayingState::Laptop)
-    {
-        next_state.set(PlayingState::Laptop);
-    }
 }

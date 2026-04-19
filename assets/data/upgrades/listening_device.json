@@ -1,0 +1,10 @@
+{
+  "id": "upgrade_listening_device",
+  "location": "Bunker",
+  "cost": 1500,
+  "requires": [],
+  "source": "Purchasable",
+  "effects": [
+    "ListeningDevice"
+  ]
+}

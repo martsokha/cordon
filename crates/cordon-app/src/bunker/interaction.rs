@@ -7,6 +7,7 @@
 use bevy::prelude::*;
 
 use super::camera::FpsCamera;
+use super::fade::{self, Fade};
 use super::resources::{CameraMode, InteractionLocked};
 use crate::locale::L10n;
 
@@ -97,15 +98,23 @@ pub(super) fn interact(
     camera_q: Query<&Transform, With<FpsCamera>>,
     interactables: Query<(Entity, &GlobalTransform, &Interactable)>,
     locked: Option<Res<InteractionLocked>>,
-    mut camera_mode: ResMut<CameraMode>,
+    camera_mode: Res<CameraMode>,
+    mut fade: ResMut<Fade>,
     mut commands: Commands,
 ) {
     let pressed_e = keys.just_pressed(KeyCode::KeyE);
     let pressed_esc = keys.just_pressed(KeyCode::Escape);
 
+    // Don't queue another transition while one is already
+    // fading — E-mashing would otherwise enter and immediately
+    // exit (or vice versa).
+    if fade::is_active(&fade) {
+        return;
+    }
+
     if let CameraMode::AtCctv { saved_transform } = *camera_mode {
         if pressed_e || pressed_esc {
-            *camera_mode = CameraMode::Returning(saved_transform);
+            fade::start(&mut fade, fade::Action::ExitCctv { saved_transform });
         }
         return;
     }

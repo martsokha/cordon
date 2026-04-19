@@ -6,6 +6,7 @@ mod ambient;
 pub(crate) mod camera;
 pub mod cctv;
 pub mod dialogue;
+pub mod fade;
 pub mod geometry;
 mod input;
 pub mod interaction;
@@ -45,6 +46,7 @@ impl Plugin for BunkerPlugin {
             dialogue::DialoguePlugin,
             visitor::VisitorPlugin,
             cctv::CctvPlugin,
+            fade::FadePlugin,
             laptop::LaptopPlugin,
             particles::BunkerParticlesPlugin,
             pills::PillsPlugin,
@@ -99,6 +101,8 @@ impl Plugin for BunkerPlugin {
                 // initial `rooms::hall::spawn` inside
                 // `spawn_bunker` handles the first fill.
                 rooms::hall::sync_hall_racks.run_if(resource_exists::<BunkerSpawned>),
+                rooms::command::sync_command_listening_device
+                    .run_if(resource_exists::<BunkerSpawned>),
             )
                 .run_if(in_state(PlayingState::Bunker))
                 .run_if(in_state(PauseState::Running)),

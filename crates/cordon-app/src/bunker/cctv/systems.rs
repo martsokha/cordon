@@ -5,6 +5,7 @@ use bevy::render::render_resource::TextureFormat;
 use super::components::*;
 use super::materials::CctvMaterial;
 use crate::bunker::camera::FpsCamera;
+use crate::bunker::fade::{self, Fade};
 use crate::bunker::interaction::{Interact, Interactable};
 use crate::bunker::resources::CameraMode;
 
@@ -48,12 +49,18 @@ pub(super) fn spawn_cctv(
         })
         .observe(
             |_trigger: On<Interact>,
-             mut camera_mode: ResMut<CameraMode>,
+             mut fade: ResMut<Fade>,
              cam_q: Query<&Transform, With<FpsCamera>>| {
+                // CCTV has no zoom dolly — the whole swap happens
+                // at the fade peak. Out-fade covers the cut; in-
+                // fade reveals the fullscreen feed.
                 if let Ok(t) = cam_q.single() {
-                    *camera_mode = CameraMode::AtCctv {
-                        saved_transform: *t,
-                    };
+                    fade::start(
+                        &mut fade,
+                        fade::Action::EnterCctv {
+                            saved_transform: *t,
+                        },
+                    );
                 }
             },
         );

@@ -11,11 +11,12 @@
 //! receipt, or the event expires.
 
 use bevy::prelude::*;
+use cordon_core::entity::bunker::UpgradeEffect;
 use cordon_core::primitive::Id;
 use cordon_core::world::narrative::{Event, Intel};
 use cordon_data::gamedata::GameDataResource;
 
-use crate::resources::{EventLog, GameClock, PlayerIntel};
+use crate::resources::{EventLog, GameClock, PlayerIntel, PlayerUpgrades};
 
 /// Message emitted when a radio broadcast is due. The bunker
 /// radio module consumes this to play audio. For non-missable
@@ -94,11 +95,15 @@ pub fn deliver_radio_broadcasts(
     clock: Res<GameClock>,
     events: Res<EventLog>,
     data: Res<GameDataResource>,
+    upgrades: Res<PlayerUpgrades>,
     mut intel: ResMut<PlayerIntel>,
     mut delivered: ResMut<DeliveredBroadcasts>,
     mut broadcast_tx: MessageWriter<RadioBroadcast>,
 ) {
     let now = &clock.0;
+    let has_listening_device = upgrades
+        .installed_effects(&data.0.upgrades)
+        .any(|e| matches!(e, UpgradeEffect::ListeningDevice));
 
     for active in &events.0 {
         let Some(def) = data.0.events.get(&active.def_id) else {
@@ -118,6 +123,16 @@ pub fn deliver_radio_broadcasts(
         let elapsed = now.total_minutes().saturating_sub(event_start_minutes) as u32;
 
         if elapsed < radio.delay_minutes {
+            continue;
+        }
+
+        // Encrypted traffic without the Listening Device: skip
+        // the broadcast entirely and mark it delivered on the
+        // first touch after the delay elapses. No retroactive
+        // grant if the device is installed later — matches how
+        // `missable` already treats a radio-off moment.
+        if radio.encrypted && !has_listening_device {
+            state.delivered = true;
             continue;
         }
 

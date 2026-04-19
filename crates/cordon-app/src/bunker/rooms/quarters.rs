@@ -124,11 +124,6 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Prop::MedicationBottle,
         Vec3::new(table_x + 0.1, TABLE_TOP, table_z - 0.08),
     );
-    ctx.prop_rot(
-        Prop::Syringe,
-        Vec3::new(table_x + 0.2, TABLE_TOP, table_z + 0.12),
-        Quat::from_rotation_y(0.6),
-    );
     ctx.prop(
         Prop::Bottles01,
         Vec3::new(table_x - 0.15, TABLE_TOP, table_z - 0.05),

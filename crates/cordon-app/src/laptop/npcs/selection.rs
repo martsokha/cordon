@@ -11,7 +11,7 @@ use bevy::prelude::*;
 use cordon_sim::plugin::prelude::{NpcMarker, SquadMembership};
 
 use super::NpcAssets;
-use crate::PlayingState;
+use crate::bunker::fade::{self, Fade};
 use crate::laptop::LaptopCamera;
 use crate::laptop::input::CameraTarget;
 use crate::laptop::ui::map::cursor_world_pos;
@@ -155,13 +155,16 @@ pub(super) fn update_npc_selection(
 pub(super) fn deselect_or_exit(
     keys: Res<ButtonInput<KeyCode>>,
     mut selected: ResMut<SelectedNpc>,
-    mut next_state: ResMut<NextState<PlayingState>>,
+    mut fade: ResMut<Fade>,
 ) {
+    if fade::is_active(&fade) {
+        return;
+    }
     if keys.just_pressed(KeyCode::KeyE) || keys.just_pressed(KeyCode::Escape) {
         if selected.0.is_some() && keys.just_pressed(KeyCode::Escape) {
             selected.0 = None;
         } else {
-            *next_state = NextState::Pending(PlayingState::Bunker);
+            fade::start(&mut fade, fade::Action::ExitLaptop);
         }
     }
 }

@@ -47,13 +47,15 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Quat::from_rotation_y(-FRAC_PI_2),
     );
     // Diagnostic machine on the back wall next to the
-    // generator. Native AABB is flat on Y; rotating +π/2
-    // around X stands it upright with the face pointing into
-    // the room rather than into the wall.
+    // generator. `Rx(π/2)` stands it upright with the panel
+    // face pointing into the room; the leading `Rz(π)` spins
+    // it 180° in the wall plane (around the wall normal) so
+    // the panel's top/bottom are swapped without leaving the
+    // wall.
     ctx.prop_rot(
         Prop::WallMachine,
-        Vec3::new(ctx.l.workshop_x_center() - 0.5, 0.9, ctx.l.back_z + 0.1),
-        Quat::from_rotation_x(FRAC_PI_2),
+        Vec3::new(ctx.l.workshop_x_center() - 0.5, 1.25, ctx.l.back_z + 0.1),
+        Quat::from_rotation_z(PI) * Quat::from_rotation_x(FRAC_PI_2),
     );
     // Wall-mounted lowpoly extinguisher. Mounted on the east
     // wall at ~1 m up; `Extinguisher`'s AABB is anchored at the
@@ -63,12 +65,14 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Vec3::new(ctx.l.workshop_x_max() - 0.05, 0.9, ctx.l.tj2_center() + 0.8),
         Quat::from_rotation_y(-FRAC_PI_2),
     );
-    // Floor-standing electrical panel against the back wall
-    // near the generator.
+    // Floor-standing electrical panel against the north wall
+    // (opposite the generator's back wall), door-side of the
+    // room so you see it on the way in. Faces south into the
+    // room so the breaker panel reads on entry.
     ctx.prop_rot(
         Prop::ElectricBox01,
-        Vec3::new(ctx.l.workshop_x_center() + 0.9, 0.0, ctx.l.back_z + 0.3),
-        Quat::IDENTITY,
+        Vec3::new(ctx.l.workshop_x_center() + 0.5, 0.0, ctx.l.tj2_north - 0.3),
+        Quat::from_rotation_y(PI),
     );
     // Storage crate against the east wall near the generator.
     ctx.prop_rot(

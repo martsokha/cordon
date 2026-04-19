@@ -12,6 +12,7 @@ use bevy::prelude::*;
 
 use crate::PlayingState;
 use crate::bunker::camera::FpsCamera;
+use crate::bunker::fade::{self, Fade};
 use crate::bunker::resources::{CameraMode, MovementLocked};
 
 const MOVE_SPEED: f32 = 4.0;
@@ -61,7 +62,12 @@ impl Plugin for ControllerPlugin {
                 .run_if(in_state(PlayingState::Bunker))
                 .run_if(in_state(crate::PauseState::Running))
                 .run_if(|mode: Res<CameraMode>| matches!(*mode, CameraMode::Free))
-                .run_if(not(resource_exists::<MovementLocked>)),
+                .run_if(not(resource_exists::<MovementLocked>))
+                // Freeze look + movement during a fade so the
+                // player can't walk away from the laptop during
+                // the out-fade's 180 ms of black before the
+                // state swap.
+                .run_if(|fade: Res<Fade>| !fade::is_active(&fade)),
         );
     }
 }
