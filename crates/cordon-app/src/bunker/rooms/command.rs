@@ -95,11 +95,8 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Quat::from_rotation_y(FRAC_PI_2),
     );
 
-    // Bookshelves along the command-post z-span. Back to the
-    // tall `Bookshelf` on the east wall for variety; the west
-    // wall under the CCTV is left empty for now — the lowpoly
-    // shelves don't read as bookshelves and the only suitable
-    // shortened shelf hasn't landed yet.
+    // East wall: two full-height bookshelves along the
+    // command-post z-span.
     let shelf_north_z = ctx.l.trade_z - 0.978;
     let shelf_south_z = ctx.l.divider_z + 0.978;
     for z in [shelf_north_z, shelf_south_z] {
@@ -109,6 +106,18 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
             Quat::from_rotation_y(-FRAC_PI_2),
         );
     }
+
+    // West wall: a row of lockers running south from just under
+    // the CCTV toward the divider grate, mirroring the entry
+    // room's locker bank. Fronts face into the room.
+    for i in 0..5 {
+        ctx.prop_rot(
+            Prop::Locker,
+            Vec3::new(-ctx.l.hw + 0.3, 0.0, ctx.l.trade_z - 0.2 - 0.5 * i as f32),
+            Quat::from_rotation_y(FRAC_PI_2),
+        );
+    }
+
     // Rug in front of the desk.
     ctx.prop(Prop::Rug, Vec3::new(0.0, 0.0, ctx.l.desk_z() - 0.3));
 }

@@ -113,7 +113,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Vec3::new(table_x + 0.1, TABLE_TOP, table_z - 0.08),
     );
     ctx.prop(
-        Prop::Mug,
+        Prop::Bottles01,
         Vec3::new(table_x - 0.15, TABLE_TOP, table_z - 0.05),
     );
 

@@ -11,7 +11,7 @@ use crate::bunker::geometry::{Prop, PropPlacement};
 /// Half-width / half-height of the render-target plane, sized to
 /// fit inside the `Monitor_02` visible glass with a little bezel
 /// margin.
-const SCREEN_HALF_EXTENT: Vec2 = Vec2::new(0.25, 0.20);
+const SCREEN_HALF_EXTENT: Vec2 = Vec2::new(0.26, 0.21);
 
 /// Distance from the wall-mount anchor forward along the
 /// monitor's facing direction to the bezel origin.
@@ -23,16 +23,16 @@ const BEZEL_FORWARD_OFFSET: f32 = 0.33;
 
 /// Approximate height of the centre of the CRT's glass above the
 /// model's origin (Y range is 0..0.6).
-const SCREEN_CENTER_HEIGHT: f32 = 0.32;
+const SCREEN_CENTER_HEIGHT: f32 = 0.31;
 
 /// Distance from the bezel origin to the screen plane along the
 /// bezel's facing direction. Sits just outside the front glass.
-const SCREEN_FORWARD_OFFSET: f32 = 0.28;
+const SCREEN_FORWARD_OFFSET: f32 = 0.27;
 
 /// How far the centre of the curved screen bulges out from a
 /// flat plane, in metres. Readable as "old CRT glass" without
 /// tipping into disco-ball territory.
-const SCREEN_BULGE: f32 = 0.06;
+const SCREEN_BULGE: f32 = 0.085;
 
 /// Grid subdivisions per axis for the curved screen mesh. Needs
 /// enough verts that the bulge reads smooth, not enough to waste
@@ -69,7 +69,7 @@ pub fn spawn_monitor(
     // the player instead of sideways. Positioned along the
     // bezel's local +Z (forward) and lifted to the CRT screen
     // centre via the bezel's local +Y (up).
-    let screen_mat = cctv_materials.add(CctvMaterial::new(image, 1.0));
+    let screen_mat = cctv_materials.add(CctvMaterial::new(image, 0.6));
     let plane_rot = bezel_rot * Quat::from_rotation_y(FRAC_PI_2);
     let local_forward = plane_rot * Vec3::Z;
     let local_up = plane_rot * Vec3::Y;
@@ -92,10 +92,9 @@ pub fn spawn_monitor(
 
 /// Build a subdivided plane on the XY axes with its centre
 /// displaced along +Z to approximate a CRT's convex glass.
-/// Displacement follows `bulge * (1 - u^2 - v^2)` clamped to
-/// zero so corners sit flat while the middle pokes out. UVs are
-/// laid out `[0,1] × [0,1]` so any texture sampling it sees the
-/// same distribution it would on a `Plane3d`.
+/// Displacement follows `bulge * (1 - un²) * (1 - vn²)` — a
+/// bi-cylindrical bump that falls to zero along every edge.
+/// UVs are laid out `[0,1] × [0,1]`.
 fn curved_screen_mesh(half_extent: Vec2, bulge: f32, subdiv: u32) -> Mesh {
     let n = subdiv.max(1) as usize;
     let verts_per_side = n + 1;
@@ -113,16 +112,18 @@ fn curved_screen_mesh(half_extent: Vec2, bulge: f32, subdiv: u32) -> Mesh {
             let x = (u - 0.5) * 2.0 * half_extent.x;
             let un = (u - 0.5) * 2.0;
 
-            let r2 = un * un + vn * vn;
-            let z = (bulge * (1.0 - r2)).max(0.0);
+            let one_minus_u2 = 1.0 - un * un;
+            let one_minus_v2 = 1.0 - vn * vn;
+            let z = bulge * one_minus_u2 * one_minus_v2;
 
-            // Analytic normal of `z = b*(1 - (x/w)^2 - (y/h)^2)`:
-            // grad z = (-2b*un / w_world, -2b*vn / h_world), so
-            // normal ∝ (-dz/dx, -dz/dy, 1). The exact world-space
-            // slope uses the actual half-extents, not the
-            // normalised `un`/`vn`.
-            let dzdx = -2.0 * bulge * un / half_extent.x;
-            let dzdy = -2.0 * bulge * vn / half_extent.y;
+            // Analytic normal of
+            //   z = b (1 - un²)(1 - vn²),   un = x / w_half
+            // is
+            //   dz/dx = -2 b un (1 - vn²) / w_half
+            //   dz/dy = -2 b vn (1 - un²) / h_half
+            // with normal ∝ (-dz/dx, -dz/dy, 1).
+            let dzdx = -2.0 * bulge * un * one_minus_v2 / half_extent.x;
+            let dzdy = -2.0 * bulge * vn * one_minus_u2 / half_extent.y;
             let n_vec = Vec3::new(-dzdx, -dzdy, 1.0).normalize();
 
             positions.push([x, y, z]);

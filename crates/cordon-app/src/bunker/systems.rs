@@ -27,8 +27,16 @@ pub(super) fn spawn_bunker(
     let l = Layout::new();
 
     commands.insert_resource(MonitorPlacement {
-        pos: Vec3::new(-l.hw + 0.15, l.h - 0.8, l.trade_z - 0.1),
-        target: Vec3::new(0.0, 1.4, 0.0),
+        // Sitting on the top-north locker along the west wall,
+        // tucked close to the wall and yawed 45° CCW from
+        // straight-out so the screen angles toward the desk
+        // instead of staring at the opposite wall.
+        pos: Vec3::new(-l.hw + 0.2, 1.82, l.trade_z - 0.2),
+        target: Vec3::new(
+            -l.hw + 0.2 + 2.0 * 0.7071,
+            1.82,
+            (l.trade_z - 0.2) - 2.0 * 0.7071,
+        ),
     });
 
     const TABLE_TOP: f32 = 1.037;

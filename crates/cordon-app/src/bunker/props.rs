@@ -2356,4 +2356,3 @@ impl Prop {
         (d.aabb_min + d.aabb_max) * 0.5
     }
 }
-
