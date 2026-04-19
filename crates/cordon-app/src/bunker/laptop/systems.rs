@@ -24,7 +24,7 @@ pub(super) fn spawn_laptop(
     placement: Option<Res<LaptopPlacement>>,
 ) {
     let Some(placement) = placement else { return };
-    let scene: Handle<Scene> = asset_server.load("models/interior/Laptop.glb#Scene0");
+    let scene: Handle<Scene> = asset_server.load("models/lowpoly/Laptop_02.glb#Scene0");
     commands
         .spawn((
             LaptopObject,

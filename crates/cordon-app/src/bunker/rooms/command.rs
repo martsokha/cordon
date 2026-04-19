@@ -29,15 +29,27 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         &metal,
     );
 
+    // Wire grid hung on the east grate panel, centred on the
+    // solid panel (between the opening and the side wall) and
+    // raised so the grid's base sits well off the floor.
+    let grate_panel_center_x = (ctx.l.hole_half + ctx.l.hw) / 2.0;
+    ctx.prop_rot(
+        Prop::Shelf01Grid,
+        Vec3::new(grate_panel_center_x, 0.3, ctx.l.divider_z + 0.02),
+        Quat::from_rotation_y(-FRAC_PI_2),
+    );
+
     // Dinner table as the command desk. Table top at y = 1.037.
     const TABLE_TOP: f32 = 1.037;
     ctx.prop(Prop::WoodenDinnerTable, Vec3::new(0.0, 0.0, ctx.l.desk_z()));
     ctx.prop(Prop::WoodenChair, Vec3::new(0.0, 0.0, ctx.l.desk_z() - 0.5));
     ctx.prop(Prop::Mug, Vec3::new(-0.35, TABLE_TOP, ctx.l.desk_z() - 0.1));
-    // Radio placement: the radio module owns the spawn (like laptop).
+    // Counter radio: the radio module owns the spawn (like
+    // laptop). Pulled ~18 cm in from the +x (left) edge so the
+    // body sits solidly on the desk instead of hanging off it.
     ctx.commands.insert_resource(RadioPlacement {
-        pos: Vec3::new(0.75, TABLE_TOP, ctx.l.desk_z() - 0.1),
-        rot: Quat::from_rotation_y(PI + FRAC_PI_2),
+        pos: Vec3::new(0.75, TABLE_TOP, ctx.l.desk_z()),
+        rot: Quat::from_rotation_y(PI),
     });
 
     // Door button — sits on the table surface. A flat cylinder
@@ -74,16 +86,23 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Quat::IDENTITY,
         0.6,
     );
+    // Chunky tube-style radio on the floor beside the chair,
+    // same side as the counter radio (+x) so the two read as a
+    // matched pair. Tucked well under the table.
+    ctx.prop_rot(
+        Prop::Radio04,
+        Vec3::new(0.55, 0.0, ctx.l.desk_z() - 0.2),
+        Quat::from_rotation_y(FRAC_PI_2),
+    );
 
-    // Two bookshelves per wall along the full command-post z-span.
+    // Bookshelves along the command-post z-span. Back to the
+    // tall `Bookshelf` on the east wall for variety; the west
+    // wall under the CCTV is left empty for now — the lowpoly
+    // shelves don't read as bookshelves and the only suitable
+    // shortened shelf hasn't landed yet.
     let shelf_north_z = ctx.l.trade_z - 0.978;
     let shelf_south_z = ctx.l.divider_z + 0.978;
     for z in [shelf_north_z, shelf_south_z] {
-        ctx.prop_rot(
-            Prop::Bookshelf,
-            Vec3::new(-ctx.l.hw + 0.25, 0.0, z),
-            Quat::from_rotation_y(FRAC_PI_2),
-        );
         ctx.prop_rot(
             Prop::Bookshelf,
             Vec3::new(ctx.l.hw - 0.25, 0.0, z),

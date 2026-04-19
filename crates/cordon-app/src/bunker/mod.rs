@@ -69,8 +69,9 @@ impl Plugin for BunkerPlugin {
             // Dim ambient so the zones between point-light
             // fixtures fall into proper shadow — makes the
             // bunker read as lived-in and tunnel-like instead
-            // of uniformly lit.
-            brightness: 50.0,
+            // of uniformly lit. Nudged up slightly so the
+            // shadowed corners aren't pure black.
+            brightness: 85.0,
             ..default()
         });
         app.add_systems(OnEnter(PlayingState::Bunker), camera::enable_bunker_camera);

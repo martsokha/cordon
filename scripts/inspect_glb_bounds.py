@@ -180,6 +180,9 @@ DECORATIVES = {
     "GameBoard",
     "Vase1", "LargeVase", "VaseFlowers1",
     "Giftbox_01", "Giftbox_02", "Giftbox_03",
+    # Ceiling lamps hang from the ceiling with their AABBs
+    # poking down into head-height; player shouldn't bump them.
+    "CeilingLamp",
 }
 
 
@@ -311,7 +314,7 @@ def main() -> int:
     rows = scan()
 
     if rust_mode:
-        out = REPO / "crates" / "cordon-bevy" / "src" / "bunker" / "props.rs"
+        out = REPO / "crates" / "cordon-app" / "src" / "bunker" / "props.rs"
         out.write_text(emit_rust(rows))
         print(f"wrote {out}  ({len(rows)} props)")
         return 0

@@ -47,7 +47,7 @@ pub(super) fn spawn_radio(
     placement: Option<Res<RadioPlacement>>,
 ) {
     let Some(placement) = placement else { return };
-    let scene: Handle<Scene> = asset_server.load("models/atomic/radio.glb#Scene0");
+    let scene: Handle<Scene> = asset_server.load("models/lowpoly/Radio_02.glb#Scene0");
 
     let radio = commands
         .spawn((
