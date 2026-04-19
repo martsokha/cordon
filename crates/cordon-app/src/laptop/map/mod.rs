@@ -25,7 +25,7 @@ use cordon_core::primitive::Tier;
 use cordon_data::gamedata::GameDataResource;
 
 use self::tooltip::build_area_info;
-use crate::PlayingState;
+use crate::AppState;
 use crate::fonts::UiFont;
 pub use crate::laptop::ui::MapWorldEntity;
 use crate::laptop::ui::spawn_ui;
@@ -75,8 +75,13 @@ pub struct MapPlugin;
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(relics::RelicsPlugin);
+        // Spawn the map UI + geometry when the run starts, not
+        // when the player first opens the laptop. The laptop UI
+        // camera now renders into a texture displayed on the
+        // laptop's screen face in the bunker, so the UI needs to
+        // exist before the player ever walks up to the desk.
         app.add_systems(
-            OnEnter(PlayingState::Laptop),
+            OnEnter(AppState::Playing),
             spawn_map.run_if(not(resource_exists::<MapSpawned>)),
         );
     }
@@ -86,13 +91,21 @@ fn spawn_map(
     game_data: Res<GameDataResource>,
     laptop_font: Res<UiFont>,
     l10n: L10n,
+    laptop_cam_q: Query<Entity, With<crate::laptop::LaptopCamera>>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let data = &game_data.0;
 
-    spawn_ui(&mut commands, &laptop_font.0, &l10n);
+    // Route the UI nodes to the laptop camera so they render
+    // into the laptop screen texture and don't bleed onto the
+    // bunker FPS view.
+    let Ok(laptop_cam) = laptop_cam_q.single() else {
+        warn!("spawn_map: LaptopCamera not ready yet");
+        return;
+    };
+    spawn_ui(&mut commands, &laptop_font.0, &l10n, laptop_cam);
 
     // Shared border material — safe to share because nothing ever
     // mutates the border color at runtime. Disk materials, by

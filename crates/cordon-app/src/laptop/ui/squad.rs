@@ -10,10 +10,11 @@ impl Plugin for SquadUiPlugin {
     fn build(&self, _app: &mut App) {}
 }
 
-pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
+pub fn spawn(commands: &mut Commands, font: &Handle<Font>, laptop_cam: Entity) {
     commands
         .spawn((
             TabContent(LaptopTab::Squad),
+            bevy::ui::UiTargetCamera(laptop_cam),
             Node {
                 position_type: PositionType::Absolute,
                 width: Val::Percent(90.0),

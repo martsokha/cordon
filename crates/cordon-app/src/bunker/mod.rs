@@ -75,7 +75,9 @@ impl Plugin for BunkerPlugin {
             ..default()
         });
         app.add_systems(OnEnter(PlayingState::Bunker), camera::enable_bunker_camera);
-        app.add_systems(OnEnter(PlayingState::Laptop), camera::start_laptop_zoom);
+        // Zoom now starts from the laptop interact observer (see
+        // `bunker/laptop/systems.rs`). The state transition only
+        // happens at the end of the zoom, not on click.
         app.add_systems(OnEnter(PlayingState::Bunker), camera::start_free_look);
         app.add_systems(Update, camera::animate_camera);
         // Bunker spawns once when loading completes, persists across

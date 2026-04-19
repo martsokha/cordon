@@ -109,11 +109,13 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
 
     // West wall: a row of lockers running south from just under
     // the CCTV toward the divider grate, mirroring the entry
-    // room's locker bank. Fronts face into the room.
+    // room's locker bank. Fronts face into the room. Starts
+    // 30 cm south of the trade grate to leave breathing room
+    // around the grate frame.
     for i in 0..5 {
         ctx.prop_rot(
             Prop::Locker,
-            Vec3::new(-ctx.l.hw + 0.3, 0.0, ctx.l.trade_z - 0.2 - 0.5 * i as f32),
+            Vec3::new(-ctx.l.hw + 0.3, 0.0, ctx.l.trade_z - 0.3 - 0.5 * i as f32),
             Quat::from_rotation_y(FRAC_PI_2),
         );
     }

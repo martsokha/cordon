@@ -8,7 +8,6 @@ use bevy::prelude::*;
 use cordon_data::gamedata::GameDataResource;
 
 use super::MapWorldEntity;
-use crate::PlayingState;
 
 const COLOR_RELIC: Color = Color::srgb(0.3, 0.9, 1.0);
 
@@ -43,7 +42,7 @@ impl Plugin for RelicsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, init_relic_assets);
         app.add_systems(
-            OnEnter(PlayingState::Laptop),
+            OnEnter(crate::AppState::Playing),
             preload_relic_icons.run_if(not(resource_exists::<RelicIconAssets>)),
         );
         app.add_systems(

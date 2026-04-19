@@ -221,10 +221,12 @@ pub fn cursor_world_pos(
 /// The panel itself has no background; each row carries its own
 /// dark background with internal padding, so separate rows read as
 /// distinct cards stacked with a gap between them.
-fn spawn_squad_roster(commands: &mut Commands) {
+fn spawn_squad_roster(commands: &mut Commands, laptop_cam: Entity) {
     commands.spawn((
         MapOnlyUi,
         SquadRosterPanel,
+        super::LaptopChromeUi,
+        bevy::ui::UiTargetCamera(laptop_cam),
         Node {
             position_type: PositionType::Absolute,
             // Clear of the 32px tab bar with generous margin so the
@@ -240,14 +242,16 @@ fn spawn_squad_roster(commands: &mut Commands) {
     ));
 }
 
-pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
-    spawn_squad_roster(commands);
+pub fn spawn(commands: &mut Commands, font: &Handle<Font>, laptop_cam: Entity) {
+    spawn_squad_roster(commands, laptop_cam);
 
     // Tooltip panel with a single Text root + TextSpan children
     commands
         .spawn((
             MapOnlyUi,
             TooltipPanel,
+            super::LaptopChromeUi,
+            bevy::ui::UiTargetCamera(laptop_cam),
             Node {
                 position_type: PositionType::Absolute,
                 flex_direction: FlexDirection::Column,
@@ -305,6 +309,8 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
     commands.spawn((
         MapOnlyUi,
         ZoomLabel,
+        super::LaptopChromeUi,
+        bevy::ui::UiTargetCamera(laptop_cam),
         Node {
             position_type: PositionType::Absolute,
             right: Val::Px(16.0),
@@ -318,14 +324,17 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
             ..default()
         },
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.4)),
+        Visibility::Hidden,
     ));
 
-    // Crosshair — faint `+` centered on the map. Tagged MapOnlyUi
-    // so it shows only when the Map tab is active; also spawned in
-    // laptop UI (not bunker UI) so the bunker view never sees it.
+    // Crosshair — faint `+` centered on the map. Hidden on the
+    // desk projection so the ambient map preview stays clean;
+    // shown only in fullscreen laptop mode.
     commands.spawn((
         MapOnlyUi,
         Crosshair,
+        super::LaptopChromeUi,
+        bevy::ui::UiTargetCamera(laptop_cam),
         Node {
             position_type: PositionType::Absolute,
             left: Val::Percent(49.0),
@@ -339,6 +348,7 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>) {
             ..default()
         },
         TextColor(Color::srgba(1.0, 1.0, 1.0, 0.5)),
+        Visibility::Hidden,
     ));
 }
 

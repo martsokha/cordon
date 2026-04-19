@@ -18,7 +18,6 @@ use cordon_sim::plugin::prelude::{
 use cordon_sim::resources::PlayerUpgrades;
 
 use super::{FogEnabled, FogReveals, RevealedAreas};
-use crate::PlayingState;
 use crate::laptop::environment::anomaly::AnomalyVisual;
 use crate::laptop::map::{AreaCircle, Bunker};
 use crate::laptop::ui::LaptopTab;
@@ -54,7 +53,6 @@ pub(super) fn apply_fog(
     mut revealed_areas: ResMut<RevealedAreas>,
     mut fog_reveals: ResMut<FogReveals>,
     fog_enabled: Res<FogEnabled>,
-    state: Res<State<PlayingState>>,
     active_tab: Res<LaptopTab>,
     upgrades: Res<PlayerUpgrades>,
     game_data: Res<GameDataResource>,
@@ -93,11 +91,13 @@ pub(super) fn apply_fog(
         ),
     >,
 ) {
-    // Only run the fog-driven visibility override while the player
-    // is actually looking at the map. On other tabs/states the
-    // normal MapOnlyUi / tab-switch visibility plumbing owns these
-    // entities and we'd fight with it.
-    let map_visible = *state.get() == PlayingState::Laptop && *active_tab == LaptopTab::Map;
+    // Only run the fog-driven visibility override while the map
+    // is the active tab. On other tabs the normal MapOnlyUi /
+    // tab-switch visibility plumbing owns these entities and we'd
+    // fight with it. The laptop camera renders continuously into
+    // the desk projection, so the state check that used to be
+    // here (`PlayingState::Laptop`) no longer applies.
+    let map_visible = *active_tab == LaptopTab::Map;
     if !map_visible {
         return;
     }

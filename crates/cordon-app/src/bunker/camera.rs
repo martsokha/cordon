@@ -5,17 +5,6 @@ use super::resources::*;
 #[derive(Component)]
 pub struct FpsCamera;
 
-pub(super) fn start_laptop_zoom(
-    camera_q: Query<&Transform, With<FpsCamera>>,
-    mut mode: ResMut<CameraMode>,
-) {
-    if let Ok(transform) = camera_q.single() {
-        *mode = CameraMode::ZoomingToLaptop {
-            saved_transform: *transform,
-        };
-    }
-}
-
 pub(super) fn start_free_look(
     mut mode: ResMut<CameraMode>,
     mut cursor_q: Query<&mut bevy::window::CursorOptions>,

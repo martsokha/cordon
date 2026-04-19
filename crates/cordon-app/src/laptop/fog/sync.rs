@@ -9,7 +9,6 @@
 use bevy::prelude::*;
 
 use super::{FogEnabled, FogReveals};
-use crate::PlayingState;
 use crate::laptop::environment::fog::{FogMaterial, FogOverlay, MAX_REVEAL_CIRCLES};
 use crate::laptop::ui::LaptopTab;
 
@@ -24,12 +23,16 @@ use crate::laptop::ui::LaptopTab;
 pub(super) fn sync_fog_material(
     fog_reveals: Res<FogReveals>,
     fog_enabled: Res<FogEnabled>,
-    state: Res<State<PlayingState>>,
     active_tab: Res<LaptopTab>,
     mut overlay_q: Query<(&MeshMaterial2d<FogMaterial>, &mut Visibility), With<FogOverlay>>,
     mut fog_mats: ResMut<Assets<FogMaterial>>,
 ) {
-    let map_visible = *state.get() == PlayingState::Laptop && *active_tab == LaptopTab::Map;
+    // Fog is gated on the Map tab, not on `PlayingState::Laptop`:
+    // the laptop UI camera renders into the desk projection
+    // continuously, so fog needs to be visible there too. The
+    // map tab is always the default, so this effectively means
+    // "always on" until the player opens another tab.
+    let map_visible = *active_tab == LaptopTab::Map;
     let Ok((handle, mut overlay_vis)) = overlay_q.single_mut() else {
         return;
     };

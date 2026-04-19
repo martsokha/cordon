@@ -26,6 +26,13 @@ pub enum LaptopTab {
 #[derive(Component)]
 pub struct MapWorldEntity;
 
+/// Marker for UI chrome (tab bar, crosshair, zoom label, squad
+/// roster, tooltip, non-map tabs) that should only appear while
+/// the player is in `PlayingState::Laptop` fullscreen. The desk
+/// projection shows only the map content itself.
+#[derive(Component)]
+pub struct LaptopChromeUi;
+
 #[derive(Component)]
 struct TabBar;
 
@@ -53,6 +60,35 @@ impl Plugin for UiPlugin {
                 .chain()
                 .run_if(in_state(PlayingState::Laptop)),
         );
+        // Chrome UI (tab bar, crosshair, squad roster, etc.) is
+        // only shown in fullscreen laptop mode. The desk
+        // projection shows just the active tab's content. Gated
+        // on `resource_exists` because `PlayingState` is a
+        // sub-state of `AppState::Playing` and won't be in the
+        // world during loading / menu.
+        app.add_systems(
+            Update,
+            sync_chrome_visibility.run_if(resource_exists::<State<PlayingState>>),
+        );
+    }
+}
+
+fn sync_chrome_visibility(
+    state: Res<State<PlayingState>>,
+    mut chrome_q: Query<&mut Visibility, With<LaptopChromeUi>>,
+) {
+    if !state.is_changed() {
+        return;
+    }
+    let target = if matches!(state.get(), PlayingState::Laptop) {
+        Visibility::Inherited
+    } else {
+        Visibility::Hidden
+    };
+    for mut vis in &mut chrome_q {
+        if *vis != target {
+            *vis = target;
+        }
     }
 }
 
@@ -62,16 +98,16 @@ impl Plugin for UiPlugin {
 /// once* at spawn time (panel headings, empty-state text).
 /// Runtime-updated strings still go through the usual
 /// `L10n` lookup inside their refresh systems.
-pub fn spawn_ui(commands: &mut Commands, font: &Handle<Font>, l10n: &L10n) {
-    spawn_tab_bar(commands, font);
-    map::spawn(commands, font);
-    trade::spawn(commands, font);
-    squad::spawn(commands, font);
-    intel::spawn(commands, font, l10n);
-    upgrades::spawn(commands, font);
+pub fn spawn_ui(commands: &mut Commands, font: &Handle<Font>, l10n: &L10n, laptop_cam: Entity) {
+    spawn_tab_bar(commands, font, laptop_cam);
+    map::spawn(commands, font, laptop_cam);
+    trade::spawn(commands, font, laptop_cam);
+    squad::spawn(commands, font, laptop_cam);
+    intel::spawn(commands, font, l10n, laptop_cam);
+    upgrades::spawn(commands, font, laptop_cam);
 }
 
-fn spawn_tab_bar(commands: &mut Commands, font: &Handle<Font>) {
+fn spawn_tab_bar(commands: &mut Commands, font: &Handle<Font>, laptop_cam: Entity) {
     // Three-slot flex layout:
     // - Left: time label (fixed-width slot so the center stays
     //   optically centered as the time string breathes).
@@ -83,6 +119,8 @@ fn spawn_tab_bar(commands: &mut Commands, font: &Handle<Font>) {
     commands
         .spawn((
             TabBar,
+            LaptopChromeUi,
+            bevy::ui::UiTargetCamera(laptop_cam),
             Node {
                 position_type: PositionType::Absolute,
                 top: Val::Px(0.0),
@@ -97,6 +135,7 @@ fn spawn_tab_bar(commands: &mut Commands, font: &Handle<Font>) {
             },
             BackgroundColor(Color::srgba(0.04, 0.04, 0.06, 0.95)),
             GlobalZIndex(90),
+            Visibility::Hidden,
         ))
         .with_children(|bar| {
             // Left slot: time label.

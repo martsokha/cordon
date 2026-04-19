@@ -101,13 +101,14 @@ impl Plugin for IntelUiPlugin {
     }
 }
 
-pub fn spawn(commands: &mut Commands, font: &Handle<Font>, l10n: &L10n) {
+pub fn spawn(commands: &mut Commands, font: &Handle<Font>, l10n: &L10n, laptop_cam: Entity) {
     let quest_log_heading = l10n.get("intel-quest-log");
     let intel_feed_heading = l10n.get("intel-feed");
 
     commands
         .spawn((
             TabContent(LaptopTab::Intel),
+            bevy::ui::UiTargetCamera(laptop_cam),
             Node {
                 position_type: PositionType::Absolute,
                 width: Val::Percent(90.0),

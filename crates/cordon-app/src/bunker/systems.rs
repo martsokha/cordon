@@ -1,4 +1,4 @@
-use std::f32::consts::{FRAC_PI_2, PI};
+use std::f32::consts::PI;
 
 use avian3d::prelude::*;
 use bevy::pbr::ScreenSpaceAmbientOcclusion;
@@ -31,18 +31,18 @@ pub(super) fn spawn_bunker(
         // tucked close to the wall and yawed 45° CCW from
         // straight-out so the screen angles toward the desk
         // instead of staring at the opposite wall.
-        pos: Vec3::new(-l.hw + 0.2, 1.82, l.trade_z - 0.2),
+        pos: Vec3::new(-l.hw + 0.2, 1.82, l.trade_z - 0.3),
         target: Vec3::new(
             -l.hw + 0.2 + 2.0 * 0.7071,
             1.82,
-            (l.trade_z - 0.2) - 2.0 * 0.7071,
+            (l.trade_z - 0.3) - 2.0 * 0.7071,
         ),
     });
 
     const TABLE_TOP: f32 = 1.037;
     commands.insert_resource(LaptopPlacement {
         pos: Vec3::new(0.0, TABLE_TOP, l.desk_z() - 0.15),
-        rot: Quat::from_rotation_y(PI) * Quat::from_rotation_y(-FRAC_PI_2),
+        rot: Quat::from_rotation_y(PI),
     });
 
     let fps_camera_entity = spawn_camera(&mut commands, &l);

@@ -9,7 +9,7 @@ mod terrain;
 
 use bevy::prelude::*;
 
-use crate::PlayingState;
+use crate::{AppState, PlayingState};
 
 #[derive(Resource)]
 struct EnvironmentSpawned;
@@ -25,8 +25,11 @@ impl Plugin for EnvironmentPlugin {
             fog::FogShaderPlugin,
             crt::CrtPlugin,
         ));
+        // Spawn shaders/terrain/fog/clouds when the run starts
+        // so the laptop screen texture has something to show
+        // before the player ever opens the laptop.
         app.add_systems(
-            OnEnter(PlayingState::Laptop),
+            OnEnter(AppState::Playing),
             spawn_environment.run_if(not(resource_exists::<EnvironmentSpawned>)),
         );
         app.add_systems(
