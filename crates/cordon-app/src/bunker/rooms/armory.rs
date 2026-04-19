@@ -24,11 +24,12 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
             Quat::from_rotation_y(-FRAC_PI_2),
         );
     }
-    // A set of keys on top of the north-east rack — loose
-    // decoration, not a rack slot item.
+    // A set of keys on the second shelf of the north-east
+    // rack (y = SLOT_OFFSETS[1].y = 1.30 m). Loose decoration,
+    // not a rack slot item.
     ctx.prop_rot(
         Prop::Keys02,
-        Vec3::new(ctx.l.hw - 0.6, 2.55, rack_north_z),
+        Vec3::new(ctx.l.hw - 0.6, 1.30, rack_north_z),
         Quat::from_rotation_y(0.8),
     );
 

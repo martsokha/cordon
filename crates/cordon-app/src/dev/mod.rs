@@ -1,18 +1,21 @@
 //! Dev-time overlays, split by concern so each piece can be
 //! turned on or off independently via Cargo features.
 //!
+//! - `development` — asset hot-reload + keybindings that mutate
+//!   state (F3 fog, F4 time-scale). Base dev feature.
 //! - `diagnostic` — FPS counter + Bevy's frame-time / entity-count /
-//!   log diagnostics plugins. Observational only.
+//!   log diagnostics plugins. Observational only. Implies
+//!   `development`.
 //! - `inspector` — `bevy_inspector_egui` world inspector (F1). Heavy
-//!   egui dependency, so it gets its own toggle.
-//! - `cheat` — keybindings that mutate state (F3 fog, F4 time-scale).
+//!   egui dependency, so it gets its own toggle. Implies
+//!   `development`.
 //!
 //! [`DevPlugin`] composes whichever sub-plugins are enabled by the
 //! active feature set. The whole module is additionally gated behind
 //! `debug_assertions` at the `main.rs` `mod dev;` declaration, so
 //! release builds skip the compile cost of any of this entirely.
 
-#[cfg(feature = "cheat")]
+#[cfg(feature = "development")]
 mod cheat;
 #[cfg(feature = "diagnostic")]
 mod diagnostic;
@@ -29,7 +32,7 @@ impl Plugin for DevPlugin {
         _app.add_plugins(diagnostic::DiagnosticPlugin);
         #[cfg(feature = "inspector")]
         _app.add_plugins(inspector::InspectorPlugin);
-        #[cfg(feature = "cheat")]
+        #[cfg(feature = "development")]
         _app.add_plugins(cheat::CheatPlugin);
     }
 }

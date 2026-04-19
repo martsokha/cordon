@@ -5,10 +5,7 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 mod bunker;
-#[cfg(all(
-    debug_assertions,
-    any(feature = "diagnostic", feature = "inspector", feature = "cheat")
-))]
+#[cfg(all(debug_assertions, feature = "development"))]
 mod dev;
 mod fonts;
 mod laptop;
@@ -106,10 +103,7 @@ fn main() {
     // and only compiled when at least one of the `diagnostic`,
     // `inspector`, or `cheat` features is on. Each feature
     // independently adds its own sub-plugin.
-    #[cfg(all(
-        debug_assertions,
-        any(feature = "diagnostic", feature = "inspector", feature = "cheat")
-    ))]
+    #[cfg(all(debug_assertions, feature = "development"))]
     app.add_plugins(dev::DevPlugin);
 
     app.run();

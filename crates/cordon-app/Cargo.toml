@@ -21,27 +21,32 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = ["steam", "diagnostic", "inspector", "cheat"]
+default = ["steam", "diagnostic", "inspector", "development"]
 
 # Steam integration: achievements, overlay, presence. Pulls in the
 # `bevy-steamworks` dependency. Drop for a CI / headless / non-Steam
 # build with `--no-default-features --features <others>`.
 steam = ["dep:bevy-steamworks"]
 
-# FPS counter + Bevy diagnostic log plugins (frame-time, entity count).
-# Observational only — read-only state dump to screen and stderr.
-# Release builds exclude it regardless of this flag.
-diagnostic = []
+# Dev-mode bundle: F3 toggles map fog of war, F4 cycles sim
+# time-scale (1× / 4× / 16× / 64×), and `bevy/file_watcher`
+# reloads shaders / GLBs / yarn / FTL on save. The top of the
+# dev-feature pyramid — `diagnostic` and `inspector` both
+# pull this in so you can't get hot-reload without the cheats,
+# and vice versa. Release builds exclude it regardless.
+development = ["bevy/file_watcher"]
 
-# World inspector (F1) — `bevy_inspector_egui`. Split from `diagnostic`
-# because it pulls in egui and the inspector's quick variant, which are
-# heavier than the plain diagnostic plugins. Release builds exclude it.
-inspector = ["dep:bevy-inspector-egui"]
+# FPS counter + Bevy diagnostic log plugins (frame-time, entity
+# count). Observational only. Implies `development` so dev-
+# facing assemblies stay cohesive — no "diagnostic but no hot-
+# reload" middle ground.
+diagnostic = ["development"]
 
-# Dev cheats: F3 toggles map fog of war, F4 cycles sim time-scale
-# (1× / 4× / 16× / 64×). Mutates game state — keep off for anything
-# remotely like a playtest. Release builds exclude it.
-cheat = []
+# World inspector (F1) — `bevy_inspector_egui`. Split from
+# `diagnostic` because it pulls in egui and the inspector's
+# quick variant, which are heavier than the plain diagnostic
+# plugins. Implies `development` for the same reason.
+inspector = ["development", "dep:bevy-inspector-egui"]
 
 # Tracy profiler hooks. Enable when running under `tracy-capture`
 # or the Tracy GUI to record per-system timings. Adds instrumentation
