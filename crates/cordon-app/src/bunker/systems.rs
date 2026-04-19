@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::f32::consts::{FRAC_1_SQRT_2, PI};
 
 use avian3d::prelude::*;
 use bevy::pbr::ScreenSpaceAmbientOcclusion;
@@ -33,9 +33,9 @@ pub(super) fn spawn_bunker(
         // instead of staring at the opposite wall.
         pos: Vec3::new(-l.hw + 0.2, 1.82, l.trade_z - 0.3),
         target: Vec3::new(
-            -l.hw + 0.2 + 2.0 * 0.7071,
+            -l.hw + 0.2 + 2.0 * FRAC_1_SQRT_2,
             1.82,
-            (l.trade_z - 0.3) - 2.0 * 0.7071,
+            (l.trade_z - 0.3) - 2.0 * FRAC_1_SQRT_2,
         ),
     });
 

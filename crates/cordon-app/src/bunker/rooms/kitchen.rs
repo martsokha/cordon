@@ -96,11 +96,35 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         ),
         Quat::from_rotation_y(FRAC_PI_2),
     );
-
-    // Electric box on the south wall.
-    ctx.prop(
-        Prop::ElectricBox01,
-        Vec3::new(ctx.l.kitchen_x_center() + 0.5, 0.0, ctx.l.tj1_south + 0.05),
+    // Paperwork, floppy, and a phone left on the shelves —
+    // placed between the microwave and kettle so they're
+    // actually on the KitchenShelves geometry.
+    ctx.prop_rot(
+        Prop::File01,
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            SHELF_SURFACE,
+            ctx.l.tj1_center() - 0.05,
+        ),
+        Quat::from_rotation_y(FRAC_PI_2 + 0.3),
+    );
+    ctx.prop_rot(
+        Prop::FloppyDisc01,
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            SHELF_SURFACE,
+            ctx.l.tj1_center() + 0.15,
+        ),
+        Quat::from_rotation_y(0.3),
+    );
+    ctx.prop_rot(
+        Prop::PhoneMobile04,
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            SHELF_SURFACE,
+            ctx.l.tj1_center() + 0.5,
+        ),
+        Quat::from_rotation_y(FRAC_PI_2),
     );
 
     // Near the doorway.
@@ -112,5 +136,11 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Prop::Bag01,
         Vec3::new(ctx.l.kitchen_x_center() + 0.8, 0.0, ctx.l.tj1_north - 0.3),
         Quat::from_rotation_y(0.6),
+    );
+    // Bucket tucked against the south wall.
+    ctx.prop_rot(
+        Prop::Bucket1,
+        Vec3::new(ctx.l.kitchen_x_center() - 0.6, 0.0, ctx.l.tj1_south + 0.25),
+        Quat::from_rotation_y(0.3),
     );
 }

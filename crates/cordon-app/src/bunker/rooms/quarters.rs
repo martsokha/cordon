@@ -1,6 +1,6 @@
 //! Quarters (right side room): sofa, pillow, rug, personal items.
 
-use std::f32::consts::{FRAC_PI_2, PI};
+use std::f32::consts::{FRAC_PI_2, FRAC_PI_4, PI};
 
 use bevy::prelude::*;
 
@@ -85,6 +85,18 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Prop::FaceMask2,
         Vec3::new(bookshelf_x + 0.2, BOOKSHELF_TOP, bookshelf_z + 0.05),
         Quat::from_rotation_y(1.2),
+    );
+    // Paper stack + alarm clock also on the bookshelf, offset
+    // so they don't stack onto the masks.
+    ctx.prop_rot(
+        Prop::PaperStack01,
+        Vec3::new(bookshelf_x + 0.45, BOOKSHELF_TOP, bookshelf_z - 0.02),
+        Quat::from_rotation_y(0.2),
+    );
+    ctx.prop_rot(
+        Prop::AlarmClock01,
+        Vec3::new(bookshelf_x - 0.55, BOOKSHELF_TOP, bookshelf_z + 0.02),
+        Quat::from_rotation_y(-FRAC_PI_4),
     );
 
     // Suitcase in the south-west corner.

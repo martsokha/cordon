@@ -37,13 +37,6 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         &concrete,
     );
 
-    // Wall-mounted diagnostic machine.
-    ctx.prop_rot(
-        Prop::WallMachine,
-        Vec3::new(ctx.l.infirmary_x_min() + 0.1, 0.9, ctx.l.tj2_center() - 0.6),
-        Quat::from_rotation_y(FRAC_PI_2),
-    );
-
     // Medication bottle + syringe on the floor. The takeable
     // pill cluster lives in the quarters; this side is
     // decoration only.
@@ -64,12 +57,6 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Prop::BreathingAparatus,
         Vec3::new(ctx.l.infirmary_x_min() + 0.35, 0.0, ctx.l.back_z + 0.4),
         Quat::from_rotation_y(0.4),
-    );
-
-    // Stool for the patient.
-    ctx.prop(
-        Prop::WoodenStool,
-        Vec3::new(ctx.l.infirmary_x_center() + 0.2, 0.0, ctx.l.tj2_center()),
     );
 
     // Paper trash cluster in the corner.

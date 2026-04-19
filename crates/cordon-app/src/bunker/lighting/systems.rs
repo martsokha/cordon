@@ -26,7 +26,7 @@ pub fn spawn_lighting(
         // Command post -- ceiling lamp pulled 1m back from the desk
         // so it illuminates the room, not just the table surface.
         LightFixtureBundle::ceiling(0.0, l.desk_z() - 1.0, l.h, 120000.0, warm, true),
-        LightFixtureBundle::desk(Vec3::new(0.4, 0.95, l.desk_z() - 0.15), 8000.0, warm),
+        LightFixtureBundle::desk(Vec3::new(0.4, 0.95, l.desk_z() + 0.175), 8000.0, warm),
         LightFixtureBundle::screen(Vec3::new(0.0, 1.1, l.desk_z()), 6000.0, screen_green),
         // Entry
         LightFixtureBundle::ceiling(0.0, l.trade_z + 1.5, l.h, 50000.0, hall_warm, false).wide(),

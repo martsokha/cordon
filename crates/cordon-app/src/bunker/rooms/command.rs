@@ -77,7 +77,7 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         MeshMaterial3d(button_mat),
         // Centre sits half the cylinder height above the desk
         // surface so it rests flush instead of hovering.
-        Transform::from_xyz(0.35, TABLE_TOP + BUTTON_HEIGHT / 2.0, ctx.l.desk_z()),
+        Transform::from_xyz(0.375, TABLE_TOP + BUTTON_HEIGHT / 2.0, ctx.l.desk_z() - 0.25),
     ));
     // Bin between the table legs.
     ctx.prop_scaled(
@@ -119,7 +119,6 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
             Quat::from_rotation_y(FRAC_PI_2),
         );
     }
-
     // Rug in front of the desk.
     ctx.prop(Prop::Rug, Vec3::new(0.0, 0.0, ctx.l.desk_z() - 0.3));
 }

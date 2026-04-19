@@ -75,17 +75,28 @@ impl Plugin for UiPlugin {
 
 fn sync_chrome_visibility(
     state: Res<State<PlayingState>>,
-    mut chrome_q: Query<&mut Visibility, With<LaptopChromeUi>>,
+    active_tab: Res<LaptopTab>,
+    mut chrome_q: Query<
+        (&mut Visibility, Has<map::MapOnlyUi>),
+        With<LaptopChromeUi>,
+    >,
 ) {
     if !state.is_changed() {
         return;
     }
-    let target = if matches!(state.get(), PlayingState::Laptop) {
-        Visibility::Inherited
-    } else {
-        Visibility::Hidden
-    };
-    for mut vis in &mut chrome_q {
+    let in_laptop = matches!(state.get(), PlayingState::Laptop);
+    let on_map_tab = *active_tab == LaptopTab::Map;
+    for (mut vis, is_map_only) in &mut chrome_q {
+        // Chrome that's also `MapOnlyUi` (squad roster,
+        // tooltip, zoom label, crosshair) stays hidden when
+        // the player re-enters laptop on a non-Map tab — the
+        // tab-switch system owns those and would otherwise
+        // fight this one.
+        let target = if in_laptop && (!is_map_only || on_map_tab) {
+            Visibility::Inherited
+        } else {
+            Visibility::Hidden
+        };
         if *vis != target {
             *vis = target;
         }

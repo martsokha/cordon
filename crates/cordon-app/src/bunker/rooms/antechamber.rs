@@ -110,6 +110,12 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
         Quat::IDENTITY,
         DOOR_SCALE,
     );
+    // Flag hanging above the back door.
+    ctx.prop_rot(
+        Prop::Flag1,
+        local_to_world(Vec3::new(0.0, 2.05, -hd + 0.05)),
+        Quat::IDENTITY,
+    );
     spawn_front_door(ctx, center, hd, h);
     spawn_lamp(ctx, center, h);
     spawn_furniture(ctx, hw, hd);
