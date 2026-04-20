@@ -46,16 +46,37 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
 
     // Kitchen shelves as counter surface. Top at y = 0.865.
     const SHELF_SURFACE: f32 = 0.865;
+    // Two big shelf units running along the west wall where the
+    // small + big used to sit — gives a continuous counter run.
     ctx.prop_rot(
-        Prop::KitchenShelves1,
-        Vec3::new(ctx.l.kitchen_x_min() + 0.3, 0.0, ctx.l.tj1_center() - 0.3),
+        Prop::KitchenShelves2,
+        Vec3::new(ctx.l.kitchen_x_min() + 0.3, 0.0, ctx.l.tj1_center() - 0.1),
         Quat::from_rotation_y(FRAC_PI_2),
     );
     ctx.prop_rot(
         Prop::KitchenShelves2,
-        Vec3::new(ctx.l.kitchen_x_min() + 0.3, 0.0, ctx.l.tj1_center() + 0.7),
+        Vec3::new(ctx.l.kitchen_x_min() + 0.3, 0.0, ctx.l.tj1_center() + 0.9),
         Quat::from_rotation_y(FRAC_PI_2),
     );
+    // Small shelf relocated near the doorway (north wall, east of
+    // center). Rotated PI so its face points south into the room.
+    ctx.prop_rot(
+        Prop::KitchenShelves1,
+        Vec3::new(ctx.l.kitchen_x_center() + 0.2, 0.0, ctx.l.tj1_north - 0.22),
+        Quat::from_rotation_y(PI),
+    );
+
+    // Wooden chair pulled up to the small shelf as an eating spot.
+    ctx.prop(
+        Prop::WoodenChair,
+        Vec3::new(ctx.l.kitchen_x_center() + 0.2, 0.0, ctx.l.tj1_north - 0.85),
+    );
+
+    // `lowpoly/` props (Bottles, Cups, …) are authored with a
+    // 0.1875 baked-in base offset above their transform origin,
+    // unlike `interior/` props which sit flush at y=0. Subtract
+    // the offset when placing them on a shelf surface.
+    const LOWPOLY_SHELF_SURFACE: f32 = SHELF_SURFACE - 0.1875;
 
     // Items on the shelves.
     ctx.prop_rot(
@@ -125,6 +146,27 @@ pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
             ctx.l.tj1_center() + 0.5,
         ),
         Quat::from_rotation_y(FRAC_PI_2),
+    );
+
+    // Bottle cluster on the south shelf, south of the microwave.
+    ctx.prop_rot(
+        Prop::Bottles01,
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            LOWPOLY_SHELF_SURFACE,
+            ctx.l.tj1_center() - 0.55,
+        ),
+        Quat::from_rotation_y(0.4),
+    );
+    // Cups next to the kettle.
+    ctx.prop_rot(
+        Prop::Cups01,
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            LOWPOLY_SHELF_SURFACE,
+            ctx.l.tj1_center() + 0.9,
+        ),
+        Quat::from_rotation_y(-0.3),
     );
 
     // Near the doorway.
