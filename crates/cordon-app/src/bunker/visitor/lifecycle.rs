@@ -277,10 +277,7 @@ pub(super) fn dismiss_on_dialogue_complete(
 /// visitor sprite so the player can press E to resume dialogue.
 /// When leaving `Waiting`, strip the component. Change-gated so
 /// it's free at steady state.
-pub(super) fn update_waiting_interactable(
-    mut commands: Commands,
-    state: Res<VisitorState>,
-) {
+pub(super) fn update_waiting_interactable(mut commands: Commands, state: Res<VisitorState>) {
     if !state.is_changed() {
         return;
     }

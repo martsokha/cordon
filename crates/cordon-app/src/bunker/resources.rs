@@ -50,7 +50,9 @@ pub enum CameraMode {
     /// No saved transform: dialogue-end transitions leave the
     /// camera where it is rather than snapping back to the
     /// admit-time pose.
-    LookingAt { target: Vec3 },
+    LookingAt {
+        target: Vec3,
+    },
     /// Player is studying the CCTV feed in fullscreen. The CCTV
     /// camera takes over the window and the FPS camera goes
     /// inactive until the player presses E or Esc.

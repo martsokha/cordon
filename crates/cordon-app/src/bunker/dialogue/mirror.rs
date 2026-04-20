@@ -151,7 +151,9 @@ pub(super) fn push_snapshot(
         }
     }
     if let Some(carried) = &carrying.0 {
-        *extra_counts.entry(carried.instance.def_id.clone()).or_default() += carried.instance.count;
+        *extra_counts
+            .entry(carried.instance.def_id.clone())
+            .or_default() += carried.instance.count;
     }
 
     // Blanket mirror of every known item into `$<item_id>`.

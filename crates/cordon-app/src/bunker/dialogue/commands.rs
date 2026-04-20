@@ -70,11 +70,7 @@ pub(super) fn register(app: &mut App) {
 /// The yarn caller passes the id it *expects* to be carried, so
 /// a mis-gated option (e.g. author forgot the `<<if>>` check)
 /// fails loudly instead of silently consuming the wrong item.
-fn give_item(
-    In(expected_id): In<String>,
-    mut commands: Commands,
-    mut carrying: ResMut<Carrying>,
-) {
+fn give_item(In(expected_id): In<String>, mut commands: Commands, mut carrying: ResMut<Carrying>) {
     let Some(carried) = carrying.0.as_ref() else {
         warn!(
             "give_item `{expected_id}`: nothing carried; yarn should gate \
@@ -157,4 +153,3 @@ fn step_away(In(resume_node): In<String>, mut commands: Commands) {
     info!("visitor step-away requested (resume `{resume_node}`)");
     commands.insert_resource(PendingStepAway { resume_node });
 }
-
