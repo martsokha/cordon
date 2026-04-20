@@ -101,10 +101,7 @@ pub(super) fn on_radio_broadcast(
     mut broadcasts: MessageReader<RadioBroadcast>,
     mut queue: ResMut<ToastQueue>,
 ) {
-    let mut intel_count = 0usize;
-    for msg in broadcasts.read() {
-        intel_count += msg.intel.len();
-    }
+    let intel_count = broadcasts.read().filter(|msg| msg.intel.is_some()).count();
     if intel_count == 0 {
         return;
     }

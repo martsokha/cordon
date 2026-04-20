@@ -76,6 +76,14 @@ Menus that the player visits repeatedly (e.g. a trade menu with a step-away opti
 
 This gives the NPC something fresh to say every time the player returns, without requiring an extra Continue click.
 
+## Radio broadcasts
+
+Each event's `radio.yarn_node` names a yarn node that plays as dialogue when the player tunes in to hear the broadcast. Convention: one yarn file per broadcast, named `broadcast_<event_suffix>.yarn`, with the node inside also named `broadcast_<event_suffix>`. The speaker is typically `Radio`.
+
+Broadcasts arrive into a queue on the radio prop. Intel attached to the broadcast is granted only when the yarn dialogue completes — hearing the toast or seeing the chatter sting isn't enough. Missable broadcasts expire at end of the day they arrived on; non-missable broadcasts wait forever until listened to.
+
+The player can't trigger a broadcast dialogue while a visitor dialogue is active. Queued broadcasts play back-to-back, oldest first, when the conditions are met (radio on, dialog panel idle).
+
 ## Step-away targets
 
 A node referenced by `<<step_away "node_name">>` is re-entered from scratch when the visitor returns. The UI clears any prior text on that re-entry, so the step-away target **must** begin with a line (usually `#autocontinue`-tagged) — otherwise the player sees options with no prompt.

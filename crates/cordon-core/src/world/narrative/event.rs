@@ -32,15 +32,28 @@ pub struct RadioEntry {
     /// Zero means the broadcast fires immediately.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub delay_minutes: u32,
-    /// When true (default), the broadcast fires once — if the
-    /// radio is off at that moment, the player misses it. When
-    /// false, the broadcast stays queued until the radio is on
-    /// or the day ends.
+    /// When true (default), the broadcast expires at end of day if
+    /// the player hasn't listened to it yet. When false, the
+    /// broadcast stays in the radio queue indefinitely until the
+    /// player tunes in.
+    ///
+    /// Broadcasts deliver into a queue on the radio prop, not
+    /// directly into the player's ears — intel grants fire only
+    /// when the player turns the radio on and the dialogue plays
+    /// through. `missable` only changes how long the queued item
+    /// waits before being dropped.
     #[serde(default = "default_true")]
     pub missable: bool,
-    /// Intel entries this broadcast unlocks for the player.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub grants_intel: Vec<Id<Intel>>,
+    /// Yarn node that runs when the player listens to this
+    /// broadcast. The node's lines are what the player reads; intel
+    /// grants on the yarn node completing (not on queue delivery).
+    /// Required — every broadcast must have authored content.
+    pub yarn_node: String,
+    /// Intel entry this broadcast unlocks for the player. Granted
+    /// when the yarn node completes, not when the broadcast queues.
+    /// `None` for flavor-only broadcasts (no new intel attached).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grants_intel: Option<Id<Intel>>,
     /// When true, this broadcast is encrypted traffic: it only
     /// reaches the player if an installed upgrade grants
     /// [`UpgradeEffect::ListeningDevice`](crate::entity::bunker::UpgradeEffect::ListeningDevice).

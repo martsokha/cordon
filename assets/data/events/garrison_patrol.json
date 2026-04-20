@@ -13,9 +13,8 @@
   "chain_events": [],
   "radio": {
     "delay_minutes": 0,
-    "grants_intel": [
-      "intel_garrison_patrol_route"
-    ],
+    "yarn_node": "broadcast_garrison_patrol",
+    "grants_intel": "intel_garrison_patrol_route",
     "missable": false
   }
 }

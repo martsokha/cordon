@@ -1,14 +1,14 @@
 //! Radio broadcast delivery.
 //!
 //! Each frame, checks active events for radio entries whose delay
-//! has elapsed. Grants intel on the first attempt regardless of
-//! whether the player hears the broadcast. Emits a
-//! [`RadioBroadcast`] message for the audio/UI layer.
+//! has elapsed. Emits a [`RadioBroadcast`] message for the
+//! audio/UI layer — the app-side radio module queues the broadcast
+//! for later playback and grants intel only when the player
+//! actually listens to it.
 //!
-//! Missable broadcasts (`missable: true`, the default) fire once
-//! and are marked delivered immediately. Non-missable broadcasts
-//! keep emitting every frame until the audio layer confirms
-//! receipt, or the event expires.
+//! Missable broadcasts (`missable: true`, the default) still emit
+//! once; non-missable retry every frame until the app confirms
+//! receipt via [`BroadcastHeard`].
 
 use bevy::prelude::*;
 use cordon_core::entity::bunker::UpgradeEffect;
@@ -16,18 +16,29 @@ use cordon_core::primitive::Id;
 use cordon_core::world::narrative::{Event, Intel};
 use cordon_data::gamedata::GameDataResource;
 
-use crate::resources::{EventLog, GameClock, PlayerIntel, PlayerUpgrades};
+use crate::resources::{EventLog, GameClock, PlayerUpgrades};
 
 /// Message emitted when a radio broadcast is due. The bunker
-/// radio module consumes this to play audio. For non-missable
-/// broadcasts, this fires every frame until [`BroadcastHeard`]
-/// is written back.
+/// radio module consumes this to append to its queue and surface
+/// a toast. For non-missable broadcasts, this fires every frame
+/// until [`BroadcastHeard`] is written back.
 #[derive(Message, Debug, Clone)]
 pub struct RadioBroadcast {
     /// The event that triggered this broadcast.
     pub event: Id<Event>,
-    /// Intel entries granted by this broadcast.
-    pub intel: Vec<Id<Intel>>,
+    /// Intel entry this broadcast will grant when the player
+    /// actually listens to it (yarn dialogue completes). Intel
+    /// grant is deferred — the app-side radio module holds this
+    /// value and applies it on dialog completion. `None` for
+    /// flavor-only broadcasts.
+    pub intel: Option<Id<Intel>>,
+    /// Yarn node the app-side radio module plays when the player
+    /// tunes in to this broadcast.
+    pub yarn_node: String,
+    /// Whether the broadcast expires at end of day if still
+    /// unlistened. Propagated so the app-side queue can drop stale
+    /// missable entries at day rollover.
+    pub missable: bool,
 }
 
 /// Written by the bunker radio module when it actually plays a
@@ -49,9 +60,9 @@ pub struct DeliveredBroadcasts {
 struct BroadcastState {
     def_id: Id<Event>,
     day_started: u32,
-    /// Intel has been granted (happens once, regardless of audio).
-    intel_granted: bool,
-    /// Audio has been delivered (or was missable and skipped).
+    /// Whether the broadcast has been emitted to the app layer.
+    /// Missable broadcasts set this on first emit; non-missable
+    /// wait for a [`BroadcastHeard`] reply.
     delivered: bool,
 }
 
@@ -73,7 +84,6 @@ impl DeliveredBroadcasts {
             self.entries.push(BroadcastState {
                 def_id: def_id.clone(),
                 day_started,
-                intel_granted: false,
                 delivered: false,
             });
         }
@@ -96,7 +106,6 @@ pub fn deliver_radio_broadcasts(
     events: Res<EventLog>,
     data: Res<GameDataResource>,
     upgrades: Res<PlayerUpgrades>,
-    mut intel: ResMut<PlayerIntel>,
     mut delivered: ResMut<DeliveredBroadcasts>,
     mut broadcast_tx: MessageWriter<RadioBroadcast>,
 ) {
@@ -136,31 +145,20 @@ pub fn deliver_radio_broadcasts(
             continue;
         }
 
-        // Grant intel once, regardless of whether audio plays.
-        // Only the first emission carries the intel list; retries
-        // for non-missable broadcasts emit an empty list so UI
-        // listeners (toasts) don't re-announce the same intel.
-        let first_emission = !state.intel_granted;
-        if first_emission {
-            for intel_id in &radio.grants_intel {
-                intel.grant(intel_id.clone(), now.day);
-            }
-            state.intel_granted = true;
-        }
-
-        // Missable: mark delivered immediately even if radio is off.
-        // Non-missable: keep emitting until BroadcastHeard arrives.
+        // Missable: mark delivered immediately (one-shot). Non-
+        // missable keeps emitting every frame until the app writes
+        // BroadcastHeard back. Intel grant is deferred to the app
+        // layer — it fires only when the player's listening-side
+        // yarn dialogue completes.
         if radio.missable {
             state.delivered = true;
         }
 
         broadcast_tx.write(RadioBroadcast {
             event: active.def_id.clone(),
-            intel: if first_emission {
-                radio.grants_intel.clone()
-            } else {
-                Vec::new()
-            },
+            intel: radio.grants_intel.clone(),
+            yarn_node: radio.yarn_node.clone(),
+            missable: radio.missable,
         });
     }
 }

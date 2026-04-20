@@ -18,9 +18,8 @@
   "chain_events": [],
   "radio": {
     "delay_minutes": 0,
-    "grants_intel": [
-      "intel_supply_shortage"
-    ],
+    "yarn_node": "broadcast_supply_shortage",
+    "grants_intel": "intel_supply_shortage",
     "missable": false
   }
 }

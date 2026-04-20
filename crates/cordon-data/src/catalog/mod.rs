@@ -319,8 +319,14 @@ impl GameData {
                 self.check_consequence(consequence, &referrer);
             }
             if let Some(radio) = &def.radio {
-                for intel_id in &radio.grants_intel {
+                if let Some(intel_id) = &radio.grants_intel {
                     self.check_intel(intel_id, &referrer, "radio.grants_intel");
+                }
+                if radio.yarn_node.is_empty() {
+                    warn!(
+                        "{referrer}: radio.yarn_node is empty — every broadcast \
+                         must name a yarn node that runs when the player listens"
+                    );
                 }
             }
         }

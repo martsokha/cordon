@@ -1,7 +1,6 @@
 use bevy::audio::Volume;
 use bevy::prelude::*;
-use cordon_sim::day::radio::{BroadcastHeard, RadioBroadcast};
-use cordon_sim::resources::GameClock;
+use cordon_sim::day::radio::RadioBroadcast;
 
 use crate::bunker::interaction::{Interact, Interactable};
 use crate::bunker::resources::RadioPlacement;
@@ -20,11 +19,17 @@ pub(super) struct RadioSfx {
 
 /// Marker on the radio entity.
 #[derive(Component)]
-pub(super) struct RadioMarker;
+pub(crate) struct RadioMarker;
 
 /// Whether the radio is currently on.
 #[derive(Component)]
-pub(super) struct RadioOn(bool);
+pub(crate) struct RadioOn(bool);
+
+impl RadioOn {
+    pub(crate) fn is_on(&self) -> bool {
+        self.0
+    }
+}
 
 /// Marker on any audio entity owned by the radio. All of these
 /// are killed on toggle-off so nothing keeps playing.
@@ -140,16 +145,17 @@ fn spawn_oneshot(
     }
 }
 
-/// Play chatter when a radio broadcast fires and the radio is on.
-/// Writes [`BroadcastHeard`] back so non-missable broadcasts stop
-/// re-emitting.
+/// Play a short chatter sting whenever a broadcast arrives and the
+/// radio is on. Audio feedback that "something new is queued";
+/// the actual broadcast content plays through the dialogue UI when
+/// the player tunes in.
+///
+/// [`BroadcastHeard`] is written by the queue module, not here.
 pub(super) fn play_broadcast(
     mut commands: Commands,
     sfx: Res<RadioSfx>,
-    clock: Res<GameClock>,
     radio_q: Query<(&RadioOn, &GlobalTransform), With<RadioMarker>>,
     mut broadcasts: MessageReader<RadioBroadcast>,
-    mut heard_tx: MessageWriter<BroadcastHeard>,
 ) {
     let Ok((on, transform)) = radio_q.single() else {
         broadcasts.read().for_each(drop);
@@ -157,14 +163,10 @@ pub(super) fn play_broadcast(
     };
 
     let mut played = false;
-    for msg in broadcasts.read() {
+    for _msg in broadcasts.read() {
         if !on.0 {
             continue;
         }
-        heard_tx.write(BroadcastHeard {
-            event: msg.event.clone(),
-            day_started: clock.0.day.value(),
-        });
         played = true;
     }
 

@@ -18,9 +18,8 @@
   "chain_events": [],
   "radio": {
     "delay_minutes": 0,
-    "grants_intel": [
-      "intel_faction_war_brewing"
-    ],
+    "yarn_node": "broadcast_faction_war",
+    "grants_intel": "intel_faction_war_brewing",
     "missable": false
   }
 }

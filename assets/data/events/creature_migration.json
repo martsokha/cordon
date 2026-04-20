@@ -11,9 +11,8 @@
   "chain_events": [],
   "radio": {
     "delay_minutes": 0,
-    "grants_intel": [
-      "intel_creature_migration"
-    ],
+    "yarn_node": "broadcast_creature_migration",
+    "grants_intel": "intel_creature_migration",
     "missable": false
   }
 }

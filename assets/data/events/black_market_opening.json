@@ -13,9 +13,8 @@
   "chain_events": [],
   "radio": {
     "delay_minutes": 0,
-    "grants_intel": [
-      "intel_black_market_deal"
-    ],
+    "yarn_node": "broadcast_black_market_opening",
+    "grants_intel": "intel_black_market_deal",
     "missable": false
   }
 }

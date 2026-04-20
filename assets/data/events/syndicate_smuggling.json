@@ -13,9 +13,8 @@
   "chain_events": [],
   "radio": {
     "delay_minutes": 0,
-    "grants_intel": [
-      "intel_syndicate_smuggling_op"
-    ],
+    "yarn_node": "broadcast_syndicate_smuggling",
+    "grants_intel": "intel_syndicate_smuggling_op",
     "missable": false
   }
 }

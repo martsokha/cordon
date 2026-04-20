@@ -18,9 +18,8 @@
   "chain_events": [],
   "radio": {
     "delay_minutes": 0,
-    "grants_intel": [
-      "intel_anomaly_surge_detected"
-    ],
+    "yarn_node": "broadcast_anomaly_surge",
+    "grants_intel": "intel_anomaly_surge_detected",
     "missable": false
   }
 }
