@@ -21,12 +21,13 @@
 //!
 //! Variable naming convention:
 //!
-//! | yarn var       | source                                             |
-//! |----------------|----------------------------------------------------|
-//! | `$carrying`    | item id in hand, `""` if empty                      |
-//! | `$credits`     | player credits (number)                             |
-//! | `$debt`        | outstanding debt (number)                           |
-//! | `$<item_id>`   | total count across racks + pending stash + in-hand  |
+//! | yarn var         | source                                             |
+//! |------------------|----------------------------------------------------|
+//! | `$carrying`      | item id in hand, `""` if empty                     |
+//! | `$credits`       | player credits (number)                            |
+//! | `$debt`          | outstanding debt (number)                          |
+//! | `$<item_id>`     | total count across racks + pending stash + in-hand |
+//! | `$<decision_id>` | recorded value for the decision, `""` if unset     |
 //!
 //! Per-item counts flatten directly onto the yarn var namespace
 //! because item ids already carry an `item_` prefix (see
@@ -55,7 +56,7 @@ use bevy_yarnspinner::prelude::{DialogueRunner, YarnValue};
 use cordon_core::item::{Item, StashScope};
 use cordon_core::primitive::Id;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::resources::{PlayerIdentity, PlayerStash};
+use cordon_sim::resources::{PlayerDecisions, PlayerIdentity, PlayerStash};
 
 use super::systems::DialogueRunnerMarker;
 use crate::bunker::rack::Carrying;
@@ -87,16 +88,21 @@ pub(super) fn mirror_on_change(
     carrying: Option<Res<Carrying>>,
     stash: Option<Res<PlayerStash>>,
     identity: Option<Res<PlayerIdentity>>,
+    decisions: Option<Res<PlayerDecisions>>,
     game_data: Option<Res<GameDataResource>>,
     rack_slots: Query<&RackSlot>,
     mut runner_q: Query<&mut DialogueRunner, With<DialogueRunnerMarker>>,
 ) {
-    let (Some(carrying), Some(stash), Some(identity), Some(game_data)) =
-        (carrying, stash, identity, game_data)
+    let (Some(carrying), Some(stash), Some(identity), Some(decisions), Some(game_data)) =
+        (carrying, stash, identity, decisions, game_data)
     else {
         return;
     };
-    if !carrying.is_changed() && !stash.is_changed() && !identity.is_changed() {
+    if !carrying.is_changed()
+        && !stash.is_changed()
+        && !identity.is_changed()
+        && !decisions.is_changed()
+    {
         return;
     }
     let Ok(mut runner) = runner_q.single_mut() else {
@@ -107,6 +113,7 @@ pub(super) fn mirror_on_change(
         &carrying,
         &stash,
         &identity,
+        &decisions,
         &game_data,
         &rack_slots,
     );
@@ -121,6 +128,7 @@ pub(super) fn push_snapshot(
     carrying: &Carrying,
     stash: &PlayerStash,
     identity: &PlayerIdentity,
+    decisions: &PlayerDecisions,
     game_data: &GameDataResource,
     rack_slots: &Query<&RackSlot>,
 ) {
@@ -166,5 +174,15 @@ pub(super) fn push_snapshot(
         let total = stash_count + rack_count;
         let name = format!("${}", item_id.as_str());
         let _ = storage.set(name, YarnValue::Number(total as f32));
+    }
+
+    // Blanket mirror of every known decision into `$<decision_id>`.
+    // Unset decisions read as the empty string — yarn authors gate
+    // on `<<if $decision_garrison_support == "accept">>` without
+    // worrying about the "undefined" case.
+    for decision_id in game_data.0.decisions.keys() {
+        let value = decisions.get(decision_id).unwrap_or("").to_string();
+        let name = format!("${}", decision_id.as_str());
+        let _ = storage.set(name, YarnValue::String(value));
     }
 }

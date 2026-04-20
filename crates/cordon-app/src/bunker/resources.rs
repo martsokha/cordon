@@ -323,6 +323,19 @@ pub enum CurrentDialogue {
     Line {
         speaker: Option<String>,
         text: String,
+        /// Yarn `#transient` tag. Transient lines are response beats
+        /// (e.g. "Appreciate it.") that shouldn't linger as a prompt
+        /// above the next options block — the UI clears their text
+        /// on the Line→Options transition. Untagged lines persist so
+        /// they can serve as the prompt header for the choices.
+        transient: bool,
+        /// Yarn `#autocontinue` tag. Autocontinue lines are prompt
+        /// headers for an options block that follows in the same
+        /// node — the runner advances past them immediately, and the
+        /// UI captures the text for the upcoming Options render
+        /// without spawning a Continue button (which would flash for
+        /// one frame before the options arrive).
+        autocontinue: bool,
     },
     /// A set of options is presented. The UI should render the lines
     /// as buttons; selecting one emits [`DialogueChoice::Option`].

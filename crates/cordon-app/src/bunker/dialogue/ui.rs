@@ -187,6 +187,7 @@ fn sync_dialogue_ui(
     mut text_q: Query<&mut Text, (With<DialogueText>, Without<DialogueSpeaker>)>,
     row_q: Query<(Entity, Option<&Children>), With<DialogueChoicesRow>>,
     asset_server: Res<AssetServer>,
+    mut prev_line_persists: Local<bool>,
 ) {
     if !current.is_changed() {
         return;
@@ -205,6 +206,26 @@ fn sync_dialogue_ui(
         return;
     };
 
+    let font: Handle<Font> = asset_server.load("fonts/PTMono-Regular.ttf");
+
+    // Autocontinue lines don't render as a Line state — they only
+    // update the text/speaker (which then persists as the prompt
+    // header when the following Options arrive next frame). Skip the
+    // despawn/respawn so we don't flash an empty-row frame, and
+    // don't touch panel visibility so Idle→Options stays clean.
+    if let CurrentDialogue::Line {
+        speaker: spk,
+        text: line,
+        transient,
+        autocontinue: true,
+    } = &*current
+    {
+        speaker.0 = spk.clone().unwrap_or_default();
+        text.0 = line.clone();
+        *prev_line_persists = !*transient;
+        return;
+    }
+
     // Despawn any existing choice buttons before rebuilding.
     if let Some(children) = row_children {
         for child in children.iter() {
@@ -212,19 +233,24 @@ fn sync_dialogue_ui(
         }
     }
 
-    let font: Handle<Font> = asset_server.load("fonts/PTMono-Regular.ttf");
-
     match &*current {
         CurrentDialogue::Idle => {
             *panel_vis = Visibility::Hidden;
+            *prev_line_persists = false;
         }
         CurrentDialogue::Line {
             speaker: spk,
             text: line,
+            transient,
+            autocontinue: false,
         } => {
             *panel_vis = Visibility::Visible;
             speaker.0 = spk.clone().unwrap_or_default();
             text.0 = line.clone();
+            // Non-transient lines stay visible above the next options
+            // block as a prompt header; transient (response) lines
+            // get cleared on the Line→Options transition.
+            *prev_line_persists = !*transient;
             // One "Continue" button. Slot "1" so the 1-key works.
             spawn_choice_button(
                 &mut commands,
@@ -237,17 +263,22 @@ fn sync_dialogue_ui(
                 },
             );
         }
+        CurrentDialogue::Line {
+            autocontinue: true, ..
+        } => unreachable!("handled above"),
         CurrentDialogue::Options { lines } => {
             *panel_vis = Visibility::Visible;
-            // Clear the previous line's text so an orphan line
-            // from a just-completed branch (e.g. "Appreciate
-            // it.") doesn't linger over the fresh option list.
-            // Yarn authors who want a prompt header for an
-            // options block should author it as its own line
-            // (user clicks Continue, then the options fire) —
-            // rather than relying on a stale preceding line.
-            speaker.0 = String::new();
-            text.0 = String::new();
+            // Preserve the preceding line's text only when options
+            // follow a line in the same conversation — so the NPC's
+            // last utterance reads as a prompt above the choices.
+            // On a fresh conversation entering straight into options
+            // (e.g. step-away resume into `sergeant_trade_menu`),
+            // the last line was said in the *previous* session and
+            // would misread as current; clear it instead.
+            if !*prev_line_persists {
+                text.0 = String::new();
+            }
+            *prev_line_persists = false;
             //
             // Options tagged `#hide` by the yarn author are skipped
             // when they'd be greyed out — used to replace "I've got

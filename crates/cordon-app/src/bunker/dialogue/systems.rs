@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_yarnspinner::events::{DialogueCompleted, PresentLine, PresentOptions};
 use bevy_yarnspinner::prelude::*;
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::resources::{PlayerIdentity, PlayerStash};
+use cordon_sim::resources::{PlayerDecisions, PlayerIdentity, PlayerStash};
 
 use super::mirror;
 use super::registry::YarnCommandRegistry;
@@ -33,10 +33,33 @@ pub(super) fn spawn_dialogue_runner(
     commands.spawn((DialogueRunnerMarker, runner));
 }
 
-pub(super) fn on_present_line(event: On<PresentLine>, mut current: ResMut<CurrentDialogue>) {
+pub(super) fn on_present_line(
+    event: On<PresentLine>,
+    mut current: ResMut<CurrentDialogue>,
+    mut choices: MessageWriter<DialogueChoice>,
+) {
     let speaker = event.line.character_name().map(|s: &str| s.to_string());
     let text = event.line.text_without_character_name();
-    *current = CurrentDialogue::Line { speaker, text };
+    // `#transient` marks response beats that shouldn't persist as a
+    // prompt header above the next options block. See `CurrentDialogue::Line`.
+    let transient = event.line.metadata.iter().any(|m| m == "transient");
+    // `#autocontinue` is yarn-author's way of saying "this line is a
+    // prompt header for the options that follow — don't make the
+    // player click Continue to get past it." We still publish the
+    // line into `CurrentDialogue` so the UI captures the text (which
+    // then persists across the Line→Options transition as the prompt
+    // above the choices), but we immediately queue a Continue choice
+    // so the runner advances to the options next frame.
+    let autocontinue = event.line.metadata.iter().any(|m| m == "autocontinue");
+    *current = CurrentDialogue::Line {
+        speaker,
+        text,
+        transient,
+        autocontinue,
+    };
+    if autocontinue {
+        choices.write(DialogueChoice::Continue);
+    }
 }
 
 pub(super) fn on_present_options(event: On<PresentOptions>, mut current: ResMut<CurrentDialogue>) {
@@ -69,6 +92,7 @@ pub(super) fn apply_start_dialogue(
     carrying: Option<Res<Carrying>>,
     stash: Option<Res<PlayerStash>>,
     identity: Option<Res<PlayerIdentity>>,
+    decisions: Option<Res<PlayerDecisions>>,
     game_data: Option<Res<GameDataResource>>,
     rack_slots: Query<&RackSlot>,
 ) {
@@ -103,14 +127,15 @@ pub(super) fn apply_start_dialogue(
     // runner — yarn with no mirrored vars will just evaluate
     // every `<<if>>` guard as false, which is the right
     // defensive default.
-    if let (Some(carrying), Some(stash), Some(identity), Some(game_data)) =
-        (carrying, stash, identity, game_data)
+    if let (Some(carrying), Some(stash), Some(identity), Some(decisions), Some(game_data)) =
+        (carrying, stash, identity, decisions, game_data)
     {
         mirror::push_snapshot(
             &mut runner,
             &carrying,
             &stash,
             &identity,
+            &decisions,
             &game_data,
             &rack_slots,
         );
