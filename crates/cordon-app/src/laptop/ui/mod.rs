@@ -2,7 +2,6 @@
 
 pub mod intel;
 pub mod map;
-pub mod squad;
 pub mod trade;
 pub mod upgrades;
 
@@ -17,7 +16,6 @@ pub enum LaptopTab {
     #[default]
     Map,
     Trade,
-    Squad,
     Intel,
     Upgrades,
 }
@@ -50,7 +48,6 @@ impl Plugin for UiPlugin {
         app.add_plugins((
             map::MapUiPlugin,
             trade::TradeUiPlugin,
-            squad::SquadUiPlugin,
             intel::IntelUiPlugin,
             upgrades::UpgradesUiPlugin,
         ));
@@ -113,7 +110,6 @@ pub fn spawn_ui(commands: &mut Commands, font: &Handle<Font>, l10n: &L10n, lapto
     spawn_tab_bar(commands, font, laptop_cam);
     map::spawn(commands, font, laptop_cam);
     trade::spawn(commands, font, laptop_cam);
-    squad::spawn(commands, font, laptop_cam);
     intel::spawn(commands, font, l10n, laptop_cam);
     upgrades::spawn(commands, font, laptop_cam);
 }
@@ -187,7 +183,6 @@ fn spawn_tab_bar(commands: &mut Commands, font: &Handle<Font>, laptop_cam: Entit
                 for (tab, label) in [
                     (LaptopTab::Map, "MAP"),
                     (LaptopTab::Trade, "TRADE"),
-                    (LaptopTab::Squad, "SQUAD"),
                     (LaptopTab::Intel, "INTEL"),
                     (LaptopTab::Upgrades, "UPGRADES"),
                 ] {

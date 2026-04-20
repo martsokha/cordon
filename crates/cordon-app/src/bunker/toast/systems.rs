@@ -2,7 +2,7 @@ use bevy::image::TextureAtlasLayout;
 use bevy::prelude::*;
 use cordon_sim::day::payroll::DailyExpensesProcessed;
 use cordon_sim::day::radio::RadioBroadcast;
-use cordon_sim::quest::messages::{QuestFinished, QuestStarted, QuestUpdated, StandingChanged};
+use cordon_sim::quest::messages::{QuestFinished, QuestStarted, QuestUpdated};
 
 use crate::bunker::camera::FpsCamera;
 use crate::locale::L10n;
@@ -18,8 +18,6 @@ const FADE_OUT: f32 = 0.8;
 const TOAST_GAP: f32 = 4.0;
 const MAX_VISIBLE: usize = 5;
 
-const ICON_RELATION_UP: usize = 4;
-const ICON_RELATION_DOWN: usize = 20;
 const ICON_NEW_INTEL: usize = 34;
 const ICON_DAILY_SPENDING: usize = 36;
 const ICON_QUEST: usize = 34;
@@ -127,23 +125,6 @@ pub(super) fn on_daily_expenses(
             ICON_DAILY_SPENDING,
             l10n.get(&format!("toast-daily-expenses?total={total}")),
         );
-    }
-}
-
-pub(super) fn on_standing_change(
-    l10n: L10n,
-    mut changes: MessageReader<StandingChanged>,
-    mut queue: ResMut<ToastQueue>,
-) {
-    for msg in changes.read() {
-        let name = l10n.get(msg.faction.as_str());
-        let delta = msg.delta.value();
-        let (icon, key) = if delta > 0 {
-            (ICON_RELATION_UP, "toast-standing-increased")
-        } else {
-            (ICON_RELATION_DOWN, "toast-standing-decreased")
-        };
-        queue.push(icon, l10n.get(&format!("{key}?faction={name}")));
     }
 }
 

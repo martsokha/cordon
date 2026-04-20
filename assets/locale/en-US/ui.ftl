@@ -43,10 +43,6 @@ interact-rack-place = Place { $item }
 interact-rack-swap = Swap { $carry } with { $slot }
 interact-exit-camera = Exit camera
 
-# Standing-change toasts.
-toast-standing-increased = { $faction }: increased
-toast-standing-decreased = { $faction }: decreased
-
 # Corner toast notifications.
 toast-intel-received = { $count ->
     [one] New intel received
