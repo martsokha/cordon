@@ -2,7 +2,7 @@ use bevy::image::TextureAtlasLayout;
 use bevy::prelude::*;
 use cordon_sim::day::payroll::DailyExpensesProcessed;
 use cordon_sim::day::radio::RadioBroadcast;
-use cordon_sim::quest::messages::{QuestFinished, QuestStarted, QuestUpdated};
+use cordon_sim::quest::messages::{DecisionRecorded, QuestFinished, QuestStarted, QuestUpdated};
 
 use crate::bunker::camera::FpsCamera;
 use crate::locale::L10n;
@@ -125,6 +125,16 @@ pub(super) fn on_daily_expenses(
             ICON_DAILY_SPENDING,
             l10n.get(&format!("toast-daily-expenses?total={total}")),
         );
+    }
+}
+
+pub(super) fn on_decision_recorded(
+    l10n: L10n,
+    mut recorded: MessageReader<DecisionRecorded>,
+    mut queue: ResMut<ToastQueue>,
+) {
+    for _ in recorded.read() {
+        queue.push(ICON_QUEST, l10n.get("toast-decision-recorded"));
     }
 }
 

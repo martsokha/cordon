@@ -5,7 +5,7 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::entity::npc::NpcTemplate;
 use cordon_core::primitive::{Experience, Id, RelationDelta};
 use cordon_core::world::area::Area;
-use cordon_core::world::narrative::{EndingCause, Quest};
+use cordon_core::world::narrative::{Decision, EndingCause, Quest};
 
 /// Start a quest outside the regular trigger flow.
 #[derive(Message, Debug, Clone)]
@@ -69,6 +69,17 @@ pub struct QuestFinished {
 pub struct TalkCompleted {
     pub quest: Id<Quest>,
     pub choice: Option<String>,
+}
+
+/// A player decision was recorded via
+/// [`Consequence::RecordDecision`](cordon_core::world::narrative::Consequence::RecordDecision).
+/// Consumed by the toast layer to surface a "this will have
+/// consequences" beat and by anything else that reacts to the
+/// moment of commitment (not just the resulting value).
+#[derive(Message, Debug, Clone)]
+pub struct DecisionRecorded {
+    pub decision: Id<Decision>,
+    pub value: String,
 }
 
 /// The run is over — transition to the ending slate. Emitted by

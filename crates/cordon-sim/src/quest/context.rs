@@ -14,8 +14,8 @@ use cordon_core::world::narrative::{Consequence, ObjectiveCondition, Quest, Ques
 use cordon_data::gamedata::GameDataResource;
 
 use super::messages::{
-    EndGameRequest, GiveNpcXpRequest, QuestFinished, QuestStarted, QuestUpdated, SpawnNpcRequest,
-    StandingChanged, StartQuestRequest,
+    DecisionRecorded, EndGameRequest, GiveNpcXpRequest, QuestFinished, QuestStarted, QuestUpdated,
+    SpawnNpcRequest, StandingChanged, StartQuestRequest,
 };
 use super::refs::{PlayerRefs, PlayerView, QuestTx, SimRefs, SimView};
 use super::registry::TemplateRegistry;
@@ -46,6 +46,7 @@ pub struct QuestCtx<'w> {
     pub spawn_npc_tx: MessageWriter<'w, SpawnNpcRequest>,
     pub give_npc_xp_tx: MessageWriter<'w, GiveNpcXpRequest>,
     pub standing_changed_tx: MessageWriter<'w, StandingChanged>,
+    pub decision_recorded_tx: MessageWriter<'w, DecisionRecorded>,
     pub quest_started_tx: MessageWriter<'w, QuestStarted>,
     pub quest_updated_tx: MessageWriter<'w, QuestUpdated>,
     pub quest_finished_tx: MessageWriter<'w, QuestFinished>,
@@ -111,6 +112,7 @@ impl QuestCtx<'_> {
             spawn_npc: &mut self.spawn_npc_tx,
             give_npc_xp: &mut self.give_npc_xp_tx,
             standing_changed: &mut self.standing_changed_tx,
+            decision_recorded: &mut self.decision_recorded_tx,
             end_game: &mut self.end_game_tx,
         };
         let mut sim = SimRefs {

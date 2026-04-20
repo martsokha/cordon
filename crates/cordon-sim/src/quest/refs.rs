@@ -23,7 +23,8 @@ use cordon_core::world::narrative::ActiveEvent;
 use cordon_data::catalog::GameData;
 
 use super::messages::{
-    EndGameRequest, GiveNpcXpRequest, SpawnNpcRequest, StandingChanged, StartQuestRequest,
+    DecisionRecorded, EndGameRequest, GiveNpcXpRequest, SpawnNpcRequest, StandingChanged,
+    StartQuestRequest,
 };
 use super::registry::TemplateRegistry;
 use super::state::QuestLog;
@@ -116,5 +117,6 @@ pub struct QuestTx<'a, 'w> {
     pub spawn_npc: &'a mut MessageWriter<'w, SpawnNpcRequest>,
     pub give_npc_xp: &'a mut MessageWriter<'w, GiveNpcXpRequest>,
     pub standing_changed: &'a mut MessageWriter<'w, StandingChanged>,
+    pub decision_recorded: &'a mut MessageWriter<'w, DecisionRecorded>,
     pub end_game: &'a mut MessageWriter<'w, EndGameRequest>,
 }

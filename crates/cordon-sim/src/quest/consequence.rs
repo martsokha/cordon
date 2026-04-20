@@ -12,7 +12,8 @@ use cordon_core::primitive::Id;
 use cordon_core::world::narrative::Consequence;
 
 use super::messages::{
-    EndGameRequest, GiveNpcXpRequest, SpawnNpcRequest, StandingChanged, StartQuestRequest,
+    DecisionRecorded, EndGameRequest, GiveNpcXpRequest, SpawnNpcRequest, StandingChanged,
+    StartQuestRequest,
 };
 use super::refs::{PlayerRefs, QuestTx, SimRefs};
 use crate::day::world_events::{EventOverrides, spawn_event_instance};
@@ -191,6 +192,10 @@ pub fn apply(
         Consequence::RecordDecision { decision, value } => {
             info!("RecordDecision: {} = `{}`", decision.as_str(), value);
             players.decisions.record(decision.clone(), value.clone());
+            tx.decision_recorded.write(DecisionRecorded {
+                decision: decision.clone(),
+                value: value.clone(),
+            });
         }
     }
 }

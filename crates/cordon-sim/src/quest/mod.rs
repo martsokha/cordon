@@ -28,8 +28,8 @@ pub mod travel;
 use bevy::prelude::*;
 
 pub use self::messages::{
-    DismissTemplateNpc, EndGameRequest, GiveNpcXpRequest, QuestFinished, QuestStarted,
-    QuestUpdated, SpawnNpcRequest, StandingChanged, StartQuestRequest, TalkCompleted,
+    DecisionRecorded, DismissTemplateNpc, EndGameRequest, GiveNpcXpRequest, QuestFinished,
+    QuestStarted, QuestUpdated, SpawnNpcRequest, StandingChanged, StartQuestRequest, TalkCompleted,
 };
 pub use self::registry::TemplateRegistry;
 pub use self::state::{ActiveQuest, CompletedQuest, QuestLog};
@@ -49,6 +49,7 @@ impl Plugin for QuestPlugin {
         app.add_message::<SpawnNpcRequest>();
         app.add_message::<GiveNpcXpRequest>();
         app.add_message::<StandingChanged>();
+        app.add_message::<DecisionRecorded>();
         app.add_message::<QuestStarted>();
         app.add_message::<QuestUpdated>();
         app.add_message::<QuestFinished>();

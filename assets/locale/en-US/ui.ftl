@@ -53,3 +53,4 @@ toast-quest-started = New quest: { $name }
 toast-quest-updated = Quest updated: { $name }
 toast-quest-completed = Quest completed: { $name }
 toast-quest-failed = Quest failed: { $name }
+toast-decision-recorded = This will have consequences.
