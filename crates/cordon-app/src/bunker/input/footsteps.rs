@@ -1,4 +1,4 @@
-//! Footstep audio: reacts to [`FootstepScuffed`] events from the
+//! Footstep audio: reacts to [`Footstep`] events from the
 //! controller and plays a surface-appropriate clip.
 //!
 //! Surface is inferred from the world: if the player's feet land
@@ -11,7 +11,7 @@ use bevy_rand::prelude::GlobalRng;
 use derive_more::Display;
 use rand::RngExt;
 
-use super::controller::FootstepScuffed;
+use super::controller::Footstep;
 use crate::PlayingState;
 use crate::bunker::geometry::{Prop, PropPlacement};
 
@@ -54,7 +54,7 @@ fn load(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 fn play(
     mut commands: Commands,
-    mut steps: MessageReader<FootstepScuffed>,
+    mut steps: MessageReader<Footstep>,
     sfx: Res<FootstepSfx>,
     mut rng: Single<&mut WyRand, With<GlobalRng>>,
     rugs: Query<(&PropPlacement, &Transform)>,

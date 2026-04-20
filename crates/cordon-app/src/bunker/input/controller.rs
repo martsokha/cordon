@@ -35,9 +35,9 @@ pub(crate) const PLAYER_HEIGHT: f32 = 1.0;
 
 /// Fired whenever the player walks far enough for a new footstep.
 /// `pos` is the world-space floor position under the camera.
-/// Consumed by the bunker particle system to scuff a dust puff.
+/// Consumed by the footstep audio system.
 #[derive(Message, Debug, Clone, Copy)]
-pub struct FootstepScuffed {
+pub struct Footstep {
     pub pos: Vec3,
 }
 
@@ -55,7 +55,7 @@ pub struct ControllerPlugin;
 
 impl Plugin for ControllerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_message::<FootstepScuffed>();
+        app.add_message::<Footstep>();
         app.add_systems(
             Update,
             (fps_look, fps_move)
@@ -95,7 +95,7 @@ fn fps_move(
     time: Res<Time<Real>>,
     move_and_slide: MoveAndSlide,
     mut camera_q: Query<(Entity, &Collider, &mut Transform, &mut StepTracker), With<FpsCamera>>,
-    mut footsteps: MessageWriter<FootstepScuffed>,
+    mut footsteps: MessageWriter<Footstep>,
 ) {
     let mut input = Vec2::ZERO;
     if keys.pressed(KeyCode::KeyW) {
@@ -155,7 +155,7 @@ fn fps_move(
         if tracker.distance >= STEP_DISTANCE {
             tracker.distance = 0.0;
             let floor_y = transform.translation.y - CAMERA_EYE_Y;
-            footsteps.write(FootstepScuffed {
+            footsteps.write(Footstep {
                 pos: Vec3::new(transform.translation.x, floor_y, transform.translation.z),
             });
         }

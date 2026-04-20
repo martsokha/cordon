@@ -1,8 +1,7 @@
-//! Bunker ambient particles: dust motes, kettle steam, footstep
-//! scuffs, and visitor arrival swirls.
+//! Bunker ambient particles: dust motes, kettle steam, and
+//! visitor arrival swirls.
 
 mod dust;
-mod scuff;
 pub mod steam;
 pub mod swirl;
 
@@ -21,7 +20,6 @@ pub(super) struct EmitterTtl {
 /// Shared [`EffectAsset`] handles for per-event emitters.
 #[derive(Resource, Clone)]
 pub struct EventEffectAssets {
-    pub(super) footstep_scuff: Handle<EffectAsset>,
     pub(super) visitor_swirl: Handle<EffectAsset>,
 }
 
@@ -39,15 +37,13 @@ impl Plugin for BunkerParticlesPlugin {
         );
         app.add_systems(
             Update,
-            (scuff::spawn_footstep_scuffs, despawn_expired_emitters)
-                .run_if(in_state(PlayingState::Bunker)),
+            despawn_expired_emitters.run_if(in_state(PlayingState::Bunker)),
         );
     }
 }
 
 fn init_event_effect_assets(mut commands: Commands, mut effects: ResMut<Assets<EffectAsset>>) {
     commands.insert_resource(EventEffectAssets {
-        footstep_scuff: effects.add(scuff::build_footstep_scuff_effect()),
         visitor_swirl: effects.add(swirl::build_visitor_swirl_effect()),
     });
 }
