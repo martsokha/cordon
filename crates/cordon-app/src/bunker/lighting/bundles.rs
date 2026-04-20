@@ -1,6 +1,20 @@
 use bevy::prelude::*;
 
+use super::flicker::Flickering;
 use crate::bunker::geometry::{Prop, PropPlacement};
+
+/// Derive a stable flicker rng seed from a fixture's light position.
+/// FNV-1a over the bit-patterns of the three coords so tiny position
+/// differences fan out into different schedules.
+fn flicker_seed_from_pos(pos: Vec3) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for coord in [pos.x, pos.y, pos.z] {
+        let bits = coord.to_bits() as u64;
+        hash ^= bits;
+        hash = hash.wrapping_mul(0x100_0000_01b3);
+    }
+    hash
+}
 
 /// Radius of the emissive bulb proxy — a small self-lit sphere
 /// spawned at each fixture's light position. The sphere is what
@@ -221,6 +235,14 @@ impl LightFixtureBundle {
             ));
         }
 
+        // Seed the flicker rng off the fixture's position so every
+        // light gets a different random schedule without a global
+        // counter. Position is stable across runs (level layout is
+        // deterministic) so bursts fire at the same relative times
+        // from session to session.
+        let flicker_seed = flicker_seed_from_pos(self.light_pos);
+        let flickering = Flickering::new(self.intensity, flicker_seed);
+
         match self.kind {
             LightKind::Point => {
                 commands.spawn((
@@ -232,6 +254,7 @@ impl LightFixtureBundle {
                         ..default()
                     },
                     Transform::from_translation(self.light_pos),
+                    flickering,
                 ));
             }
             LightKind::SpotDown => {
@@ -255,6 +278,7 @@ impl LightFixtureBundle {
                         ..default()
                     },
                     Transform::from_translation(self.light_pos).looking_to(Vec3::NEG_Y, Vec3::Z),
+                    flickering,
                 ));
             }
         }

@@ -48,6 +48,7 @@ impl Plugin for BunkerPlugin {
             cctv::CctvPlugin,
             fade::FadePlugin,
             laptop::LaptopPlugin,
+            lighting::FlickerPlugin,
             particles::BunkerParticlesPlugin,
             pills::PillsPlugin,
             radio::RadioPlugin,
