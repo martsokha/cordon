@@ -29,8 +29,8 @@ pub use self::clock::{
     tick_sim_time,
 };
 pub use self::player::{
-    KnownIntel, PlayerIdentity, PlayerIntel, PlayerSquadEntry, PlayerSquadRoster, PlayerStandings,
-    PlayerStash, PlayerUpgrades, assemble_player_state,
+    KnownIntel, PlayerDecisions, PlayerIdentity, PlayerIntel, PlayerSquadEntry, PlayerSquadRoster,
+    PlayerStandings, PlayerStash, PlayerUpgrades, assemble_player_state,
 };
 pub use self::world::{AreaState, AreaStates, EventLog, FactionIndex, FactionSettlements};
 
@@ -100,6 +100,7 @@ pub fn init_world_resources(mut commands: Commands, game_data: Res<GameDataResou
     commands.insert_resource(AreaStates(areas));
     commands.insert_resource(EventLog::default());
     commands.insert_resource(PlayerIntel::default());
+    commands.insert_resource(PlayerDecisions::default());
     commands.insert_resource(crate::bunker::pills::PlayerPills::default());
     commands.insert_resource(TimeAccumulator::default());
     // Quest + day-cycle resources initialised by their own plugins on

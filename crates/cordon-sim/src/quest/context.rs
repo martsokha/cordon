@@ -7,21 +7,24 @@
 
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use bevy_prng::WyRand;
+use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::{GameTime, Id};
-use cordon_core::world::narrative::{ObjectiveCondition, Quest, QuestTriggerDef};
+use cordon_core::world::narrative::{Consequence, ObjectiveCondition, Quest, QuestTriggerDef};
 use cordon_data::gamedata::GameDataResource;
 
-use super::condition;
 use super::messages::{
     EndGameRequest, GiveNpcXpRequest, QuestFinished, QuestStarted, QuestUpdated, SpawnNpcRequest,
     StandingChanged, StartQuestRequest,
 };
+use super::refs::{PlayerRefs, PlayerView, QuestTx, SimRefs, SimView};
 use super::registry::TemplateRegistry;
 use super::state::QuestLog;
+use super::{condition, consequence};
 use crate::bunker::pills::PlayerPills;
 use crate::resources::{
-    EventLog, FactionIndex, GameClock, PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash,
-    PlayerUpgrades,
+    EventLog, FactionIndex, GameClock, PlayerDecisions, PlayerIdentity, PlayerIntel,
+    PlayerStandings, PlayerStash, PlayerUpgrades,
 };
 
 #[derive(SystemParam)]
@@ -34,6 +37,7 @@ pub struct QuestCtx<'w> {
     pub upgrades: ResMut<'w, PlayerUpgrades>,
     pub stash: ResMut<'w, PlayerStash>,
     pub intel: ResMut<'w, PlayerIntel>,
+    pub decisions: ResMut<'w, PlayerDecisions>,
     pub pills: Res<'w, PlayerPills>,
     pub events: ResMut<'w, EventLog>,
     pub factions: Res<'w, FactionIndex>,
@@ -53,28 +57,78 @@ impl QuestCtx<'_> {
         self.clock.0
     }
 
-    /// Evaluate a condition against live world state.
+    /// Evaluate a condition against live world state. Builds
+    /// [`PlayerView`] and [`SimView`] — shared-ref variants so the
+    /// call site remains `&self` and can coexist with other borrows
+    /// of [`QuestCtx`].
     pub fn evaluate(&self, cond: &ObjectiveCondition, stage_started_at: Option<GameTime>) -> bool {
-        condition::evaluate(
-            cond,
-            &self.identity,
-            &self.standings,
-            &self.upgrades,
-            &self.stash,
-            &self.intel,
-            &self.pills,
-            &self.events.0,
-            &self.log,
-            &self.registry,
-            self.now(),
-            stage_started_at,
-        )
+        let players = PlayerView {
+            identity: &self.identity,
+            standings: &self.standings,
+            upgrades: &self.upgrades,
+            stash: &self.stash,
+            intel: &self.intel,
+            decisions: &self.decisions,
+        };
+        let sim = SimView {
+            data: &self.data.0,
+            registry: &self.registry,
+            quests: &self.log,
+            pills: &self.pills,
+            events: &self.events.0,
+            now: self.now(),
+        };
+        condition::evaluate(cond, &players, &sim, stage_started_at)
     }
 
     /// Faction IDs extracted from the faction index. Needed by
     /// the consequence applier for event instancing.
-    pub fn faction_pool(&self) -> Vec<Id<cordon_core::entity::faction::Faction>> {
+    pub fn faction_pool(&self) -> Vec<Id<Faction>> {
         self.factions.0.iter().map(|(id, _)| id.clone()).collect()
+    }
+
+    /// Apply a single consequence to world state. Builds
+    /// [`PlayerRefs`], [`QuestTx`], and [`SimCtx`] so the call site
+    /// is `ctx.apply_consequence(c, &faction_pool, rng)` instead of
+    /// an eighteen-argument free-function invocation.
+    pub fn apply_consequence(
+        &mut self,
+        consequence: &Consequence,
+        faction_pool: &[Id<Faction>],
+        rng: &mut WyRand,
+    ) {
+        let now = self.now();
+        let mut players = PlayerRefs {
+            identity: &mut self.identity,
+            standings: &mut self.standings,
+            upgrades: &mut self.upgrades,
+            stash: &mut self.stash,
+            intel: &mut self.intel,
+            decisions: &mut self.decisions,
+        };
+        let mut tx = QuestTx {
+            start_quest: &mut self.start_quest_tx,
+            spawn_npc: &mut self.spawn_npc_tx,
+            give_npc_xp: &mut self.give_npc_xp_tx,
+            standing_changed: &mut self.standing_changed_tx,
+            end_game: &mut self.end_game_tx,
+        };
+        let mut sim = SimRefs {
+            data: &self.data.0,
+            registry: &self.registry,
+            quests: &self.log,
+            pills: &self.pills,
+            events: &mut self.events.0,
+            now,
+        };
+        consequence::apply(
+            consequence,
+            &mut players,
+            &mut tx,
+            &mut sim,
+            rng,
+            faction_pool,
+        );
     }
 
     /// Start a quest if eligible. Delegates validation to

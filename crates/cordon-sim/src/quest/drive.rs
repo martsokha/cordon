@@ -8,7 +8,6 @@ use cordon_core::entity::faction::Faction;
 use cordon_core::primitive::Id;
 use cordon_core::world::narrative::{Consequence, Quest, QuestStage, QuestStageKind};
 
-use super::consequence;
 use super::context::QuestCtx;
 use super::messages::{QuestFinished, QuestUpdated, TalkCompleted};
 use super::state::CompletedQuest;
@@ -233,25 +232,7 @@ fn complete_quest(
 
     // Phase 2: apply consequences (mutable).
     for c in &to_apply {
-        consequence::apply(
-            c,
-            &mut ctx.identity,
-            &mut ctx.standings,
-            &mut ctx.upgrades,
-            &mut ctx.stash,
-            &mut ctx.intel,
-            &mut ctx.events.0,
-            catalog,
-            &ctx.registry,
-            now,
-            rng,
-            faction_pool,
-            &mut ctx.start_quest_tx,
-            &mut ctx.spawn_npc_tx,
-            &mut ctx.give_npc_xp_tx,
-            &mut ctx.standing_changed_tx,
-            &mut ctx.end_game_tx,
-        );
+        ctx.apply_consequence(c, faction_pool, rng);
     }
 
     ctx.log.active.retain(|a| &a.def_id != def_id);

@@ -7,6 +7,7 @@
 //! ```text
 //! assets/data/
 //!   areas/          → Vec<AreaDef>
+//!   decisions/      → Vec<DecisionDef>
 //!   events/         → Vec<EventDef>
 //!   factions/       → Vec<FactionDef>
 //!   items/          → Vec<ItemDef>
@@ -31,7 +32,7 @@ use cordon_core::item::ItemDef;
 use cordon_core::primitive::Id;
 use cordon_core::world::area::AreaDef;
 use cordon_core::world::loot::LootTables;
-use cordon_core::world::narrative::{EventDef, IntelDef, QuestDef, QuestTriggerDef};
+use cordon_core::world::narrative::{DecisionDef, EventDef, IntelDef, QuestDef, QuestTriggerDef};
 
 use crate::catalog::GameData;
 
@@ -73,6 +74,7 @@ impl AssetLoader for RawJsonLoader {
 struct LoadingFolders {
     areas: Handle<LoadedFolder>,
     archetypes: Handle<LoadedFolder>,
+    decisions: Handle<LoadedFolder>,
     events: Handle<LoadedFolder>,
     factions: Handle<LoadedFolder>,
     intel: Handle<LoadedFolder>,
@@ -88,6 +90,7 @@ impl LoadingFolders {
     fn all_loaded(&self, server: &AssetServer) -> bool {
         server.is_loaded_with_dependencies(&self.areas)
             && server.is_loaded_with_dependencies(&self.archetypes)
+            && server.is_loaded_with_dependencies(&self.decisions)
             && server.is_loaded_with_dependencies(&self.events)
             && server.is_loaded_with_dependencies(&self.factions)
             && server.is_loaded_with_dependencies(&self.intel)
@@ -137,6 +140,7 @@ fn start_loading(mut commands: Commands, server: Res<AssetServer>) {
     commands.insert_resource(LoadingFolders {
         areas: server.load_folder("data/areas"),
         archetypes: server.load_folder("data/archetypes"),
+        decisions: server.load_folder("data/decisions"),
         events: server.load_folder("data/events"),
         factions: server.load_folder("data/factions"),
         intel: server.load_folder("data/intel"),
@@ -166,6 +170,9 @@ fn assemble_game_data<S: FreelyMutableState>(
     let archetypes = parse_folder(&loading.archetypes, &folders, &raw, |d: &ArchetypeDef| {
         d.id.clone()
     });
+    let decisions = parse_folder(&loading.decisions, &folders, &raw, |d: &DecisionDef| {
+        d.id.clone()
+    });
     let events = parse_folder(&loading.events, &folders, &raw, |d: &EventDef| d.id.clone());
     let factions = parse_folder(&loading.factions, &folders, &raw, |d: &FactionDef| {
         d.id.clone()
@@ -187,9 +194,10 @@ fn assemble_game_data<S: FreelyMutableState>(
     });
 
     info!(
-        "Game data loaded: {} areas, {} archetypes, {} events, {} factions, {} intel, {} items, {} namepools, {} npcs, {} quests, {} triggers, {} upgrades",
+        "Game data loaded: {} areas, {} archetypes, {} decisions, {} events, {} factions, {} intel, {} items, {} namepools, {} npcs, {} quests, {} triggers, {} upgrades",
         areas.len(),
         archetypes.len(),
+        decisions.len(),
         events.len(),
         factions.len(),
         intel.len(),
@@ -204,6 +212,7 @@ fn assemble_game_data<S: FreelyMutableState>(
     let catalog = GameData {
         areas,
         archetypes,
+        decisions,
         events,
         factions,
         intel,

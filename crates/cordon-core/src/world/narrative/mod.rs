@@ -13,6 +13,7 @@
 //!   events, day rollovers, or condition state changes.
 
 mod consequence;
+mod decision;
 mod event;
 mod flag;
 mod intel;
@@ -20,6 +21,7 @@ mod quest;
 mod trigger;
 
 pub use self::consequence::{ConditionalConsequence, Consequence, EndingCause, ObjectiveCondition};
+pub use self::decision::{Decision, DecisionDef};
 pub use self::event::{ActiveEvent, Event, EventDef, RadioEntry};
 pub use self::flag::{QuestFlagPredicate, QuestFlagValue};
 pub use self::intel::{Intel, IntelDef};

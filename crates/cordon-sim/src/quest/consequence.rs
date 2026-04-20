@@ -8,43 +8,30 @@ use bevy::prelude::*;
 use bevy_prng::WyRand;
 use cordon_core::entity::faction::Faction;
 use cordon_core::item::ItemInstance;
-use cordon_core::primitive::{GameTime, Id};
-use cordon_core::world::narrative::{ActiveEvent, Consequence};
-use cordon_data::catalog::GameData;
+use cordon_core::primitive::Id;
+use cordon_core::world::narrative::Consequence;
 
 use super::messages::{
     EndGameRequest, GiveNpcXpRequest, SpawnNpcRequest, StandingChanged, StartQuestRequest,
 };
-use super::registry::TemplateRegistry;
+use super::refs::{PlayerRefs, QuestTx, SimRefs};
 use crate::day::world_events::{EventOverrides, spawn_event_instance};
-use crate::resources::{PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades};
 
 /// Apply a single consequence. Warnings rather than panics so
 /// content typos don't crash the sim.
 pub fn apply(
     consequence: &Consequence,
-    identity: &mut PlayerIdentity,
-    standings: &mut PlayerStandings,
-    upgrades: &mut PlayerUpgrades,
-    stash: &mut PlayerStash,
-    intel: &mut PlayerIntel,
-    events: &mut Vec<ActiveEvent>,
-    data: &GameData,
-    registry: &TemplateRegistry,
-    now: GameTime,
+    players: &mut PlayerRefs,
+    tx: &mut QuestTx,
+    sim: &mut SimRefs,
     rng: &mut WyRand,
     faction_pool: &[Id<Faction>],
-    start_quest: &mut MessageWriter<StartQuestRequest>,
-    spawn_npc: &mut MessageWriter<SpawnNpcRequest>,
-    give_npc_xp: &mut MessageWriter<GiveNpcXpRequest>,
-    standing_changed: &mut MessageWriter<StandingChanged>,
-    end_game: &mut MessageWriter<EndGameRequest>,
 ) {
     match consequence {
         Consequence::StandingChange { faction, delta } => {
-            if let Some(standing) = standings.standing_mut(faction) {
+            if let Some(standing) = players.standings.standing_mut(faction) {
                 standing.apply(*delta);
-                standing_changed.write(StandingChanged {
+                tx.standing_changed.write(StandingChanged {
                     faction: faction.clone(),
                     delta: *delta,
                 });
@@ -54,21 +41,21 @@ pub fn apply(
         }
 
         Consequence::GiveCredits(amount) => {
-            identity.credits += *amount;
+            players.identity.credits += *amount;
         }
 
         Consequence::TakeCredits(amount) => {
-            identity.credits -= *amount;
+            players.identity.credits -= *amount;
         }
 
         Consequence::GiveItem(q) => {
-            let Some(def) = data.item(&q.item) else {
+            let Some(def) = sim.data.item(&q.item) else {
                 warn!("GiveItem: unknown item `{}`", q.item.as_str());
                 return;
             };
             let count = q.resolved_count();
             for _ in 0..count {
-                stash.add_item(ItemInstance::new(def), q.scope);
+                players.stash.add_item(ItemInstance::new(def), q.scope);
             }
         }
 
@@ -76,7 +63,7 @@ pub fn apply(
             let count = q.resolved_count();
             let mut removed = 0u32;
             for _ in 0..count {
-                if stash.remove_first(&q.item, q.scope).is_none() {
+                if players.stash.remove_first(&q.item, q.scope).is_none() {
                     break;
                 }
                 removed += 1;
@@ -96,7 +83,7 @@ pub fn apply(
             involved_factions,
             duration_days,
         } => {
-            let Some(def) = data.events.get(event) else {
+            let Some(def) = sim.data.events.get(event) else {
                 warn!("TriggerEvent: unknown event `{}`", event.as_str());
                 return;
             };
@@ -105,46 +92,46 @@ pub fn apply(
                 involved_factions: involved_factions.clone(),
                 duration_days: *duration_days,
             };
-            let instance = spawn_event_instance(def, faction_pool, now.day, &overrides, rng);
-            events.push(instance);
+            let instance = spawn_event_instance(def, faction_pool, sim.now.day, &overrides, rng);
+            sim.events.push(instance);
         }
 
         Consequence::StartQuest(quest_id) => {
-            start_quest.write(StartQuestRequest {
+            tx.start_quest.write(StartQuestRequest {
                 quest: quest_id.clone(),
             });
         }
 
         Consequence::UnlockUpgrade(upgrade) => {
-            if !upgrades.upgrades.contains(upgrade) {
-                upgrades.upgrades.push(upgrade.clone());
+            if !players.upgrades.upgrades.contains(upgrade) {
+                players.upgrades.upgrades.push(upgrade.clone());
             }
         }
 
         Consequence::GiveIntel(intel_id) => {
-            intel.grant(intel_id.clone(), now.day);
+            players.intel.grant(intel_id.clone(), sim.now.day);
         }
 
         Consequence::SpawnNpc { template, at } => {
-            let Some(def) = data.npc_template(template) else {
+            let Some(def) = sim.data.npc_template(template) else {
                 warn!("SpawnNpc: unknown template `{}`", template.as_str());
                 return;
             };
-            if def.unique && registry.is_alive(template) {
+            if def.unique && sim.registry.is_alive(template) {
                 info!(
                     "SpawnNpc: unique template `{}` already alive, skipping",
                     template.as_str()
                 );
                 return;
             }
-            if !def.respawnable && registry.is_permanently_dead(template) {
+            if !def.respawnable && sim.registry.is_permanently_dead(template) {
                 info!(
                     "SpawnNpc: non-respawnable template `{}` is permanently dead, skipping",
                     template.as_str()
                 );
                 return;
             }
-            spawn_npc.write(SpawnNpcRequest {
+            tx.spawn_npc.write(SpawnNpcRequest {
                 template: template.clone(),
                 at: at.clone(),
                 yarn_node: None,
@@ -152,11 +139,11 @@ pub fn apply(
         }
 
         Consequence::GivePlayerXp(xp) => {
-            identity.add_xp(xp.value());
+            players.identity.add_xp(xp.value());
         }
 
         Consequence::GiveNpcXp { template, amount } => {
-            if !registry.is_alive(template) {
+            if !sim.registry.is_alive(template) {
                 warn!(
                     "GiveNpcXp: template `{}` is not alive, cannot grant {} xp",
                     template.as_str(),
@@ -164,7 +151,7 @@ pub fn apply(
                 );
                 return;
             }
-            give_npc_xp.write(GiveNpcXpRequest {
+            tx.give_npc_xp.write(GiveNpcXpRequest {
                 template: template.clone(),
                 amount: *amount,
             });
@@ -198,7 +185,12 @@ pub fn apply(
 
         Consequence::EndGame { cause } => {
             info!("EndGame: cause {cause:?}");
-            end_game.write(EndGameRequest { cause: *cause });
+            tx.end_game.write(EndGameRequest { cause: *cause });
+        }
+
+        Consequence::RecordDecision { decision, value } => {
+            info!("RecordDecision: {} = `{}`", decision.as_str(), value);
+            players.decisions.record(decision.clone(), value.clone());
         }
     }
 }

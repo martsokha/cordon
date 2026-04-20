@@ -34,6 +34,12 @@
         {
           "apply": [
             {
+              "record_decision": {
+                "decision": "decision_garrison_support",
+                "value": "accept"
+              }
+            },
+            {
               "give_credits": 200
             },
             {
@@ -63,6 +69,12 @@
         {
           "apply": [
             {
+              "record_decision": {
+                "decision": "decision_garrison_support",
+                "value": "neutral"
+              }
+            },
+            {
               "give_credits": 100
             },
             {
@@ -85,6 +97,12 @@
       "consequences": [
         {
           "apply": [
+            {
+              "record_decision": {
+                "decision": "decision_garrison_support",
+                "value": "refuse"
+              }
+            },
             {
               "standing_change": {
                 "faction": "faction_garrison",

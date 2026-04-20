@@ -37,6 +37,10 @@
 //! - **Upgrade refs**: consequences (`UnlockUpgrade`), conditions
 //!   (`HaveUpgrade`).
 //!
+//! - **Decision refs + values**: consequences (`RecordDecision`),
+//!   conditions (`DecisionEquals`) — both the decision id and the
+//!   value string are checked against the declared value set.
+//!
 //! - **Caliber refs**: weapons (`WeaponData.caliber`), verified
 //!   against the set of calibers advertised by ammo items.
 //!
@@ -68,8 +72,9 @@ use cordon_core::primitive::{Id, IdMarker};
 use cordon_core::world::area::{Area, AreaDef, AreaKind};
 use cordon_core::world::loot::LootTables;
 use cordon_core::world::narrative::{
-    ConditionalConsequence, Consequence, Event, EventDef, Intel, IntelDef, ObjectiveCondition,
-    Quest, QuestDef, QuestStageKind, QuestTrigger, QuestTriggerDef, QuestTriggerKind,
+    ConditionalConsequence, Consequence, Decision, DecisionDef, Event, EventDef, Intel, IntelDef,
+    ObjectiveCondition, Quest, QuestDef, QuestStageKind, QuestTrigger, QuestTriggerDef,
+    QuestTriggerKind,
 };
 
 /// The read-only game database.
@@ -115,6 +120,11 @@ pub struct GameData {
     /// a unique, story-relevant character that quests and events can
     /// reference by stable ID.
     pub npc_templates: HashMap<Id<NpcTemplate>, NpcTemplateDef>,
+    /// Decision definitions keyed by decision ID. Declares the legal
+    /// value set for each durable player choice — load-time validation
+    /// rejects `record_decision` / `decision_equals` uses whose value
+    /// is not listed here.
+    pub decisions: HashMap<Id<Decision>, DecisionDef>,
 }
 
 impl GameData {
@@ -483,6 +493,9 @@ impl GameData {
             ObjectiveCondition::Wait { .. } => {}
             ObjectiveCondition::DaysWithoutPills { .. } => {}
             ObjectiveCondition::DayReached { .. } => {}
+            ObjectiveCondition::DecisionEquals { decision, value } => {
+                self.check_decision_value(decision, value, referrer, "DecisionEquals");
+            }
             ObjectiveCondition::AllOf(conds) | ObjectiveCondition::AnyOf(conds) => {
                 for c in conds {
                     self.check_condition(c, referrer);
@@ -547,6 +560,9 @@ impl GameData {
             }
             Consequence::PriceModifier { .. } => {}
             Consequence::EndGame { .. } => {}
+            Consequence::RecordDecision { decision, value } => {
+                self.check_decision_value(decision, value, referrer, "RecordDecision");
+            }
         }
     }
 
@@ -595,6 +611,22 @@ impl GameData {
     fn check_intel(&self, id: &Id<Intel>, referrer: &str, field: &str) {
         if !self.intel.contains_key(id) {
             warn_missing("intel ref from", referrer, field, id);
+        }
+    }
+
+    fn check_decision_value(&self, id: &Id<Decision>, value: &str, referrer: &str, field: &str) {
+        match self.decisions.get(id) {
+            None => warn_missing("decision ref from", referrer, field, id),
+            Some(def) => {
+                if !def.values.iter().any(|v| v == value) {
+                    warn!(
+                        "{field} from {referrer} uses unknown value `{value}` for decision `{}` \
+                         (legal values: {:?})",
+                        id.as_str(),
+                        def.values
+                    );
+                }
+            }
         }
     }
 

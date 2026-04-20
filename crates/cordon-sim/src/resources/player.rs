@@ -15,7 +15,7 @@ use cordon_core::entity::player::{PlayerRank, PlayerState};
 use cordon_core::entity::squad::Squad;
 use cordon_core::item::{Item, ItemInstance, Stash, StashScope};
 use cordon_core::primitive::{Credits, Day, Experience, Id, Relation, Uid};
-use cordon_core::world::narrative::{Intel, IntelDef};
+use cordon_core::world::narrative::{Decision, Intel, IntelDef};
 
 /// Per-hire bookkeeping for one squad on the player's roster.
 ///
@@ -277,5 +277,41 @@ impl PlayerIntel {
             let ttl_days = ttl.minutes().div_ceil(24 * 60);
             elapsed_days < ttl_days
         });
+    }
+}
+
+/// Durable record of every authored decision the player has made
+/// in the current run. Populated by
+/// [`Consequence::RecordDecision`](cordon_core::world::narrative::Consequence::RecordDecision);
+/// read back by
+/// [`ObjectiveCondition::DecisionEquals`](cordon_core::world::narrative::ObjectiveCondition::DecisionEquals)
+/// and mirrored into yarn variables so dialog can branch on prior
+/// choices. Cleared on new-run reset like the other player resources.
+#[derive(Resource, Debug, Clone, Default)]
+pub struct PlayerDecisions {
+    entries: HashMap<Id<Decision>, String>,
+}
+
+impl PlayerDecisions {
+    /// Record a decision value, overwriting any prior value for the
+    /// same decision.
+    pub fn record(&mut self, decision: Id<Decision>, value: String) {
+        self.entries.insert(decision, value);
+    }
+
+    /// Get the recorded value for a decision, if any.
+    pub fn get(&self, decision: &Id<Decision>) -> Option<&str> {
+        self.entries.get(decision).map(String::as_str)
+    }
+
+    /// Whether the decision has been recorded with the given value.
+    /// Returns `false` for unrecorded decisions regardless of
+    /// `value`.
+    pub fn equals(&self, decision: &Id<Decision>, value: &str) -> bool {
+        self.get(decision).is_some_and(|v| v == value)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&Id<Decision>, &str)> {
+        self.entries.iter().map(|(k, v)| (k, v.as_str()))
     }
 }

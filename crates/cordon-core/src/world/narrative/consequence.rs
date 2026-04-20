@@ -17,6 +17,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::decision::Decision;
 use super::event::Event;
 use super::flag::QuestFlagPredicate;
 use super::intel::Intel;
@@ -105,6 +106,13 @@ pub enum ObjectiveCondition {
     /// behind a minimum in-game calendar day (e.g., "this quest
     /// can't fire before day 6 no matter what").
     DayReached { day: u32 },
+    /// Player has recorded the given [`Decision`] with the given
+    /// value. Unset decisions (never recorded) evaluate to `false`
+    /// regardless of `value`.
+    DecisionEquals {
+        decision: Id<Decision>,
+        value: String,
+    },
     /// All of the nested conditions must be true.
     AllOf(Vec<ObjectiveCondition>),
     /// At least one of the nested conditions must be true.
@@ -243,6 +251,14 @@ pub enum Consequence {
     /// outcome stage's other consequences still apply first, in
     /// order, so reward payouts land before the run resets.
     EndGame { cause: EndingCause },
+    /// Record a durable player decision. Overwrites any prior
+    /// value for the same decision. The `value` must be listed in
+    /// the [`DecisionDef`](super::DecisionDef)'s `values` — load-time
+    /// validation rejects unknown values.
+    RecordDecision {
+        decision: Id<Decision>,
+        value: String,
+    },
 }
 
 /// How the current run ended. Drives the ending-slate epitaph.

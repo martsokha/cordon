@@ -19,6 +19,7 @@ pub mod death;
 pub mod dispatch;
 pub mod drive;
 pub mod messages;
+pub mod refs;
 pub mod registry;
 pub mod spawn;
 pub mod state;
