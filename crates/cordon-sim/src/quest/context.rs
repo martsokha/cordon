@@ -24,7 +24,7 @@ use super::{condition, consequence};
 use crate::bunker::pills::PlayerPills;
 use crate::resources::{
     EventLog, FactionIndex, GameClock, PlayerDecisions, PlayerIdentity, PlayerIntel,
-    PlayerStandings, PlayerStash, PlayerUpgrades,
+    PlayerStandings, PlayerStash, PlayerSuppliers, PlayerUpgrades,
 };
 
 #[derive(SystemParam)]
@@ -38,6 +38,7 @@ pub struct QuestCtx<'w> {
     pub stash: ResMut<'w, PlayerStash>,
     pub intel: ResMut<'w, PlayerIntel>,
     pub decisions: ResMut<'w, PlayerDecisions>,
+    pub suppliers: ResMut<'w, PlayerSuppliers>,
     pub pills: Res<'w, PlayerPills>,
     pub events: ResMut<'w, EventLog>,
     pub factions: Res<'w, FactionIndex>,
@@ -70,6 +71,7 @@ impl QuestCtx<'_> {
             stash: &self.stash,
             intel: &self.intel,
             decisions: &self.decisions,
+            suppliers: &self.suppliers,
         };
         let sim = SimView {
             data: &self.data.0,
@@ -106,6 +108,7 @@ impl QuestCtx<'_> {
             stash: &mut self.stash,
             intel: &mut self.intel,
             decisions: &mut self.decisions,
+            suppliers: &mut self.suppliers,
         };
         let mut tx = QuestTx {
             start_quest: &mut self.start_quest_tx,

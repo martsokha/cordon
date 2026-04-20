@@ -170,8 +170,8 @@ pub mod prelude {
     pub use crate::day::radio::{BroadcastHeard, RadioBroadcast};
     // Per-entity components not owned by a subplugin.
     pub use crate::entity::npc::{
-        ActiveEffects, BaseMaxes, Essential, FactionId, NpcBundle, NpcMarker, PendingYarnNode,
-        QuestCritical, SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker,
+        ActiveEffects, BaseMaxes, Essential, FactionId, NpcBundle, NpcMarker, PendingDeliveryItems,
+        PendingYarnNode, QuestCritical, SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker,
     };
     pub use crate::entity::relic::{RelicHome, RelicMarker};
     pub use crate::quest::{

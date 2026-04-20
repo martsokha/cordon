@@ -25,9 +25,11 @@ impl Plugin for ToastPlugin {
         app.add_systems(
             Update,
             (
-                systems::on_radio_broadcast,
+                systems::on_intel_granted,
                 systems::on_daily_expenses,
                 systems::on_decision_recorded,
+                systems::on_order_placed,
+                systems::on_order_failed,
                 systems::on_quest_started,
                 systems::on_quest_progress,
                 systems::spawn_toasts,

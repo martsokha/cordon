@@ -11,16 +11,6 @@
       "added_damage": 1
     },
     "base_price": 3500,
-    "suppliers": [
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 0.95
-      },
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 1.05
-      }
-    ],
     "rarity": "common"
   },
   {
@@ -35,16 +25,6 @@
       "added_damage": 2
     },
     "base_price": 5500,
-    "suppliers": [
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 0.95
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.05
-      }
-    ],
     "rarity": "uncommon"
   }
 ]

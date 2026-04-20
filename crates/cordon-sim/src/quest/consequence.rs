@@ -136,6 +136,7 @@ pub fn apply(
                 template: template.clone(),
                 at: at.clone(),
                 yarn_node: None,
+                delivery_items: Vec::new(),
             });
         }
 
@@ -196,6 +197,18 @@ pub fn apply(
                 decision: decision.clone(),
                 value: value.clone(),
             });
+        }
+
+        Consequence::UnlockSupplier { template } => {
+            if players.suppliers.is_unlocked(template) {
+                info!(
+                    "UnlockSupplier: `{}` already unlocked, skipping",
+                    template.as_str()
+                );
+            } else {
+                info!("UnlockSupplier: `{}` unlocked", template.as_str());
+                players.suppliers.unlock(template.clone());
+            }
         }
     }
 }

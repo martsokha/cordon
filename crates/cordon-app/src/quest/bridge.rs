@@ -114,6 +114,7 @@ pub(super) fn enqueue_talk_dialogue(
                     template: template.clone(),
                     at: None,
                     yarn_node: Some(yarn_node.clone()),
+                    delivery_items: Vec::new(),
                 });
                 in_flight.0 = Some(active.def_id.clone());
                 info!(

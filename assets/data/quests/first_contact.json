@@ -40,6 +40,11 @@
               }
             },
             {
+              "unlock_supplier": {
+                "template": "npc_quartermaster"
+              }
+            },
+            {
               "give_credits": 200
             },
             {

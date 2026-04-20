@@ -11,16 +11,6 @@
       "added_damage": 2
     },
     "base_price": 4000,
-    "suppliers": [
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 0.9
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.0
-      }
-    ],
     "rarity": "common"
   },
   {
@@ -35,16 +25,6 @@
       "added_damage": 0
     },
     "base_price": 4500,
-    "suppliers": [
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 0.95
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.05
-      }
-    ],
     "rarity": "common"
   },
   {
@@ -59,20 +39,6 @@
       "added_damage": 4
     },
     "base_price": 5500,
-    "suppliers": [
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 0.95
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 1.05
-      }
-    ],
     "rarity": "common"
   },
   {
@@ -87,12 +53,6 @@
       "added_damage": 4
     },
     "base_price": 6500,
-    "suppliers": [
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 0.9
-      }
-    ],
     "rarity": "common"
   },
   {
@@ -107,12 +67,6 @@
       "added_damage": 5
     },
     "base_price": 12000,
-    "suppliers": [
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 0.95
-      }
-    ],
     "rarity": "rare"
   }
 ]

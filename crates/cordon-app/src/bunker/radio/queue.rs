@@ -20,6 +20,7 @@ use cordon_core::primitive::Id;
 use cordon_core::world::narrative::{Event, Intel};
 use cordon_sim::day::DayRolled;
 use cordon_sim::day::radio::{BroadcastHeard, RadioBroadcast};
+use cordon_sim::quest::messages::IntelGranted;
 use cordon_sim::resources::{GameClock, PlayerIntel};
 
 use super::systems::{RadioMarker, RadioOn};
@@ -144,18 +145,35 @@ pub(super) fn on_broadcast_dialogue_completed(
     clock: Res<GameClock>,
     mut active: ResMut<ActiveBroadcast>,
     mut intel: ResMut<PlayerIntel>,
+    mut granted_tx: MessageWriter<IntelGranted>,
 ) {
     let Some(broadcast) = active.0.take() else {
         return;
     };
     let day = clock.0.day;
     if let Some(intel_id) = &broadcast.intel {
+        // Grant unconditionally — duplicates are no-op'd by
+        // `PlayerIntel::grant`, but we only announce when this is
+        // actually new so the player doesn't see spam on a
+        // re-listen of content they already have.
+        let already_had = intel.has(intel_id);
         intel.grant(intel_id.clone(), day);
-        info!(
-            "radio: broadcast `{}` read; granted intel `{}`",
-            broadcast.event.as_str(),
-            intel_id.as_str()
-        );
+        if already_had {
+            info!(
+                "radio: broadcast `{}` read; intel `{}` already known",
+                broadcast.event.as_str(),
+                intel_id.as_str()
+            );
+        } else {
+            info!(
+                "radio: broadcast `{}` read; granted intel `{}`",
+                broadcast.event.as_str(),
+                intel_id.as_str()
+            );
+            granted_tx.write(IntelGranted {
+                intel: intel_id.clone(),
+            });
+        }
     } else {
         info!(
             "radio: broadcast `{}` read (no intel grant)",

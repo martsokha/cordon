@@ -44,13 +44,16 @@ interact-rack-swap = Swap { $carry } with { $slot }
 interact-exit-camera = Exit camera
 
 # Corner toast notifications.
-toast-intel-received = { $count ->
-    [one] New intel received
-   *[other] { $count } new intel received
-}
+toast-intel-granted = New intel: { $name }
 toast-daily-expenses = Daily expenses: { $total }cr
 toast-quest-started = New quest: { $name }
 toast-quest-updated = Quest updated: { $name }
 toast-quest-completed = Quest completed: { $name }
 toast-quest-failed = Quest failed: { $name }
 toast-decision-recorded = This will have consequences.
+toast-order-placed = Order placed: { $item } ({ $cost }¤).
+toast-order-failed-insufficient = Order failed: not enough credits.
+toast-order-failed-locked = Order failed: supplier unavailable.
+toast-order-failed-no-stock = Order failed: supplier doesn't stock that item.
+toast-order-failed-price = Order failed: price changed, try again.
+toast-order-failed-generic = Order failed.

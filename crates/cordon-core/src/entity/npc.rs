@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 
 use super::faction::Faction;
 use crate::item::Item;
-use crate::primitive::{Id, IdMarker, Rank};
+use crate::primitive::{Credits, Id, IdMarker, Rank};
 
 /// Phantom marker for NPC-stable save-game IDs. Used as the
 /// type parameter on `Uid<Npc>`. Has no fields — all the actual
@@ -61,6 +61,45 @@ pub struct NpcTemplateDef {
     /// characters who must survive to fulfil their narrative role.
     #[serde(default)]
     pub essential: bool,
+    /// When present, this NPC doubles as a data-driven trade
+    /// supplier the player can order items from. `None` means the
+    /// template is a regular NPC (quest giver, combatant, etc.)
+    /// with no merchant role. See [`SupplierInfo`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supplier: Option<SupplierInfo>,
+}
+
+/// Supplier-specific fields for an NPC template that sells to the
+/// player. Every supplier is also an NPC template — the supplier
+/// *is* the courier that delivers the order.
+///
+/// Unlocked suppliers are tracked in the `PlayerSuppliers` sim
+/// resource. New suppliers are added via
+/// [`Consequence::UnlockSupplier`](crate::world::narrative::Consequence::UnlockSupplier).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SupplierInfo {
+    /// When true, this supplier is available from the start of a
+    /// run without any unlock step. Use for the starting supplier
+    /// ("Uncle") — gate everyone else behind a quest or standing.
+    #[serde(default)]
+    pub unlocked_at_start: bool,
+    /// Per-supplier price multiplier applied on top of the item's
+    /// `base_price`. Values `<1.0` discount, `>1.0` mark up.
+    /// `1.0` means "sells at base price."
+    pub price_multiplier: f32,
+    /// Yarn node that fires when this supplier arrives as a
+    /// delivery visitor. Separate from any general-purpose yarn
+    /// the template might run outside of deliveries.
+    pub delivery_yarn: String,
+}
+
+impl SupplierInfo {
+    /// Compute the actual price of an item bought from this
+    /// supplier, rounded to the nearest credit.
+    pub fn price_for(&self, base: Credits) -> Credits {
+        let cents = (base.value() as f32 * self.price_multiplier).round();
+        Credits::new(cents.max(0.0) as u32)
+    }
 }
 
 impl NpcTemplateDef {

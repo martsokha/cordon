@@ -12,12 +12,6 @@
       "relic_slots": 2
     },
     "base_price": 15000,
-    "suppliers": [
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 1.0
-      }
-    ],
     "rarity": "rare"
   },
   {
@@ -33,16 +27,6 @@
       "relic_slots": 4
     },
     "base_price": 25000,
-    "suppliers": [
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 1.1
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.2
-      }
-    ],
     "rarity": "rare"
   },
   {
@@ -58,16 +42,6 @@
       "relic_slots": 4
     },
     "base_price": 35000,
-    "suppliers": [
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 1.2
-      }
-    ],
     "rarity": "rare"
   },
   {
@@ -83,12 +57,6 @@
       "relic_slots": 4
     },
     "base_price": 60000,
-    "suppliers": [
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 1.0
-      }
-    ],
     "rarity": "rare"
   }
 ]

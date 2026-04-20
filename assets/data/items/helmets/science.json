@@ -12,16 +12,6 @@
       "relic_slots": 0
     },
     "base_price": 1500,
-    "suppliers": [
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 0.9
-      },
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      }
-    ],
     "rarity": "common"
   },
   {
@@ -37,16 +27,6 @@
       "relic_slots": 0
     },
     "base_price": 6000,
-    "suppliers": [
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 0.85
-      },
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 0.95
-      }
-    ],
     "rarity": "uncommon"
   }
 ]

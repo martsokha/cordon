@@ -1,8 +1,10 @@
 use bevy::image::TextureAtlasLayout;
 use bevy::prelude::*;
 use cordon_sim::day::payroll::DailyExpensesProcessed;
-use cordon_sim::day::radio::RadioBroadcast;
-use cordon_sim::quest::messages::{DecisionRecorded, QuestFinished, QuestStarted, QuestUpdated};
+use cordon_sim::quest::messages::{
+    DecisionRecorded, IntelGranted, OrderFailed, OrderFailure, OrderPlaced, QuestFinished,
+    QuestStarted, QuestUpdated,
+};
 
 use crate::bunker::camera::FpsCamera;
 use crate::locale::L10n;
@@ -96,19 +98,24 @@ pub(super) fn load_atlas(
     commands.init_resource::<ToastQueue>();
 }
 
-pub(super) fn on_radio_broadcast(
+/// One toast per newly-granted intel entry. Fires whenever
+/// [`IntelGranted`] is written — the broadcast-dialog path emits
+/// it on yarn completion, so the player sees "New intel: X" at
+/// the moment intel lands in their log, not when a broadcast
+/// merely queues for later listening.
+pub(super) fn on_intel_granted(
     l10n: L10n,
-    mut broadcasts: MessageReader<RadioBroadcast>,
+    mut granted: MessageReader<IntelGranted>,
     mut queue: ResMut<ToastQueue>,
 ) {
-    let intel_count = broadcasts.read().filter(|msg| msg.intel.is_some()).count();
-    if intel_count == 0 {
-        return;
+    for msg in granted.read() {
+        let title_key = format!("{}_title", msg.intel.as_str());
+        let title = l10n.get(&title_key);
+        queue.push(
+            ICON_NEW_INTEL,
+            l10n.get(&format!("toast-intel-granted?name={title}")),
+        );
     }
-    queue.push(
-        ICON_NEW_INTEL,
-        l10n.get(&format!("toast-intel-received?count={intel_count}")),
-    );
 }
 
 pub(super) fn on_daily_expenses(
@@ -122,6 +129,42 @@ pub(super) fn on_daily_expenses(
             ICON_DAILY_SPENDING,
             l10n.get(&format!("toast-daily-expenses?total={total}")),
         );
+    }
+}
+
+pub(super) fn on_order_placed(
+    l10n: L10n,
+    mut placed: MessageReader<OrderPlaced>,
+    mut queue: ResMut<ToastQueue>,
+) {
+    for msg in placed.read() {
+        let item = l10n.get(msg.item.as_str());
+        queue.push(
+            ICON_DAILY_SPENDING,
+            l10n.get(&format!(
+                "toast-order-placed?item={item}&cost={}",
+                msg.paid.value()
+            )),
+        );
+    }
+}
+
+pub(super) fn on_order_failed(
+    l10n: L10n,
+    mut failed: MessageReader<OrderFailed>,
+    mut queue: ResMut<ToastQueue>,
+) {
+    for msg in failed.read() {
+        let key = match msg.reason {
+            OrderFailure::Insufficient => "toast-order-failed-insufficient",
+            OrderFailure::SupplierLocked => "toast-order-failed-locked",
+            OrderFailure::SupplierDoesNotStock => "toast-order-failed-no-stock",
+            OrderFailure::PriceMismatch => "toast-order-failed-price",
+            OrderFailure::UnknownItem | OrderFailure::UnknownSupplier => {
+                "toast-order-failed-generic"
+            }
+        };
+        queue.push(ICON_DAILY_SPENDING, l10n.get(key));
     }
 }
 

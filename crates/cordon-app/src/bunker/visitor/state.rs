@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 use bevy::prelude::*;
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::npc::NpcTemplate;
+use cordon_core::item::Item;
 use cordon_core::primitive::Id;
 
 /// A pending visitor: who they are and what yarn node to start when
@@ -27,6 +28,12 @@ pub struct Visitor {
     /// together. `None` for narrator-synthesized or legacy
     /// visitors that have no template-backed sim entity.
     pub template: Option<Id<NpcTemplate>>,
+    /// Items this visitor is delivering as part of trade orders.
+    /// Populated when the arrival carried a
+    /// [`PendingDeliveryItems`](cordon_sim::plugin::prelude::PendingDeliveryItems)
+    /// component; `<<deliver_order>>` pops one per call. Empty
+    /// for non-delivery visitors.
+    pub delivery_items: Vec<Id<Item>>,
 }
 
 /// FIFO queue of visitors waiting outside.

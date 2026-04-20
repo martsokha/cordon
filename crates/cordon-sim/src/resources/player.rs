@@ -9,8 +9,11 @@
 use std::collections::HashMap;
 
 use bevy::prelude::*;
+use std::collections::HashSet;
+
 use cordon_core::entity::bunker::{Upgrade, UpgradeDef, UpgradeEffect};
 use cordon_core::entity::faction::Faction;
+use cordon_core::entity::npc::NpcTemplate;
 use cordon_core::entity::player::{PlayerRank, PlayerState};
 use cordon_core::entity::squad::Squad;
 use cordon_core::item::{Item, ItemInstance, Stash, StashScope};
@@ -313,5 +316,90 @@ impl PlayerDecisions {
 
     pub fn iter(&self) -> impl Iterator<Item = (&Id<Decision>, &str)> {
         self.entries.iter().map(|(k, v)| (k, v.as_str()))
+    }
+}
+
+/// Set of supplier NPC templates the player currently has access
+/// to. Populated at run start with every template whose
+/// `supplier.unlocked_at_start == true`; expanded during play via
+/// [`Consequence::UnlockSupplier`](cordon_core::world::narrative::Consequence::UnlockSupplier).
+///
+/// The Trade tab UI reads this set to decide which suppliers to
+/// show. Placing an order verifies the target supplier is here
+/// before deducting credits and queueing a delivery.
+#[derive(Resource, Debug, Clone, Default)]
+pub struct PlayerSuppliers {
+    /// Insertion order — matches unlock order so the Trade tab can
+    /// render Uncle first, later unlocks after.
+    entries: Vec<Id<NpcTemplate>>,
+    lookup: HashSet<Id<NpcTemplate>>,
+}
+
+impl PlayerSuppliers {
+    /// Unlock a supplier. No-op if already unlocked.
+    pub fn unlock(&mut self, template: Id<NpcTemplate>) {
+        if self.lookup.insert(template.clone()) {
+            self.entries.push(template);
+        }
+    }
+
+    pub fn is_unlocked(&self, template: &Id<NpcTemplate>) -> bool {
+        self.lookup.contains(template)
+    }
+
+    /// Iterate unlocked supplier template ids in unlock order
+    /// (oldest unlock first). Stable across frames.
+    pub fn iter(&self) -> impl Iterator<Item = &Id<NpcTemplate>> {
+        self.entries.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+}
+
+/// A placed order waiting for next-day delivery. Drained on day
+/// rollover: each entry spawns the supplier as a delivery visitor
+/// whose yarn node uses [`Consequence::GiveItem`] (or a yarn
+/// `<<deliver_order>>` command) to hand the item to the player.
+///
+/// Credits were deducted up front at order time — the player has
+/// already paid when the item is on this list.
+#[derive(Debug, Clone)]
+pub struct PendingOrder {
+    pub item: Id<Item>,
+    pub supplier: Id<NpcTemplate>,
+    pub ordered_on: Day,
+}
+
+/// Queue of placed orders awaiting delivery.
+#[derive(Resource, Debug, Default)]
+pub struct PendingOrders {
+    entries: Vec<PendingOrder>,
+}
+
+impl PendingOrders {
+    pub fn push(&mut self, order: PendingOrder) {
+        self.entries.push(order);
+    }
+
+    pub fn drain_for_delivery(&mut self) -> Vec<PendingOrder> {
+        std::mem::take(&mut self.entries)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &PendingOrder> {
+        self.entries.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
     }
 }

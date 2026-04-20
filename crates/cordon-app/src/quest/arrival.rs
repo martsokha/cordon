@@ -18,7 +18,9 @@ use bevy::prelude::*;
 use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::{Formation, Goal, Squad};
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::plugin::prelude::{FactionId, PendingYarnNode, SquadBundle, SquadMembership};
+use cordon_sim::plugin::prelude::{
+    FactionId, PendingDeliveryItems, PendingYarnNode, SquadBundle, SquadMembership,
+};
 use cordon_sim::quest::travel::{BunkerArrival, HomeArrival};
 use cordon_sim::resources::{SquadIdIndex, UidAllocator};
 
@@ -30,7 +32,7 @@ pub fn handle_bunker_arrival(
     data: Res<GameDataResource>,
     l10n: L10n,
     mut queue: ResMut<VisitorQueue>,
-    pending_q: Query<&PendingYarnNode>,
+    pending_q: Query<(&PendingYarnNode, Option<&PendingDeliveryItems>)>,
     mut commands: Commands,
 ) {
     for arrival in arrivals.read() {
@@ -46,8 +48,11 @@ pub fn handle_bunker_arrival(
         // would admit to an empty-named yarn node, which panics the
         // runner. Skip enqueue if missing — log loudly so the
         // missing-payload case surfaces in authoring.
-        let yarn_node = match pending_q.get(arrival.entity) {
-            Ok(p) => p.0.clone(),
+        let (yarn_node, delivery_items) = match pending_q.get(arrival.entity) {
+            Ok((p, delivery)) => (
+                p.0.clone(),
+                delivery.map(|d| d.0.clone()).unwrap_or_default(),
+            ),
             Err(_) => {
                 error!(
                     "BunkerArrival: template `{}` has no PendingYarnNode; \
@@ -66,12 +71,14 @@ pub fn handle_bunker_arrival(
             faction: template.faction.clone(),
             yarn_node,
             template: Some(arrival.template.clone()),
+            delivery_items,
         });
         info!("{display_name} has arrived at the bunker");
         commands
             .entity(arrival.entity)
             .remove::<SquadMembership>()
-            .remove::<PendingYarnNode>();
+            .remove::<PendingYarnNode>()
+            .remove::<PendingDeliveryItems>();
     }
 }
 

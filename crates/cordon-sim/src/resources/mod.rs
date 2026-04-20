@@ -29,8 +29,9 @@ pub use self::clock::{
     tick_sim_time,
 };
 pub use self::player::{
-    KnownIntel, PlayerDecisions, PlayerIdentity, PlayerIntel, PlayerSquadEntry, PlayerSquadRoster,
-    PlayerStandings, PlayerStash, PlayerUpgrades, assemble_player_state,
+    KnownIntel, PendingOrder, PendingOrders, PlayerDecisions, PlayerIdentity, PlayerIntel,
+    PlayerSquadEntry, PlayerSquadRoster, PlayerStandings, PlayerStash, PlayerSuppliers,
+    PlayerUpgrades, assemble_player_state,
 };
 pub use self::world::{AreaState, AreaStates, EventLog, FactionIndex, FactionSettlements};
 
@@ -101,6 +102,31 @@ pub fn init_world_resources(mut commands: Commands, game_data: Res<GameDataResou
     commands.insert_resource(EventLog::default());
     commands.insert_resource(PlayerIntel::default());
     commands.insert_resource(PlayerDecisions::default());
+    // Seed supplier roster with every template flagged
+    // `unlocked_at_start`. Later unlocks come through
+    // `Consequence::UnlockSupplier`.
+    //
+    // Iterate sorted by template id so the Trade tab renders
+    // starter suppliers in a deterministic order across runs —
+    // HashMap iteration would otherwise make the list shuffle.
+    let mut suppliers = PlayerSuppliers::default();
+    let mut starters: Vec<_> = data
+        .npc_templates
+        .iter()
+        .filter(|(_, template)| {
+            template
+                .supplier
+                .as_ref()
+                .is_some_and(|s| s.unlocked_at_start)
+        })
+        .map(|(id, _)| id.clone())
+        .collect();
+    starters.sort_by(|a, b| a.as_str().cmp(b.as_str()));
+    for id in starters {
+        suppliers.unlock(id);
+    }
+    commands.insert_resource(suppliers);
+    commands.insert_resource(PendingOrders::default());
     commands.insert_resource(crate::bunker::pills::PlayerPills::default());
     commands.insert_resource(TimeAccumulator::default());
     // Quest + day-cycle resources initialised by their own plugins on

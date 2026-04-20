@@ -65,3 +65,7 @@ npc-name-firstalias = { $first } "{ $second }"
 # derived from the template id by `_` → `-`)
 npc-garrison-sergeant = Sgt. Petrov
 npc-tenant = The Tenant
+npc-uncle = Uncle
+npc-quartermaster = The Quartermaster
+npc-envoy = The Envoy
+npc-fence = The Fence

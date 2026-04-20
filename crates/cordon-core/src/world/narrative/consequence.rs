@@ -259,6 +259,11 @@ pub enum Consequence {
         decision: Id<Decision>,
         value: String,
     },
+    /// Mark a trade supplier as unlocked for the rest of the run.
+    /// The referenced template must have its own
+    /// `supplier: Some(...)` entry; load-time validation rejects
+    /// unlocks that don't point at a real supplier.
+    UnlockSupplier { template: Id<NpcTemplate> },
 }
 
 /// How the current run ended. Drives the ending-slate epitaph.

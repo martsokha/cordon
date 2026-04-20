@@ -211,8 +211,18 @@ impl GameData {
     fn validate_items(&self) {
         for (id, def) in &self.items {
             let referrer = format!("item `{}`", id.as_str());
-            for sup in &def.suppliers {
-                self.check_faction(&sup.faction, &referrer, "suppliers[].faction");
+            for supplier_id in &def.suppliers {
+                self.check_npc_template(supplier_id, &referrer, "suppliers[]");
+                if let Some(template) = self.npc_templates.get(supplier_id)
+                    && template.supplier.is_none()
+                {
+                    warn!(
+                        "item `{}` lists supplier `{}` but that template has no \
+                         `supplier: {{ ... }}` block — add one or remove the reference",
+                        id.as_str(),
+                        supplier_id.as_str()
+                    );
+                }
             }
         }
     }
@@ -568,6 +578,18 @@ impl GameData {
             Consequence::EndGame { .. } => {}
             Consequence::RecordDecision { decision, value } => {
                 self.check_decision_value(decision, value, referrer, "RecordDecision");
+            }
+            Consequence::UnlockSupplier { template } => {
+                self.check_npc_template(template, referrer, "UnlockSupplier.template");
+                if let Some(def) = self.npc_templates.get(template)
+                    && def.supplier.is_none()
+                {
+                    warn!(
+                        "UnlockSupplier from {referrer} targets template `{}` \
+                         which has no `supplier: {{ ... }}` block",
+                        template.as_str()
+                    );
+                }
             }
         }
     }

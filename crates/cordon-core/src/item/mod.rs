@@ -20,7 +20,7 @@ pub use self::data::{
     AmmoData, ArmorData, ArmorSlot, AttachmentData, Caliber, ConsumableData, DocumentData,
     ItemData, RelicData, ThrowableData, WeaponData,
 };
-pub use self::def::{Item, ItemDef, Supplier};
+pub use self::def::{Item, ItemDef};
 pub use self::effect::{
     CORRUPTION_HIGH_THRESHOLD, CORRUPTION_LOW_THRESHOLD, EffectTrigger, HP_HIGH_THRESHOLD,
     HP_LOW_THRESHOLD, PERIODIC_INTERVAL_MINUTES, PassiveModifier, ResourceTarget,

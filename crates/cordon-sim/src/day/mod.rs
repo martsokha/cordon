@@ -21,6 +21,7 @@ pub mod events;
 pub mod payroll;
 pub mod radio;
 pub mod systems;
+pub mod trade;
 pub mod world_events;
 
 use bevy::prelude::*;
@@ -38,6 +39,15 @@ impl Plugin for DayCyclePlugin {
         app.add_message::<payroll::DailyExpensesProcessed>();
         app.init_resource::<payroll::LastDailyExpenses>();
         app.init_resource::<radio::DeliveredBroadcasts>();
+        app.add_systems(
+            Update,
+            (
+                trade::place_orders,
+                trade::deliver_pending_orders.run_if(on_message::<DayRolled>),
+            )
+                .chain()
+                .in_set(SimSet::Cleanup),
+        );
         app.add_systems(
             Update,
             (

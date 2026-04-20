@@ -115,6 +115,18 @@ pub struct Essential;
 #[derive(Component, Debug, Clone)]
 pub struct PendingYarnNode(pub String);
 
+/// Items this template NPC is delivering as part of trade orders.
+/// Set at SpawnNpc time when the spawn request carries
+/// `delivery_items: non-empty`; drained by the `<<deliver_order>>`
+/// yarn command during the delivery dialogue — one call per item.
+///
+/// A single delivery visit can carry multiple items because a
+/// supplier is `unique` (only one instance alive at a time), so
+/// if several orders from the same supplier land on the same day
+/// they'd otherwise overwrite each other's payload.
+#[derive(Component, Debug, Clone)]
+pub struct PendingDeliveryItems(pub Vec<Id<cordon_core::item::Item>>);
+
 /// Faction membership. Distinct from `Id<Faction>` in other
 /// contexts (e.g. fields inside data structs) because this
 /// wrapper type is what Bevy queries actually filter on —

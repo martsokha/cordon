@@ -9,8 +9,8 @@
   },
   "base_price": 350,
   "suppliers": [
-    { "faction": "faction_garrison", "price_multiplier": 0.9 },
-    { "faction": "faction_syndicate", "price_multiplier": 1.1 }
+    "npc_quartermaster",
+    "npc_fence"
   ],
   "rarity": "uncommon"
 }

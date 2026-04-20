@@ -14,14 +14,7 @@
     },
     "base_price": 250,
     "suppliers": [
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 0.9
-      },
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      }
+      "npc_uncle"
     ],
     "rarity": "common"
   },
@@ -40,14 +33,7 @@
     },
     "base_price": 180,
     "suppliers": [
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 0.85
-      },
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      }
+      "npc_uncle"
     ],
     "rarity": "common"
   }

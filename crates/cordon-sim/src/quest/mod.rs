@@ -28,8 +28,9 @@ pub mod travel;
 use bevy::prelude::*;
 
 pub use self::messages::{
-    DecisionRecorded, DismissTemplateNpc, EndGameRequest, GiveNpcXpRequest, QuestFinished,
-    QuestStarted, QuestUpdated, SpawnNpcRequest, StandingChanged, StartQuestRequest, TalkCompleted,
+    DecisionRecorded, DismissTemplateNpc, EndGameRequest, GiveNpcXpRequest, IntelGranted,
+    QuestFinished, QuestStarted, QuestUpdated, SpawnNpcRequest, StandingChanged, StartQuestRequest,
+    TalkCompleted,
 };
 pub use self::registry::TemplateRegistry;
 pub use self::state::{ActiveQuest, CompletedQuest, QuestLog};
@@ -58,6 +59,10 @@ impl Plugin for QuestPlugin {
         app.add_message::<HomeArrival>();
         app.add_message::<DismissTemplateNpc>();
         app.add_message::<EndGameRequest>();
+        app.add_message::<IntelGranted>();
+        app.add_message::<messages::PlaceOrderRequest>();
+        app.add_message::<messages::OrderPlaced>();
+        app.add_message::<messages::OrderFailed>();
 
         // Fires once per run, on the frame `SimActive` is inserted
         // by the app layer at `OnEnter(AppState::Playing)`. Using

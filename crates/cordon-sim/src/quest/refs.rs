@@ -30,7 +30,8 @@ use super::registry::TemplateRegistry;
 use super::state::QuestLog;
 use crate::bunker::pills::PlayerPills;
 use crate::resources::{
-    PlayerDecisions, PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerUpgrades,
+    PlayerDecisions, PlayerIdentity, PlayerIntel, PlayerStandings, PlayerStash, PlayerSuppliers,
+    PlayerUpgrades,
 };
 
 /// Shared view over the player-owned resources the condition
@@ -42,6 +43,7 @@ pub struct PlayerView<'a> {
     pub stash: &'a PlayerStash,
     pub intel: &'a PlayerIntel,
     pub decisions: &'a PlayerDecisions,
+    pub suppliers: &'a PlayerSuppliers,
 }
 
 /// Mutating view over the same player resources — used by the
@@ -53,6 +55,7 @@ pub struct PlayerRefs<'a> {
     pub stash: &'a mut PlayerStash,
     pub intel: &'a mut PlayerIntel,
     pub decisions: &'a mut PlayerDecisions,
+    pub suppliers: &'a mut PlayerSuppliers,
 }
 
 impl<'a> PlayerRefs<'a> {
@@ -67,6 +70,7 @@ impl<'a> PlayerRefs<'a> {
             stash: self.stash,
             intel: self.intel,
             decisions: self.decisions,
+            suppliers: self.suppliers,
         }
     }
 }

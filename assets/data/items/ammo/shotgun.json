@@ -9,8 +9,8 @@
   },
   "base_price": 120,
   "suppliers": [
-    { "faction": "faction_drifters", "price_multiplier": 0.85 },
-    { "faction": "faction_syndicate", "price_multiplier": 1.0 }
+    "npc_uncle",
+    "npc_fence"
   ],
   "rarity": "common"
 }

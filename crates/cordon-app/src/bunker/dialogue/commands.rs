@@ -47,12 +47,14 @@
 
 use bevy::ecs::system::In;
 use bevy::prelude::*;
+use cordon_core::item::ItemInstance;
 use cordon_core::primitive::Credits;
-use cordon_sim::resources::PlayerIdentity;
+use cordon_data::gamedata::GameDataResource;
+use cordon_sim::resources::{PlayerIdentity, PlayerStash};
 
 use super::registry::AppYarnCommandExt;
 use crate::bunker::rack::Carrying;
-use crate::bunker::visitor::state::PendingStepAway;
+use crate::bunker::visitor::state::{PendingStepAway, VisitorState};
 
 /// Register the built-in trade commands into the yarn-command
 /// registry. Other plugins (e.g. the quest bridge) register
@@ -63,6 +65,7 @@ pub(super) fn register(app: &mut App) {
     app.add_yarn_command("take_credits", take_credits);
     app.add_yarn_command("give_credits", give_credits);
     app.add_yarn_command("step_away", step_away);
+    app.add_yarn_command("deliver_order", deliver_order);
 }
 
 /// Give the currently-carried item to the interlocutor.
@@ -152,4 +155,64 @@ fn to_credits(amount: f32, command: &str) -> Credits {
 fn step_away(In(resume_node): In<String>, mut commands: Commands) {
     info!("visitor step-away requested (resume `{resume_node}`)");
     commands.insert_resource(PendingStepAway { resume_node });
+}
+
+/// Hand every item the currently-visiting supplier is carrying to
+/// the player. Reads from the visitor attached to
+/// [`VisitorState::Inside`] — the spawn path attaches the ordered
+/// item ids to the visitor when the delivery spawn is dispatched.
+///
+/// Call once from the delivery yarn node; all queued items land
+/// in the player's main stash, each as a fresh instance (no stack
+/// merging). A supplier with multiple pending orders delivers
+/// them all in one visit.
+///
+/// Warns and no-ops if:
+/// - No visitor is currently inside (yarn called from a non-
+///   visitor context).
+/// - The visitor has no delivery items (yarn author mistakenly
+///   put `<<deliver_order>>` on a non-delivery dialogue).
+fn deliver_order(
+    In(_): In<()>,
+    mut state: ResMut<VisitorState>,
+    data: Res<GameDataResource>,
+    mut stash: ResMut<PlayerStash>,
+) {
+    let VisitorState::Inside { visitor, .. } = &mut *state else {
+        warn!("deliver_order: no visitor currently inside; yarn misfire?");
+        return;
+    };
+    if visitor.delivery_items.is_empty() {
+        warn!(
+            "deliver_order: visitor `{}` has no pending delivery items; \
+             yarn should only call this from a delivery node",
+            visitor.display_name
+        );
+        return;
+    }
+    // Drain all queued items at once. The yarn author calls
+    // `<<deliver_order>>` a single time and every item the
+    // visitor is carrying lands in the stash — no per-item
+    // yarn loop needed.
+    let drained: Vec<_> = std::mem::take(&mut visitor.delivery_items);
+    let count = drained.len();
+    for item_id in drained {
+        let Some(item_def) = data.0.item(&item_id) else {
+            warn!(
+                "deliver_order: item `{}` not found in catalog",
+                item_id.as_str()
+            );
+            continue;
+        };
+        stash.add_item(
+            ItemInstance::new(item_def),
+            cordon_core::item::StashScope::Main,
+        );
+        info!(
+            "delivered `{}` from `{}`",
+            item_id.as_str(),
+            visitor.display_name
+        );
+    }
+    info!("visit complete: {count} item(s) handed over");
 }

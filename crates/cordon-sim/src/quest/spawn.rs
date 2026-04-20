@@ -35,8 +35,8 @@ use crate::behavior::death::NpcDied;
 use crate::behavior::squad::identity::{SquadBundle, SquadMembership};
 use crate::behavior::squad::intent::MovementIntent;
 use crate::entity::npc::{
-    ActiveEffects, BaseMaxes, Essential, FactionId, NpcBundle, NpcMarker, PendingYarnNode,
-    QuestCritical, SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker,
+    ActiveEffects, BaseMaxes, Essential, FactionId, NpcBundle, NpcMarker, PendingDeliveryItems,
+    PendingYarnNode, QuestCritical, SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker,
 };
 use crate::resources::{FactionSettlements, SquadIdIndex, UidAllocator};
 use crate::spawn::loadout::generate_loadout;
@@ -127,6 +127,9 @@ pub fn handle_spawn_npc_requests(
             }
             if let Some(yarn) = req.yarn_node.clone() {
                 entity_cmds.insert(PendingYarnNode(yarn));
+            }
+            if !req.delivery_items.is_empty() {
+                entity_cmds.insert(PendingDeliveryItems(req.delivery_items.clone()));
             }
 
             info!("template `{}` heading back to bunker", def.id.as_str());
@@ -221,6 +224,9 @@ pub fn handle_spawn_npc_requests(
         }
         if let Some(yarn) = req.yarn_node.clone() {
             entity_cmds.insert(PendingYarnNode(yarn));
+        }
+        if !req.delivery_items.is_empty() {
+            entity_cmds.insert(PendingDeliveryItems(req.delivery_items.clone()));
         }
         let entity = entity_cmds.id();
         registry.register(req.template.clone(), entity);

@@ -17,14 +17,7 @@
     },
     "base_price": 350,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.1
-      }
+      "npc_envoy"
     ],
     "rarity": "common"
   },
@@ -36,14 +29,7 @@
     },
     "base_price": 400,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.1
-      }
+      "npc_envoy"
     ],
     "rarity": "common"
   },
@@ -55,14 +41,7 @@
     },
     "base_price": 450,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 1.05
-      }
+      "npc_envoy"
     ],
     "rarity": "common"
   },
@@ -79,14 +58,7 @@
     },
     "base_price": 900,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_devoted",
-        "price_multiplier": 0.95
-      }
+      "npc_envoy"
     ],
     "rarity": "uncommon"
   },
@@ -103,14 +75,7 @@
     },
     "base_price": 1000,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_devoted",
-        "price_multiplier": 0.9
-      }
+      "npc_envoy"
     ],
     "rarity": "uncommon"
   },
@@ -127,14 +92,7 @@
     },
     "base_price": 1100,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.05
-      }
+      "npc_envoy"
     ],
     "rarity": "uncommon"
   },
@@ -161,14 +119,7 @@
     },
     "base_price": 2000,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_devoted",
-        "price_multiplier": 0.85
-      }
+      "npc_envoy"
     ],
     "rarity": "rare"
   },
@@ -195,14 +146,7 @@
     },
     "base_price": 2400,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_devoted",
-        "price_multiplier": 0.85
-      }
+      "npc_envoy"
     ],
     "rarity": "rare"
   },
@@ -229,14 +173,7 @@
     },
     "base_price": 2600,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.0
-      }
+      "npc_envoy"
     ],
     "rarity": "rare"
   },
@@ -248,14 +185,7 @@
     },
     "base_price": 350,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.1
-      }
+      "npc_envoy"
     ],
     "rarity": "common"
   },
@@ -267,14 +197,7 @@
     },
     "base_price": 400,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.1
-      }
+      "npc_envoy"
     ],
     "rarity": "common"
   },
@@ -286,14 +209,7 @@
     },
     "base_price": 450,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 1.05
-      }
+      "npc_envoy"
     ],
     "rarity": "common"
   },
@@ -310,14 +226,7 @@
     },
     "base_price": 900,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.05
-      }
+      "npc_envoy"
     ],
     "rarity": "uncommon"
   },
@@ -329,14 +238,7 @@
     },
     "base_price": 1000,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_devoted",
-        "price_multiplier": 0.9
-      }
+      "npc_envoy"
     ],
     "rarity": "uncommon"
   },
@@ -353,14 +255,7 @@
     },
     "base_price": 1100,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 0.95
-      }
+      "npc_envoy"
     ],
     "rarity": "uncommon"
   },
@@ -382,14 +277,7 @@
     },
     "base_price": 2100,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.0
-      }
+      "npc_envoy"
     ],
     "rarity": "rare"
   },
@@ -416,14 +304,7 @@
     },
     "base_price": 2400,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_devoted",
-        "price_multiplier": 0.85
-      }
+      "npc_envoy"
     ],
     "rarity": "rare"
   },
@@ -445,14 +326,7 @@
     },
     "base_price": 2700,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.0
-      }
+      "npc_envoy"
     ],
     "rarity": "rare"
   },
@@ -464,14 +338,7 @@
     },
     "base_price": 350,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.1
-      }
+      "npc_envoy"
     ],
     "rarity": "common"
   },
@@ -483,14 +350,7 @@
     },
     "base_price": 400,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 1.05
-      }
+      "npc_envoy"
     ],
     "rarity": "common"
   },
@@ -502,14 +362,7 @@
     },
     "base_price": 450,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.1
-      }
+      "npc_envoy"
     ],
     "rarity": "common"
   },
@@ -526,14 +379,7 @@
     },
     "base_price": 950,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_devoted",
-        "price_multiplier": 0.9
-      }
+      "npc_envoy"
     ],
     "rarity": "uncommon"
   },
@@ -550,14 +396,7 @@
     },
     "base_price": 1050,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.05
-      }
+      "npc_envoy"
     ],
     "rarity": "uncommon"
   },
@@ -574,14 +413,7 @@
     },
     "base_price": 1100,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 0.95
-      }
+      "npc_envoy"
     ],
     "rarity": "uncommon"
   },
@@ -608,14 +440,7 @@
     },
     "base_price": 2200,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_devoted",
-        "price_multiplier": 0.85
-      }
+      "npc_envoy"
     ],
     "rarity": "rare"
   },
@@ -642,14 +467,7 @@
     },
     "base_price": 2500,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.0
-      }
+      "npc_envoy"
     ],
     "rarity": "rare"
   },
@@ -670,14 +488,7 @@
     },
     "base_price": 2800,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_devoted",
-        "price_multiplier": 0.85
-      }
+      "npc_envoy"
     ],
     "rarity": "rare"
   },
@@ -689,14 +500,7 @@
     },
     "base_price": 350,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.1
-      }
+      "npc_envoy"
     ],
     "rarity": "common"
   },
@@ -708,14 +512,7 @@
     },
     "base_price": 400,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.1
-      }
+      "npc_envoy"
     ],
     "rarity": "common"
   },
@@ -727,14 +524,7 @@
     },
     "base_price": 450,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 1.05
-      }
+      "npc_envoy"
     ],
     "rarity": "common"
   },
@@ -751,14 +541,7 @@
     },
     "base_price": 900,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 0.95
-      }
+      "npc_envoy"
     ],
     "rarity": "uncommon"
   },
@@ -770,14 +553,7 @@
     },
     "base_price": 1000,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.05
-      }
+      "npc_envoy"
     ],
     "rarity": "uncommon"
   },
@@ -789,14 +565,7 @@
     },
     "base_price": 1100,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_devoted",
-        "price_multiplier": 0.9
-      }
+      "npc_envoy"
     ],
     "rarity": "uncommon"
   },
@@ -823,14 +592,7 @@
     },
     "base_price": 2100,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_devoted",
-        "price_multiplier": 0.85
-      }
+      "npc_envoy"
     ],
     "rarity": "rare"
   },
@@ -852,14 +614,7 @@
     },
     "base_price": 2400,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.0
-      }
+      "npc_envoy"
     ],
     "rarity": "rare"
   },
@@ -886,14 +641,7 @@
     },
     "base_price": 2700,
     "suppliers": [
-      {
-        "faction": "faction_institute",
-        "price_multiplier": 1.0
-      },
-      {
-        "faction": "faction_devoted",
-        "price_multiplier": 0.85
-      }
+      "npc_envoy"
     ],
     "rarity": "rare"
   }

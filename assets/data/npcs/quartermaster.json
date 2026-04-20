@@ -1,0 +1,14 @@
+{
+  "id": "npc_quartermaster",
+  "faction": "faction_garrison",
+  "rank": "veteran",
+  "loadout": [],
+  "unique": true,
+  "respawnable": false,
+  "essential": true,
+  "supplier": {
+    "unlocked_at_start": false,
+    "price_multiplier": 0.9,
+    "delivery_yarn": "delivery_quartermaster"
+  }
+}
