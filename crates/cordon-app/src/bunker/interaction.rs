@@ -35,6 +35,13 @@ pub struct Interactable {
     pub enabled: bool,
 }
 
+/// Opt an interactable out of the "hands full → no interaction"
+/// block applied by `rack::block_non_rack_interactions`. Used by
+/// the visitor-sprite step-away loop, where the whole point of
+/// carrying is to hand the item over.
+#[derive(Component)]
+pub struct InteractableWhileCarrying;
+
 /// Fired on the winning entity when the player presses E.
 #[derive(EntityEvent)]
 pub struct Interact {

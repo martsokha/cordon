@@ -41,7 +41,7 @@ pub fn handle_bunker_arrival(
             );
             continue;
         };
-        let display_name = l10n.get(&template.name_key);
+        let display_name = l10n.get(&template.name_key());
         // PendingYarnNode is required: without it the visitor
         // would admit to an empty-named yarn node, which panics the
         // runner. Skip enqueue if missing — log loudly so the
@@ -65,6 +65,7 @@ pub fn handle_bunker_arrival(
             display_name: display_name.clone(),
             faction: template.faction.clone(),
             yarn_node,
+            template: Some(arrival.template.clone()),
         });
         info!("{display_name} has arrived at the bunker");
         commands
@@ -88,7 +89,7 @@ pub fn handle_home_arrival(
         let name = data
             .0
             .npc_template(&arrival.template)
-            .map(|def| l10n.get(&def.name_key))
+            .map(|def| l10n.get(&def.name_key()))
             .unwrap_or_else(|| arrival.template.as_str().to_string());
 
         let Ok((transform, faction, membership)) = entity_q.get(arrival.entity) else {

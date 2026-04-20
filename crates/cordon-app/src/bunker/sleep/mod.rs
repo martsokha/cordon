@@ -21,6 +21,7 @@ impl Plugin for SleepPlugin {
                 systems::attach_sleep_target,
                 systems::attach_observer,
                 systems::drive_sleep_transition,
+                systems::gate_sleep_while_visitor_waiting,
             )
                 .run_if(in_state(PlayingState::Bunker)),
         );

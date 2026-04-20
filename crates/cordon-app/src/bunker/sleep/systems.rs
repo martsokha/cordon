@@ -9,6 +9,7 @@ use crate::bunker::camera::FpsCamera;
 use crate::bunker::geometry::{Prop, PropPlacement};
 use crate::bunker::interaction::{Interact, Interactable};
 use crate::bunker::resources::{InteractionLocked, MovementLocked};
+use crate::bunker::visitor::VisitorState;
 
 const SLEEP_HOURS: u32 = 8;
 const FADE_OUT_SECS: f32 = 1.5;
@@ -62,6 +63,27 @@ pub(super) fn attach_sleep_target(
 pub(super) fn attach_observer(mut commands: Commands, new: Query<Entity, Added<SleepTarget>>) {
     for entity in &new {
         commands.entity(entity).observe(on_sleep);
+    }
+}
+
+/// Disable the sofa interaction while a visitor is waiting at
+/// the counter. Sleeping with an NPC standing in the bunker
+/// would be narratively strange, and it would also leave the
+/// sergeant sprite parked through the 8-hour time-skip with no
+/// patience / timeout logic to dismiss them.
+pub(super) fn gate_sleep_while_visitor_waiting(
+    state: Res<VisitorState>,
+    mut targets: Query<&mut Interactable, With<SleepTarget>>,
+) {
+    if !state.is_changed() {
+        return;
+    }
+    let should_disable = matches!(
+        *state,
+        VisitorState::Knocking { .. } | VisitorState::Inside { .. } | VisitorState::Waiting { .. }
+    );
+    for mut interactable in &mut targets {
+        interactable.enabled = !should_disable;
     }
 }
 

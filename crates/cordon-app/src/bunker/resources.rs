@@ -47,10 +47,10 @@ pub enum CameraMode {
     /// Smoothly turn (rotation only) to face a world-space point.
     /// Used while a visitor is inside the bunker. The position is
     /// untouched — the player stays where they were standing.
-    LookingAt {
-        target: Vec3,
-        saved_transform: Transform,
-    },
+    /// No saved transform: dialogue-end transitions leave the
+    /// camera where it is rather than snapping back to the
+    /// admit-time pose.
+    LookingAt { target: Vec3 },
     /// Player is studying the CCTV feed in fullscreen. The CCTV
     /// camera takes over the window and the FPS camera goes
     /// inactive until the player presses E or Esc.
@@ -332,7 +332,19 @@ pub enum CurrentDialogue {
 pub struct DialogueOptionView {
     pub id: OptionId,
     pub text: String,
+    /// Yarn-evaluated `<<if>>` truth. `false` means the option
+    /// was authored with a condition that failed (e.g. gated on
+    /// `$carrying`). The UI renders unavailable options greyed
+    /// and refuses clicks unless [`hide_when_unavailable`] is
+    /// also set, in which case the option is skipped entirely.
     pub available: bool,
+    /// `true` when the authored line carries the `#hide`
+    /// metadata tag. Combined with `available = false`, tells
+    /// the UI to skip the option rather than show it greyed —
+    /// for trade contexts where we want *one* of two paired
+    /// options to appear based on state (e.g. "Here, take this"
+    /// vs. "I've got one in the back").
+    pub hide_when_unavailable: bool,
 }
 
 /// Sent by upstream code (the visitor module) to begin a conversation

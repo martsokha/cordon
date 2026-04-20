@@ -1,12 +1,13 @@
-//! Visitor lifecycle: queue, knocking, admit, dialogue, dismiss.
+//! Visitor lifecycle: queue, knocking, admit, dialogue, dismiss,
+//! step-away / resume.
 //!
 //! Split into:
 //! - [`state`] — public types (`Visitor`, `VisitorQueue`,
-//!   `VisitorState`, `AdmitVisitor`).
+//!   `VisitorState`, `AdmitVisitor`, `PendingStepAway`).
 //! - [`lifecycle`] — state-machine transition systems (arrive,
-//!   admit, dismiss, preview despawn).
+//!   admit, dismiss-or-wait, preview despawn, resume-on-interact).
 //! - [`audio`] — door SFX (alarm, open, close).
-//! - [`ui`] — button glow, cursor lock, interaction observer.
+//! - [`ui`] — door button glow, cursor lock.
 
 mod audio;
 mod lifecycle;
@@ -15,6 +16,7 @@ mod ui;
 
 use bevy::prelude::*;
 use cordon_data::gamedata::GameDataResource;
+pub use lifecycle::reset_visitor_state;
 pub use state::{Visitor, VisitorQueue, VisitorState};
 pub use ui::DoorButton;
 
@@ -49,10 +51,12 @@ impl Plugin for VisitorPlugin {
             Update,
             (
                 lifecycle::apply_admit_visitor,
+                lifecycle::update_waiting_interactable,
                 ui::update_button_glow,
                 ui::update_button_enabled,
                 ui::update_cursor_lock,
                 ui::attach_door_observer,
+                attach_visitor_interact_observer,
             )
                 .run_if(in_state(PlayingState::Bunker)),
         );
@@ -62,6 +66,38 @@ impl Plugin for VisitorPlugin {
         // alternative is three separate `OnEnter` hooks that all
         // only fire on the transition edge, which is brittle.
         app.add_systems(Update, silence_alarm_during_overlays);
+    }
+}
+
+/// Attach the visitor-interact observer to the sprite the
+/// moment it enters `Waiting`. A single observer is bound per
+/// sprite; the sprite is despawned on dismiss, so the observer
+/// goes with it. `already_attached` remembers the sprite entity
+/// we last observed so we don't double-bind if the state
+/// change-detect fires without the sprite actually changing
+/// (e.g. on re-entry from Inside → Waiting with the same sprite).
+fn attach_visitor_interact_observer(
+    mut commands: Commands,
+    state: Res<state::VisitorState>,
+    mut already_attached: Local<Option<Entity>>,
+) {
+    if !state.is_changed() {
+        return;
+    }
+    match &*state {
+        state::VisitorState::Waiting { sprite, .. } => {
+            if *already_attached == Some(*sprite) {
+                return;
+            }
+            commands
+                .entity(*sprite)
+                .observe(lifecycle::on_visitor_interact);
+            *already_attached = Some(*sprite);
+        }
+        state::VisitorState::Quiet => {
+            *already_attached = None;
+        }
+        _ => {}
     }
 }
 

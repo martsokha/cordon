@@ -8,7 +8,7 @@
       "id": "intro",
       "kind": "talk",
       "npc": "npc_garrison_sergeant",
-      "yarn_node": "sergeant.intro",
+      "yarn_node": "sergeant_intro",
       "branches": [
         {
           "choice": "accept",

@@ -34,11 +34,14 @@ bevy_hanabi = { version = "0.18", features = [] }
 bevy_rand = { version = "0.14", features = ["wyrand"] }
 bevy_prng = { version = "0.14", features = ["wyrand"] }
 
-# Localization and dialogue
+# Localization
 bevy_fluent = { version = "0.14", features = [] }
 fluent_content = { version = "0.0.5", features = [] }
 unic-langid = { version = "0.9", features = [] }
+
+# Dialogue
 bevy_yarnspinner = { version = "0.8", features = [] }
+yarnspinner = { version = "0.8", features = [] }
 
 # Physics
 avian3d = { version = "0.6", features = [] }

@@ -155,7 +155,7 @@ mod tests {
                 id: Id::new("intro"),
                 kind: QuestStageKind::Talk(TalkStage {
                     npc: talk_npc,
-                    yarn_node: "q_test.intro".to_string(),
+                    yarn_node: "q_test_intro".to_string(),
                     branches: vec![TalkBranch {
                         choice: "accept".to_string(),
                         next_stage: Id::new("done"),

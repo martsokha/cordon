@@ -16,10 +16,16 @@ impl Plugin for InputPlugin {
         app.add_plugins(controller::ControllerPlugin);
         footsteps::plugin(app);
         app.add_systems(OnEnter(PlayingState::Bunker), systems::grab_cursor);
-        app.add_systems(OnEnter(PlayingState::Laptop), systems::hide_interact_prompt);
-        // Release the cursor whenever a menu overlay takes over so the
-        // player can click the buttons. The laptop state already
-        // handles its own cursor via the laptop UI.
+        // Laptop is a UI-driven state: the cursor needs to be free
+        // so the player can click tabs and interact with widgets.
+        // Also hide the FPS interact prompt so it doesn't bleed
+        // through the laptop view.
+        app.add_systems(
+            OnEnter(PlayingState::Laptop),
+            (systems::release_cursor, systems::hide_interact_prompt),
+        );
+        // Release the cursor whenever a menu overlay takes over so
+        // the player can click the buttons.
         app.add_systems(OnEnter(AppState::Menu), systems::release_cursor);
         app.add_systems(OnEnter(AppState::Ending), systems::release_cursor);
         app.add_systems(OnEnter(PauseState::Paused), systems::release_cursor);

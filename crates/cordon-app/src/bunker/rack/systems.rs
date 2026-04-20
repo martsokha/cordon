@@ -11,7 +11,7 @@ use super::components::*;
 use super::shelf_prop::ShelfProp;
 use crate::bunker::camera::FpsCamera;
 use crate::bunker::geometry::{Prop, PropPlacement};
-use crate::bunker::interaction::{Interact, Interactable};
+use crate::bunker::interaction::{Interact, Interactable, InteractableWhileCarrying};
 use crate::locale::L10n;
 
 /// In camera-local space: centred, below the crosshair, forward.
@@ -116,9 +116,16 @@ pub(super) fn update_slot_prompts(
 
 /// Disable non-rack interactables while the player is carrying.
 /// Re-enables them when hands are empty.
+///
+/// [`InteractableWhileCarrying`] opts an entity out of the block
+/// — used by the visitor-sprite trade loop, where carrying is a
+/// precondition rather than a disqualifier.
 pub(super) fn block_non_rack_interactions(
     carrying: Res<Carrying>,
-    mut interactables: Query<&mut Interactable, Without<RackSlot>>,
+    mut interactables: Query<
+        &mut Interactable,
+        (Without<RackSlot>, Without<InteractableWhileCarrying>),
+    >,
 ) {
     if !carrying.is_changed() {
         return;

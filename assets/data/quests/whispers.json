@@ -8,7 +8,7 @@
       "id": "visit",
       "kind": "talk",
       "npc": "npc_tenant",
-      "yarn_node": "tenant.whispers",
+      "yarn_node": "tenant_whispers",
       "branches": [],
       "fallback": "completed"
     },

@@ -67,11 +67,14 @@ bevy_rand = { workspace = true, features = [] }
 bevy_prng = { workspace = true, features = [] }
 rand = { workspace = true, features = [] }
 
-# Localization and dialogue
+# Localization
 bevy_fluent = { workspace = true, features = [] }
 fluent_content = { workspace = true, features = [] }
 unic-langid = { workspace = true, features = [] }
+
+# Dialogue
 bevy_yarnspinner = { workspace = true, features = [] }
+yarnspinner = { workspace = true, features = [] }
 
 # Physics
 avian3d = { workspace = true, features = [] }

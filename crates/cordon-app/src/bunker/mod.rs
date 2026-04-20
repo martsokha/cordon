@@ -33,7 +33,7 @@ pub use self::resources::{BunkerSpawned, CameraMode};
 // only consumer of `VisitorState` outside this module.
 #[cfg(feature = "steam")]
 pub use self::visitor::VisitorState;
-pub use self::visitor::{Visitor, VisitorQueue};
+pub use self::visitor::{Visitor, VisitorQueue, reset_visitor_state};
 use crate::{AppState, PauseState, PlayingState};
 
 pub struct BunkerPlugin;

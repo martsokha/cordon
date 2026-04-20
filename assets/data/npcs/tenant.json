@@ -1,6 +1,5 @@
 {
   "id": "npc_tenant",
-  "name_key": "npc-tenant",
   "faction": "faction_drifters",
   "rank": "veteran",
   "loadout": [],

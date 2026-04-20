@@ -35,6 +35,7 @@ interact-sleep = Sleep
 interact-pills = Take pills
 interact-cctv = View camera
 interact-door = Open door
+interact-visitor = Talk
 interact-radio-on = Turn on radio
 interact-radio-off = Turn off radio
 interact-rack-take = Take { $item }

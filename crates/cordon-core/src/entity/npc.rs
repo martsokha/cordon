@@ -41,8 +41,6 @@ impl IdMarker for NpcTemplate {}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NpcTemplateDef {
     pub id: Id<NpcTemplate>,
-    /// Localization key for the display name, resolved at render time.
-    pub name_key: String,
     pub faction: Id<Faction>,
     /// Base rank — actual spawn XP is randomized within this tier.
     pub rank: Rank,
@@ -63,6 +61,16 @@ pub struct NpcTemplateDef {
     /// characters who must survive to fulfil their narrative role.
     #[serde(default)]
     pub essential: bool,
+}
+
+impl NpcTemplateDef {
+    /// Localization key for the display name, derived from the
+    /// template id by Fluent-casing (`_` → `-`). The name
+    /// convention is stable across the codebase — see the
+    /// `npc-*` keys in `names.ftl`.
+    pub fn name_key(&self) -> String {
+        self.id.as_str().replace('_', "-")
+    }
 }
 
 fn default_true() -> bool {

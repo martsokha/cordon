@@ -1,64 +1,55 @@
 //! The concrete glue between quest state and the dialogue runner.
 //!
-//! Two entry points:
+//! Three entry points:
 //!
 //! - [`enqueue_talk_dialogue`] runs every frame in the bunker
 //!   state. For each active quest parked on a `Talk` stage
-//!   that hasn't been dispatched yet, it either (a) pushes a
-//!   [`Visitor`] onto [`VisitorQueue`] when the stage has an
-//!   NPC, or (b) fires [`StartDialogue`] directly for
-//!   narrator-only stages. The bridge-owned
+//!   that hasn't been dispatched yet, fires either
+//!   [`SpawnNpcRequest`] (template NPC walks to the bunker) or
+//!   [`StartDialogue`] (narrator-only). The bridge-owned
 //!   [`DialogueInFlight`] slot is set at dispatch so the same
-//!   stage isn't double-dispatched while a template NPC is
+//!   stage isn't double-dispatched while the visitor is
 //!   still travelling.
-//! - [`on_dialogue_completed`] is a Bevy observer on
-//!   `NodeCompleted`. It matches the just-ended yarn node
-//!   against the active quests' current Talk stages and only
-//!   acts on an exact match — so unrelated dialogue nodes
-//!   (e.g. a visitor's trade line that happens to finish
-//!   while a quest NPC is travelling) don't advance the
-//!   wrong quest.
+//! - [`quest_advance_command`] is the yarn-callable
+//!   `<<quest_advance "branch">>` command. The yarn author
+//!   calls it from within the Talk stage's yarn node at the
+//!   moment the player's choice should commit the quest (e.g.
+//!   inside an option body). The command identifies the quest
+//!   by looking up whichever active quest has a Talk stage
+//!   whose `yarn_node` matches the currently-executing node —
+//!   no quest id in the yarn source.
+//! - [`clear_in_flight_on_dialogue_end`] clears
+//!   [`DialogueInFlight`] when yarnspinner fires
+//!   `DialogueCompleted` (whole conversation ended). That's
+//!   the only thing that frees the dispatch gate now.
 //!
 //! Dialogue is strictly serial: at any moment there is at most
 //! one quest's Talk stage dispatched. The visitor queue keeps
 //! visitor-driven dialogue serial; narrator-only stages only
 //! dispatch when the slot is already empty.
 
+use bevy::ecs::system::In;
 use bevy::prelude::*;
-use bevy_yarnspinner::events::NodeCompleted;
-use bevy_yarnspinner::prelude::{DialogueRunner, YarnValue};
-use cordon_core::entity::faction::Faction;
+use bevy_yarnspinner::events::DialogueCompleted;
+use bevy_yarnspinner::prelude::DialogueRunner;
 use cordon_core::primitive::Id;
 use cordon_core::world::narrative::{Quest, QuestStageKind};
 use cordon_data::gamedata::GameDataResource;
-use cordon_sim::entity::npc::TemplateId;
 use cordon_sim::plugin::prelude::QuestLog;
-use cordon_sim::quest::messages::{DismissTemplateNpc, SpawnNpcRequest, TalkCompleted};
+use cordon_sim::quest::messages::{SpawnNpcRequest, TalkCompleted};
 
 use crate::bunker::resources::StartDialogue;
-use crate::bunker::{Visitor, VisitorQueue};
 
 /// Bridge-owned dialogue dispatch gate.
 ///
 /// Holds the ID of the quest whose `Talk` stage was most
-/// recently dispatched, or `None` once the dialogue has
-/// actually ended. Single-slot because yarn dialogue is serial
-/// — a second `Talk` stage cannot dispatch while this slot is
-/// occupied. Cleared by the `NodeCompleted` observer on the
-/// frame the matching yarn node finishes; never cleared by
-/// unrelated node completions.
+/// recently dispatched, or `None` once the conversation has
+/// ended. Single-slot because yarn dialogue is serial — a
+/// second `Talk` stage cannot dispatch while this slot is
+/// occupied. Cleared only by [`clear_in_flight_on_dialogue_end`]
+/// on `DialogueCompleted`.
 #[derive(Resource, Debug, Default)]
 pub struct DialogueInFlight(pub Option<Id<Quest>>);
-
-/// Yarn variable name the bridge treats as "the player's choice"
-/// when deciding which `Talk` branch to follow. A Yarn node
-/// writes this inside the option the player picked:
-///
-/// ```yarn
-/// -> I'll help.
-///     <<set $quest_choice = "accept">>
-/// ```
-const CHOICE_VAR: &str = "$quest_choice";
 
 /// Prefix used to filter which Yarn variables get captured back
 /// into the quest flag bag. Everything that matches is copied
@@ -67,20 +58,18 @@ const CHOICE_VAR: &str = "$quest_choice";
 const FLAG_PREFIX: &str = "$quest_";
 
 /// Dispatch `Talk` stages to the dialogue runner. For each
-/// active quest parked on a fresh `Talk` stage, either enqueue
-/// a [`Visitor`] (when the stage has an NPC — the normal case)
-/// or fire [`StartDialogue`] directly (narrator-only). In both
-/// cases the quest ID is latched into [`DialogueInFlight`] so
-/// the same stage isn't dispatched twice.
+/// active quest parked on a fresh `Talk` stage, either fire a
+/// [`SpawnNpcRequest`] so the NPC travels to the bunker (the
+/// normal case) or fire [`StartDialogue`] directly for narrator-
+/// only stages. In both cases the quest ID is latched into
+/// [`DialogueInFlight`] so the same stage isn't dispatched twice.
 ///
-/// Narrator-only dialogue bypasses the visitor queue entirely
-/// and only dispatches when the in-flight slot is empty — a
-/// visitor-driven dialogue already running will always
-/// complete first.
-pub fn enqueue_talk_dialogue(
+/// Narrator-only dialogue only dispatches when the in-flight
+/// slot is empty — a visitor-driven dialogue already running
+/// will always complete first.
+pub(super) fn enqueue_talk_dialogue(
     log: Res<QuestLog>,
     data: Res<GameDataResource>,
-    mut queue: ResMut<VisitorQueue>,
     mut in_flight: ResMut<DialogueInFlight>,
     mut start_dialogue: MessageWriter<StartDialogue>,
     mut spawn_npc: MessageWriter<SpawnNpcRequest>,
@@ -104,13 +93,13 @@ pub fn enqueue_talk_dialogue(
         let yarn_node = &talk.yarn_node;
 
         // Visitor-driven path: stage or quest names an NPC
-        // template. If it resolves to a real catalog template,
-        // fire a SpawnNpcRequest with the yarn node attached —
-        // the NPC walks from its faction settlement to the
-        // bunker, and the arrival handler enqueues the Visitor.
-        // If it does not resolve, fall back to the legacy
-        // "synthesize a visitor from quest.giver" path so
-        // string-tagged quests keep working.
+        // template. Fire a SpawnNpcRequest with the yarn node
+        // attached — the NPC walks from its faction settlement to
+        // the bunker, and the arrival handler enqueues the
+        // Visitor. An unknown template id is an authoring error
+        // (quest json references a non-existent NPC); log it and
+        // fall through to the narrator path so the stage still
+        // advances instead of silently hanging.
         if let Some(template) = stage_npc.as_ref().or(def.giver.as_ref()) {
             if catalog.npc_template(template).is_some() {
                 // Re-dispatch is safe: if the template is already
@@ -135,23 +124,13 @@ pub fn enqueue_talk_dialogue(
                 );
                 return;
             }
-            let faction = def
-                .giver_faction
-                .clone()
-                .unwrap_or_else(|| Id::<Faction>::new("faction_drifters"));
-            queue.0.push_back(Visitor {
-                display_name: template.as_str().to_string(),
-                faction,
-                yarn_node: yarn_node.clone(),
-            });
-            in_flight.0 = Some(active.def_id.clone());
-            info!(
-                "quest `{}` enqueued legacy visitor `{}` for Talk stage `{}`",
+            error!(
+                "quest `{}` Talk stage `{}` references unknown NPC template `{}`; \
+                 fix the quest json or register the template",
                 active.def_id.as_str(),
-                template.as_str(),
-                active.current_stage.as_str()
+                active.current_stage.as_str(),
+                template.as_str()
             );
-            return;
         }
 
         // Narrator path: no NPC, fire the yarn node directly
@@ -173,107 +152,110 @@ pub fn enqueue_talk_dialogue(
     }
 }
 
-/// Bevy observer: `NodeCompleted` fires once Yarn has finished
-/// running a specific node and carries that node's name.
+/// Yarn-callable command: `<<quest_advance "branch">>`.
 ///
-/// Looks up the active quest whose current Talk stage's
-/// `yarn_node` matches the just-ended node, drains the runner's
-/// Yarn variables into that quest's flag bag, and advances the
-/// stage. Matching by node name (instead of a single-slot
-/// `DialogueInFlight`) prevents a race where some *other*
-/// dialogue ending between the SpawnNpcRequest and the actual
-/// Talk arrival drains the slot for the wrong quest.
-pub fn on_dialogue_completed(
-    event: On<NodeCompleted>,
+/// The yarn author calls this from within a Talk-stage yarn
+/// node at the moment the player's choice should commit the
+/// quest. The command identifies the quest by looking up which
+/// active quest has a Talk stage whose `yarn_node` matches the
+/// currently-executing node — no quest id needs to appear in
+/// the yarn source. If no active quest's Talk stage claims the
+/// current node, the command warns and no-ops (yarn may be
+/// running for a non-quest reason, e.g. casual trade).
+///
+/// **Ordering relative to `<<jump>>`**: call `quest_advance`
+/// *before* any `<<jump>>` in the same option body. A jump
+/// switches the runner's `current_node()` immediately, so a
+/// post-jump `quest_advance` would resolve against the
+/// destination node (probably not a Talk stage) and no-op.
+///
+/// What it does:
+///
+/// - Drains `$quest_*` yarn variables (other than the choice
+///   itself) into the quest's flag bag so later stages can
+///   branch on them.
+/// - Emits [`TalkCompleted`] with the branch choice; the sim
+///   layer advances the stage in response.
+///
+/// Notably does NOT dismiss the template NPC. The sim NPC
+/// stays in the bunker until the bunker-side conversation
+/// actually ends — the visitor lifecycle fires
+/// [`DismissTemplateNpc`] when the sprite despawns. That keeps
+/// the sprite and the sim entity visibly paired: they appear
+/// together at admit time, and leave together at end-of-trade.
+///
+/// Does NOT clear [`DialogueInFlight`] — that happens when the
+/// whole conversation ends (see [`clear_in_flight_on_dialogue_end`]).
+pub(super) fn quest_advance_command(
+    In(choice): In<String>,
     mut log: ResMut<QuestLog>,
     data: Res<GameDataResource>,
-    mut in_flight: ResMut<DialogueInFlight>,
-    mut dismiss: MessageWriter<DismissTemplateNpc>,
     mut talk_completed: MessageWriter<TalkCompleted>,
     runner_q: Query<&DialogueRunner>,
-    template_q: Query<(Entity, &TemplateId)>,
 ) {
-    let node_name = &event.node_name;
-    // Find the active quest whose current Talk stage ran this
-    // yarn node. If no match, the node was unrelated to any
-    // quest — do nothing.
+    let Ok(runner) = runner_q.single() else {
+        warn!("quest_advance `{choice}`: no DialogueRunner entity");
+        return;
+    };
+    let Some(current_node) = runner.current_node() else {
+        warn!("quest_advance `{choice}`: runner has no current node");
+        return;
+    };
+
+    // Find the active quest whose current Talk stage targets
+    // the currently-executing yarn node. A non-match is OK —
+    // yarn may be running this node for a non-quest reason
+    // (casual trade, tutorial, etc.).
     let quest_id = log.active.iter().find_map(|active| {
         let def = data.0.quests.get(&active.def_id)?;
         let stage = def.stage(&active.current_stage)?;
         match &stage.kind {
-            QuestStageKind::Talk(talk) if talk.yarn_node == *node_name => {
+            QuestStageKind::Talk(talk) if talk.yarn_node == current_node => {
                 Some(active.def_id.clone())
             }
             _ => None,
         }
     });
     let Some(quest_id) = quest_id else {
+        warn!(
+            "quest_advance `{choice}`: no active quest claims yarn node `{current_node}`; \
+             command ignored"
+        );
         return;
     };
-    // Release the dispatch gate — this is the only place a
-    // quest's in-flight slot is cleared now.
-    if in_flight.0.as_ref() == Some(&quest_id) {
-        in_flight.0 = None;
-    }
 
-    // Dismiss the template NPC that just finished talking.
-    let dismissed_template = log
-        .active_instance(&quest_id)
-        .and_then(|active| data.0.quests.get(&active.def_id).map(|def| (active, def)))
-        .and_then(|(active, def)| def.stage(&active.current_stage))
-        .and_then(|stage| match &stage.kind {
-            QuestStageKind::Talk(talk) => talk.npc.clone(),
-            _ => None,
-        });
-    if let Some(template_id) = dismissed_template {
-        for (entity, tid) in &template_q {
-            if tid.0 == template_id {
-                dismiss.write(DismissTemplateNpc {
-                    entity,
-                    template: template_id.clone(),
-                });
-                info!(
-                    "quest `{}`: template `{}` dismissed after dialogue",
-                    quest_id.as_str(),
-                    template_id.as_str()
-                );
-                break;
-            }
-        }
-    }
-
-    // Drain Yarn variables into the quest's flag bag.
-    let Ok(runner) = runner_q.single() else {
-        warn!("DialogueCompleted: no dialogue runner entity found");
-        return;
-    };
+    // Drain `$quest_*` yarn variables into the quest's flag
+    // bag (excluding the choice itself, which travels as an
+    // explicit `TalkCompleted` field).
     let variables = runner.variable_storage().variables();
-
-    let mut captured_choice: Option<String> = None;
     if let Some(active) = log.active_instance_mut(&quest_id) {
         for (name, value) in variables {
             if !name.starts_with(FLAG_PREFIX) {
                 continue;
             }
-            if name == CHOICE_VAR
-                && let YarnValue::String(s) = &value
-            {
-                captured_choice = Some(s.clone());
-            }
             active.flags.insert(name, value);
         }
     } else {
         warn!(
-            "DialogueCompleted: quest `{}` not in active log",
+            "quest_advance `{choice}`: quest `{}` not in active log",
             quest_id.as_str()
         );
         return;
     }
 
-    // Emit message — the sim-side drive system handles the
-    // stage advance.
     talk_completed.write(TalkCompleted {
         quest: quest_id,
-        choice: captured_choice,
+        choice: Some(choice),
     });
+}
+
+/// Observer on `DialogueCompleted`: clear the dispatch gate so
+/// the next Talk stage can dispatch. Fires once per whole-
+/// conversation end (not per node), regardless of whether
+/// `quest_advance` was ever called during the conversation.
+pub(super) fn clear_in_flight_on_dialogue_end(
+    _event: On<DialogueCompleted>,
+    mut in_flight: ResMut<DialogueInFlight>,
+) {
+    in_flight.0 = None;
 }

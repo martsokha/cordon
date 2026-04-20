@@ -11,15 +11,17 @@
 //! - [`bridge::enqueue_talk_dialogue`] — when a quest enters a
 //!   `Talk` stage, either emits a `SpawnNpcRequest` (for template
 //!   NPCs — the sim then walks the NPC to the bunker and a
-//!   `BunkerArrival` pushes the `Visitor` onto the bunker queue),
-//!   pushes a synthesized `Visitor` for string-tagged quests, or
-//!   writes `StartDialogue` for narrator-only `Talk` stages.
-//! - [`bridge::on_dialogue_completed`] — observer on
-//!   `NodeCompleted` that matches the completed yarn node
-//!   against the active quests' current Talk stages, drains
-//!   `$quest_*` Yarn variables into the active quest's flags,
-//!   emits `TalkCompleted` back to the sim, and clears the
-//!   in-flight slot so the next `Talk` stage can dispatch.
+//!   `BunkerArrival` pushes the `Visitor` onto the bunker queue)
+//!   or writes `StartDialogue` for narrator-only `Talk` stages.
+//! - [`bridge::quest_advance_command`] is registered as the
+//!   yarn-callable `<<quest_advance "branch">>`. Yarn authors
+//!   call it inside the Talk stage's node to commit the
+//!   player's choice; the command drains `$quest_*` flags and
+//!   emits `TalkCompleted` back to the sim.
+//! - [`bridge::clear_in_flight_on_dialogue_end`] observes
+//!   `DialogueCompleted` and releases the
+//!   [`bridge::DialogueInFlight`] dispatch gate so the next
+//!   Talk stage can dispatch.
 //! - [`arrival::handle_bunker_arrival`] / [`arrival::handle_home_arrival`]
 //!   — view-layer glue between the sim's travel messages and the
 //!   bunker's visitor queue / idle-squad setup.
@@ -32,12 +34,18 @@ use cordon_data::gamedata::GameDataResource;
 use cordon_sim::resources::FactionSettlements;
 
 pub use self::bridge::DialogueInFlight;
+use crate::bunker::dialogue::AppYarnCommandExt;
 
 pub struct QuestBridgePlugin;
 
 impl Plugin for QuestBridgePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<DialogueInFlight>();
+        // Register the `<<quest_advance "branch">>` yarn
+        // command. The dialogue plugin's shared
+        // `YarnCommandRegistry` picks this up when it spawns
+        // the runner — see `bunker::dialogue::registry`.
+        app.add_yarn_command("quest_advance", bridge::quest_advance_command);
         // Runs in any PlayingState — template-NPC travel and
         // visitor-queue pushes must happen even while the player is
         // at the laptop, so the door alarm rings and quests can chain
@@ -51,7 +59,7 @@ impl Plugin for QuestBridgePlugin {
             Update,
             bridge::enqueue_talk_dialogue.run_if(resource_exists::<GameDataResource>),
         );
-        app.add_observer(bridge::on_dialogue_completed);
+        app.add_observer(bridge::clear_in_flight_on_dialogue_end);
         app.add_systems(
             Update,
             (arrival::handle_bunker_arrival, arrival::handle_home_arrival)

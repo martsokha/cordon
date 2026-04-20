@@ -239,25 +239,52 @@ fn sync_dialogue_ui(
         }
         CurrentDialogue::Options { lines } => {
             *panel_vis = Visibility::Visible;
-            // Clear the speaker + text rows: option mode means we're
-            // waiting on the player. Yarn fires PresentLine for the
-            // line *before* options, so the previous line text is
-            // already on screen — leave it as-is.
-            for (i, opt) in lines.iter().enumerate() {
-                let label = format!("[{}] ▸ {}", i + 1, opt.text);
+            // Clear the previous line's text so an orphan line
+            // from a just-completed branch (e.g. "Appreciate
+            // it.") doesn't linger over the fresh option list.
+            // Yarn authors who want a prompt header for an
+            // options block should author it as its own line
+            // (user clicks Continue, then the options fire) —
+            // rather than relying on a stale preceding line.
+            speaker.0 = String::new();
+            text.0 = String::new();
+            //
+            // Options tagged `#hide` by the yarn author are skipped
+            // when they'd be greyed out — used to replace "I've got
+            // one in the back" with "Here, take this" based on
+            // `$carrying`, rather than showing both side-by-side.
+            // `original_i` is preserved so click/key handlers can
+            // still index back into `lines` on selection.
+            for (visible_i, (original_i, opt)) in visible_options(lines).enumerate() {
+                let label = format!("[{}] ▸ {}", visible_i + 1, opt.text);
                 spawn_choice_button(
                     &mut commands,
                     row_entity,
                     font.clone(),
                     &label,
                     DialogueChoiceButton {
-                        index: Some(i),
+                        index: Some(original_i),
                         available: opt.available,
                     },
                 );
             }
         }
     }
+}
+
+/// Iterate options that should actually render, yielding each with
+/// its index in the original `lines` list so downstream handlers
+/// can look up the [`DialogueOptionView::id`]. `#hide`-tagged
+/// options that failed their `<<if>>` guard are filtered out —
+/// everything else (including plain unavailable options) passes
+/// through and gets rendered greyed.
+fn visible_options(
+    lines: &[crate::bunker::resources::DialogueOptionView],
+) -> impl Iterator<Item = (usize, &crate::bunker::resources::DialogueOptionView)> {
+    lines
+        .iter()
+        .enumerate()
+        .filter(|(_, opt)| !opt.hide_when_unavailable || opt.available)
 }
 
 fn spawn_choice_button(
@@ -368,7 +395,12 @@ fn handle_choice_keys(
             }
         }
         CurrentDialogue::Options { lines } => {
-            let Some(opt) = lines.get(pressed) else {
+            // Index into the *visible* option list — same order
+            // the UI renders, which matches the `[n]` labels the
+            // player sees. `#hide`-tagged unavailable options are
+            // skipped so the numeric shortcuts don't drift off
+            // the visible labels.
+            let Some((_, opt)) = visible_options(lines).nth(pressed) else {
                 return;
             };
             if !opt.available {

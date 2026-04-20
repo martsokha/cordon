@@ -2467,6 +2467,7 @@ dependencies = [
  "rand 0.10.1",
  "strum",
  "unic-langid",
+ "yarnspinner",
 ]
 
 [[package]]

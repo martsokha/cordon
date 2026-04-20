@@ -11,7 +11,7 @@
 //! the upstream `BunkerArrival` / `HomeArrival` messages in
 //! `travel.rs`.
 //!
-//! Logs here use the raw `name_key` rather than a localized
+//! Logs here use the raw template id rather than a localized
 //! display name — localization is a view-layer concern and we
 //! don't pull L10n into the sim.
 //!
@@ -129,7 +129,7 @@ pub fn handle_spawn_npc_requests(
                 entity_cmds.insert(PendingYarnNode(yarn));
             }
 
-            info!("template `{}` heading back to bunker", def.name_key);
+            info!("template `{}` heading back to bunker", def.id.as_str());
             continue;
         }
 
@@ -166,7 +166,7 @@ pub fn handle_spawn_npc_requests(
             id: npc_uid,
             name: NpcName {
                 format: NameFormat::Alias,
-                first: def.name_key.clone(),
+                first: def.name_key(),
                 second: None,
             },
             faction: FactionId(def.faction.clone()),
@@ -308,7 +308,6 @@ pub fn handle_give_npc_xp_requests(
 pub fn handle_template_dismissal(
     mut commands: Commands,
     mut requests: MessageReader<DismissTemplateNpc>,
-    data: Res<GameDataResource>,
     dismissed_q: Query<(&Transform, &SpawnOrigin, &FactionId)>,
     mut uids: ResMut<UidAllocator>,
     mut squad_index: ResMut<SquadIdIndex>,
@@ -358,12 +357,7 @@ pub fn handle_template_dismissal(
                 slot: 0,
             });
 
-        let name_key = data
-            .0
-            .npc_template(&req.template)
-            .map(|def| def.name_key.as_str())
-            .unwrap_or_else(|| req.template.as_str());
-        info!("template `{name_key}` heading home");
+        info!("template `{}` heading home", req.template.as_str());
     }
 }
 

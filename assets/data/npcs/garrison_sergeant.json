@@ -1,6 +1,5 @@
 {
   "id": "npc_garrison_sergeant",
-  "name_key": "npc-garrison-sergeant",
   "faction": "faction_garrison",
   "rank": "veteran",
   "loadout": [
