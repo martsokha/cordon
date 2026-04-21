@@ -6,11 +6,9 @@
 //! [`assemble_player_state`] collects the subset that belongs in
 //! a save snapshot.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
-use std::collections::HashSet;
-
 use cordon_core::entity::bunker::{Upgrade, UpgradeDef, UpgradeEffect};
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::npc::NpcTemplate;

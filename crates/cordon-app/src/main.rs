@@ -7,12 +7,12 @@
 mod bunker;
 #[cfg(all(debug_assertions, feature = "development"))]
 mod dev;
-mod fonts;
 mod laptop;
 mod lifecycle;
 mod locale;
 mod menu;
 mod quest;
+mod ui;
 #[cfg(feature = "steam")]
 pub mod steam;
 
@@ -81,7 +81,8 @@ fn main() {
         ready: AppState::Menu,
     })
     .add_plugins(locale::LocalePlugin)
-    .add_plugins(fonts::FontsPlugin)
+    .add_plugins(ui::FontsPlugin)
+    .add_plugins(ui::UiScalePlugin)
     .add_plugins(avian3d::PhysicsPlugins::default())
     .add_plugins(bevy_hanabi::HanabiPlugin)
     .insert_resource(avian3d::prelude::Gravity(Vec3::ZERO))

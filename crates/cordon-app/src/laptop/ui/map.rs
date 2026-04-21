@@ -6,7 +6,7 @@ use cordon_sim::resources::GameClock;
 
 use super::{LaptopTab, MapWorldEntity};
 use crate::PlayingState;
-use crate::fonts::UiFont;
+use crate::ui::UiFont;
 use crate::laptop::LaptopCamera;
 use crate::laptop::input::CameraTarget;
 use crate::laptop::map::Bunker;

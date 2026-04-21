@@ -8,7 +8,7 @@ use bevy::prelude::*;
 use super::style::{MenuButton, OverlayButton, spawn_overlay};
 use crate::AppState;
 use crate::bunker::FpsCamera;
-use crate::fonts::UiFont;
+use crate::ui::UiFont;
 
 #[derive(Component)]
 struct MainMenuRoot;

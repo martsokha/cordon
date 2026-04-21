@@ -26,7 +26,7 @@ use cordon_data::gamedata::GameDataResource;
 
 use self::tooltip::build_area_info;
 use crate::AppState;
-use crate::fonts::UiFont;
+use crate::ui::UiFont;
 pub use crate::laptop::ui::MapWorldEntity;
 use crate::laptop::ui::spawn_ui;
 use crate::locale::L10n;

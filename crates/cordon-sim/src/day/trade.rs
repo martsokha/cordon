@@ -24,9 +24,7 @@ use super::DayRolled;
 use crate::quest::messages::{
     OrderFailed, OrderFailure, OrderPlaced, PlaceOrderRequest, SpawnNpcRequest,
 };
-use crate::resources::{
-    GameClock, PendingOrder, PendingOrders, PlayerIdentity, PlayerSuppliers,
-};
+use crate::resources::{GameClock, PendingOrder, PendingOrders, PlayerIdentity, PlayerSuppliers};
 
 /// Consume [`PlaceOrderRequest`] messages and either queue the
 /// order (emitting [`OrderPlaced`]) or reject it (emitting

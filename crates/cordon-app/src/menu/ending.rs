@@ -14,7 +14,7 @@ use cordon_sim::quest::EndGameRequest;
 use super::style::{MenuButton, OverlayButton, spawn_overlay};
 use crate::AppState;
 use crate::bunker::FpsCamera;
-use crate::fonts::UiFont;
+use crate::ui::UiFont;
 
 /// Stashed cause for the current ending. Set when we enter
 /// [`AppState::Ending`], read by the slate UI.

@@ -11,7 +11,7 @@ use super::cctv::MonitorPlacement;
 use super::interaction::InteractPrompt;
 use super::resources::*;
 use super::rooms;
-use crate::fonts::UiFont;
+use crate::ui::UiFont;
 
 pub(super) fn spawn_bunker(
     mut commands: Commands,

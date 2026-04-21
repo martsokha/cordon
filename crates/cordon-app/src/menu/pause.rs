@@ -11,7 +11,7 @@ use bevy::prelude::*;
 use super::style::{MenuButton, OverlayButton, spawn_overlay};
 use crate::bunker::FpsCamera;
 use crate::bunker::resources::CurrentDialogue;
-use crate::fonts::UiFont;
+use crate::ui::UiFont;
 use crate::{AppState, PauseState};
 
 #[derive(Component)]
