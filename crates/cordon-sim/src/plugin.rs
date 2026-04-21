@@ -6,7 +6,7 @@
 //! well-defined sequence each frame.
 //!
 //! All cordon-sim systems run inside `SimSet`. Downstream crates
-//! (cordon-bevy visuals, audio) can declare `.after(SimSet::X)` or
+//! (cordon-app visuals, audio) can declare `.after(SimSet::X)` or
 //! `.in_set(SimSet::X)` without naming individual function symbols.
 
 use bevy::prelude::*;
@@ -20,6 +20,20 @@ use crate::quest::QuestPlugin;
 use crate::resources::{GameClock, Sim, SimSpeed, SquadIdIndex, UidAllocator};
 use crate::spawn;
 use crate::spawn::relics::RelicSpawnPlugin;
+
+/// Marker resource consulted by the `SimSet` run-condition. When it
+/// exists, sim systems tick; when it's absent they sleep entirely.
+/// The cordon-app layer inserts it on `OnEnter(AppState::Playing)`
+/// and removes it on `OnExit`, keeping the sim frozen whenever the
+/// player is in a menu / ending state.
+///
+/// Distinct from `SimSpeed`: `SimSpeed = 0.0` halts time-based
+/// systems (everything that reads `Time<Sim>`), but systems that
+/// poll spatial conditions (e.g. behaviour-tree leaves checking
+/// distance-to-target) would still tick and trigger BT observers
+/// every frame. This resource gates the whole chain so nothing runs.
+#[derive(Resource, Default)]
+pub struct SimActive;
 
 /// Ordered system set for cordon-sim. The whole chain runs only when
 /// both [`GameClock`] and [`GameDataResource`] are present, so the
@@ -84,17 +98,18 @@ impl Plugin for CordonSimPlugin {
             )
                 .chain()
                 .run_if(resource_exists::<GameClock>)
-                .run_if(resource_exists::<GameDataResource>),
+                .run_if(resource_exists::<GameDataResource>)
+                .run_if(resource_exists::<SimActive>),
         );
 
         app.add_message::<spawn::SquadSpawned>();
         app.add_systems(Update, spawn::spawn_population.in_set(SimSet::Spawn));
         // Shop: handle BuyUpgrade requests from the laptop UI.
-        app.add_message::<crate::shop::BuyUpgrade>();
-        app.add_message::<crate::shop::BuyUpgradeOutcome>();
+        app.add_message::<crate::bunker::upgrades::BuyUpgrade>();
+        app.add_message::<crate::bunker::upgrades::BuyUpgradeOutcome>();
         app.add_systems(
             Update,
-            crate::shop::apply_buy_upgrade.in_set(SimSet::Commands),
+            crate::bunker::upgrades::apply_buy_upgrade.in_set(SimSet::Commands),
         );
         // Sim time runs every frame — it mirrors virtual time
         // scaled by SimSpeed. Must run before tick_game_time.
@@ -118,20 +133,17 @@ impl Plugin for CordonSimPlugin {
     }
 }
 
-/// Re-exports for convenience. Downstream crates (cordon-bevy
+/// Re-exports for convenience. Downstream crates (cordon-app
 /// visuals, audio) import from this prelude rather than the
 /// internal subplugin paths so structural changes here don't
 /// ripple outward.
 pub mod prelude {
     // Cordon-core types that derive `Component` directly and are
-    // attached to entities as live components, plus the flavour
-    // types (`Trust`, `Loyalty`, `Personality`) that are bundled
-    // inside `NpcAttributes`.
+    // attached to entities as live components.
     pub use cordon_core::entity::name::NpcName;
-    pub use cordon_core::entity::npc::Personality;
     pub use cordon_core::entity::squad::{Formation, Goal};
     pub use cordon_core::item::{ItemInstance, Loadout};
-    pub use cordon_core::primitive::{Credits, Experience, Loyalty, Trust};
+    pub use cordon_core::primitive::{Credits, Experience};
 
     pub use super::{CordonSimPlugin, SimSet};
     // Behavior subplugin exports: each subplugin's component + event
@@ -150,26 +162,27 @@ pub mod prelude {
     pub use crate::behavior::squad::intent::{EngagementTarget, MovementIntent};
     pub use crate::behavior::squad::{Owned, SquadCommand};
     pub use crate::behavior::vision::{AnomalyZone, Vision};
+    pub use crate::bunker::pills::PlayerPills;
+    pub use crate::bunker::upgrades::{BuyUpgrade, BuyUpgradeFailure, BuyUpgradeOutcome};
     pub use crate::day::DayRolled;
     // Cross-cutting messages and resources.
-    pub use crate::day::payroll::LastDailyExpenses;
+    pub use crate::day::payroll::{DailyExpensesProcessed, LastDailyExpenses};
+    pub use crate::day::radio::{BroadcastHeard, RadioBroadcast};
     // Per-entity components not owned by a subplugin.
     pub use crate::entity::npc::{
-        ActiveEffects, BaseMaxes, Essential, FactionId, NpcAttributes, NpcBundle, NpcMarker,
-        PendingYarnNode, Perks, QuestCritical, SpawnOrigin, TemplateId, TravelingHome,
-        TravelingToBunker,
+        ActiveEffects, BaseMaxes, Essential, FactionId, NpcBundle, NpcMarker, PendingDeliveryItems,
+        PendingYarnNode, QuestCritical, SpawnOrigin, TemplateId, TravelingHome, TravelingToBunker,
     };
     pub use crate::entity::relic::{RelicHome, RelicMarker};
     pub use crate::quest::{
-        ActiveQuest, CompletedQuest, GiveNpcXpRequest, QuestLog, SpawnNpcRequest,
+        ActiveQuest, CompletedQuest, GiveNpcXpRequest, QuestLog, SpawnNpcRequest, StandingChanged,
         StartQuestRequest, TemplateRegistry,
     };
     pub use crate::resources::{
-        AreaStates, EventLog, FactionIndex, GameClock, PlayerIdentity, PlayerSquadEntry,
-        PlayerSquadRoster, PlayerStandings, PlayerStash, PlayerUpgrades, Sim, SimSpeed,
-        SquadIdIndex, UidAllocator,
+        AreaStates, EventLog, FactionIndex, GameClock, KnownIntel, PlayerIdentity, PlayerIntel,
+        PlayerSquadEntry, PlayerSquadRoster, PlayerStandings, PlayerStash, PlayerUpgrades, Sim,
+        SimSpeed, SquadIdIndex, UidAllocator,
     };
-    pub use crate::shop::{BuyUpgrade, BuyUpgradeFailure, BuyUpgradeOutcome};
     pub use crate::spawn::SquadSpawned;
     pub use crate::spawn::relics::RelicPickedUp;
 }

@@ -9,7 +9,7 @@ use cordon_data::gamedata::GameDataResource;
 
 use super::events::DayRolled;
 use super::world_events::{expire_events, roll_daily_events};
-use crate::resources::{EventLog, FactionIndex, GameClock};
+use crate::resources::{EventLog, FactionIndex, GameClock, PlayerIntel};
 
 /// Track the previously-seen day so we can fire `DayRolled` exactly
 /// once per in-game day rollover, no matter how many frames pass per
@@ -57,4 +57,12 @@ pub(super) fn roll_today_events(
 
 pub(super) fn expire_old_events(clock: Res<GameClock>, mut events: ResMut<EventLog>) {
     expire_events(&mut events.0, clock.0.day);
+}
+
+pub(super) fn expire_old_intel(
+    clock: Res<GameClock>,
+    data: Res<GameDataResource>,
+    mut intel: ResMut<PlayerIntel>,
+) {
+    intel.expire(clock.0.day, &data.0.intel);
 }

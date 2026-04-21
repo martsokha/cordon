@@ -3,13 +3,16 @@
 //! [`EventDef`] is loaded from JSON config files. [`ActiveEvent`] is a
 //! runtime instance of an event currently affecting the world.
 //!
-//! Events are data-driven: their category, base probability, duration
-//! range, and parameters are all defined in config. The sim rolls
-//! daily for each event based on its probability and world state.
+//! Events are data-driven: their spawn weight, duration range, and
+//! parameters are all defined in config. The sim rolls daily for each
+//! event that carries a spawn weight; events without one are
+//! quest-only — they never roll and can only be spawned via the
+//! `TriggerEvent` consequence.
 
 use serde::{Deserialize, Serialize};
 
 use super::consequence::Consequence;
+use super::intel::Intel;
 use crate::entity::faction::Faction;
 use crate::primitive::{Day, Id, IdMarker};
 use crate::world::area::Area;
@@ -18,51 +21,71 @@ use crate::world::area::Area;
 pub struct Event;
 impl IdMarker for Event {}
 
-/// Broad category for event grouping and scheduling.
+/// Optional radio broadcast tied to an event. When present the radio
+/// announces the event to the player after a configurable delay and
+/// can grant intel entries on broadcast.
 ///
-/// Each category has its own base roll probability per day, modified
-/// by world state (Zone instability, market stability, faction tensions,
-/// security level, narrative flags).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum EventCategory {
-    /// Weather, surges, hazard shifts, creature activity.
-    Environmental,
-    /// Supply/demand shifts, shortages, market disruptions.
-    Economic,
-    /// Wars, truces, patrols, coups, faction-specific visitors.
-    Faction,
-    /// Raids, inspections, power outages, infestations.
-    Bunker,
-    /// Runner losses, betrayals, special visitors, encounters.
-    Personal,
+/// Display text is derived from the event's own ID: `event.{id}.radio`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RadioEntry {
+    /// Game-minutes after event start before the broadcast.
+    /// Zero means the broadcast fires immediately.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub delay_minutes: u32,
+    /// When true (default), the broadcast expires at end of day if
+    /// the player hasn't listened to it yet. When false, the
+    /// broadcast stays in the radio queue indefinitely until the
+    /// player tunes in.
+    ///
+    /// Broadcasts deliver into a queue on the radio prop, not
+    /// directly into the player's ears — intel grants fire only
+    /// when the player turns the radio on and the dialogue plays
+    /// through. `missable` only changes how long the queued item
+    /// waits before being dropped.
+    #[serde(default = "default_true")]
+    pub missable: bool,
+    /// Yarn node that runs when the player listens to this
+    /// broadcast. The node's lines are what the player reads; intel
+    /// grants on the yarn node completing (not on queue delivery).
+    /// Required — every broadcast must have authored content.
+    pub yarn_node: String,
+    /// Intel entry this broadcast unlocks for the player. Granted
+    /// when the yarn node completes, not when the broadcast queues.
+    /// `None` for flavor-only broadcasts (no new intel attached).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub grants_intel: Option<Id<Intel>>,
+    /// When true, this broadcast is encrypted traffic: it only
+    /// reaches the player if an installed upgrade grants
+    /// [`UpgradeEffect::ListeningDevice`](crate::entity::bunker::UpgradeEffect::ListeningDevice).
+    /// Without the device the broadcast is silently dropped — no
+    /// intel grant, no audio, no toast. Missable broadcasts follow
+    /// the usual missable rules on top of this (install the device
+    /// before the event fires, or miss it).
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub encrypted: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 /// An event definition loaded from config.
 ///
-/// Defines what an event is, how likely it is to occur, how long it
-/// lasts, what direct effects it has, and what parameters it carries.
-/// The [`id`](EventDef::id) doubles as the localization key.
-///
-/// # Examples from config
-///
-/// - `"surge"`: category Environmental, base_probability 0.08, duration 1..1,
-///   consequences: [DangerModifier { area: None, delta: 0.3 }]
-/// - `"faction_war"`: category Faction, base_probability 0.05, duration 3..7,
-///   involves two faction IDs (resolved at runtime by the sim)
-/// - `"garrison_commander_visit"`: category Faction, base_probability 0.1
-/// - `"information_seller"`: category Personal, base_probability 0.03
-/// - `"intelligent_creature"`: category Environmental, base_probability 0.01
+/// Defines what an event is, how likely it is to roll daily, how
+/// long it lasts, what direct effects it has, and what parameters
+/// it carries. The [`id`](EventDef::id) doubles as the localization
+/// key.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventDef {
     /// Unique identifier and localization key (e.g., `"surge"`, `"faction_war"`).
     pub id: Id<Event>,
-    /// Which category this event belongs to.
-    pub category: EventCategory,
-    /// Base probability of this event occurring per day (0.0–1.0).
-    /// Modified at runtime by escalation and world state.
-    pub base_probability: f32,
+    /// Base per-day roll weight. `None` means this event never
+    /// rolls from the daily scheduler — it only fires when a
+    /// quest `TriggerEvent` consequence spawns it directly. A
+    /// `Some(w)` value is scaled by world escalation at roll
+    /// time, so values around `0.05..0.8` are typical.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spawn_weight: Option<f32>,
     /// Minimum duration in days.
     pub min_duration: u8,
     /// Maximum duration in days.
@@ -83,6 +106,11 @@ pub struct EventDef {
     pub consequences: Vec<Consequence>,
     /// IDs of events that chain from this one (e.g., surge → relic rush).
     pub chain_events: Vec<Id<Event>>,
+    /// Optional radio broadcast. Events without this field happen
+    /// silently in the background; events with it are announced to
+    /// the player via the radio and can grant intel.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub radio: Option<RadioEntry>,
 }
 
 /// An active event instance in the game world.
@@ -117,4 +145,12 @@ impl ActiveEvent {
         let end = self.day_started.value() + self.duration_days as u32;
         end.saturating_sub(current_day.value())
     }
+}
+
+fn is_zero(v: &u32) -> bool {
+    *v == 0
+}
+
+fn is_false(v: &bool) -> bool {
+    !*v
 }

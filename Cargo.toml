@@ -3,7 +3,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "./crates/cordon-bevy",
+    "./crates/cordon-app",
     "./crates/cordon-core",
     "./crates/cordon-data",
     "./crates/cordon-sim",
@@ -22,7 +22,7 @@ homepage = "https://github.com/martsokha/cordon"
 
 [workspace.dependencies]
 # Internal crates
-cordon-bevy = { path = "./crates/cordon-bevy" }
+cordon-app = { path = "./crates/cordon-app" }
 cordon-core = { path = "./crates/cordon-core" }
 cordon-data = { path = "./crates/cordon-data" }
 cordon-sim = { path = "./crates/cordon-sim" }
@@ -30,14 +30,18 @@ cordon-sim = { path = "./crates/cordon-sim" }
 # Game engine
 bevy = { version = "0.18", features = ["debug", "jpeg"] }
 bevy-inspector-egui = { version = "0.36", features = [] }
+bevy_hanabi = { version = "0.18", features = [] }
 bevy_rand = { version = "0.14", features = ["wyrand"] }
 bevy_prng = { version = "0.14", features = ["wyrand"] }
 
-# Localization and dialogue
+# Localization
 bevy_fluent = { version = "0.14", features = [] }
 fluent_content = { version = "0.0.5", features = [] }
 unic-langid = { version = "0.9", features = [] }
+
+# Dialogue
 bevy_yarnspinner = { version = "0.8", features = [] }
+yarnspinner = { version = "0.8", features = [] }
 
 # Physics
 avian3d = { version = "0.6", features = [] }

@@ -1,0 +1,47 @@
+title: sergeant_intro
+---
+Sergeant: New trader. The Garrison needs reliable suppliers. People we can count on.
+Sergeant: You favour our requests, and we return the favour. #autocontinue
+-> I'm in. The Garrison has my support.
+    <<quest_advance "accept">>
+    <<jump sergeant_trade>>
+-> I'll trade with anyone. No favourites.
+    <<quest_advance "neutral">>
+    <<jump sergeant_trade>>
+-> Not interested. Take it elsewhere.
+    <<quest_advance "refuse">>
+    Sergeant: ...your call. Don't expect help from us when the Zone turns on you.
+===
+
+title: sergeant_trade
+---
+<<jump sergeant_trade_menu>>
+===
+
+title: sergeant_trade_menu
+---
+<<if $done_medkit and $done_ration>>
+    Sergeant: That's everything I needed. Good hunting.
+    <<stop>>
+<<elseif $done_medkit>>
+    Sergeant: Kit's sorted. Still need that ration: 40 credits. #autocontinue
+<<elseif $done_ration>>
+    Sergeant: Rations covered. Still need the medkit: 200 credits. #autocontinue
+<<else>>
+    Sergeant: I need a medkit and a ration. 200 for the kit, 40 for the ration. #autocontinue
+<<endif>>
+-> Here's a medkit. <<if not $done_medkit and $carrying == "item_medkit">> #hide
+    <<set $done_medkit = true>>
+    <<give_item "item_medkit">>
+    <<give_credits 200>>
+    <<jump sergeant_trade_menu>>
+-> Here's a ration. <<if not $done_ration and $carrying == "item_ration">> #hide
+    <<set $done_ration = true>>
+    <<give_item "item_ration">>
+    <<give_credits 40>>
+    <<jump sergeant_trade_menu>>
+-> Let me check.
+    <<step_away "sergeant_trade_menu">>
+-> That's all for now.
+    Sergeant: Good hunting.
+===

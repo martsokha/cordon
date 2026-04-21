@@ -2,6 +2,7 @@ locale: en-US
 resources:
   - areas.ftl
   - factions.ftl
+  - intel.ftl
   - items.ftl
   - names.ftl
   - quests.ftl

@@ -24,15 +24,35 @@ settlement-role-market = Market
 intel-quest-log = QUEST LOG
 intel-quest-log-empty = No active quests.
 intel-quest-log-completed = RECENT
-intel-faction-standings = FACTION STANDINGS
-intel-recent-events = RECENT EVENTS
-intel-events-empty = No events.
 
-# Faction standing buckets. Mirror `Relation::is_*` helpers in
-# `cordon-core/src/primitive/relation.rs` — if the thresholds
-# there change, update the descriptive text here to match.
-standing-hostile = Hostile
-standing-unfriendly = Unfriendly
-standing-neutral = Neutral
-standing-friendly = Friendly
-standing-allied = Allied
+# Intel feed
+intel-feed = INTEL
+intel-feed-empty = No intel.
+
+# Interaction prompts
+interact-laptop = Use laptop
+interact-sleep = Sleep
+interact-pills = Take pills
+interact-cctv = View camera
+interact-door = Open door
+interact-visitor = Talk
+interact-radio-listen = Listen to radio
+interact-rack-take = Take { $item }
+interact-rack-place = Place { $item }
+interact-rack-swap = Swap { $carry } with { $slot }
+interact-exit-camera = Exit camera
+
+# Corner toast notifications.
+toast-intel-granted = New intel: { $name }
+toast-daily-expenses = Daily expenses: { $total }cr
+toast-quest-started = New quest: { $name }
+toast-quest-updated = Quest updated: { $name }
+toast-quest-completed = Quest completed: { $name }
+toast-quest-failed = Quest failed: { $name }
+toast-decision-recorded = This will have consequences.
+toast-order-placed = Order placed: { $item } ({ $cost }¤).
+toast-order-failed-insufficient = Order failed: not enough credits.
+toast-order-failed-locked = Order failed: supplier unavailable.
+toast-order-failed-no-stock = Order failed: supplier doesn't stock that item.
+toast-order-failed-price = Order failed: price changed, try again.
+toast-order-failed-generic = Order failed.

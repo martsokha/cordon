@@ -13,7 +13,7 @@
 |----------|-------------|
 | [Core Loop](LOOP.md) | Day cycle, trading flow, economic and reputation loops |
 | [Items & Economy](ITEMS.md) | Item catalog, suppliers, price system |
-| [NPCs & Interaction](NPCS.md) | NPC attributes, types, negotiation, recruitment, runners, guards, perks |
+| [NPCs & Interaction](NPCS.md) | NPC attributes, types, negotiation, recruitment, runners, guards |
 | [Factions](FACTIONS.md) | Faction profiles, dynamics, standing system, events |
 | [Bunker & Upgrades](BUNKER.md) | Upgrade trees for laptop, radio, storage, shop, one-off purchases |
 | [Zone Events](EVENTS.md) | Environmental, economic, faction, bunker, and personal events |

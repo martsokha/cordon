@@ -1,0 +1,14 @@
+{
+  "id": "npc_envoy",
+  "faction": "faction_devoted",
+  "rank": "veteran",
+  "loadout": [],
+  "unique": true,
+  "respawnable": false,
+  "essential": true,
+  "supplier": {
+    "unlocked_at_start": false,
+    "price_multiplier": 1.1,
+    "delivery_yarn": "delivery_envoy"
+  }
+}

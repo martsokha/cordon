@@ -26,7 +26,7 @@ pub enum RankScheme {
     /// Used by the Garrison.
     Military,
     /// Rookie, Seasoned, Hardened, Boss, Legend.
-    /// Used by Drifters and the Syndicate.
+    /// Used by the Drifters and the Syndicate.
     Loose,
     /// Pilgrim, Acolyte, Keeper, Prophet, Ascended.
     /// Used by the Devoted.

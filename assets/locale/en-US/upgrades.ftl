@@ -9,6 +9,9 @@ upgrade-racks2-desc = +15 more storage slots. Fills the remaining hall wall spac
 upgrade-artifact-scanner-name = Artifact Scanner
 upgrade-artifact-scanner-desc = Reveals all relics on the zone map regardless of NPC vision.
 
+upgrade-listening-device-name = Listening Device
+upgrade-listening-device-desc = Decrypts encrypted radio traffic. Installs a second radio unit in the command room and unlocks intel from covert broadcasts.
+
 # Upgrades tab column headers.
 upgrades-bunker = BUNKER
 upgrades-camp = CAMP

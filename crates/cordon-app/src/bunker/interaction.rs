@@ -1,0 +1,171 @@
+//! Generic interaction system: any entity with an [`Interactable`]
+//! component can be activated by the player pressing E. The system
+//! picks the best candidate (proximity + facing tiebreaker) and fires
+//! an [`Interact`] event on the winning entity, which that entity's
+//! observer handles.
+
+use bevy::prelude::*;
+
+use super::camera::FpsCamera;
+use super::fade::{self, Fade};
+use super::resources::{CameraMode, InteractionLocked};
+use crate::locale::L10n;
+
+/// Marker on the interaction prompt UI container.
+#[derive(Component)]
+pub struct InteractPrompt;
+
+const INTERACT_DIST: f32 = 3.5;
+
+/// Minimum dot product between camera forward and the direction
+/// to a candidate. 0.7 ≈ 45° half-angle cone — generous enough
+/// to reach top shelves when looking up, tight enough to not
+/// grab things behind or beside the player.
+const MIN_AIM_DOT: f32 = 0.7;
+
+/// Attach to any entity the player can interact with via E.
+///
+/// `key` is a Fluent localisation key (e.g. `"interact-laptop"`).
+/// The displayed prompt is resolved through [`L10n`] at
+/// render time, falling back to the raw key when no translation
+/// exists.
+#[derive(Component)]
+pub struct Interactable {
+    pub key: String,
+    pub enabled: bool,
+}
+
+/// Opt an interactable out of the "hands full → no interaction"
+/// block applied by `rack::block_non_rack_interactions`. Used by
+/// the visitor-sprite step-away loop, where the whole point of
+/// carrying is to hand the item over.
+#[derive(Component)]
+pub struct InteractableWhileCarrying;
+
+/// Fired on the winning entity when the player presses E.
+#[derive(EntityEvent)]
+pub struct Interact {
+    pub entity: Entity,
+}
+
+pub(super) fn update_prompt(
+    camera_q: Query<&Transform, With<FpsCamera>>,
+    interactables: Query<(Entity, &GlobalTransform, &Interactable)>,
+    camera_mode: Res<CameraMode>,
+    locked: Option<Res<InteractionLocked>>,
+    l10n: L10n,
+    mut prompt_q: Query<(&Children, &mut Visibility), With<InteractPrompt>>,
+    mut text_q: Query<&mut Text>,
+) {
+    // The CCTV view replaces the normal hint with a fixed exit
+    // prompt — the player needs to know how to come back out.
+    if matches!(*camera_mode, CameraMode::AtCctv { .. }) {
+        let resolved = l10n.get("interact-exit-camera");
+        for (children, mut vis) in &mut prompt_q {
+            if let Some(&child) = children.first()
+                && let Ok(mut t) = text_q.get_mut(child)
+            {
+                t.0 = resolved.clone();
+            }
+            *vis = Visibility::Visible;
+        }
+        return;
+    }
+
+    // While the player is already inside an interaction — laptop
+    // view, visitor dialog, or any camera lock — suppress the
+    // "Use X" hint entirely so it doesn't overlap the dialog UI.
+    let in_interaction = locked.is_some() || !matches!(*camera_mode, CameraMode::Free);
+    if in_interaction {
+        for (_, mut vis) in &mut prompt_q {
+            *vis = Visibility::Hidden;
+        }
+        return;
+    }
+
+    let best = pick_best(&camera_q, &interactables);
+
+    for (children, mut vis) in &mut prompt_q {
+        match best {
+            Some((_, interactable)) => {
+                if let Some(&child) = children.first()
+                    && let Ok(mut t) = text_q.get_mut(child)
+                {
+                    t.0 = l10n.get(&interactable.key);
+                }
+                *vis = Visibility::Visible;
+            }
+            None => *vis = Visibility::Hidden,
+        }
+    }
+}
+
+pub(super) fn interact(
+    keys: Res<ButtonInput<KeyCode>>,
+    camera_q: Query<&Transform, With<FpsCamera>>,
+    interactables: Query<(Entity, &GlobalTransform, &Interactable)>,
+    locked: Option<Res<InteractionLocked>>,
+    camera_mode: Res<CameraMode>,
+    mut fade: ResMut<Fade>,
+    mut commands: Commands,
+) {
+    let pressed_e = keys.just_pressed(KeyCode::KeyE);
+    let pressed_esc = keys.just_pressed(KeyCode::Escape);
+
+    // Don't queue another transition while one is already
+    // fading — E-mashing would otherwise enter and immediately
+    // exit (or vice versa).
+    if fade::is_active(&fade) {
+        return;
+    }
+
+    if let CameraMode::AtCctv { saved_transform } = *camera_mode {
+        if pressed_e || pressed_esc {
+            fade::start(&mut fade, fade::Action::ExitCctv { saved_transform });
+        }
+        return;
+    }
+
+    if !pressed_e || locked.is_some() {
+        return;
+    }
+
+    let Some((entity, _)) = pick_best(&camera_q, &interactables) else {
+        return;
+    };
+    commands.trigger(Interact { entity });
+}
+
+fn pick_best<'a>(
+    camera_q: &Query<&Transform, With<FpsCamera>>,
+    interactables: &'a Query<(Entity, &GlobalTransform, &Interactable)>,
+) -> Option<(Entity, &'a Interactable)> {
+    let cam = camera_q.single().ok()?;
+    let cam_pos = cam.translation;
+    let cam_forward = cam.forward().as_vec3();
+
+    let mut best: Option<(Entity, &Interactable, f32)> = None;
+    for (entity, gt, interactable) in interactables.iter() {
+        if !interactable.enabled {
+            continue;
+        }
+        let to_target = gt.translation() - cam_pos;
+        let dist = to_target.length();
+        if !(0.01..=INTERACT_DIST).contains(&dist) {
+            continue;
+        }
+        let dir = to_target.normalize_or_zero();
+        let dot = cam_forward.dot(dir);
+        if dot < MIN_AIM_DOT {
+            continue;
+        }
+        // Among candidates in the aiming cone, pick the one
+        // most aligned with the crosshair (highest dot). This
+        // means the player's gaze direction decides which slot
+        // wins when multiple are within range.
+        if best.as_ref().is_none_or(|(_, _, d)| dot > *d) {
+            best = Some((entity, interactable, dot));
+        }
+    }
+    best.map(|(e, i, _)| (e, i))
+}

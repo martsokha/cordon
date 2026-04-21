@@ -6,10 +6,10 @@
       "novice": {
         "primary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           },
           {
-            "id": "item_toz34",
+            "id": "item_doublebarrel",
             "weight": 2
           }
         ],
@@ -27,7 +27,7 @@
         "ammo_boxes": 2,
         "consumables": [
           {
-            "id": "item_bandage"
+            "id": "item_medkit"
           },
           {
             "id": "item_ration"
@@ -38,19 +38,19 @@
       "experienced": {
         "primary": [
           {
-            "id": "item_toz34",
+            "id": "item_doublebarrel",
             "weight": 2
           },
           {
-            "id": "item_pm"
+            "id": "item_viper"
           },
           {
-            "id": "item_ak74"
+            "id": "item_longtooth"
           }
         ],
         "secondary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           }
         ],
         "armor": [
@@ -71,7 +71,7 @@
         "secondary_ammo_boxes": 1,
         "consumables": [
           {
-            "id": "item_bandage"
+            "id": "item_medkit"
           },
           {
             "id": "item_ration"
@@ -85,16 +85,16 @@
       "veteran": {
         "primary": [
           {
-            "id": "item_saiga12",
+            "id": "item_bulwark",
             "weight": 2
           },
           {
-            "id": "item_ak74"
+            "id": "item_longtooth"
           }
         ],
         "secondary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           }
         ],
         "armor": [
@@ -116,7 +116,7 @@
         "secondary_ammo_boxes": 1,
         "consumables": [
           {
-            "id": "item_bandage"
+            "id": "item_medkit"
           },
           {
             "id": "item_medkit"
@@ -133,16 +133,16 @@
       "master": {
         "primary": [
           {
-            "id": "item_ak74",
+            "id": "item_longtooth",
             "weight": 2
           },
           {
-            "id": "item_saiga12"
+            "id": "item_bulwark"
           }
         ],
         "secondary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           }
         ],
         "armor": [
@@ -173,15 +173,15 @@
       "legend": {
         "primary": [
           {
-            "id": "item_ak74"
+            "id": "item_longtooth"
           },
           {
-            "id": "item_akm"
+            "id": "item_wraith"
           }
         ],
         "secondary": [
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [

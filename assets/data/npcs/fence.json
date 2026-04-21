@@ -1,0 +1,14 @@
+{
+  "id": "npc_fence",
+  "faction": "faction_syndicate",
+  "rank": "veteran",
+  "loadout": [],
+  "unique": true,
+  "respawnable": false,
+  "essential": true,
+  "supplier": {
+    "unlocked_at_start": false,
+    "price_multiplier": 0.8,
+    "delivery_yarn": "delivery_fence"
+  }
+}

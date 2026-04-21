@@ -1,5 +1,5 @@
-//! Player state: rank, experience, credits, faction standings, and
-//! the bunker's upgrade + storage state.
+//! Player state: credits, faction standings, and the bunker's
+//! upgrade + storage state.
 //!
 //! Hired squads live in the sim layer (`PlayerSquadRoster`), not
 //! here — `PlayerState` is the persistent player profile, not a
@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use super::bunker::Upgrade;
 use super::faction::Faction;
 use crate::item::{Item, Stash, StashScope};
-use crate::primitive::{Credits, Day, Experience, Id, Relation};
+use crate::primitive::{Credits, Day, Id, Relation};
 
 /// A categorised daily expense line item. Multiple line items
 /// compose a [`DailyExpenseReport`].
@@ -22,7 +22,7 @@ pub struct ExpenseLine {
 
 /// What a daily expense pays for. New cost categories are added
 /// here; the payroll system in cordon-sim produces the lines,
-/// and the UI in cordon-bevy reads them for display.
+/// and the UI in cordon-app reads them for display.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExpenseKind {
     /// Per-member pay for hired squads, summed from `Rank::pay`.
@@ -46,72 +46,8 @@ pub struct DailyExpenseReport {
     pub shortfall: Credits,
 }
 
-/// Player rank tier. Determines squad capacity and unlocks.
-///
-/// Rank is derived from accumulated [`Experience`] — the player ranks up
-/// automatically when their XP crosses a threshold.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[derive(Serialize, Deserialize)]
-pub enum PlayerRank {
-    /// Starting rank. 2 squads.
-    Nobody = 1,
-    /// Built some reputation. 3 squads.
-    Known = 2,
-    /// Sustained trade volume, multiple faction relationships. 4 squads.
-    Established = 3,
-    /// High faction standings, major deals completed. 5 squads.
-    Connected = 4,
-    /// Endgame — Zone-wide reputation. 6 squads.
-    Legend = 5,
-}
-
-impl PlayerRank {
-    /// Maximum number of squads (runners + guards) at this rank.
-    pub fn max_squads(self) -> u8 {
-        match self {
-            PlayerRank::Nobody => 1,
-            PlayerRank::Known => 2,
-            PlayerRank::Established => 3,
-            PlayerRank::Connected => 4,
-            PlayerRank::Legend => 5,
-        }
-    }
-
-    /// The numeric tier (1–5).
-    pub fn tier(self) -> u8 {
-        self as u8
-    }
-
-    /// Minimum XP required to reach this rank.
-    pub fn xp_threshold(self) -> u32 {
-        match self {
-            PlayerRank::Nobody => 0,
-            PlayerRank::Known => 500,
-            PlayerRank::Established => 2000,
-            PlayerRank::Connected => 5000,
-            PlayerRank::Legend => 15000,
-        }
-    }
-
-    /// Determine rank from experience.
-    pub fn from_xp(xp: Experience) -> Self {
-        let v = xp.value();
-        if v >= PlayerRank::Legend.xp_threshold() {
-            PlayerRank::Legend
-        } else if v >= PlayerRank::Connected.xp_threshold() {
-            PlayerRank::Connected
-        } else if v >= PlayerRank::Established.xp_threshold() {
-            PlayerRank::Established
-        } else if v >= PlayerRank::Known.xp_threshold() {
-            PlayerRank::Known
-        } else {
-            PlayerRank::Nobody
-        }
-    }
-}
-
-/// The player's complete state: identity, economy, faction relations,
-/// and the bunker (storage + installed upgrades).
+/// The player's complete state: economy, faction relations, and the
+/// bunker (storage + installed upgrades).
 ///
 /// Hired-squad ownership is *not* stored here — it lives in the
 /// sim-layer `PlayerSquadRoster` resource, keyed by `Uid<Squad>`.
@@ -120,8 +56,6 @@ impl PlayerRank {
 /// inlined here so "the player" is a single source of truth.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayerState {
-    /// Accumulated experience. Rank is derived from this.
-    pub xp: Experience,
     /// Available credits (the Zone's currency).
     pub credits: Credits,
     /// Accumulated unpaid expenses from previous days. Carried
@@ -153,7 +87,6 @@ impl PlayerState {
             .collect();
 
         Self {
-            xp: Experience::ZERO,
             credits: Credits::new(5000),
             debt: Credits::new(0),
             standings,
@@ -161,11 +94,6 @@ impl PlayerState {
             pending_items: Stash::new(),
             hidden_storage: Stash::new(),
         }
-    }
-
-    /// Current rank, derived from XP.
-    pub fn rank(&self) -> PlayerRank {
-        PlayerRank::from_xp(self.xp)
     }
 
     /// Get the player's standing with a faction.

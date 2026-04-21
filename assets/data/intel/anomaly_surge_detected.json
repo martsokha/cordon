@@ -1,0 +1,6 @@
+{
+  "id": "intel_anomaly_surge_detected",
+  "expires_after": {
+    "days": 2
+  }
+}

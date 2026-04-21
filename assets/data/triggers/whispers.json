@@ -1,0 +1,13 @@
+{
+  "id": "trigger_whispers",
+  "quest": "quest_whispers",
+  "kind": {
+    "on_condition": {
+      "all_of": [
+        { "days_without_pills": { "days": 1 } },
+        { "day_reached": { "day": 1 } }
+      ]
+    }
+  },
+  "repeatable": false
+}

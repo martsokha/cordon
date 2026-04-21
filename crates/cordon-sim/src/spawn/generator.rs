@@ -3,18 +3,16 @@ use std::collections::HashMap;
 use cordon_core::entity::archetype::{Archetype, ArchetypeDef, SquadGoalKind, SquadTemplate};
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::name::{NameFormat, NamePool, NpcName};
-use cordon_core::entity::npc::{Npc, Personality};
+use cordon_core::entity::npc::Npc;
 use cordon_core::entity::squad::{Goal, Squad};
 use cordon_core::item::{Item, ItemDef, Loadout};
 use cordon_core::primitive::{
-    Corruption, Credits, Experience, Health, Id, Loyalty, Pool, Rank, Stamina, Trust, Uid,
+    Corruption, Credits, Experience, Health, Id, Pool, Rank, Stamina, Uid,
 };
 use cordon_core::world::area::{Area, AreaDef};
 use rand::{Rng, RngExt};
 
-use crate::entity::npc::{
-    ActiveEffects, BaseMaxes, FactionId, NpcAttributes, NpcBundle, NpcMarker, Perks,
-};
+use crate::entity::npc::{ActiveEffects, BaseMaxes, FactionId, NpcBundle, NpcMarker};
 use crate::resources::{FactionIndex, UidAllocator};
 use crate::spawn::loadout::generate_loadout;
 use crate::spawn::waypoints::roll_area_waypoints;
@@ -93,19 +91,6 @@ pub trait NpcGenerator {
         Experience::new(xp)
     }
 
-    /// Generate a personality trait.
-    fn generate_personality<R: Rng>(&self, rng: &mut R) -> Personality {
-        let options = [
-            Personality::Cautious,
-            Personality::Aggressive,
-            Personality::Honest,
-            Personality::Deceptive,
-            Personality::Patient,
-            Personality::Impulsive,
-        ];
-        options[rng.random_range(0..options.len())]
-    }
-
     /// Generate wealth based on rank.
     fn generate_wealth<R: Rng>(&self, rank: Rank, rng: &mut R) -> Credits {
         let base: u32 = match rank {
@@ -131,7 +116,6 @@ pub trait NpcGenerator {
         rng: &mut R,
     ) -> NpcBundle {
         let xp = Experience::new(rank.xp_threshold());
-        let personality = self.generate_personality(rng);
         let wealth = self.generate_wealth(rank, rng);
         let health: Pool<Health> = Pool::full();
         let hp_max = health.max();
@@ -152,15 +136,6 @@ pub trait NpcGenerator {
             },
             loadout: Loadout::new(),
             wealth,
-            attributes: NpcAttributes {
-                trust: Trust(0.0),
-                loyalty: Loyalty(0.5),
-                personality,
-            },
-            perks: Perks {
-                all: Vec::new(),
-                revealed: Vec::new(),
-            },
         }
     }
 

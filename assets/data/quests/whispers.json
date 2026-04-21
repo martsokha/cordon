@@ -1,0 +1,23 @@
+{
+  "id": "quest_whispers",
+  "category": "faction",
+  "giver": "npc_tenant",
+  "giver_faction": "faction_drifters",
+  "stages": [
+    {
+      "id": "visit",
+      "kind": "talk",
+      "npc": "npc_tenant",
+      "yarn_node": "tenant_whispers",
+      "branches": [],
+      "fallback": "completed"
+    },
+    {
+      "id": "completed",
+      "kind": "outcome",
+      "success": true,
+      "consequences": []
+    }
+  ],
+  "repeatable": false
+}

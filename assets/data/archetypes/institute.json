@@ -6,15 +6,15 @@
       "novice": {
         "primary": [
           {
-            "id": "item_kedr"
+            "id": "item_razor"
           },
           {
-            "id": "item_ak74"
+            "id": "item_longtooth"
           }
         ],
         "secondary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           }
         ],
         "armor": [
@@ -37,7 +37,7 @@
         "secondary_ammo_boxes": 1,
         "consumables": [
           {
-            "id": "item_bandage"
+            "id": "item_medkit"
           },
           {
             "id": "item_antidote"
@@ -48,16 +48,16 @@
       "experienced": {
         "primary": [
           {
-            "id": "item_ak74",
+            "id": "item_longtooth",
             "weight": 2
           },
           {
-            "id": "item_kedr"
+            "id": "item_razor"
           }
         ],
         "secondary": [
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [
@@ -91,15 +91,15 @@
       "veteran": {
         "primary": [
           {
-            "id": "item_ak74"
+            "id": "item_longtooth"
           },
           {
-            "id": "item_aek971"
+            "id": "item_ironclaw"
           }
         ],
         "secondary": [
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [
@@ -130,16 +130,16 @@
       "master": {
         "primary": [
           {
-            "id": "item_aek971",
+            "id": "item_ironclaw",
             "weight": 2
           },
           {
-            "id": "item_ak74"
+            "id": "item_longtooth"
           }
         ],
         "secondary": [
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [
@@ -167,12 +167,12 @@
       "legend": {
         "primary": [
           {
-            "id": "item_aek971"
+            "id": "item_ironclaw"
           }
         ],
         "secondary": [
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [

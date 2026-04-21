@@ -5,17 +5,6 @@ use serde::{Deserialize, Serialize};
 use super::Caliber;
 use crate::primitive::{Distance, Id};
 
-/// Weapon fire mode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum FireMode {
-    /// One shot per trigger pull.
-    Semi,
-    /// Fixed-length burst per trigger pull (e.g., 2-round for AN-94).
-    Burst(u8),
-    /// Continuous fire while trigger held.
-    Auto,
-}
-
 /// Data for weapon items.
 ///
 /// Weapons do not track magazine capacity or chambered rounds —
@@ -25,8 +14,6 @@ pub enum FireMode {
 pub struct WeaponData {
     /// Caliber ID this weapon fires. Must match an ammo item's caliber.
     pub caliber: Id<Caliber>,
-    /// Available fire modes (e.g., `[Semi, Auto]` for an AK-74).
-    pub fire_modes: Vec<FireMode>,
     /// Rounds per second at full auto/burst.
     pub fire_rate: f32,
     /// Base accuracy (0.0–1.0). Higher = tighter spread.

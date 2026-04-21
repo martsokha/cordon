@@ -10,7 +10,7 @@ There are no unlock tiers. What you can sell depends on **who supplies you**. Bu
 - The Institute opens up scientific equipment and relic analysis.
 - The Devoted bring relics nobody else can find.
 
-NPCs will complain if you don't stock what they need. An Order soldier who comes in looking for 5.45 and you only have food will leave annoyed — and may not come back. Keeping a diverse inventory for your customer base is part of the game.
+NPCs will complain if you don't stock what they need. A Garrison soldier who comes in looking for rifle ammo and you only have food will leave annoyed — and may not come back. Keeping a diverse inventory for your customer base is part of the game.
 
 ### Garrison Bribes
 
@@ -48,136 +48,66 @@ The Garrison controls access to the Zone. You need to pay them to look the other
 
 ### Ammo
 
-Ammo is sold per box (20 rounds for pistol/rifle, 10 for shotgun).
+Ammo is sold in pre-counted boxes. Four classes — each weapon in that class shares one ammo pool, no sub-calibers.
 
-**Pistol calibers:**
-
-| Item | Base Price | Supplier | Notes |
-|------|-----------|----------|-------|
-| 9x18mm | 100 | Drifters, Syndicate | The Zone's cheapest round. Feeds the PM and Skorpion. Everywhere. |
-| 9x19mm | 180 | Garrison, Drifters | Standard NATO pistol round. Feeds the Beretta, SIG, MP5. Common, reliable. |
-| .45 ACP | 250 | Mercenaries, Garrison | Heavy pistol round. Feeds the M1911 and UMP. Less common in the Zone. |
-
-**Rifle calibers:**
-
-| Item | Base Price | Supplier | Notes |
-|------|-----------|----------|-------|
-| 5.45x39mm | 250 | Garrison, Order, Drifters | Soviet standard. Feeds the AK-74 and variants, RPK. Most common rifle round. |
-| 5.56x45mm | 300 | Garrison, Mercenaries | NATO standard. Feeds the SIG 550, M4. Mercenaries prefer these. |
-| 7.62x39mm | 280 | Drifters, Order, Syndicate | Older Soviet caliber. Feeds the AKM. Cheap, widespread, hits hard. |
-| 7.62x54mmR | 450 | Garrison, Order | Heavy Soviet round. Feeds the Mosin, SVD, PKM. Military supply only. |
-| 7.62x51mm | 480 | Mercenaries | NATO battle rifle round. Feeds the FN FAL. Heavy, powerful. |
-| .308 Win | 500 | Mercenaries, Garrison | Western marksman round. Feeds the Remington 700. Mercenaries pay premium. |
-
-**Shotgun:**
-
-| Item | Base Price | Supplier | Notes |
-|------|-----------|----------|-------|
-| 12ga buckshot | 180 | Drifters, Syndicate | Standard shotgun load. Close-quarters staple. |
-| 12ga slugs | 300 | Drifters, Syndicate | Single projectile. Higher damage at range. Popular for creature hunting. |
-| 12ga flechette | 500 | Mercenaries | Dart rounds. Penetrates light armor. Specialty ammo. |
-
-**Specialty:**
-
-| Item | Base Price | Supplier | Notes |
-|------|-----------|----------|-------|
-| 9x39mm | 550 | Garrison (rare), Mercenaries | Subsonic, quiet. Feeds the VSS. Extremely rare in the Zone. |
-| Incendiary (rifle) | 700 | Mercenaries | Incendiary-tipped rifle rounds. Effective against creatures. Very rare. |
-| Tracer (rifle) | 400 | Garrison | Visible flight path. Used for suppression and signaling. |
+| Item | Rounds/box | Base Price | Supplier | Notes |
+|------|-----------:|-----------:|----------|-------|
+| Pistol Ammo | 16 | 60 | Drifters, Syndicate, Garrison | Feeds all pistols and SMGs. Cheap and common. |
+| Rifle Ammo | 30 | 200 | Drifters, Syndicate, Garrison | Feeds rifles and LMGs. The Zone's workhorse round. |
+| Sniper Ammo | 20 | 350 | Garrison, Syndicate | Heavy marksman rounds. Limited supply. |
+| Shotgun Ammo | 8 | 120 | Drifters, Syndicate | Close-quarters rounds. Drifter and Syndicate staple. |
 
 ### Weapons
 
-**Pistols:**
+All weapons use callsign names — the Zone doesn't care what a rifle was called in the catalogue.
 
-| Item | Caliber | Base Price | Supplier | Notes |
-|------|---------|-----------|----------|-------|
-| PM | 9x18mm | 800 | Drifters, Syndicate | The Zone's most common weapon. Cheap, everywhere, unreliable when worn. |
-| Fort-12 | 9x18mm | 1200 | Garrison, Drifters | Standard-issue sidearm. A step up from the PM. |
-| Beretta 92 | 9x19mm | 2000 | Mercenaries, Garrison | Reliable NATO sidearm. Popular with Mercenaries. |
-| SIG P226 | 9x19mm | 2800 | Mercenaries | Premium sidearm. Mercenary favorite. Expensive but dependable. |
-| M1911 | .45 ACP | 2500 | Mercenaries, Garrison (rare) | Heavy, hard-hitting. Iconic. Less common in the Zone. |
-
-**Shotguns:**
-
-| Item | Caliber | Base Price | Supplier | Notes |
-|------|---------|-----------|----------|-------|
-| Sawed-off TOZ | 12ga | 600 | Syndicate, Drifters | Cheap, brutal, inaccurate. Syndicate favorite. Concealable. |
-| TOZ-34 | 12ga | 1500 | Drifters | Double-barrel hunting shotgun. Reliable but slow. Drifter staple. |
-| Remington 870 | 12ga | 2500 | Garrison, Drifters | Pump-action. Workhorse. Solid creature defense. |
-| SPAS-12 | 12ga | 5500 | Garrison, Mercenaries | Semi-auto/pump selectable. Devastating. Military-grade. |
-| Saiga-12 | 12ga | 6000 | Garrison (rare), Mercenaries | Magazine-fed semi-auto. Volume of fire. Rare and sought after. |
-
-**SMGs:**
-
-| Item | Caliber | Base Price | Supplier | Notes |
-|------|---------|-----------|----------|-------|
-| Skorpion | 9x18mm | 1500 | Syndicate | Tiny, concealable, inaccurate. Syndicate loves these. |
-| MP5 | 9x19mm | 4500 | Mercenaries, Garrison | Accurate, reliable. The professional's choice. Mercenary standard. |
-| PP-19 Bizon | 9x18mm | 3000 | Garrison, Order | High-capacity helical mag. Garrison patrol weapon. |
-| UMP | .45 ACP | 5000 | Mercenaries | Hard-hitting submachine gun. Suppressor-ready. Mercenary specialty. |
-
-**Assault rifles:**
-
-| Item | Caliber | Base Price | Supplier | Notes |
-|------|---------|-----------|----------|-------|
-| AK-74 | 5.45x39mm | 4000 | Garrison, Order, Drifters | The Zone's standard rifle. Everyone has one. |
-| AKM | 7.62x39mm | 3000 | Drifters, Syndicate, Order | Older, harder-hitting. Common in rough shape. Cheap but powerful. |
-| AK-74M | 5.45x39mm | 5500 | Garrison, Order | Modernized variant. Folding stock, rail mount. Military issue. |
-| SIG 550 | 5.56x45mm | 8000 | Mercenaries | Swiss precision. Accurate, reliable, expensive. Mercenary prestige weapon. |
-| M4A1 | 5.56x45mm | 7000 | Mercenaries, Garrison (rare) | Compact carbine. Modular. Mercenary and special forces favorite. |
-| G36 | 5.56x45mm | 7500 | Mercenaries | German assault rifle. Integrated optics. Reliable in bad conditions. Mercenary favorite. |
-| AS Val | 9x39mm | 11000 | Garrison (rare), Mercenaries | Suppressed, full-auto. Subsonic. Quiet and deadly. |
-| OTs-14 Groza | 9x39mm | 10000 | Garrison (rare) | Bullpup, suppressed. Subsonic assault rifle. Extremely rare special-ops weapon. |
-| AN-94 | 5.45x39mm | 9000 | Garrison (rare) | Burst-fire mechanism. Highly accurate. Rare even in military stocks. |
-| FN FAL | 7.62x51mm | 7500 | Mercenaries | Battle rifle. Heavy, powerful. Mercenary veterans favor it. |
-
-**DMRs (designated marksman rifles):**
-
-| Item | Caliber | Base Price | Supplier | Notes |
-|------|---------|-----------|----------|-------|
-| SVD | 7.62x54mmR | 8000 | Garrison, Order | Soviet marksman standard. Semi-auto, reliable. Order pays top price. |
-| SVU | 7.62x54mmR | 9500 | Garrison (rare) | Bullpup SVD. Compact, same punch. Rare military variant. |
-| VSS Vintorez | 9x39mm | 12000 | Garrison (rare), Mercenaries | Suppressed, subsonic. Silent kills. Extremely rare and coveted. |
-
-**Sniper rifles:**
-
-| Item | Caliber | Base Price | Supplier | Notes |
-|------|---------|-----------|----------|-------|
-| Mosin-Nagant | 7.62x54mmR | 1800 | Drifters | Ancient bolt-action. Cheap, surprisingly accurate. Drifter sniper weapon. |
-| Remington 700 | .308 Win | 9000 | Mercenaries | Western precision rifle. Bolt-action. Mercenary sniper standard. |
-| SV-98 | 7.62x54mmR | 10000 | Garrison (rare) | Modern Russian bolt-action. Military sniper standard. Accurate at extreme range. |
-
-**Machine guns:**
-
-| Item | Caliber | Base Price | Supplier | Notes |
-|------|---------|-----------|----------|-------|
-| RPK-74 | 5.45x39mm | 8000 | Garrison, Order | Light machine gun. Squad support. Steady supply from military channels. |
-| PKM | 7.62x54mmR | 15000 | Garrison (rare) | General-purpose belt-fed. Devastating. Extremely rare. Factions will fight over these. |
-
-**Underbarrel launchers (attachments):**
+**Pistols** — use Pistol Ammo.
 
 | Item | Base Price | Supplier | Notes |
-|------|-----------|----------|-------|
-| GP-25 | 3000 | Garrison, Order | Soviet underbarrel grenade launcher. Fits AK-74, AK-74M, AKM. Uses VOG-25 grenades. |
-| M203 | 3500 | Mercenaries | Western underbarrel grenade launcher. Fits M4A1. Uses 40mm grenades. |
+|------|-----------:|----------|-------|
+| Viper | 800 | Drifters, Syndicate | The Zone's most common sidearm. Cheap, reliable when clean. |
+| Shrike | 1800 | Garrison, Syndicate | Full-auto machine pistol. Loud, fast, spray-and-pray. |
 
-**Heavy weapons:**
-
-| Item | Caliber | Base Price | Supplier | Notes |
-|------|---------|-----------|----------|-------|
-| RPG-7 | PG-7 rocket | 12000 | Garrison (rare), Mercenaries | Rocket launcher. Anti-vehicle, anti-fortification. Rockets sold separately. Extremely dangerous to hold — factions notice. |
-
-**Grenades & launcher ammo:**
+**SMGs** — use Pistol Ammo.
 
 | Item | Base Price | Supplier | Notes |
-|------|-----------|----------|-------|
-| VOG-25 | 800 | Garrison, Order | Soviet 40mm caseless grenade. Feeds the GP-25. Fragmentation. |
-| VOG-25P | 1200 | Garrison (rare) | Bouncing fragmentation grenade for GP-25. Airburst. More lethal, rarer. |
-| 40mm HE | 900 | Mercenaries, Garrison | Western 40mm grenade. Feeds the M203. High-explosive. |
-| 40mm smoke | 400 | Garrison | Smoke grenade for M203. Concealment. Runners use these for extraction. |
-| PG-7V rocket | 2000 | Garrison (rare), Mercenaries | Standard RPG-7 warhead. Anti-armor. |
-| F-1 grenade | 500 | Garrison, Drifters | Soviet fragmentation hand grenade. Simple, reliable, deadly. |
-| RGD-5 grenade | 400 | Garrison, Drifters | Lighter frag grenade. Less lethal, easier to carry. Common. |
+|------|-----------:|----------|-------|
+| Razor | 3500 | Syndicate, Drifters | Compact, concealable, full-auto. Syndicate favourite. |
+| Sparrow | 5500 | Garrison, Syndicate | High-capacity helical-mag SMG. Sustained fire without reloads. |
+
+**Rifles** — use Rifle Ammo.
+
+| Item | Base Price | Supplier | Notes |
+|------|-----------:|----------|-------|
+| Boar | 4000 | Drifters, Syndicate | Semi-auto carbine. Older, accurate, plentiful. |
+| Growler | 4500 | Garrison, Syndicate | Short-barrel automatic carbine. Patrol weapon. |
+| Wraith | 5500 | Drifters, Syndicate, Garrison | Harder-hitting automatic. The Zone's middle-class rifle. |
+| Longtooth | 6500 | Garrison | Standard Garrison service rifle. Accurate, tough, everywhere the Garrison is. |
+| Ironclaw | 12000 | Garrison | Burst-capable precision rifle. Rare — Garrison elite issue. |
+
+**LMGs** — use Rifle Ammo.
+
+| Item | Base Price | Supplier | Notes |
+|------|-----------:|----------|-------|
+| Rook | 9500 | Garrison | Squad-support LMG. Selectable fire. |
+| Mauler | 11000 | Drifters, Garrison | Belt-fed light. Older but relentless. |
+| Thresher | 16000 | Garrison | General-purpose belt-fed. Rare. Factions fight over these. |
+
+**Snipers** — use Sniper Ammo.
+
+| Item | Base Price | Supplier | Notes |
+|------|-----------:|----------|-------|
+| Harrier | 6000 | Drifters, Garrison | Ancient bolt-action. Cheap, surprisingly accurate. Drifter sniper's staple. |
+| Nighthawk | 18000 | Garrison | Semi-auto marksman rifle. Reliable, high RoF for a sniper. |
+| Sable | 17000 | Garrison, Syndicate | Bullpup marksman. Compact, same punch as the Nighthawk. |
+| Whisper | 22000 | Garrison | Modern bolt-action. Military sniper standard. Accurate at extreme range. |
+
+**Shotguns** — use Shotgun Ammo.
+
+| Item | Base Price | Supplier | Notes |
+|------|-----------:|----------|-------|
+| Doublebarrel | 3200 | Drifters, Syndicate | Double-barrel hunting shotgun. Slow, brutal, Drifter staple. |
+| Bulwark | 6000 | Syndicate, Garrison | Magazine-fed semi-auto. Volume of fire. Sought after. |
 
 ### Armor
 
@@ -262,7 +192,7 @@ Every item has a base price that represents its "neutral" market value. Prices l
 | **Demand** | More demand → higher price | Surge incoming = medkit prices spike |
 | **Faction control** | Faction dominance shifts prices | The Order controls the area = their gear is common, Collective gear is rare |
 | **Zone events** | Disasters shift everything | Creature swarm = weapon/ammo demand up, food supply down |
-| **Your reputation** | Trust = better margins | Loyal customers accept slightly worse deals |
+| **Your reputation** | Standing with the buyer's faction nudges margins | Allied factions accept slightly worse deals |
 | **Freshness** | Some items degrade | Food spoils, relics destabilize without containment |
 
 ### Price Formula (simplified)
@@ -280,4 +210,4 @@ final_price = base_price
 
 NPCs notice what you don't carry. If a faction soldier comes looking for ammo you don't stock, or a Drifter needs meds you've never carried, they'll tell you about it. Repeated complaints from the same faction erode your reputation with them — they'll go somewhere else.
 
-This creates pressure to diversify your inventory based on who your customers are, not just what's most profitable. If Order soldiers are your bread and butter, you'd better have 5.45 and medkits on hand.
+This creates pressure to diversify your inventory based on who your customers are, not just what's most profitable. If Garrison soldiers are your bread and butter, you'd better have rifle ammo and medkits on hand.

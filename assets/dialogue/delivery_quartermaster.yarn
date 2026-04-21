@@ -1,0 +1,6 @@
+title: delivery_quartermaster
+---
+Quartermaster: Requisition slip's in order. Paperwork first, always.
+<<deliver_order>>
+Quartermaster: Don't let anyone see it until you need it. Garrison's blessings.
+===

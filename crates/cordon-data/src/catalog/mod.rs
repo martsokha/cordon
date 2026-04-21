@@ -1,7 +1,7 @@
 //! The read-only game database and its load-time integrity checks.
 //!
 //! [`GameData`] holds every definition the simulation reads from disk:
-//! items, factions, areas, perks, upgrades, events, quests, triggers,
+//! items, factions, areas, upgrades, events, quests, triggers,
 //! name pools, archetypes, loot tables. All lookups go through typed
 //! ID aliases from [`cordon_core::primitive`].
 //!
@@ -37,6 +37,10 @@
 //! - **Upgrade refs**: consequences (`UnlockUpgrade`), conditions
 //!   (`HaveUpgrade`).
 //!
+//! - **Decision refs + values**: consequences (`RecordDecision`),
+//!   conditions (`DecisionEquals`) — both the decision id and the
+//!   value string are checked against the declared value set.
+//!
 //! - **Caliber refs**: weapons (`WeaponData.caliber`), verified
 //!   against the set of calibers advertised by ammo items.
 //!
@@ -50,8 +54,8 @@
 //! - **NamePool refs**: factions' `namepool` → name_pools table.
 //!
 
-//! - **NPC template refs**: templates (`faction`, `perks[]`,
-//!   `loadout[]`), consequences (`SpawnNpc.template`,
+//! - **NPC template refs**: templates (`faction`, `loadout[]`),
+//!   consequences (`SpawnNpc.template`,
 //!   `GiveNpcXp.template`), conditions (`NpcAlive`, `NpcDead`,
 //!   `NpcAtLocation.npc`).
 
@@ -63,25 +67,24 @@ use cordon_core::entity::bunker::{Upgrade, UpgradeDef};
 use cordon_core::entity::faction::{Faction, FactionDef};
 use cordon_core::entity::name::{NamePool, NamePoolMarker};
 use cordon_core::entity::npc::{NpcTemplate, NpcTemplateDef};
-use cordon_core::entity::perk::{Perk, PerkDef};
 use cordon_core::item::{Caliber, Item, ItemData, ItemDef};
 use cordon_core::primitive::{Id, IdMarker};
 use cordon_core::world::area::{Area, AreaDef, AreaKind};
 use cordon_core::world::loot::LootTables;
 use cordon_core::world::narrative::{
-    ConditionalConsequence, Consequence, Event, EventDef, ObjectiveCondition, Quest, QuestDef,
-    QuestStageKind, QuestTrigger, QuestTriggerDef, QuestTriggerKind,
+    ConditionalConsequence, Consequence, Decision, DecisionDef, Event, EventDef, Intel, IntelDef,
+    ObjectiveCondition, Quest, QuestDef, QuestStageKind, QuestTrigger, QuestTriggerDef,
+    QuestTriggerKind,
 };
 
 /// The read-only game database.
 ///
 /// Loaded once at startup from JSON config files. Contains all static
 /// definitions that the simulation references: items, factions, areas,
-/// perks, upgrades, and loot tables.
+/// upgrades, and loot tables.
 ///
 /// Calibers are implicit — they exist because ammo and weapon items
 /// reference the same caliber ID string. No separate caliber registry.
-/// Player ranks are hardcoded in [`PlayerRank`](cordon_core::entity::player::PlayerRank).
 ///
 /// All lookups are by typed ID aliases from [`cordon_core::primitive`].
 #[derive(Default)]
@@ -92,12 +95,12 @@ pub struct GameData {
     pub factions: HashMap<Id<Faction>, FactionDef>,
     /// Area definitions keyed by area ID.
     pub areas: HashMap<Id<Area>, AreaDef>,
-    /// Perk definitions keyed by perk ID.
-    pub perks: HashMap<Id<Perk>, PerkDef>,
     /// Upgrade definitions keyed by upgrade ID.
     pub upgrades: HashMap<Id<Upgrade>, UpgradeDef>,
     /// Event definitions keyed by event ID.
     pub events: HashMap<Id<Event>, EventDef>,
+    /// Intel definitions keyed by intel ID.
+    pub intel: HashMap<Id<Intel>, IntelDef>,
     /// Quest definitions keyed by quest ID.
     pub quests: HashMap<Id<Quest>, QuestDef>,
     /// Quest trigger rules keyed by trigger ID. Each trigger
@@ -116,6 +119,11 @@ pub struct GameData {
     /// a unique, story-relevant character that quests and events can
     /// reference by stable ID.
     pub npc_templates: HashMap<Id<NpcTemplate>, NpcTemplateDef>,
+    /// Decision definitions keyed by decision ID. Declares the legal
+    /// value set for each durable player choice — load-time validation
+    /// rejects `record_decision` / `decision_equals` uses whose value
+    /// is not listed here.
+    pub decisions: HashMap<Id<Decision>, DecisionDef>,
 }
 
 impl GameData {
@@ -134,9 +142,9 @@ impl GameData {
         self.areas.get(id)
     }
 
-    /// Look up a perk definition by ID.
-    pub fn perk(&self, id: &Id<Perk>) -> Option<&PerkDef> {
-        self.perks.get(id)
+    /// Look up an intel definition by ID.
+    pub fn intel(&self, id: &Id<Intel>) -> Option<&IntelDef> {
+        self.intel.get(id)
     }
 
     /// Look up an NPC template by ID.
@@ -202,8 +210,18 @@ impl GameData {
     fn validate_items(&self) {
         for (id, def) in &self.items {
             let referrer = format!("item `{}`", id.as_str());
-            for sup in &def.suppliers {
-                self.check_faction(&sup.faction, &referrer, "suppliers[].faction");
+            for supplier_id in &def.suppliers {
+                self.check_npc_template(supplier_id, &referrer, "suppliers[]");
+                if let Some(template) = self.npc_templates.get(supplier_id)
+                    && template.supplier.is_none()
+                {
+                    warn!(
+                        "item `{}` lists supplier `{}` but that template has no \
+                         `supplier: {{ ... }}` block — add one or remove the reference",
+                        id.as_str(),
+                        supplier_id.as_str()
+                    );
+                }
             }
         }
     }
@@ -309,6 +327,17 @@ impl GameData {
             for consequence in &def.consequences {
                 self.check_consequence(consequence, &referrer);
             }
+            if let Some(radio) = &def.radio {
+                if let Some(intel_id) = &radio.grants_intel {
+                    self.check_intel(intel_id, &referrer, "radio.grants_intel");
+                }
+                if radio.yarn_node.is_empty() {
+                    warn!(
+                        "{referrer}: radio.yarn_node is empty — every broadcast \
+                         must name a yarn node that runs when the player listens"
+                    );
+                }
+            }
         }
     }
 
@@ -331,11 +360,6 @@ impl GameData {
         for (id, def) in &self.npc_templates {
             let referrer = format!("npc template `{}`", id.as_str());
             self.check_faction(&def.faction, &referrer, "faction");
-            for perk in &def.perks {
-                if !self.perks.contains_key(perk) {
-                    warn_missing("perk ref from", &referrer, "perks[]", perk);
-                }
-            }
             if let Some(items) = &def.loadout {
                 for item_id in items {
                     if !self.items.contains_key(item_id) {
@@ -459,6 +483,9 @@ impl GameData {
             ObjectiveCondition::HaveUpgrade(u) => {
                 self.check_upgrade(u, referrer, "HaveUpgrade");
             }
+            ObjectiveCondition::HaveIntel(i) => {
+                self.check_intel(i, referrer, "HaveIntel");
+            }
             ObjectiveCondition::EventActive(e) => {
                 self.check_event(e, referrer, "EventActive");
             }
@@ -479,6 +506,11 @@ impl GameData {
                 self.check_area(area, referrer, "NpcAtLocation.area");
             }
             ObjectiveCondition::Wait { .. } => {}
+            ObjectiveCondition::DaysWithoutPills { .. } => {}
+            ObjectiveCondition::DayReached { .. } => {}
+            ObjectiveCondition::DecisionEquals { decision, value } => {
+                self.check_decision_value(decision, value, referrer, "DecisionEquals");
+            }
             ObjectiveCondition::AllOf(conds) | ObjectiveCondition::AnyOf(conds) => {
                 for c in conds {
                     self.check_condition(c, referrer);
@@ -525,6 +557,7 @@ impl GameData {
             }
             Consequence::StartQuest(q) => self.check_quest(q, referrer, "StartQuest"),
             Consequence::UnlockUpgrade(u) => self.check_upgrade(u, referrer, "UnlockUpgrade"),
+            Consequence::GiveIntel(i) => self.check_intel(i, referrer, "GiveIntel"),
             Consequence::SpawnNpc { template, at } => {
                 self.check_npc_template(template, referrer, "SpawnNpc.template");
                 if let Some(area) = at {
@@ -534,13 +567,28 @@ impl GameData {
             Consequence::GiveNpcXp { template, .. } => {
                 self.check_npc_template(template, referrer, "GiveNpcXp.template");
             }
-            Consequence::GivePlayerXp(_) => {}
             Consequence::DangerModifier { area, .. } => {
                 if let Some(area) = area {
                     self.check_area(area, referrer, "DangerModifier.area");
                 }
             }
             Consequence::PriceModifier { .. } => {}
+            Consequence::EndGame { .. } => {}
+            Consequence::RecordDecision { decision, value } => {
+                self.check_decision_value(decision, value, referrer, "RecordDecision");
+            }
+            Consequence::UnlockSupplier { template } => {
+                self.check_npc_template(template, referrer, "UnlockSupplier.template");
+                if let Some(def) = self.npc_templates.get(template)
+                    && def.supplier.is_none()
+                {
+                    warn!(
+                        "UnlockSupplier from {referrer} targets template `{}` \
+                         which has no `supplier: {{ ... }}` block",
+                        template.as_str()
+                    );
+                }
+            }
         }
     }
 
@@ -583,6 +631,28 @@ impl GameData {
     fn check_npc_template(&self, id: &Id<NpcTemplate>, referrer: &str, field: &str) {
         if !self.npc_templates.contains_key(id) {
             warn_missing("npc template ref from", referrer, field, id);
+        }
+    }
+
+    fn check_intel(&self, id: &Id<Intel>, referrer: &str, field: &str) {
+        if !self.intel.contains_key(id) {
+            warn_missing("intel ref from", referrer, field, id);
+        }
+    }
+
+    fn check_decision_value(&self, id: &Id<Decision>, value: &str, referrer: &str, field: &str) {
+        match self.decisions.get(id) {
+            None => warn_missing("decision ref from", referrer, field, id),
+            Some(def) => {
+                if !def.values.iter().any(|v| v == value) {
+                    warn!(
+                        "{field} from {referrer} uses unknown value `{value}` for decision `{}` \
+                         (legal values: {:?})",
+                        id.as_str(),
+                        def.values
+                    );
+                }
+            }
         }
     }
 

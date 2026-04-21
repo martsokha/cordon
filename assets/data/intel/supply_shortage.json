@@ -1,0 +1,6 @@
+{
+  "id": "intel_supply_shortage",
+  "expires_after": {
+    "days": 5
+  }
+}

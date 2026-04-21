@@ -17,8 +17,10 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::decision::Decision;
 use super::event::Event;
 use super::flag::QuestFlagPredicate;
+use super::intel::Intel;
 use super::quest::Quest;
 use crate::entity::bunker::Upgrade;
 use crate::entity::faction::Faction;
@@ -53,6 +55,8 @@ pub enum ObjectiveCondition {
     },
     /// The given upgrade is installed.
     HaveUpgrade(Id<Upgrade>),
+    /// The player has the given intel entry.
+    HaveIntel(Id<Intel>),
     /// The given event is currently active.
     EventActive(Id<Event>),
     /// The given quest is currently active.
@@ -93,6 +97,22 @@ pub enum ObjectiveCondition {
     /// [`Duration::INSTANT`] is equivalent to the old unit `Wait`
     /// and evaluates to true on the first tick.
     Wait { duration: Duration },
+    /// At least `days` whole days have elapsed since the player
+    /// last took pills. If they've never taken pills, the count
+    /// starts from day 1 — so this condition can fire on a fresh
+    /// save.
+    DaysWithoutPills { days: u32 },
+    /// Current day number is at least `day`. Used to gate content
+    /// behind a minimum in-game calendar day (e.g., "this quest
+    /// can't fire before day 6 no matter what").
+    DayReached { day: u32 },
+    /// Player has recorded the given [`Decision`] with the given
+    /// value. Unset decisions (never recorded) evaluate to `false`
+    /// regardless of `value`.
+    DecisionEquals {
+        decision: Id<Decision>,
+        value: String,
+    },
     /// All of the nested conditions must be true.
     AllOf(Vec<ObjectiveCondition>),
     /// At least one of the nested conditions must be true.
@@ -182,6 +202,8 @@ pub enum Consequence {
     StartQuest(Id<Quest>),
     /// Unlock a bunker upgrade for purchase / installation.
     UnlockUpgrade(Id<Upgrade>),
+    /// Grant the player an intel entry. No-op if already known.
+    GiveIntel(Id<Intel>),
     /// Spawn a visitor from the given NPC template, optionally
     /// at a specific area. `at` = `None` defers to the template's
     /// default spawn location (bunker visitor queue today; may
@@ -191,11 +213,6 @@ pub enum Consequence {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         at: Option<Id<Area>>,
     },
-    /// Grant the player experience. Rank is derived from total
-    /// XP. Wraps [`Experience`] so the types line up with
-    /// `PlayerState::xp` and the intent is explicit at the call
-    /// site.
-    GivePlayerXp(Experience),
     /// Grant an NPC template experience. The sim resolves the
     /// template to one live instance (e.g. the quest's current
     /// giver) at apply time.
@@ -223,4 +240,39 @@ pub enum Consequence {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         duration: Option<Duration>,
     },
+    /// End the run. The `cause` enum is routed to the ending slate
+    /// (cordon-app reads it to pick flavor text). Applying the
+    /// consequence transitions the app into the ending screen; the
+    /// outcome stage's other consequences still apply first, in
+    /// order, so reward payouts land before the run resets.
+    EndGame { cause: EndingCause },
+    /// Record a durable player decision. Overwrites any prior
+    /// value for the same decision. The `value` must be listed in
+    /// the [`DecisionDef`](super::DecisionDef)'s `values` — load-time
+    /// validation rejects unknown values.
+    RecordDecision {
+        decision: Id<Decision>,
+        value: String,
+    },
+    /// Mark a trade supplier as unlocked for the rest of the run.
+    /// The referenced template must have its own
+    /// `supplier: Some(...)` entry; load-time validation rejects
+    /// unlocks that don't point at a real supplier.
+    UnlockSupplier { template: Id<NpcTemplate> },
+}
+
+/// How the current run ended. Drives the ending-slate epitaph.
+/// Adding a new ending is an enum variant + an arm in the epitaph
+/// lookup — typos at the authoring layer surface as JSON load
+/// errors instead of silent generic flavor text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EndingCause {
+    /// Tenant arc: the player let withdrawal carry them away.
+    Terminal,
+    /// The Garrison collected an unpayable debt.
+    Bankruptcy,
+    /// Fallback for unclassified deaths.
+    Generic,
 }

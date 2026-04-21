@@ -18,7 +18,7 @@ pub use self::consumable::ConsumableData;
 pub use self::document::DocumentData;
 pub use self::relic::RelicData;
 pub use self::throwable::ThrowableData;
-pub use self::weapon::{FireMode, WeaponData};
+pub use self::weapon::WeaponData;
 use super::category::ItemCategory;
 use crate::primitive::IdMarker;
 

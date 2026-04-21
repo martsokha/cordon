@@ -1,0 +1,18 @@
+{
+  "id": "event_creature_migration",
+  "spawn_weight": 0.4,
+  "min_duration": 3,
+  "max_duration": 7,
+  "max_instances": 1,
+  "target_areas": [],
+  "involved_factions": [],
+  "earliest_day": 1,
+  "consequences": [],
+  "chain_events": [],
+  "radio": {
+    "delay_minutes": 0,
+    "yarn_node": "broadcast_creature_migration",
+    "grants_intel": "intel_creature_migration",
+    "missable": false
+  }
+}

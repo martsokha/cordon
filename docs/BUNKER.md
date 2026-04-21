@@ -28,7 +28,7 @@ Upgrades are defined in config files. Each has prerequisites, a cost, and a sour
 | ID | Name | Source | Requires | Effect |
 |----|------|--------|----------|--------|
 | **counter_1** | Wooden Plank | Purchasable | — | Basic buy/sell. No inspection. |
-| **counter_2** | Proper Counter | Purchasable | counter_1 | Organized display. +5% NPC trust on first visit. |
+| **counter_2** | Proper Counter | Purchasable | counter_1 | Organized display. Better first impression on new customers. |
 | **counter_3** | Trader's Setup | Purchasable | counter_2 | Display cases for premium items. Reputation bonus. |
 | **magnifying_lens** | Magnifying Lens | Purchasable | counter_2 | Detect obvious fakes (broken weapons, expired meds). |
 | **relic_scanner** | Relic Scanner | Faction (Institute) | counter_2 | Detect fake relics. Identify relic stability. |

@@ -11,6 +11,11 @@
 /// `{mod, components, systems, events?, constants?}` file convention.
 pub mod behavior;
 
+/// Bunker-driven sim systems: upgrade shop, pill dose tracking.
+/// Each submodule hosts the sim-side data + handlers for one
+/// bunker interaction.
+pub mod bunker;
+
 /// Day rollover detection and per-day systems.
 pub mod day;
 
@@ -27,10 +32,6 @@ pub mod quest;
 
 /// Top-level Bevy resources owned by cordon-sim.
 pub mod resources;
-
-/// Upgrade shop: [`BuyUpgrade`](shop::BuyUpgrade) message, cost/
-/// prereq validation, credit deduction, install.
-pub mod shop;
 
 /// NPC and squad spawning systems.
 pub mod spawn;

@@ -180,6 +180,9 @@ DECORATIVES = {
     "GameBoard",
     "Vase1", "LargeVase", "VaseFlowers1",
     "Giftbox_01", "Giftbox_02", "Giftbox_03",
+    # Ceiling lamps hang from the ceiling with their AABBs
+    # poking down into head-height; player shouldn't bump them.
+    "CeilingLamp",
 }
 
 
@@ -239,6 +242,13 @@ def emit_rust(rows: list[tuple[str, str, list[float], list[float]]]) -> str:
     lines.append("// and commit the regenerated file. There is no build-time check")
     lines.append("// that this file matches the assets; drift will only surface as")
     lines.append("// floating/clipping props or a missing `Prop::` variant.")
+    lines.append("")
+    lines.append("// AABB bounds are raw float literals straight from the GLB")
+    lines.append("// POSITION accessors; some happen to be numerically close to")
+    lines.append("// stdlib constants (e.g. 0.7071 vs FRAC_1_SQRT_2). Suppressing")
+    lines.append("// the approx_constant lint here because renaming them would")
+    lines.append("// defeat the regeneration story.")
+    lines.append("#![allow(clippy::approx_constant)]")
     lines.append("")
     lines.append("use bevy::prelude::*;")
     lines.append("")
@@ -311,7 +321,7 @@ def main() -> int:
     rows = scan()
 
     if rust_mode:
-        out = REPO / "crates" / "cordon-bevy" / "src" / "bunker" / "props.rs"
+        out = REPO / "crates" / "cordon-app" / "src" / "bunker" / "props.rs"
         out.write_text(emit_rust(rows))
         print(f"wrote {out}  ({len(rows)} props)")
         return 0

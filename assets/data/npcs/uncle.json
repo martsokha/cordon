@@ -1,0 +1,14 @@
+{
+  "id": "npc_uncle",
+  "faction": "faction_drifters",
+  "rank": "veteran",
+  "loadout": [],
+  "unique": true,
+  "respawnable": false,
+  "essential": true,
+  "supplier": {
+    "unlocked_at_start": true,
+    "price_multiplier": 1.0,
+    "delivery_yarn": "delivery_uncle"
+  }
+}

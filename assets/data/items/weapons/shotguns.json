@@ -1,12 +1,9 @@
 [
   {
-    "id": "item_toz34",
+    "id": "item_doublebarrel",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_12gauge",
-      "fire_modes": [
-        "Semi"
-      ],
+      "caliber": "caliber_shotgun",
       "fire_rate": 1.2,
       "accuracy": 0.5,
       "range": 56.0,
@@ -14,26 +11,13 @@
       "added_damage": 0
     },
     "base_price": 3200,
-    "suppliers": [
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 0.85
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.0
-      }
-    ],
     "rarity": "common"
   },
   {
-    "id": "item_saiga12",
+    "id": "item_bulwark",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_12gauge",
-      "fire_modes": [
-        "Semi"
-      ],
+      "caliber": "caliber_shotgun",
       "fire_rate": 3.0,
       "accuracy": 0.55,
       "range": 72.0,
@@ -41,16 +25,6 @@
       "added_damage": 4
     },
     "base_price": 6000,
-    "suppliers": [
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 0.95
-      },
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 1.05
-      }
-    ],
     "rarity": "uncommon"
   }
 ]

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Zone is unpredictable. Events are defined in JSON config files and rolled daily by the simulation. Each event has a category, base probability, duration range, and parameters. World state (escalation, faction tensions, security level) modifies probabilities at runtime.
+The Zone is unpredictable. Events are defined in JSON config files and rolled daily by the simulation. Each event has a spawn weight, duration range, and parameters. World state (escalation, faction tensions, security level) modifies probabilities at runtime. Events without a `spawn_weight` are quest-only — they never roll from the daily scheduler and only fire from quest consequences.
 
 ## Event Types
 
@@ -14,7 +14,7 @@ The Zone is unpredictable. Events are defined in JSON config files and rolled da
 | **Blowout** | Severe surge. Major casualties. Relic positions completely reset. Prices spike across the board. | 1 day, aftermath 2-3 days |
 | **Creature Swarm** | Dangerous creatures flood a sector. Runners at extreme risk. Weapon/ammo demand spikes. Some sectors inaccessible. | 2-3 days |
 | **Hazard Shift** | Hazard fields move. New relic locations. Old safe routes become deadly. Maps become outdated. | Permanent until next shift |
-| **Intelligent Creature** | A creature of unusual intelligence appears in a sector. It avoids patrols, sets traps, and stalks runners. Extremely dangerous but carries or guards rare relics. Runners with the right perks may survive an encounter. Others don't come back. | 3-7 days |
+| **Intelligent Creature** | A creature of unusual intelligence appears in a sector. It avoids patrols, sets traps, and stalks runners. Extremely dangerous but carries or guards rare relics. Well-equipped runners may survive an encounter. Others don't come back. | 3-7 days |
 
 ### Economic
 
@@ -65,14 +65,15 @@ The Zone is unpredictable. Events are defined in JSON config files and rolled da
 
 ## Event System Design
 
-Events are data-driven: each event is defined in a JSON config file with its category, base probability, duration range, eligible sectors/factions, earliest day, and chain events. The sim rolls daily for each eligible event.
+Events are data-driven: each event is defined in a JSON config file with an optional spawn weight, duration range, eligible sectors/factions, earliest day, and chain events. The sim rolls daily for each eligible event that carries a spawn weight.
 
 ### Scheduling
 
 Each day, the sim iterates over all event definitions:
-1. Check if the event is eligible (earliest day, stackability)
-2. Compute probability: `base_probability × category_escalation × world_state_modifiers`
-3. Roll. If it fires, create an `ActiveEvent` with a rolled duration and resolved parameters (which factions, which sector)
+1. Skip events without a `spawn_weight` (quest-only)
+2. Check if the event is eligible (earliest day, stackability)
+3. Compute probability: `spawn_weight × escalation_multiplier`
+4. Roll. If it fires, create an `ActiveEvent` with a rolled duration and resolved parameters (which factions, which sector)
 
 ### Event Chains
 

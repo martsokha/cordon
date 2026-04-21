@@ -1,0 +1,17 @@
+{
+  "id": "item_rifle_ammo",
+  "data": {
+    "type": "ammo",
+    "caliber": "caliber_rifle",
+    "damage": 40,
+    "penetration": 16,
+    "quantity": 30
+  },
+  "base_price": 200,
+  "suppliers": [
+    "npc_uncle",
+    "npc_fence",
+    "npc_quartermaster"
+  ],
+  "rarity": "common"
+}

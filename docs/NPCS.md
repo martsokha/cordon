@@ -12,25 +12,19 @@ FACTION:     The Collective           [visible: patches, gear, mannerisms]
 RANK:        Soldier                  [visible: gear quality, demeanor, how others address them]
 GEAR:        Worn leather jacket,     [visible: what they're carrying]
              damaged rifle
-TRUST:       Low                      [hidden: built over repeat interactions]
 WEALTH:      Poor                     [hidden: inferred from gear/offers]
 NEED:        Desperate (wounded)      [hidden: may or may not be obvious]
-PERSONALITY: Cautious, honest         [hidden: revealed through behavior over time]
-PERKS:       ???                      [hidden: revealed through actions/missions]
 ```
 
 **Visible attributes** (what the player sees in the interface):
 - **Name**: their name or alias
-- **Faction**: who they belong to. Every NPC has a faction, including Drifters. Read from patches, gear, mannerisms.
+- **Faction**: who they belong to. Every NPC has a faction, including the Drifters. Read from patches, gear, mannerisms.
 - **Rank**: their standing within their faction. Affects what they can offer, what they'll accept, and how their faction reacts if you wrong them. A grunt and a lieutenant are very different customers.
 - **Gear**: what they're carrying and wearing. Gives clues about wealth, competence, and faction.
 
 **Hidden attributes** (player never sees these directly — only infers through behavior):
-- **Trust**: how much they trust you personally. Built over repeat interactions.
 - **Wealth**: how much they can actually afford. Not always obvious — a ragged Drifter might have a fortune stashed.
 - **Need**: what they actually need vs. what they say they want. A desperate person may hide their desperation.
-- **Personality**: affects haggling style, honesty, patience. Emerges over multiple encounters.
-- **Perks**: special traits, revealed through actions (see below).
 
 ### Rank
 
@@ -60,35 +54,6 @@ You have a rank too. It represents your standing as a trader in the Zone — how
 
 Ranking up is not purchased — it's earned through gameplay. Trade volume, faction standing, completed missions, and surviving crises all contribute.
 
-### Hidden Perks
-
-NPCs (and especially potential hires) have **perks**: traits that are invisible until revealed through actions. You don't get a stat sheet when someone walks in. You learn who they are by working with them.
-
-**How perks are revealed:**
-- A runner completes a mission → you discover they have "Scavenger's Eye" (finds better loot)
-- A runner barely survives a dangerous sector → you discover they have "Hard to Kill"
-- An NPC sells you a fake relic → you realize they have "Silver Tongue"
-- A runner skims goods from a haul → you discover they have "Sticky Fingers"
-- A guard stands firm during a raid → you discover they have "Ironwall"
-
-**Example perks:**
-| Perk | Type | Effect | Revealed when... |
-|------|------|--------|-------------------|
-| Scavenger's Eye | Positive | Better loot quality on scavenge missions | They return with unusually good finds |
-| Hard to Kill | Positive | Significantly higher survival rate | They survive a mission that should have killed them |
-| Pathfinder | Positive | Faster mission completion, avoids hazards | They return early from a dangerous route |
-| Haggler | Positive | Gets better prices when doing deliveries/trades | A delivery earns more than expected |
-| Ghost | Positive | Excels in hostile faction territory | They succeed in a sector you expected them to fail |
-| Ironwall | Positive | Exceptional at guard duty. Raids are less effective. | A raid that should have broken through gets repelled |
-| Intimidating | Positive | Better intimidation outcomes when on guard duty | NPCs back down more easily during negotiations |
-| Sticky Fingers | Negative | Skims a % of goods from hauls | You notice inventory doesn't match expected returns |
-| Coward | Negative | Higher chance of aborting dangerous missions / fleeing during raids | They come back empty-handed from a risky run, or vanish during a raid |
-| Big Mouth | Negative | Leaks your business to factions/rivals | A faction learns something they shouldn't know |
-| Grudge Holder | Negative | If mistreated, will eventually betray you | Sudden betrayal after a history of bad treatment |
-| Lucky | Neutral | Occasional jackpot finds, occasional disasters | Unpredictable mission outcomes |
-
-**Design intent:** You're hiring people, not stat blocks. You have to invest in someone (pay, gear, missions) before you know what you're getting. This creates attachment and tension — your best runner might have a hidden flaw you haven't discovered yet.
-
 ### NPC Types
 
 | Type | Description | Frequency |
@@ -114,11 +79,11 @@ You manage **squads**: each squad is one person assigned to a role (runner or gu
 
 ### How recruitment works
 
-1. **NPC arrives looking for work**: they show up at your counter asking if you need anyone. You see their appearance, demeanor, and gear condition — but no stats, no perks.
+1. **NPC arrives looking for work**: they show up at your counter asking if you need anyone. You see their appearance, demeanor, and gear condition — but no stats.
 2. **You decide**: hire them, turn them away, or negotiate terms (pay rate, upfront equipment).
-3. **You can also offer jobs**: if a regular Drifter, Syndicate, or Mercenary customer seems capable, you can propose they work for you. Trust level affects whether they accept.
+3. **You can also offer jobs**: if a regular Drifter, Syndicate, or Mercenary customer seems capable, you can propose they work for you.
 4. **Assign a role**: runner (goes into the Zone) or guard (stays at the bunker).
-5. **Trial by fire**: their first mission or first raid reveals what they're actually made of. Perks emerge over time.
+5. **Trial by fire**: their first mission or first raid reveals what they're actually made of.
 
 ### What you know at hire time
 
@@ -130,8 +95,6 @@ You manage **squads**: each squad is one person assigned to a role (runner or gu
 
 ### What you DON'T know
 
-- Their actual perks (hidden)
-- Their loyalty threshold (how much abuse they'll tolerate)
 - Whether they're a plant from a rival faction
 - Whether they'll crack under pressure or rise to the occasion
 
@@ -139,9 +102,9 @@ You manage **squads**: each squad is one person assigned to a role (runner or gu
 
 **Runners**: your hands in the Zone. They go out, scavenge, deliver, and gather intel. Your primary way to acquire goods beyond what walks through your door.
 
-**Guards**: your muscle at the bunker. They deter theft, enable intimidation during negotiations, and defend against raids. A guard with the right perks can make your bunker nearly untouchable — but you won't know until a raid tests them.
+**Guards**: your muscle at the bunker. They deter theft, enable intimidation during negotiations, and defend against raids. A capable guard can make your bunker nearly untouchable — but you won't know until a raid tests them.
 
-You can reassign roles between days. Firing someone is instant but burns trust — they may come back as a hostile customer, or badmouth you to their faction.
+You can reassign roles between days. Firing someone is instant and may sour the relationship — they may come back as a hostile customer, or badmouth you to their faction.
 
 ## Runners
 
@@ -170,7 +133,7 @@ Runners return in the evening (or after 1-2 days for distant sectors):
 | **Runner lost** | 5% | Runner doesn't return. Presumed dead. Gear lost. |
 | **Jackpot** | 5% | Exceptional find — rare relic, stash, intel |
 
-Chances are modified by the runner's hidden perks, their equipment, the sector's danger level, and current zone events. You won't know the exact odds — you're making gut calls based on what you've observed.
+Chances are modified by the runner's equipment, the sector's danger level, and current zone events. You won't know the exact odds — you're making gut calls based on what you've observed.
 
 ### Sector Destinations
 
@@ -189,7 +152,6 @@ Chances are modified by the runner's hidden perks, their equipment, the sector's
 
 - **Pay**: runners expect payment. Underpay and they leave or steal.
 - **Equipment**: you can give runners weapons, armor, meds, and detectors from your inventory.
-- **Loyalty**: invisible stat. Builds over time with fair pay and good equipment. Drops with underpayment or sending them on suicide missions.
 - **Permadeath**: dead runners are gone. Their gear is gone. Your investment is lost.
 
 ## Guards
@@ -197,10 +159,10 @@ Chances are modified by the runner's hidden perks, their equipment, the sector's
 Guards stay at the bunker and provide:
 
 - **Raid defense**: guards fight off attackers. More/better guards = better outcomes. Without a guard, thugs can rob you freely.
-- **Intimidation**: during negotiations, having a guard enables the Intimidate action. The guard's hidden perks affect how effective it is.
+- **Intimidation**: during negotiations, having a guard enables the Intimidate action. The guard's gear and experience affect how effective it is.
 - **Deterrence**: NPCs with hostile intent are less likely to try something if they see armed guards.
 
-Guards use the same attribute and perk system as runners. A guard with "Ironwall" is worth two without it — but you won't know until a raid happens. A guard with "Coward" might flee when you need them most.
+Guards use the same attribute system as runners. You won't know their true grit until a raid happens — a seasoned guard can break a raid, a fresh recruit might break first.
 
 Guards need daily pay and equipment, same as runners. They can be wounded or killed during raids.
 

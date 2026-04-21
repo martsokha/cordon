@@ -1,0 +1,17 @@
+{
+  "id": "item_pistol_ammo",
+  "data": {
+    "type": "ammo",
+    "caliber": "caliber_pistol",
+    "damage": 20,
+    "penetration": 4,
+    "quantity": 16
+  },
+  "base_price": 60,
+  "suppliers": [
+    "npc_uncle",
+    "npc_fence",
+    "npc_quartermaster"
+  ],
+  "rarity": "common"
+}

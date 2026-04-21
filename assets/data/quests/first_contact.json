@@ -1,14 +1,14 @@
 {
   "id": "quest_first_contact",
   "category": "tutorial",
-  "giver": "npc_garrison_lieutenant",
+  "giver": "npc_garrison_sergeant",
   "giver_faction": "faction_garrison",
   "stages": [
     {
       "id": "intro",
       "kind": "talk",
-      "npc": "npc_garrison_lieutenant",
-      "yarn_node": "first_contact.intro",
+      "npc": "npc_garrison_sergeant",
+      "yarn_node": "sergeant_intro",
       "branches": [
         {
           "choice": "accept",
@@ -34,10 +34,18 @@
         {
           "apply": [
             {
-              "give_credits": 200
+              "record_decision": {
+                "decision": "decision_garrison_support",
+                "value": "accept"
+              }
             },
             {
-              "give_player_xp": 50
+              "unlock_supplier": {
+                "template": "npc_quartermaster"
+              }
+            },
+            {
+              "give_credits": 200
             },
             {
               "standing_change": {
@@ -63,10 +71,13 @@
         {
           "apply": [
             {
-              "give_credits": 100
+              "record_decision": {
+                "decision": "decision_garrison_support",
+                "value": "neutral"
+              }
             },
             {
-              "give_player_xp": 25
+              "give_credits": 100
             },
             {
               "standing_change": {
@@ -85,6 +96,12 @@
       "consequences": [
         {
           "apply": [
+            {
+              "record_decision": {
+                "decision": "decision_garrison_support",
+                "value": "refuse"
+              }
+            },
             {
               "standing_change": {
                 "faction": "faction_garrison",

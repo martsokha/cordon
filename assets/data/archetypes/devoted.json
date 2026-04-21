@@ -6,10 +6,10 @@
       "novice": {
         "primary": [
           {
-            "id": "item_toz34"
+            "id": "item_doublebarrel"
           },
           {
-            "id": "item_pm"
+            "id": "item_viper"
           }
         ],
         "armor": [
@@ -25,7 +25,7 @@
         "ammo_boxes": 2,
         "consumables": [
           {
-            "id": "item_bandage"
+            "id": "item_medkit"
           },
           {
             "id": "item_ration"
@@ -36,18 +36,18 @@
       "experienced": {
         "primary": [
           {
-            "id": "item_toz34"
+            "id": "item_doublebarrel"
           },
           {
-            "id": "item_pm"
+            "id": "item_viper"
           },
           {
-            "id": "item_saiga12"
+            "id": "item_bulwark"
           }
         ],
         "secondary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           }
         ],
         "armor": [
@@ -67,7 +67,7 @@
         "secondary_ammo_boxes": 1,
         "consumables": [
           {
-            "id": "item_bandage"
+            "id": "item_medkit"
           },
           {
             "id": "item_medkit"
@@ -78,16 +78,16 @@
       "veteran": {
         "primary": [
           {
-            "id": "item_saiga12",
+            "id": "item_bulwark",
             "weight": 2
           },
           {
-            "id": "item_ak74"
+            "id": "item_longtooth"
           }
         ],
         "secondary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           }
         ],
         "armor": [
@@ -118,15 +118,15 @@
       "master": {
         "primary": [
           {
-            "id": "item_saiga12"
+            "id": "item_bulwark"
           },
           {
-            "id": "item_ak74"
+            "id": "item_longtooth"
           }
         ],
         "secondary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           }
         ],
         "armor": [
@@ -157,15 +157,15 @@
       "legend": {
         "primary": [
           {
-            "id": "item_ak74"
+            "id": "item_longtooth"
           },
           {
-            "id": "item_saiga12"
+            "id": "item_bulwark"
           }
         ],
         "secondary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           }
         ],
         "armor": [

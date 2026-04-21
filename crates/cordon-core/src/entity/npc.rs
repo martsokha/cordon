@@ -1,28 +1,23 @@
-//! NPC type markers + the hidden-personality enum.
+//! NPC type markers.
 //!
 //! There's no `Npc` data struct anymore — NPCs are Bevy entities
 //! assembled from cordon-core component types (`NpcName`,
-//! `Loadout`, `Experience`, `Credits`, `Trust`, `Loyalty`,
-//! `Personality`) plus cordon-sim glue (`NpcMarker`,
-//! `FactionId`, `NpcAttributes`, `Perks`, `Employment`,
-//! `NpcBundle`). The generator in cordon-sim produces bundles
-//! directly.
+//! `Loadout`, `Experience`, `Credits`) plus cordon-sim glue
+//! (`NpcMarker`, `FactionId`, `Employment`, `NpcBundle`). The
+//! generator in cordon-sim produces bundles directly.
 //!
 //! What remains here is:
 //!
 //! - `Npc` — a phantom marker type used as the type parameter
 //!   on [`Uid<Npc>`], so stable save-game IDs stay typed.
-//! - `Personality` — enum flavour type stored as a field inside
-//!   a component, not as its own component.
 //! - `NpcTemplate` — marker for NPC template IDs used in quest
 //!   consequences.
 
 use serde::{Deserialize, Serialize};
 
 use super::faction::Faction;
-use super::perk::Perk;
 use crate::item::Item;
-use crate::primitive::{Id, IdMarker, Rank, Trust};
+use crate::primitive::{Credits, Id, IdMarker, Rank};
 
 /// Phantom marker for NPC-stable save-game IDs. Used as the
 /// type parameter on `Uid<Npc>`. Has no fields — all the actual
@@ -36,7 +31,7 @@ impl IdMarker for NpcTemplate {}
 /// A named, unique NPC definition. Loaded from `assets/data/npcs/`.
 ///
 /// Templates are for story-relevant characters with persistent
-/// identities — "Lieutenant Petrov," not "a random Garrison soldier."
+/// identities — "Sergeant Petrov," not "a random Garrison soldier."
 /// Generic NPCs are spawned from [`ArchetypeDef`](super::archetype::ArchetypeDef)
 /// instead.
 ///
@@ -46,15 +41,9 @@ impl IdMarker for NpcTemplate {}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NpcTemplateDef {
     pub id: Id<NpcTemplate>,
-    /// Localization key for the display name, resolved at render time.
-    pub name_key: String,
     pub faction: Id<Faction>,
     /// Base rank — actual spawn XP is randomized within this tier.
     pub rank: Rank,
-    pub personality: Personality,
-    /// Starting trust toward the player.
-    pub trust: Trust,
-    pub perks: Vec<Id<Perk>>,
     /// If set, the NPC spawns with exactly these items. If `None`,
     /// gear is rolled from the faction archetype at the resolved rank.
     #[serde(default)]
@@ -72,30 +61,57 @@ pub struct NpcTemplateDef {
     /// characters who must survive to fulfil their narrative role.
     #[serde(default)]
     pub essential: bool,
+    /// When present, this NPC doubles as a data-driven trade
+    /// supplier the player can order items from. `None` means the
+    /// template is a regular NPC (quest giver, combatant, etc.)
+    /// with no merchant role. See [`SupplierInfo`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub supplier: Option<SupplierInfo>,
+}
+
+/// Supplier-specific fields for an NPC template that sells to the
+/// player. Every supplier is also an NPC template — the supplier
+/// *is* the courier that delivers the order.
+///
+/// Unlocked suppliers are tracked in the `PlayerSuppliers` sim
+/// resource. New suppliers are added via
+/// [`Consequence::UnlockSupplier`](crate::world::narrative::Consequence::UnlockSupplier).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SupplierInfo {
+    /// When true, this supplier is available from the start of a
+    /// run without any unlock step. Use for the starting supplier
+    /// ("Uncle") — gate everyone else behind a quest or standing.
+    #[serde(default)]
+    pub unlocked_at_start: bool,
+    /// Per-supplier price multiplier applied on top of the item's
+    /// `base_price`. Values `<1.0` discount, `>1.0` mark up.
+    /// `1.0` means "sells at base price."
+    pub price_multiplier: f32,
+    /// Yarn node that fires when this supplier arrives as a
+    /// delivery visitor. Separate from any general-purpose yarn
+    /// the template might run outside of deliveries.
+    pub delivery_yarn: String,
+}
+
+impl SupplierInfo {
+    /// Compute the actual price of an item bought from this
+    /// supplier, rounded to the nearest credit.
+    pub fn price_for(&self, base: Credits) -> Credits {
+        let cents = (base.value() as f32 * self.price_multiplier).round();
+        Credits::new(cents.max(0.0) as u32)
+    }
+}
+
+impl NpcTemplateDef {
+    /// Localization key for the display name, derived from the
+    /// template id by Fluent-casing (`_` → `-`). The name
+    /// convention is stable across the codebase — see the
+    /// `npc-*` keys in `names.ftl`.
+    pub fn name_key(&self) -> String {
+        self.id.as_str().replace('_', "-")
+    }
 }
 
 fn default_true() -> bool {
     true
-}
-
-/// Core personality trait affecting negotiation behavior
-/// (hidden from the player). Stored on entities as a field of
-/// `NpcAttributes`, not as its own component.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Personality {
-    /// Careful, slow to trust, thorough negotiator.
-    #[default]
-    Cautious,
-    /// Confrontational, may escalate if refused.
-    Aggressive,
-    /// Straightforward, unlikely to scam.
-    Honest,
-    /// May lie about item quality or their situation.
-    Deceptive,
-    /// Willing to go back and forth on price.
-    Patient,
-    /// Makes snap decisions, may accept bad deals.
-    Impulsive,
 }

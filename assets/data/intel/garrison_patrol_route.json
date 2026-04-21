@@ -1,0 +1,6 @@
+{
+  "id": "intel_garrison_patrol_route",
+  "expires_after": {
+    "days": 3
+  }
+}

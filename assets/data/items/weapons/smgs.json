@@ -1,13 +1,9 @@
 [
   {
-    "id": "item_kedr",
+    "id": "item_razor",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_9x18mm",
-      "fire_modes": [
-        "Semi",
-        "Auto"
-      ],
+      "caliber": "caliber_pistol",
       "fire_rate": 14.0,
       "accuracy": 0.55,
       "range": 200.0,
@@ -15,30 +11,13 @@
       "added_damage": 1
     },
     "base_price": 3500,
-    "suppliers": [
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 0.95
-      },
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 1.05
-      }
-    ],
     "rarity": "common"
   },
   {
-    "id": "item_pp19_bizon",
+    "id": "item_sparrow",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_9x18mm",
-      "fire_modes": [
-        "Semi",
-        {
-          "Burst": 3
-        },
-        "Auto"
-      ],
+      "caliber": "caliber_pistol",
       "fire_rate": 12.0,
       "accuracy": 0.65,
       "range": 240.0,
@@ -46,16 +25,6 @@
       "added_damage": 2
     },
     "base_price": 5500,
-    "suppliers": [
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 0.95
-      },
-      {
-        "faction": "faction_syndicate",
-        "price_multiplier": 1.05
-      }
-    ],
     "rarity": "uncommon"
   }
 ]

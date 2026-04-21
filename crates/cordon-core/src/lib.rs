@@ -6,7 +6,7 @@
 // crate-wide rather than per-system.
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
-/// NPCs, factions, the player, bunker, and perks.
+/// NPCs, factions, the player, and bunker.
 pub mod entity;
 
 /// Item definitions, effects, calibers, and instances.

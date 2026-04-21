@@ -22,19 +22,19 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 # Internal crates
-cordon-core = { workspace = true }
-cordon-data = { workspace = true }
+cordon-core = { workspace = true, features = [] }
+cordon-data = { workspace = true, features = [] }
 
 # Game engine — cordon-sim is a Bevy plugin so the world lives in ECS.
-bevy = { workspace = true }
-bevy_rand = { workspace = true }
-bevy_prng = { workspace = true }
+bevy = { workspace = true, features = [] }
+bevy_rand = { workspace = true, features = [] }
+bevy_prng = { workspace = true, features = [] }
 
 # Dialogue runtime — quest flags use `YarnValue` so the sim can
 # round-trip variables to/from the dialogue runner without an
 # intermediate conversion layer.
-bevy_yarnspinner = { workspace = true }
+bevy_yarnspinner = { workspace = true, features = [] }
 
 # Randomness
-rand = { workspace = true }
-bevy_behave = "0.5"
+rand = { workspace = true, features = [] }
+bevy_behave = { version = "0.5", features = [] }

@@ -1,0 +1,228 @@
+//! Per-frame visibility application.
+//!
+//! Builds the set of reveal circles from live player-squad
+//! members and the always-on bunker circle, then walks every
+//! area / NPC / relic / anomaly visual and toggles
+//! `Visibility` based on whether it intersects any reveal.
+//! Visibility writes are change-guarded so a stable scene
+//! doesn't dirty Bevy's change detection cascade.
+
+use std::collections::HashSet;
+
+use bevy::prelude::*;
+use cordon_core::entity::bunker::UpgradeEffect;
+use cordon_data::gamedata::GameDataResource;
+use cordon_sim::plugin::prelude::{
+    Dead, NpcMarker, Owned, RelicMarker, SquadMarker, SquadMembership, Vision,
+};
+use cordon_sim::resources::PlayerUpgrades;
+
+use super::{FogEnabled, FogReveals, RevealedAreas};
+use crate::laptop::environment::anomaly::AnomalyVisual;
+use crate::laptop::map::{AreaCircle, Bunker};
+use crate::laptop::ui::LaptopTab;
+
+/// World-space radius of the always-on vision around the bunker
+/// at the origin. The player can see anything inside this circle
+/// without scouting it — it's where they live, after all. Kept
+/// small so it reads as "the immediate surroundings" rather than
+/// a free chunk of map.
+const BUNKER_REVEAL_RADIUS: f32 = 90.0;
+
+/// Writing a `Visibility` component (even to the same value)
+/// marks it as changed, which propagates to children and dirties
+/// downstream render commands. Guarded write.
+fn set_vis(vis: &mut Mut<Visibility>, target: Visibility) {
+    if **vis != target {
+        **vis = target;
+    }
+}
+
+/// Apply the fog to every map-world entity each frame.
+///
+/// Reveal circles are the union of (member transform, member
+/// vision) for every non-dead NPC belonging to a player squad,
+/// plus a small always-on circle around the bunker. Anything
+/// inside any circle is visible; everything else is hidden —
+/// except the bunker dot, which is always visible, and areas,
+/// which latch into [`RevealedAreas`] the first time they're
+/// seen so their marker persists forever.
+#[allow(clippy::type_complexity)]
+pub(super) fn apply_fog(
+    owned_squads: Query<Entity, (With<SquadMarker>, With<Owned>)>,
+    mut revealed_areas: ResMut<RevealedAreas>,
+    mut fog_reveals: ResMut<FogReveals>,
+    fog_enabled: Res<FogEnabled>,
+    active_tab: Res<LaptopTab>,
+    upgrades: Res<PlayerUpgrades>,
+    game_data: Res<GameDataResource>,
+    members: Query<
+        (&Transform, &SquadMembership, &Vision),
+        // Dead NPCs (corpses) shouldn't see anything — their
+        // vision circle would otherwise reveal a chunk of fog
+        // around their corpse forever.
+        (With<NpcMarker>, Without<Dead>),
+    >,
+    mut area_q: Query<
+        (Entity, &Transform, &AreaCircle, &mut Visibility),
+        (Without<NpcMarker>, Without<RelicMarker>, Without<Bunker>),
+    >,
+    mut npc_q: Query<
+        (&Transform, &SquadMembership, &mut Visibility),
+        (With<NpcMarker>, Without<AreaCircle>, Without<Bunker>),
+    >,
+    mut relic_q: Query<
+        (&Transform, &mut Visibility),
+        (
+            With<RelicMarker>,
+            Without<NpcMarker>,
+            Without<AreaCircle>,
+            Without<Bunker>,
+        ),
+    >,
+    mut anomaly_q: Query<
+        (&Transform, &mut Visibility),
+        (
+            With<AnomalyVisual>,
+            Without<RelicMarker>,
+            Without<NpcMarker>,
+            Without<AreaCircle>,
+            Without<Bunker>,
+        ),
+    >,
+) {
+    // Only run the fog-driven visibility override while the map
+    // is the active tab. On other tabs the normal MapOnlyUi /
+    // tab-switch visibility plumbing owns these entities and we'd
+    // fight with it. The laptop camera renders continuously into
+    // the desk projection, so the state check that used to be
+    // here (`PlayingState::Laptop`) no longer applies.
+    let map_visible = *active_tab == LaptopTab::Map;
+    if !map_visible {
+        return;
+    }
+
+    // Snapshot the set of player-owned squad entities once per
+    // frame so the per-NPC and per-member loops below can do O(1)
+    // membership checks without re-querying.
+    let owned: HashSet<Entity> = owned_squads.iter().collect();
+
+    // Gather reveal circles from player-squad members. We reuse
+    // the cache buffer rather than reallocating each frame — it's
+    // read back by `sync_fog_material` after this system finishes.
+    fog_reveals.0.clear();
+    fog_reveals.0.push((Vec2::ZERO, BUNKER_REVEAL_RADIUS));
+    for (transform, membership, vision) in &members {
+        if owned.contains(&membership.squad) {
+            fog_reveals
+                .0
+                .push((transform.translation.truncate(), vision.radius));
+        }
+    }
+    let reveals = &fog_reveals.0;
+    let fog_on = fog_enabled.enabled;
+
+    // Point/disk visibility tests. When fog is off (cheat mode)
+    // `visible_point` returns true unconditionally. `latches_area`
+    // always respects `fog_on` so toggling the cheat doesn't
+    // retroactively "discover" areas the player hasn't scouted.
+    let visible_point = |p: Vec2| -> bool {
+        if !fog_on {
+            return true;
+        }
+        reveals.iter().any(|(c, r)| c.distance_squared(p) <= r * r)
+    };
+    let latches_area = |p: Vec2, disk_r: f32| -> bool {
+        if !fog_on {
+            return false;
+        }
+        reveals.iter().any(|(c, r)| c.distance(p) <= r + disk_r)
+    };
+
+    // Areas have two states for the *mesh*:
+    //
+    //   - Never seen: hidden under the fog overlay entirely.
+    //   - Ever seen: mesh + border stay visible *forever*. The
+    //     fog shader's scout-mask texture handles "can the
+    //     player actually see through to the terrain here" on a
+    //     per-texel basis, so this latch only drives whether
+    //     the area's *marker* mesh (disk + border + tooltip
+    //     target) exists on the map.
+    let mut visible_area_disks: Vec<(Vec2, f32)> = Vec::new();
+    for (entity, transform, circle, mut vis) in &mut area_q {
+        let p = transform.translation.truncate();
+        let in_sight = latches_area(p, circle.radius);
+        if in_sight {
+            revealed_areas.0.insert(entity);
+        }
+        let is_discovered = revealed_areas.0.contains(&entity);
+        let show = !fog_on || is_discovered;
+        set_vis(
+            &mut vis,
+            if show {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            },
+        );
+        // `visible_area_disks` is what the anomaly visibility
+        // pass below uses. Anomalies should only run their flashy
+        // shader when actively in sight — otherwise the player
+        // could remember an anomaly forever via its visual.
+        if in_sight {
+            visible_area_disks.push((p, circle.radius));
+        }
+    }
+
+    // Anomaly shader visuals: only show if the anomaly's centre
+    // sits inside a currently-visible area disk. Anomalies always
+    // live inside their parent area by construction.
+    for (transform, mut vis) in &mut anomaly_q {
+        let p = transform.translation.truncate();
+        let inside = visible_area_disks
+            .iter()
+            .any(|(c, r)| c.distance_squared(p) <= r * r);
+        set_vis(
+            &mut vis,
+            if inside {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            },
+        );
+    }
+
+    // NPCs: real-time. Player-owned squad members are always
+    // visible (they're what's doing the revealing).
+    for (transform, membership, mut vis) in &mut npc_q {
+        let is_mine = owned.contains(&membership.squad);
+        let p = transform.translation.truncate();
+        set_vis(
+            &mut vis,
+            if is_mine || visible_point(p) {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            },
+        );
+    }
+
+    // Relics: real-time, with any upgrade granting `RevealRelics`
+    // (currently the artifact scanner) bypassing the fog entirely.
+    // `has_scanner` is evaluated once per frame so installing the
+    // upgrade immediately reveals all relics without a map-reload.
+    let has_scanner = upgrades
+        .installed_effects(&game_data.0.upgrades)
+        .any(|e| matches!(e, UpgradeEffect::RevealRelics));
+    for (transform, mut vis) in &mut relic_q {
+        let p = transform.translation.truncate();
+        set_vis(
+            &mut vis,
+            if has_scanner || visible_point(p) {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            },
+        );
+    }
+}

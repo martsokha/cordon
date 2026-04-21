@@ -1,0 +1,188 @@
+//! Kitchen (left side room): fridge, counter, microwave, kettle.
+
+use std::f32::consts::{FRAC_PI_2, PI};
+
+use bevy::prelude::*;
+
+use crate::bunker::geometry::*;
+use crate::bunker::particles;
+use crate::bunker::resources::RoomCtx;
+
+pub fn spawn(ctx: &mut RoomCtx<'_, '_, '_>) {
+    let concrete = ctx.pal.concrete.clone();
+    let concrete_dark = ctx.pal.concrete_dark.clone();
+
+    ctx.floor_ceiling(
+        Vec3::new(ctx.l.kitchen_x_center(), 0.0, ctx.l.tj1_center()),
+        Vec2::new(ctx.l.side_depth / 2.0, ctx.l.tj1_len() / 2.0),
+        ctx.l.h,
+        &concrete_dark,
+    );
+    ctx.wall(
+        Vec3::new(ctx.l.kitchen_x_min(), ctx.l.hh(), ctx.l.tj1_center()),
+        Quat::from_rotation_y(-FRAC_PI_2),
+        Vec2::new(ctx.l.tj1_len() / 2.0, ctx.l.hh()),
+        &concrete,
+    );
+    ctx.wall(
+        Vec3::new(ctx.l.kitchen_x_center(), ctx.l.hh(), ctx.l.tj1_north),
+        Quat::from_rotation_y(PI),
+        Vec2::new(ctx.l.side_depth / 2.0, ctx.l.hh()),
+        &concrete,
+    );
+    ctx.wall(
+        Vec3::new(ctx.l.kitchen_x_center(), ctx.l.hh(), ctx.l.tj1_south),
+        Quat::IDENTITY,
+        Vec2::new(ctx.l.side_depth / 2.0, ctx.l.hh()),
+        &concrete,
+    );
+
+    // Fridge.
+    ctx.prop_rot(
+        Prop::AmericanFridge,
+        Vec3::new(ctx.l.kitchen_x_min() + 0.4, 0.0, ctx.l.tj1_south + 0.5),
+        Quat::from_rotation_y(FRAC_PI_2),
+    );
+
+    // Kitchen shelves as counter surface. Top at y = 0.865.
+    const SHELF_SURFACE: f32 = 0.865;
+    // Two big shelf units running along the west wall where the
+    // small + big used to sit — gives a continuous counter run.
+    ctx.prop_rot(
+        Prop::KitchenShelves2,
+        Vec3::new(ctx.l.kitchen_x_min() + 0.3, 0.0, ctx.l.tj1_center() - 0.1),
+        Quat::from_rotation_y(FRAC_PI_2),
+    );
+    ctx.prop_rot(
+        Prop::KitchenShelves2,
+        Vec3::new(ctx.l.kitchen_x_min() + 0.3, 0.0, ctx.l.tj1_center() + 0.9),
+        Quat::from_rotation_y(FRAC_PI_2),
+    );
+    // Small shelf relocated near the doorway (north wall, east of
+    // center). Rotated PI so its face points south into the room.
+    ctx.prop_rot(
+        Prop::KitchenShelves1,
+        Vec3::new(ctx.l.kitchen_x_center() + 0.2, 0.0, ctx.l.tj1_north - 0.22),
+        Quat::from_rotation_y(PI),
+    );
+
+    // Wooden chair pulled up to the small shelf as an eating spot.
+    ctx.prop(
+        Prop::WoodenChair,
+        Vec3::new(ctx.l.kitchen_x_center() + 0.2, 0.0, ctx.l.tj1_north - 0.85),
+    );
+
+    // `lowpoly/` props (Bottles, Cups, …) are authored with a
+    // 0.1875 baked-in base offset above their transform origin,
+    // unlike `interior/` props which sit flush at y=0. Subtract
+    // the offset when placing them on a shelf surface.
+    const LOWPOLY_SHELF_SURFACE: f32 = SHELF_SURFACE - 0.1875;
+
+    // Items on the shelves.
+    ctx.prop_rot(
+        Prop::Microwave,
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            SHELF_SURFACE,
+            ctx.l.tj1_center() - 0.3,
+        ),
+        Quat::from_rotation_y(FRAC_PI_2),
+    );
+    let kettle = ctx
+        .prop_rot(
+            Prop::Kettle,
+            Vec3::new(
+                ctx.l.kitchen_x_min() + 0.4,
+                SHELF_SURFACE,
+                ctx.l.tj1_center() + 0.7,
+            ),
+            Quat::from_rotation_y(FRAC_PI_2),
+        )
+        .id();
+    // Steam rising from the spout. Offset is in the kettle's local
+    // frame; the kettle is rotated +90° around Y, so local +Z maps
+    // to world +X (the nose direction).
+    particles::steam::attach_kettle_steam(
+        ctx.commands,
+        ctx.effects,
+        kettle,
+        Vec3::new(0.0, 0.3, 0.1),
+    );
+    ctx.prop_rot(
+        Prop::Mug,
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            SHELF_SURFACE,
+            ctx.l.tj1_center() + 0.3,
+        ),
+        Quat::from_rotation_y(FRAC_PI_2),
+    );
+    // Paperwork, floppy, and a phone left on the shelves —
+    // placed between the microwave and kettle so they're
+    // actually on the KitchenShelves geometry.
+    ctx.prop_rot(
+        Prop::File01,
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            SHELF_SURFACE,
+            ctx.l.tj1_center() - 0.05,
+        ),
+        Quat::from_rotation_y(FRAC_PI_2 + 0.3),
+    );
+    ctx.prop_rot(
+        Prop::FloppyDisc01,
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            SHELF_SURFACE,
+            ctx.l.tj1_center() + 0.15,
+        ),
+        Quat::from_rotation_y(0.3),
+    );
+    ctx.prop_rot(
+        Prop::PhoneMobile04,
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            SHELF_SURFACE,
+            ctx.l.tj1_center() + 0.5,
+        ),
+        Quat::from_rotation_y(FRAC_PI_2),
+    );
+
+    // Bottle cluster on the south shelf, south of the microwave.
+    ctx.prop_rot(
+        Prop::Bottles01,
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            LOWPOLY_SHELF_SURFACE,
+            ctx.l.tj1_center() - 0.55,
+        ),
+        Quat::from_rotation_y(0.4),
+    );
+    // Cups next to the kettle.
+    ctx.prop_rot(
+        Prop::Cups01,
+        Vec3::new(
+            ctx.l.kitchen_x_min() + 0.4,
+            LOWPOLY_SHELF_SURFACE,
+            ctx.l.tj1_center() + 0.9,
+        ),
+        Quat::from_rotation_y(-0.3),
+    );
+
+    // Near the doorway.
+    ctx.prop(
+        Prop::Barrel02,
+        Vec3::new(ctx.l.kitchen_x_center() + 0.8, 0.0, ctx.l.tj1_north - 0.4),
+    );
+    ctx.prop_rot(
+        Prop::Bag01,
+        Vec3::new(ctx.l.kitchen_x_center() + 0.8, 0.0, ctx.l.tj1_north - 0.3),
+        Quat::from_rotation_y(0.6),
+    );
+    // Bucket tucked against the south wall.
+    ctx.prop_rot(
+        Prop::Bucket1,
+        Vec3::new(ctx.l.kitchen_x_center() - 0.6, 0.0, ctx.l.tj1_south + 0.25),
+        Quat::from_rotation_y(0.3),
+    );
+}

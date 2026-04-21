@@ -9,7 +9,6 @@ use serde::{Deserialize, Serialize};
 
 use super::area::Area;
 use crate::entity::npc::Npc;
-use crate::entity::perk::Perk;
 use crate::item::{ItemCategory, ItemInstance};
 use crate::primitive::{Day, Id, Location, Uid};
 
@@ -63,7 +62,7 @@ pub struct MissionPlan {
 ///
 /// The runner is traveling to the destination, completing the mission,
 /// and returning. The sim computes the return day dynamically based
-/// on distance, hazards, and runner perks.
+/// on distance and hazards.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActiveMission {
     /// The original mission plan.
@@ -71,7 +70,7 @@ pub struct ActiveMission {
     /// Day the mission was dispatched.
     pub day_dispatched: Day,
     /// Day the runner is expected to return. Computed by the sim
-    /// at dispatch time based on sector distance, events, and perks.
+    /// at dispatch time based on sector distance and events.
     pub return_day: Day,
     /// Current position on the map, updated each tick by the sim.
     pub current_location: Location,
@@ -90,6 +89,4 @@ pub struct MissionResult {
     pub runner_damage: u32,
     /// Durability damage taken by the runner's gear during the mission.
     pub gear_damage: u32,
-    /// Perk IDs that were revealed by this mission's events.
-    pub perks_revealed: Vec<Id<Perk>>,
 }

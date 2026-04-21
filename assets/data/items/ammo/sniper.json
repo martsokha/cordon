@@ -1,0 +1,16 @@
+{
+  "id": "item_sniper_ammo",
+  "data": {
+    "type": "ammo",
+    "caliber": "caliber_sniper",
+    "damage": 60,
+    "penetration": 24,
+    "quantity": 20
+  },
+  "base_price": 350,
+  "suppliers": [
+    "npc_quartermaster",
+    "npc_fence"
+  ],
+  "rarity": "uncommon"
+}

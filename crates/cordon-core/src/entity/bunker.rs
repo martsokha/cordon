@@ -64,6 +64,11 @@ pub enum UpgradeEffect {
     /// Reveal relic markers on the zone map regardless of NPC
     /// vision / fog-of-war. Consumed by the laptop's fog system.
     RevealRelics,
+    /// Decrypt encrypted radio broadcasts. Events whose `RadioEntry`
+    /// is marked `encrypted` only reach the player when at least
+    /// one installed upgrade grants this effect. Also gates the
+    /// `Radio04` chunky tube-radio prop in the command room.
+    ListeningDevice,
 }
 
 /// An upgrade definition loaded from config.

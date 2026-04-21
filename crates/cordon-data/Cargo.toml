@@ -22,14 +22,14 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 # Internal crates
-cordon-core = { workspace = true }
+cordon-core = { workspace = true, features = [] }
 
 # Game engine
-bevy = { workspace = true }
+bevy = { workspace = true, features = [] }
 
 # (De)serialization
-serde = { workspace = true }
-serde_json = { workspace = true }
+serde = { workspace = true, features = [] }
+serde_json = { workspace = true, features = [] }
 
 # Error handling
-thiserror = { workspace = true }
+thiserror = { workspace = true, features = [] }

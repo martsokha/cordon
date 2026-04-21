@@ -7,11 +7,11 @@
 //! ```text
 //! assets/data/
 //!   areas/          → Vec<AreaDef>
+//!   decisions/      → Vec<DecisionDef>
 //!   events/         → Vec<EventDef>
 //!   factions/       → Vec<FactionDef>
 //!   items/          → Vec<ItemDef>
 //!   namepools/      → Vec<NamePool>
-//!   perks/          → Vec<PerkDef>
 //!   quests/         → Vec<QuestDef>
 //!   triggers/       → Vec<QuestTriggerDef>
 //!   upgrades/       → Vec<UpgradeDef>
@@ -28,12 +28,11 @@ use cordon_core::entity::bunker::UpgradeDef;
 use cordon_core::entity::faction::FactionDef;
 use cordon_core::entity::name::NamePool;
 use cordon_core::entity::npc::NpcTemplateDef;
-use cordon_core::entity::perk::PerkDef;
 use cordon_core::item::ItemDef;
 use cordon_core::primitive::Id;
 use cordon_core::world::area::AreaDef;
 use cordon_core::world::loot::LootTables;
-use cordon_core::world::narrative::{EventDef, QuestDef, QuestTriggerDef};
+use cordon_core::world::narrative::{DecisionDef, EventDef, IntelDef, QuestDef, QuestTriggerDef};
 
 use crate::catalog::GameData;
 
@@ -75,12 +74,13 @@ impl AssetLoader for RawJsonLoader {
 struct LoadingFolders {
     areas: Handle<LoadedFolder>,
     archetypes: Handle<LoadedFolder>,
+    decisions: Handle<LoadedFolder>,
     events: Handle<LoadedFolder>,
     factions: Handle<LoadedFolder>,
+    intel: Handle<LoadedFolder>,
     items: Handle<LoadedFolder>,
     namepools: Handle<LoadedFolder>,
     npcs: Handle<LoadedFolder>,
-    perks: Handle<LoadedFolder>,
     quests: Handle<LoadedFolder>,
     triggers: Handle<LoadedFolder>,
     upgrades: Handle<LoadedFolder>,
@@ -90,12 +90,13 @@ impl LoadingFolders {
     fn all_loaded(&self, server: &AssetServer) -> bool {
         server.is_loaded_with_dependencies(&self.areas)
             && server.is_loaded_with_dependencies(&self.archetypes)
+            && server.is_loaded_with_dependencies(&self.decisions)
             && server.is_loaded_with_dependencies(&self.events)
             && server.is_loaded_with_dependencies(&self.factions)
+            && server.is_loaded_with_dependencies(&self.intel)
             && server.is_loaded_with_dependencies(&self.items)
             && server.is_loaded_with_dependencies(&self.namepools)
             && server.is_loaded_with_dependencies(&self.npcs)
-            && server.is_loaded_with_dependencies(&self.perks)
             && server.is_loaded_with_dependencies(&self.quests)
             && server.is_loaded_with_dependencies(&self.triggers)
             && server.is_loaded_with_dependencies(&self.upgrades)
@@ -139,12 +140,13 @@ fn start_loading(mut commands: Commands, server: Res<AssetServer>) {
     commands.insert_resource(LoadingFolders {
         areas: server.load_folder("data/areas"),
         archetypes: server.load_folder("data/archetypes"),
+        decisions: server.load_folder("data/decisions"),
         events: server.load_folder("data/events"),
         factions: server.load_folder("data/factions"),
+        intel: server.load_folder("data/intel"),
         items: server.load_folder("data/items"),
         namepools: server.load_folder("data/namepools"),
         npcs: server.load_folder("data/npcs"),
-        perks: server.load_folder("data/perks"),
         quests: server.load_folder("data/quests"),
         triggers: server.load_folder("data/triggers"),
         upgrades: server.load_folder("data/upgrades"),
@@ -168,10 +170,14 @@ fn assemble_game_data<S: FreelyMutableState>(
     let archetypes = parse_folder(&loading.archetypes, &folders, &raw, |d: &ArchetypeDef| {
         d.id.clone()
     });
+    let decisions = parse_folder(&loading.decisions, &folders, &raw, |d: &DecisionDef| {
+        d.id.clone()
+    });
     let events = parse_folder(&loading.events, &folders, &raw, |d: &EventDef| d.id.clone());
     let factions = parse_folder(&loading.factions, &folders, &raw, |d: &FactionDef| {
         d.id.clone()
     });
+    let intel = parse_folder(&loading.intel, &folders, &raw, |d: &IntelDef| d.id.clone());
     let items = parse_folder(&loading.items, &folders, &raw, |d: &ItemDef| d.id.clone());
     let name_pools = parse_folder(&loading.namepools, &folders, &raw, |d: &NamePool| {
         d.id.clone()
@@ -179,7 +185,6 @@ fn assemble_game_data<S: FreelyMutableState>(
     let npc_templates = parse_folder(&loading.npcs, &folders, &raw, |d: &NpcTemplateDef| {
         d.id.clone()
     });
-    let perks = parse_folder(&loading.perks, &folders, &raw, |d: &PerkDef| d.id.clone());
     let quests = parse_folder(&loading.quests, &folders, &raw, |d: &QuestDef| d.id.clone());
     let triggers = parse_folder(&loading.triggers, &folders, &raw, |d: &QuestTriggerDef| {
         d.id.clone()
@@ -189,15 +194,16 @@ fn assemble_game_data<S: FreelyMutableState>(
     });
 
     info!(
-        "Game data loaded: {} areas, {} archetypes, {} events, {} factions, {} items, {} namepools, {} npcs, {} perks, {} quests, {} triggers, {} upgrades",
+        "Game data loaded: {} areas, {} archetypes, {} decisions, {} events, {} factions, {} intel, {} items, {} namepools, {} npcs, {} quests, {} triggers, {} upgrades",
         areas.len(),
         archetypes.len(),
+        decisions.len(),
         events.len(),
         factions.len(),
+        intel.len(),
         items.len(),
         name_pools.len(),
         npc_templates.len(),
-        perks.len(),
         quests.len(),
         triggers.len(),
         upgrades.len(),
@@ -206,12 +212,13 @@ fn assemble_game_data<S: FreelyMutableState>(
     let catalog = GameData {
         areas,
         archetypes,
+        decisions,
         events,
         factions,
+        intel,
         items,
         name_pools,
         npc_templates,
-        perks,
         quests,
         triggers,
         upgrades,

@@ -1,0 +1,9 @@
+{
+  "id": "npc_tenant",
+  "faction": "faction_drifters",
+  "rank": "veteran",
+  "loadout": [],
+  "unique": true,
+  "respawnable": false,
+  "essential": true
+}

@@ -1,0 +1,6 @@
+{
+  "id": "intel_creature_migration",
+  "expires_after": {
+    "days": 5
+  }
+}

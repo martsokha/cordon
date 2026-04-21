@@ -1,13 +1,9 @@
 [
   {
-    "id": "item_rpk74",
+    "id": "item_rook",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_545x39mm",
-      "fire_modes": [
-        "Semi",
-        "Auto"
-      ],
+      "caliber": "caliber_rifle",
       "fire_rate": 12.0,
       "accuracy": 0.65,
       "range": 160.0,
@@ -15,22 +11,13 @@
       "added_damage": 6
     },
     "base_price": 9500,
-    "suppliers": [
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 0.95
-      }
-    ],
     "rarity": "uncommon"
   },
   {
-    "id": "item_rpd",
+    "id": "item_mauler",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_762x39mm",
-      "fire_modes": [
-        "Auto"
-      ],
+      "caliber": "caliber_rifle",
       "fire_rate": 11.0,
       "accuracy": 0.6,
       "range": 170.0,
@@ -38,26 +25,13 @@
       "added_damage": 7
     },
     "base_price": 11000,
-    "suppliers": [
-      {
-        "faction": "faction_drifters",
-        "price_multiplier": 0.95
-      },
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 1.0
-      }
-    ],
     "rarity": "uncommon"
   },
   {
-    "id": "item_pkm",
+    "id": "item_thresher",
     "data": {
       "type": "weapon",
-      "caliber": "caliber_762x54r",
-      "fire_modes": [
-        "Auto"
-      ],
+      "caliber": "caliber_rifle",
       "fire_rate": 10.0,
       "accuracy": 0.65,
       "range": 200.0,
@@ -65,12 +39,6 @@
       "added_damage": 10
     },
     "base_price": 16000,
-    "suppliers": [
-      {
-        "faction": "faction_garrison",
-        "price_multiplier": 0.95
-      }
-    ],
     "rarity": "rare"
   }
 ]

@@ -61,5 +61,11 @@ npc-name-alias = { $first }
 npc-name-firstsurname = { $first } { $second }
 npc-name-firstalias = { $first } "{ $second }"
 
-# Named unique characters (NpcTemplateDef.name_key resolves here)
-npc-garrison-lieutenant = Lt. Petrov
+# Named unique characters (NpcTemplateDef::name_key() resolves here —
+# derived from the template id by `_` → `-`)
+npc-garrison-sergeant = Sgt. Petrov
+npc-tenant = The Tenant
+npc-uncle = Uncle
+npc-quartermaster = The Quartermaster
+npc-envoy = The Envoy
+npc-fence = The Fence

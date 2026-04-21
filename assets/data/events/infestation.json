@@ -1,0 +1,12 @@
+{
+  "id": "event_infestation",
+  "spawn_weight": 0.03,
+  "min_duration": 2,
+  "max_duration": 4,
+  "max_instances": 1,
+  "target_areas": [],
+  "involved_factions": [],
+  "earliest_day": 10,
+  "consequences": [],
+  "chain_events": []
+}

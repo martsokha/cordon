@@ -6,16 +6,16 @@
       "novice": {
         "primary": [
           {
-            "id": "item_ak74",
+            "id": "item_longtooth",
             "weight": 2
           },
           {
-            "id": "item_kedr"
+            "id": "item_razor"
           }
         ],
         "secondary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           }
         ],
         "armor": [
@@ -32,7 +32,7 @@
         "secondary_ammo_boxes": 1,
         "consumables": [
           {
-            "id": "item_bandage"
+            "id": "item_medkit"
           },
           {
             "id": "item_ration"
@@ -43,16 +43,16 @@
       "experienced": {
         "primary": [
           {
-            "id": "item_ak74",
+            "id": "item_longtooth",
             "weight": 2
           },
           {
-            "id": "item_aek971"
+            "id": "item_ironclaw"
           }
         ],
         "secondary": [
           {
-            "id": "item_pm"
+            "id": "item_viper"
           }
         ],
         "armor": [
@@ -75,7 +75,7 @@
         "secondary_ammo_boxes": 1,
         "consumables": [
           {
-            "id": "item_bandage"
+            "id": "item_medkit"
           },
           {
             "id": "item_medkit"
@@ -86,16 +86,16 @@
       "veteran": {
         "primary": [
           {
-            "id": "item_aek971",
+            "id": "item_ironclaw",
             "weight": 2
           },
           {
-            "id": "item_akm"
+            "id": "item_wraith"
           }
         ],
         "secondary": [
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [
@@ -123,18 +123,18 @@
       "master": {
         "primary": [
           {
-            "id": "item_akm"
+            "id": "item_wraith"
           },
           {
-            "id": "item_aek971"
+            "id": "item_ironclaw"
           },
           {
-            "id": "item_svd"
+            "id": "item_nighthawk"
           }
         ],
         "secondary": [
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [
@@ -166,16 +166,16 @@
       "legend": {
         "primary": [
           {
-            "id": "item_svd",
+            "id": "item_nighthawk",
             "weight": 2
           },
           {
-            "id": "item_akm"
+            "id": "item_wraith"
           }
         ],
         "secondary": [
           {
-            "id": "item_stechkin_aps"
+            "id": "item_shrike"
           }
         ],
         "armor": [
