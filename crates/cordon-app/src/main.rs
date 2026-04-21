@@ -12,9 +12,9 @@ mod lifecycle;
 mod locale;
 mod menu;
 mod quest;
-mod ui;
 #[cfg(feature = "steam")]
 pub mod steam;
+mod ui;
 
 use bevy::asset::AssetPlugin;
 use bevy::prelude::*;

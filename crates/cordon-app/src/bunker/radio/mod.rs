@@ -14,7 +14,6 @@ mod systems;
 use bevy::prelude::*;
 
 pub use self::queue::{ExitListening, ListeningToRadio, reset_listening_state};
-
 use crate::PlayingState;
 
 pub struct RadioPlugin;

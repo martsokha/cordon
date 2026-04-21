@@ -16,8 +16,8 @@ use cordon_sim::plugin::prelude::QuestLog;
 use cordon_sim::resources::PlayerIntel;
 
 use super::{LaptopTab, TabContent};
-use crate::ui::UiFont;
 use crate::locale::L10n;
+use crate::ui::UiFont;
 
 /// Marker on the flex column that holds the quest-list entries.
 /// Refreshed in-place by [`refresh_quest_list`].

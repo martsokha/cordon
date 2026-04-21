@@ -26,10 +26,10 @@ use cordon_data::gamedata::GameDataResource;
 
 use self::tooltip::build_area_info;
 use crate::AppState;
-use crate::ui::UiFont;
 pub use crate::laptop::ui::MapWorldEntity;
 use crate::laptop::ui::spawn_ui;
 use crate::locale::L10n;
+use crate::ui::UiFont;
 
 const COLOR_AREA: Color = Color::srgba(1.0, 1.0, 1.0, 0.08);
 const COLOR_AREA_BORDER: Color = Color::srgba(1.0, 1.0, 1.0, 0.25);

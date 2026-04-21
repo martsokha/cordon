@@ -274,7 +274,12 @@ pub(super) fn handle_exit_listening(
     // Disable click at the radio's spatial position, played before
     // the audio teardown so the click itself survives (untagged).
     if let Ok(transform) = radio_q.single() {
-        spawn_click(&mut commands, &sfx.disable, TOGGLE_VOLUME, transform.translation());
+        spawn_click(
+            &mut commands,
+            &sfx.disable,
+            TOGGLE_VOLUME,
+            transform.translation(),
+        );
     }
 
     listening.active = false;
@@ -474,4 +479,3 @@ pub(super) fn prune_missable_on_day_roll(
         .entries
         .retain(|b| !b.missable || b.arrived_day >= today);
 }
-

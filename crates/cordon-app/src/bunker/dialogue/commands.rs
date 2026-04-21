@@ -53,8 +53,8 @@ use cordon_data::gamedata::GameDataResource;
 use cordon_sim::resources::{PlayerIdentity, PlayerStash};
 
 use super::registry::AppYarnCommandExt;
-use crate::bunker::radio::{ExitListening, ListeningToRadio};
 use crate::bunker::rack::Carrying;
+use crate::bunker::radio::{ExitListening, ListeningToRadio};
 use crate::bunker::visitor::state::{PendingStepAway, VisitorState};
 
 /// Register the built-in trade commands into the yarn-command

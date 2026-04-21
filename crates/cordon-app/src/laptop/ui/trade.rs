@@ -11,8 +11,8 @@ use cordon_sim::quest::messages::PlaceOrderRequest;
 use cordon_sim::resources::{PendingOrders, PlayerIdentity, PlayerSuppliers};
 
 use super::{LaptopTab, TabContent};
-use crate::ui::UiFont;
 use crate::locale::L10n;
+use crate::ui::UiFont;
 use crate::{AppState, PlayingState};
 
 #[derive(Component)]

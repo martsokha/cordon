@@ -6,10 +6,10 @@ use cordon_sim::resources::GameClock;
 
 use super::{LaptopTab, MapWorldEntity};
 use crate::PlayingState;
-use crate::ui::UiFont;
 use crate::laptop::LaptopCamera;
 use crate::laptop::input::CameraTarget;
 use crate::laptop::map::Bunker;
+use crate::ui::UiFont;
 
 #[derive(Component)]
 pub struct ZoomLabel;

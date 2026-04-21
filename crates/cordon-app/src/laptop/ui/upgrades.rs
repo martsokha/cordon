@@ -15,8 +15,8 @@ use cordon_sim::resources::{PlayerIdentity, PlayerUpgrades};
 
 use super::{LaptopTab, TabContent};
 use crate::PlayingState;
-use crate::ui::UiFont;
 use crate::locale::L10n;
+use crate::ui::UiFont;
 
 /// Marker for the BUNKER column's row container.
 #[derive(Component)]
