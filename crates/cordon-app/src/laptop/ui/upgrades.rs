@@ -15,7 +15,7 @@ use cordon_sim::resources::{PlayerIdentity, PlayerUpgrades};
 
 use super::{LaptopTab, TabContent};
 use crate::PlayingState;
-use crate::fonts::UiFont;
+use crate::ui::UiFont;
 use crate::locale::L10n;
 
 /// Marker for the BUNKER column's row container.
@@ -56,13 +56,13 @@ pub fn spawn(commands: &mut Commands, font: &Handle<Font>, laptop_cam: Entity) {
             bevy::ui::UiTargetCamera(laptop_cam),
             Node {
                 position_type: PositionType::Absolute,
-                width: Val::Percent(90.0),
-                height: Val::Percent(85.0),
-                left: Val::Percent(5.0),
-                top: Val::Percent(6.0),
+                left: Val::Px(16.0),
+                right: Val::Px(16.0),
+                top: Val::Px(40.0),
+                bottom: Val::Px(16.0),
                 flex_direction: FlexDirection::Row,
-                padding: UiRect::new(Val::Px(16.0), Val::Px(16.0), Val::Px(48.0), Val::Px(16.0)),
-                column_gap: Val::Px(16.0),
+                padding: UiRect::new(Val::Px(16.0), Val::Px(16.0), Val::Px(16.0), Val::Px(16.0)),
+                column_gap: Val::Px(8.0),
                 ..default()
             },
             BackgroundColor(Color::srgba(0.04, 0.04, 0.06, 0.85)),
