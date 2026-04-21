@@ -213,11 +213,6 @@ pub enum Consequence {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         at: Option<Id<Area>>,
     },
-    /// Grant the player experience. Rank is derived from total
-    /// XP. Wraps [`Experience`] so the types line up with
-    /// `PlayerState::xp` and the intent is explicit at the call
-    /// site.
-    GivePlayerXp(Experience),
     /// Grant an NPC template experience. The sim resolves the
     /// template to one live instance (e.g. the quest's current
     /// giver) at apply time.

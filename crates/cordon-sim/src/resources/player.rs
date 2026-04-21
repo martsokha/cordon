@@ -12,10 +12,10 @@ use bevy::prelude::*;
 use cordon_core::entity::bunker::{Upgrade, UpgradeDef, UpgradeEffect};
 use cordon_core::entity::faction::Faction;
 use cordon_core::entity::npc::NpcTemplate;
-use cordon_core::entity::player::{PlayerRank, PlayerState};
+use cordon_core::entity::player::PlayerState;
 use cordon_core::entity::squad::Squad;
 use cordon_core::item::{Item, ItemInstance, Stash, StashScope};
-use cordon_core::primitive::{Credits, Day, Experience, Id, Relation, Uid};
+use cordon_core::primitive::{Credits, Day, Id, Relation, Uid};
 use cordon_core::world::narrative::{Decision, Intel, IntelDef};
 
 /// Per-hire bookkeeping for one squad on the player's roster.
@@ -73,25 +73,14 @@ impl PlayerSquadRoster {
     }
 }
 
-/// XP, credits, debt — the player's numeric identity.
+/// Credits and debt — the player's numeric identity.
 #[derive(Resource, Debug, Clone)]
 pub struct PlayerIdentity {
-    pub xp: Experience,
     pub credits: Credits,
     pub debt: Credits,
 }
 
 impl PlayerIdentity {
-    /// Current rank, derived from XP.
-    pub fn rank(&self) -> PlayerRank {
-        PlayerRank::from_xp(self.xp)
-    }
-
-    /// Add experience points.
-    pub fn add_xp(&mut self, amount: u32) {
-        self.xp.add(amount);
-    }
-
     /// Whether the player can afford a given cost.
     pub fn can_afford(&self, amount: Credits) -> bool {
         self.credits.can_afford(amount)
@@ -214,7 +203,6 @@ pub fn assemble_player_state(
     stash: &PlayerStash,
 ) -> PlayerState {
     PlayerState {
-        xp: id.xp,
         credits: id.credits,
         debt: id.debt,
         standings: st.standings.clone(),

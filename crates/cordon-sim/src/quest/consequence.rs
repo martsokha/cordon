@@ -140,10 +140,6 @@ pub fn apply(
             });
         }
 
-        Consequence::GivePlayerXp(xp) => {
-            players.identity.add_xp(xp.value());
-        }
-
         Consequence::GiveNpcXp { template, amount } => {
             if !sim.registry.is_alive(template) {
                 warn!(

@@ -85,7 +85,6 @@ use cordon_core::world::narrative::{
 ///
 /// Calibers are implicit — they exist because ammo and weapon items
 /// reference the same caliber ID string. No separate caliber registry.
-/// Player ranks are hardcoded in [`PlayerRank`](cordon_core::entity::player::PlayerRank).
 ///
 /// All lookups are by typed ID aliases from [`cordon_core::primitive`].
 #[derive(Default)]
@@ -568,7 +567,6 @@ impl GameData {
             Consequence::GiveNpcXp { template, .. } => {
                 self.check_npc_template(template, referrer, "GiveNpcXp.template");
             }
-            Consequence::GivePlayerXp(_) => {}
             Consequence::DangerModifier { area, .. } => {
                 if let Some(area) = area {
                     self.check_area(area, referrer, "DangerModifier.area");

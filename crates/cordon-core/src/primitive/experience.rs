@@ -1,4 +1,4 @@
-//! Experience points for players and NPCs.
+//! Experience points for NPCs.
 
 use bevy::prelude::Component;
 use derive_more::Display;
@@ -6,23 +6,17 @@ use serde::{Deserialize, Serialize};
 
 use super::Rank;
 
-/// Accumulated experience points.
+/// Accumulated NPC experience points.
 ///
-/// Used for both the player (determines [`PlayerRank`](crate::entity::player::PlayerRank))
-/// and NPCs (determines [`Rank`]). XP only goes up — it never decays.
-///
-/// NPCs gain XP from successful missions (runners) and survived raids
-/// (guards). The player gains XP from trades, completed quests, surviving
-/// events, and faction milestones.
+/// Determines an NPC's [`Rank`] via the thresholds in `Rank::from_xp`.
+/// XP only goes up — it never decays. NPCs gain XP from successful
+/// missions (runners) and survived raids (guards).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[derive(Component, Display, Serialize, Deserialize)]
 #[display("{_0} XP")]
 pub struct Experience(u32);
 
 impl Experience {
-    /// Zero experience.
-    pub const ZERO: Self = Self(0);
-
     /// Create from a raw value.
     pub fn new(xp: u32) -> Self {
         Self(xp)

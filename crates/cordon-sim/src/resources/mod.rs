@@ -80,7 +80,6 @@ pub fn init_world_resources(mut commands: Commands, game_data: Res<GameDataResou
 
     commands.insert_resource(GameClock::default());
     commands.insert_resource(PlayerIdentity {
-        xp: player_state.xp,
         credits: player_state.credits,
         debt: player_state.debt,
     });
