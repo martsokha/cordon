@@ -251,12 +251,44 @@ pub(super) fn quest_advance_command(
 }
 
 /// Observer on `DialogueCompleted`: clear the dispatch gate so
-/// the next Talk stage can dispatch. Fires once per whole-
-/// conversation end (not per node), regardless of whether
-/// `quest_advance` was ever called during the conversation.
+/// the next Talk stage can dispatch, and auto-complete the talk
+/// stage if the yarn node ended without calling `<<quest_advance>>`.
+///
+/// Auto-completion fires a choice-less [`TalkCompleted`] so the
+/// quest advances to its `fallback`. Yarn nodes with no branches
+/// (flavor-only talk stages like tenant whispers) progress just by
+/// running to end-of-node — authors don't have to sprinkle
+/// `<<quest_advance>>` everywhere. Nodes that *did* call
+/// `quest_advance` already emitted their `TalkCompleted`; by the
+/// time we run, the quest's stage has moved off `Talk`, so the
+/// drive handler's talk-stage guard silently ignores the second
+/// emission.
 pub(super) fn clear_in_flight_on_dialogue_end(
     _event: On<DialogueCompleted>,
     mut in_flight: ResMut<DialogueInFlight>,
+    log: Res<QuestLog>,
+    data: Res<GameDataResource>,
+    mut talk_completed: MessageWriter<TalkCompleted>,
 ) {
-    in_flight.0 = None;
+    let quest_id = in_flight.0.take();
+    let Some(quest_id) = quest_id else {
+        return;
+    };
+    // If the dispatched talk stage is still the quest's current
+    // stage, no `<<quest_advance>>` fired — emit a default
+    // TalkCompleted so the quest progresses to `fallback`.
+    let still_on_talk = log
+        .active_instance(&quest_id)
+        .and_then(|active| {
+            let def = data.0.quests.get(&active.def_id)?;
+            let stage = def.stage(&active.current_stage)?;
+            matches!(stage.kind, QuestStageKind::Talk(_)).then_some(())
+        })
+        .is_some();
+    if still_on_talk {
+        talk_completed.write(TalkCompleted {
+            quest: quest_id,
+            choice: None,
+        });
+    }
 }
