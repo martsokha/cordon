@@ -7,11 +7,11 @@ How yarn dialogue interacts with the bunker dialogue UI, and the conventions to 
 The UI shows a speaker name, a block of text, and a row of buttons. Each yarn event maps to a UI state:
 
 - `PresentLine` → text is shown with a single **Continue** button. Player clicks Continue to advance.
-- `PresentOptions` → text is kept from the preceding line (as a prompt header) and the options become buttons.
+- `PresentOptions` → the option list becomes buttons.
 
-The key behavior: **text persists across the Line → Options transition in the same conversation.** That lets a line serve as the prompt above the choices without re-authoring it.
+**Prompt headers above options** are authored by tagging the preceding line with `#autocontinue`. That line doesn't render on its own — instead its text rides along with the `PresentOptions` event as the header above the choice buttons. See the `#autocontinue` section below.
 
-Freshly entering options from `Idle` (a new conversation, or a step-away resume) clears text instead — the previous line was said in a previous session.
+Options without a preceding `#autocontinue` line render without a header — no text bleeds in from earlier lines.
 
 ## Metadata tags
 
@@ -30,21 +30,6 @@ The runner advances past the line instantly (no Continue button), and the text i
 ```
 
 Without the tag, the player has to click Continue before seeing the options.
-
-### `#transient`
-
-On a response line that shouldn't linger as context above the next options block.
-
-Transient lines are still shown and still require a Continue click, but their text is cleared when the following options appear — so "Appreciate it. Rations keep my boys fed." doesn't hang as a stale header above the next menu.
-
-```yarn
--> Here's a ration.
-    <<give_item "item_ration">>
-    Sergeant: Appreciate it. #transient
-    <<jump sergeant_trade_menu>>
-```
-
-(In practice, if a response line immediately jumps back to a menu, it's often cleaner to just delete the response and let the menu's own state-dependent header take over.)
 
 ### `#hide`
 

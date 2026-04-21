@@ -18,7 +18,7 @@
 //!   call it inside the Talk stage's node to commit the
 //!   player's choice; the command drains `$quest_*` flags and
 //!   emits `TalkCompleted` back to the sim.
-//! - [`bridge::clear_in_flight_on_dialogue_end`] observes
+//! - [`bridge::handle_quest_dialogue_end`] observes
 //!   `DialogueCompleted` and releases the
 //!   [`bridge::DialogueInFlight`] dispatch gate so the next
 //!   Talk stage can dispatch.
@@ -59,7 +59,7 @@ impl Plugin for QuestBridgePlugin {
             Update,
             bridge::enqueue_talk_dialogue.run_if(resource_exists::<GameDataResource>),
         );
-        app.add_observer(bridge::clear_in_flight_on_dialogue_end);
+        app.add_observer(bridge::handle_quest_dialogue_end);
         app.add_systems(
             Update,
             (arrival::handle_bunker_arrival, arrival::handle_home_arrival)

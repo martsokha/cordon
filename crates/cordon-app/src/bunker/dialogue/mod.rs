@@ -39,6 +39,9 @@ impl Plugin for DialoguePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((YarnSpinnerPlugin::new(), ui::DialogueUiPlugin));
         app.insert_resource(CurrentDialogue::default());
+        app.init_resource::<super::resources::CurrentDialogueOwner>();
+        app.init_resource::<super::resources::PendingOptionsPrompt>();
+        app.init_resource::<systems::OwnerPendingClear>();
         app.init_resource::<YarnCommandRegistry>();
         app.add_message::<StartDialogue>();
         app.add_message::<StopDialogue>();
@@ -54,16 +57,33 @@ impl Plugin for DialoguePlugin {
         app.add_systems(
             Update,
             (
-                systems::apply_start_dialogue,
-                systems::apply_stop_dialogue,
-                systems::apply_player_choice,
-                // Runs every frame but is cheap: the body early-
-                // outs unless a watched resource changed.
+                // Deterministic order for the dialog lifecycle:
+                //
+                // 1. `reset_dialogue_owner` clears last-frame's
+                //    owner tag (if a DialogueCompleted latched it).
+                // 2. `apply_stop_dialogue` processes any pending
+                //    `StopDialogue` — if both a start and stop are
+                //    queued the same frame, the stop runs first so
+                //    the runner is cleanly idle before the new
+                //    start begins.
+                // 3. `apply_start_dialogue` kicks off any new
+                //    dialog requested this frame, setting the
+                //    fresh owner tag.
+                // 4. `apply_player_choice` processes button
+                //    clicks / key shortcuts.
+                // 5. `mirror_on_change` pushes player state into
+                //    yarn variables.
+                systems::reset_dialogue_owner,
+                systems::apply_stop_dialogue.after(systems::reset_dialogue_owner),
+                systems::apply_start_dialogue.after(systems::apply_stop_dialogue),
+                systems::apply_player_choice.after(systems::apply_start_dialogue),
+                // Cheap; early-outs unless a watched resource changed.
                 mirror::mirror_on_change,
             ),
         );
         app.add_observer(systems::on_present_line);
         app.add_observer(systems::on_present_options);
         app.add_observer(systems::on_dialogue_completed);
+        app.add_observer(systems::on_dialogue_completed_latch_owner_clear);
     }
 }

@@ -18,7 +18,7 @@
 //!   by looking up whichever active quest has a Talk stage
 //!   whose `yarn_node` matches the currently-executing node —
 //!   no quest id in the yarn source.
-//! - [`clear_in_flight_on_dialogue_end`] clears
+//! - [`handle_quest_dialogue_end`] clears
 //!   [`DialogueInFlight`] when yarnspinner fires
 //!   `DialogueCompleted` (whole conversation ended). That's
 //!   the only thing that frees the dispatch gate now.
@@ -38,7 +38,7 @@ use cordon_data::gamedata::GameDataResource;
 use cordon_sim::plugin::prelude::QuestLog;
 use cordon_sim::quest::messages::{SpawnNpcRequest, TalkCompleted};
 
-use crate::bunker::resources::StartDialogue;
+use crate::bunker::resources::{CurrentDialogueOwner, DialogueOwner, StartDialogue};
 
 /// Bridge-owned dialogue dispatch gate.
 ///
@@ -46,7 +46,7 @@ use crate::bunker::resources::StartDialogue;
 /// recently dispatched, or `None` once the conversation has
 /// ended. Single-slot because yarn dialogue is serial — a
 /// second `Talk` stage cannot dispatch while this slot is
-/// occupied. Cleared only by [`clear_in_flight_on_dialogue_end`]
+/// occupied. Cleared only by [`handle_quest_dialogue_end`]
 /// on `DialogueCompleted`.
 #[derive(Resource, Debug, Default)]
 pub struct DialogueInFlight(pub Option<Id<Quest>>);
@@ -141,6 +141,7 @@ pub(super) fn enqueue_talk_dialogue(
         // visitor Talk stages.
         start_dialogue.write(StartDialogue {
             node: yarn_node.clone(),
+            by: DialogueOwner::Quest,
         });
         in_flight.0 = Some(active.def_id.clone());
         info!(
@@ -186,7 +187,7 @@ pub(super) fn enqueue_talk_dialogue(
 /// together at admit time, and leave together at end-of-trade.
 ///
 /// Does NOT clear [`DialogueInFlight`] — that happens when the
-/// whole conversation ends (see [`clear_in_flight_on_dialogue_end`]).
+/// whole conversation ends (see [`handle_quest_dialogue_end`]).
 pub(super) fn quest_advance_command(
     In(choice): In<String>,
     mut log: ResMut<QuestLog>,
@@ -263,13 +264,22 @@ pub(super) fn quest_advance_command(
 /// time we run, the quest's stage has moved off `Talk`, so the
 /// drive handler's talk-stage guard silently ignores the second
 /// emission.
-pub(super) fn clear_in_flight_on_dialogue_end(
+///
+/// Only acts on dialogs tagged [`DialogueOwner::Quest`]. Radio
+/// broadcasts and visitor conversations use their own owner tags
+/// and are silently skipped here — the quest subsystem is fully
+/// insulated from unrelated dialog completions.
+pub(super) fn handle_quest_dialogue_end(
     _event: On<DialogueCompleted>,
     mut in_flight: ResMut<DialogueInFlight>,
     log: Res<QuestLog>,
     data: Res<GameDataResource>,
+    owner: Res<CurrentDialogueOwner>,
     mut talk_completed: MessageWriter<TalkCompleted>,
 ) {
+    if !matches!(owner.0, DialogueOwner::Quest) {
+        return;
+    }
     let quest_id = in_flight.0.take();
     let Some(quest_id) = quest_id else {
         return;

@@ -53,6 +53,7 @@ impl Plugin for LifecyclePlugin {
                 crate::bunker::rack::reset_rack_state,
                 crate::bunker::toast::reset_toast_queue,
                 crate::bunker::reset_visitor_state,
+                crate::bunker::radio::reset_listening_state,
                 run_init_world_resources,
                 start_sim,
             )

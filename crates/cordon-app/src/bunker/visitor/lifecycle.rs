@@ -12,8 +12,8 @@ use super::audio::{ALARM_VOLUME, AlarmSound, DOOR_CLOSE_VOLUME, DOOR_OPEN_VOLUME
 use super::state::{AdmitVisitor, PendingStepAway, Visitor, VisitorQueue, VisitorState};
 use crate::bunker::interaction::{Interact, Interactable, InteractableWhileCarrying};
 use crate::bunker::resources::{
-    ANTECHAMBER_VISITOR_POS, CameraMode, CurrentDialogue, InteractionLocked, MovementLocked,
-    StartDialogue,
+    ANTECHAMBER_VISITOR_POS, CameraMode, CurrentDialogue, DialogueOwner, InteractionLocked,
+    MovementLocked, StartDialogue,
 };
 
 /// Marker for the in-bunker visitor sprite (the one shown across
@@ -148,6 +148,7 @@ pub(super) fn apply_admit_visitor(
 
     start_dialogue.write(StartDialogue {
         node: visitor.yarn_node.clone(),
+        by: DialogueOwner::Visitor,
     });
 
     for entity in &alarm_q {
@@ -348,7 +349,10 @@ pub(super) fn on_visitor_interact(
         "visitor resumed: {} at node `{resume_node}`",
         visitor.display_name
     );
-    start_dialogue.write(StartDialogue { node: resume_node });
+    start_dialogue.write(StartDialogue {
+        node: resume_node,
+        by: DialogueOwner::Visitor,
+    });
     *state = VisitorState::Inside {
         visitor,
         sprite: sprite_entity,

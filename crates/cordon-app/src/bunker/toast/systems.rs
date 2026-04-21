@@ -8,6 +8,7 @@ use cordon_sim::quest::messages::{
 
 use crate::bunker::camera::FpsCamera;
 use crate::locale::L10n;
+use crate::ui::UiFont;
 
 const CELL_SIZE: u32 = 16;
 const GRID_COLS: u32 = 8;
@@ -236,6 +237,7 @@ pub(super) fn spawn_toasts(
     mut commands: Commands,
     mut queue: ResMut<ToastQueue>,
     atlas: Res<IconAtlas>,
+    font: Res<UiFont>,
     camera_q: Query<Entity, With<FpsCamera>>,
     existing: Query<(), With<Toast>>,
 ) {
@@ -273,6 +275,7 @@ pub(super) fn spawn_toasts(
             .spawn((
                 Text::new(toast.text),
                 TextFont {
+                    font: font.0.clone(),
                     font_size: FONT_SIZE,
                     ..default()
                 },

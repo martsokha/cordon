@@ -16,7 +16,7 @@ mod particles;
 mod pills;
 mod props;
 pub mod rack;
-mod radio;
+pub mod radio;
 pub mod resources;
 mod rooms;
 mod sleep;

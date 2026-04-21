@@ -53,6 +53,7 @@ use cordon_data::gamedata::GameDataResource;
 use cordon_sim::resources::{PlayerIdentity, PlayerStash};
 
 use super::registry::AppYarnCommandExt;
+use crate::bunker::radio::{ExitListening, ListeningToRadio};
 use crate::bunker::rack::Carrying;
 use crate::bunker::visitor::state::{PendingStepAway, VisitorState};
 
@@ -66,6 +67,7 @@ pub(super) fn register(app: &mut App) {
     app.add_yarn_command("give_credits", give_credits);
     app.add_yarn_command("step_away", step_away);
     app.add_yarn_command("deliver_order", deliver_order);
+    app.add_yarn_command("close_radio", close_radio);
 }
 
 /// Give the currently-carried item to the interlocutor.
@@ -152,6 +154,31 @@ fn to_credits(amount: f32, command: &str) -> Credits {
 /// `<<stop>> <<step_away "…">>`, the runner ends before the
 /// command executes and the flag is set too late to affect
 /// *this* dialogue. Put `<<step_away>>` before `<<stop>>`.
+/// Close the radio listening mode. Called from the `broadcast_static`
+/// yarn node's close option.
+///
+/// Flips `ListeningToRadio::active` **synchronously** — when yarn
+/// runs this command, the dialog it's inside is about to hit
+/// end-of-node and fire `DialogueCompleted` in the same frame.
+/// The radio's dialogue-complete observer checks `listening.active`
+/// to decide whether to restart the idle yarn. Writing only the
+/// `ExitListening` message here (processed next frame) leaves the
+/// observer seeing `active = true` and reopening the idle yarn
+/// for a second time before the teardown runs. Synchronous flip
+/// avoids that race.
+///
+/// Also emits [`ExitListening`] so `handle_exit_listening` can do
+/// the rest of the teardown (locks, audio, camera) on its normal
+/// schedule slot.
+fn close_radio(
+    In(_): In<()>,
+    mut listening: ResMut<ListeningToRadio>,
+    mut exit_tx: MessageWriter<ExitListening>,
+) {
+    listening.active = false;
+    exit_tx.write(ExitListening);
+}
+
 fn step_away(In(resume_node): In<String>, mut commands: Commands) {
     info!("visitor step-away requested (resume `{resume_node}`)");
     commands.insert_resource(PendingStepAway { resume_node });

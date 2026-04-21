@@ -10,6 +10,7 @@ use bevy::prelude::*;
 
 use super::style::{MenuButton, OverlayButton, spawn_overlay};
 use crate::bunker::FpsCamera;
+use crate::bunker::radio::ListeningToRadio;
 use crate::bunker::resources::CurrentDialogue;
 use crate::ui::UiFont;
 use crate::{AppState, PauseState};
@@ -44,6 +45,7 @@ fn toggle_pause(
     keys: Res<ButtonInput<KeyCode>>,
     pause_state: Res<State<PauseState>>,
     dialogue: Res<CurrentDialogue>,
+    listening: Res<ListeningToRadio>,
     mut next_pause: ResMut<NextState<PauseState>>,
 ) {
     if !keys.just_pressed(KeyCode::Escape) {
@@ -52,6 +54,14 @@ fn toggle_pause(
     // Active dialogue owns Esc — pausing mid-line would steal focus
     // from the dialogue runner.
     if !matches!(*dialogue, CurrentDialogue::Idle) {
+        return;
+    }
+    // Radio listening mode owns Esc end-to-end: during the static
+    // gap `CurrentDialogue::Idle` is true, but Esc there should
+    // exit listening, not open the pause menu. Also blocks pausing
+    // while a broadcast dialog is open — the radio UI owns the
+    // player's focus for the whole session.
+    if listening.active {
         return;
     }
     let next = match pause_state.get() {

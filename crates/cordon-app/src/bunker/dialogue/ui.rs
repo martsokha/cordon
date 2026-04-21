@@ -179,6 +179,12 @@ fn spawn_dialogue_ui(
 
 /// Mirror `CurrentDialogue` into the visible UI. Re-spawns choice
 /// buttons whenever the option set changes.
+///
+/// Each variant carries everything the UI needs to render it, so
+/// this system is a pure pattern match — no frame-order heuristics,
+/// no `Local` trackers. An `#autocontinue` line attaches its text
+/// to the following `Options` via `OptionsPrompt`, so the UI never
+/// has to remember "was there a prompt line earlier?"
 fn sync_dialogue_ui(
     current: Res<CurrentDialogue>,
     mut commands: Commands,
@@ -187,7 +193,6 @@ fn sync_dialogue_ui(
     mut text_q: Query<&mut Text, (With<DialogueText>, Without<DialogueSpeaker>)>,
     row_q: Query<(Entity, Option<&Children>), With<DialogueChoicesRow>>,
     asset_server: Res<AssetServer>,
-    mut prev_line_persists: Local<bool>,
 ) {
     if !current.is_changed() {
         return;
@@ -208,21 +213,16 @@ fn sync_dialogue_ui(
 
     let font: Handle<Font> = asset_server.load("fonts/PTMono-Regular.ttf");
 
-    // Autocontinue lines don't render as a Line state — they only
-    // update the text/speaker (which then persists as the prompt
-    // header when the following Options arrive next frame). Skip the
-    // despawn/respawn so we don't flash an empty-row frame, and
-    // don't touch panel visibility so Idle→Options stays clean.
+    // Autocontinue lines never render visible UI of their own —
+    // their text is carried forward by `PendingOptionsPrompt` and
+    // attached to the Options state when yarn fires it. Skip the
+    // despawn/respawn so we don't flash an empty row while the
+    // runner is still processing the autocontinue's queued
+    // Continue.
     if let CurrentDialogue::Line {
-        speaker: spk,
-        text: line,
-        transient,
-        autocontinue: true,
+        autocontinue: true, ..
     } = &*current
     {
-        speaker.0 = spk.clone().unwrap_or_default();
-        text.0 = line.clone();
-        *prev_line_persists = !*transient;
         return;
     }
 
@@ -236,21 +236,18 @@ fn sync_dialogue_ui(
     match &*current {
         CurrentDialogue::Idle => {
             *panel_vis = Visibility::Hidden;
-            *prev_line_persists = false;
+            speaker.0 = String::new();
+            text.0 = String::new();
         }
         CurrentDialogue::Line {
             speaker: spk,
             text: line,
-            transient,
             autocontinue: false,
+            ..
         } => {
             *panel_vis = Visibility::Visible;
             speaker.0 = spk.clone().unwrap_or_default();
             text.0 = line.clone();
-            // Non-transient lines stay visible above the next options
-            // block as a prompt header; transient (response) lines
-            // get cleared on the Line→Options transition.
-            *prev_line_persists = !*transient;
             // One "Continue" button. Slot "1" so the 1-key works.
             spawn_choice_button(
                 &mut commands,
@@ -266,20 +263,24 @@ fn sync_dialogue_ui(
         CurrentDialogue::Line {
             autocontinue: true, ..
         } => unreachable!("handled above"),
-        CurrentDialogue::Options { lines } => {
+        CurrentDialogue::Options { lines, prompt } => {
             *panel_vis = Visibility::Visible;
-            // Preserve the preceding line's text only when options
-            // follow a line in the same conversation — so the NPC's
-            // last utterance reads as a prompt above the choices.
-            // On a fresh conversation entering straight into options
-            // (e.g. step-away resume into `sergeant_trade_menu`),
-            // the last line was said in the *previous* session and
-            // would misread as current; clear it instead.
-            if !*prev_line_persists {
-                text.0 = String::new();
+            // When a prompt accompanies the options (autocontinue
+            // line immediately preceding), render it as the header
+            // above the buttons. Otherwise the header is empty —
+            // options that appear without a prompt (e.g. step-away
+            // resume into a menu node) shouldn't inherit stale
+            // text from an earlier conversation.
+            match prompt {
+                Some(p) => {
+                    speaker.0 = p.speaker.clone().unwrap_or_default();
+                    text.0 = p.text.clone();
+                }
+                None => {
+                    speaker.0 = String::new();
+                    text.0 = String::new();
+                }
             }
-            *prev_line_persists = false;
-            //
             // Options tagged `#hide` by the yarn author are skipped
             // when they'd be greyed out — used to replace "I've got
             // one in the back" with "Here, take this" based on
@@ -375,7 +376,7 @@ fn handle_choice_click(
                 let choice = match button.index {
                     None => DialogueChoice::Continue,
                     Some(i) => match &*current {
-                        CurrentDialogue::Options { lines } => {
+                        CurrentDialogue::Options { lines, .. } => {
                             if let Some(opt) = lines.get(i) {
                                 DialogueChoice::Option { id: opt.id }
                             } else {
@@ -425,7 +426,7 @@ fn handle_choice_keys(
                 writer.write(DialogueChoice::Continue);
             }
         }
-        CurrentDialogue::Options { lines } => {
+        CurrentDialogue::Options { lines, .. } => {
             // Index into the *visible* option list — same order
             // the UI renders, which matches the `[n]` labels the
             // player sees. `#hide`-tagged unavailable options are

@@ -320,27 +320,50 @@ pub enum CurrentDialogue {
     Idle,
     /// A line is being shown. The UI should render it and present a
     /// "Continue" affordance that emits a [`DialogueChoice::Continue`].
+    ///
+    /// When `autocontinue` is true, the line doesn't render in the
+    /// UI at all — the `PresentLine` observer stashes its text into
+    /// `PendingOptionsPrompt` and queues an auto-Continue, so by
+    /// the time the following `Options` state fires, the prompt
+    /// travels with it via `OptionsPrompt`. The `autocontinue` flag
+    /// on the Line variant lets the UI short-circuit without
+    /// flashing an empty row mid-transition.
     Line {
         speaker: Option<String>,
         text: String,
-        /// Yarn `#transient` tag. Transient lines are response beats
-        /// (e.g. "Appreciate it.") that shouldn't linger as a prompt
-        /// above the next options block — the UI clears their text
-        /// on the Line→Options transition. Untagged lines persist so
-        /// they can serve as the prompt header for the choices.
-        transient: bool,
-        /// Yarn `#autocontinue` tag. Autocontinue lines are prompt
-        /// headers for an options block that follows in the same
-        /// node — the runner advances past them immediately, and the
-        /// UI captures the text for the upcoming Options render
-        /// without spawning a Continue button (which would flash for
-        /// one frame before the options arrive).
         autocontinue: bool,
     },
     /// A set of options is presented. The UI should render the lines
     /// as buttons; selecting one emits [`DialogueChoice::Option`].
-    Options { lines: Vec<DialogueOptionView> },
+    Options {
+        lines: Vec<DialogueOptionView>,
+        /// Prompt line header to render above the options. Set when
+        /// the preceding Line had `#autocontinue` — that line's
+        /// text survives as the options' context instead of being
+        /// a stand-alone Line→Options transition the UI has to
+        /// infer. `None` when options appear without a preceding
+        /// prompt (e.g. first frame of a node that starts with
+        /// options, step-away resume).
+        prompt: Option<OptionsPrompt>,
+    },
 }
+
+/// Prompt header attached to an [`CurrentDialogue::Options`] state
+/// when the preceding Line was `#autocontinue`. Carries the line's
+/// speaker and text so the UI can render the prompt above the
+/// choice buttons without relying on frame-order heuristics.
+#[derive(Debug, Clone)]
+pub struct OptionsPrompt {
+    pub speaker: Option<String>,
+    pub text: String,
+}
+
+/// Holds the text of an `#autocontinue` line until the following
+/// [`CurrentDialogue::Options`] consumes it as a prompt header.
+/// Exists as a resource so `on_present_options` can attach the
+/// prompt regardless of which order observers fire in.
+#[derive(Resource, Default, Debug, Clone)]
+pub struct PendingOptionsPrompt(pub Option<OptionsPrompt>);
 
 /// Player-facing view of a single dialogue option.
 #[derive(Debug, Clone)]
@@ -362,11 +385,49 @@ pub struct DialogueOptionView {
     pub hide_when_unavailable: bool,
 }
 
-/// Sent by upstream code (the visitor module) to begin a conversation
-/// at the given yarn node. Resolved by [`apply_start_dialogue`].
+/// Which subsystem owns a currently-running (or just-completed)
+/// dialog. Tagged on every [`StartDialogue`] so observers of
+/// `DialogueCompleted` can tell "was this mine?" without reading
+/// each other's internal state.
+///
+/// The enum is intentionally coarse — just enough to route the
+/// shared dialog UI back to its owning subsystem. Fine-grained
+/// identity (which quest? which NPC?) stays in the subsystem's
+/// own resources (e.g. `DialogueInFlight`); this tag only asks
+/// "which concern?"
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum DialogueOwner {
+    /// No dialog has run yet this session, or the last owner has
+    /// been cleared after its completion window.
+    #[default]
+    None,
+    /// A quest's Talk stage — visitor-driven or narrator-only.
+    Quest,
+    /// A bunker visitor's conversation (admit or step-away resume).
+    Visitor,
+    /// A radio broadcast or the idle static yarn.
+    Radio,
+}
+
+/// Tracks the owner of the current (or most recently completed)
+/// dialog. Set by [`apply_start_dialogue`] when a new dialog
+/// starts; cleared one frame after [`DialogueCompleted`] so
+/// observers watching the completion have the owner readable in
+/// the same frame the event fires.
+#[derive(Resource, Debug, Clone, Copy, Default)]
+pub struct CurrentDialogueOwner(pub DialogueOwner);
+
+/// Sent by upstream code (visitor, quest bridge, radio) to begin
+/// a conversation at the given yarn node. Resolved by
+/// [`apply_start_dialogue`].
+///
+/// `by` identifies the subsystem starting the dialog so a
+/// [`DialogueCompleted`] observer can route the event to the
+/// right handler without coupling subsystems to each other.
 #[derive(Message, Debug, Clone)]
 pub struct StartDialogue {
     pub node: String,
+    pub by: DialogueOwner,
 }
 
 /// Sent by the run-reset plumbing to abandon any in-flight Yarn
